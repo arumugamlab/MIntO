@@ -1,0 +1,789 @@
+Module;Eukaryotes;Eukaryotes.perc;Prokaryotes;Prokaryotes.perc;Animals;Animals.perc;Plants;Plants.perc;Fungi;Fungi.perc;Protists;Protists.perc;Bacteria;Bacteria.perc;Archaea;Archaea.perc;Definition
+M00001;385;90.4;1945;41.2;166;96.0;76;91.6;118;97.5;25;51.0;1868;41.9;77;29.5;Glycolysis (Embden-Meyerhof pathway), glucose => pyruvate
+M00002;409;96.0;4192;88.9;168;97.1;81;97.6;118;97.5;42;85.7;3995;89.6;197;75.5;Glycolysis, core module involving three-carbon compounds
+M00003;365;85.7;2675;56.7;165;95.4;74;89.2;111;91.7;15;30.6;2569;57.6;106;40.6;Gluconeogenesis, oxaloacetate => fructose-6P
+M00004;354;83.1;2223;47.1;162;93.6;79;95.2;102;84.3;11;22.4;2223;49.9;0;0.0;Pentose phosphate pathway (Pentose phosphate cycle)
+M00005;415;97.4;4536;96.1;173;100.0;81;97.6;116;95.9;45;91.8;4280;96.0;256;98.1;PRPP biosynthesis, ribose 5P => PRPP
+M00006;386;90.6;2611;55.3;167;96.5;81;97.6;119;98.3;19;38.8;2608;58.5;3;1.1;Pentose phosphate pathway, oxidative phase, glucose 6P => ribulose 5P
+M00007;374;87.8;3739;79.2;167;96.5;80;96.4;103;85.1;24;49.0;3705;83.1;34;13.0;Pentose phosphate pathway, non-oxidative phase, fructose 6P => ribose 5P
+M00008;0;0.0;1254;26.6;0;0.0;0;0.0;0;0.0;0;0.0;1254;28.1;0;0.0;Entner-Doudoroff pathway, glucose-6P => glyceraldehyde-3P + pyruvate
+M00009;262;61.5;2823;59.8;152;87.9;4;4.8;102;84.3;4;8.2;2741;61.5;82;31.4;Citrate cycle (TCA cycle, Krebs cycle)
+M00010;394;92.5;3600;76.3;169;97.7;78;94.0;114;94.2;33;67.3;3467;77.8;133;51.0;Citrate cycle, first carbon oxidation, oxaloacetate => 2-oxoglutarate
+M00011;269;63.1;3008;63.8;154;89.0;7;8.4;103;85.1;5;10.2;2916;65.4;92;35.2;Citrate cycle, second carbon oxidation, 2-oxoglutarate => oxaloacetate
+M00012;186;43.7;1652;35.0;0;0.0;66;79.5;113;93.4;7;14.3;1624;36.4;28;10.7;Glyoxylate cycle
+M00013;225;52.8;0;0.0;146;84.4;2;2.4;72;59.5;5;10.2;0;0.0;0;0.0;Malonate semialdehyde pathway, propanoyl-CoA => acetyl-CoA
+M00014;148;34.7;0;0.0;148;85.5;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Glucuronate pathway (uronate pathway)
+M00015;370;86.9;3463;73.4;167;96.5;80;96.4;111;91.7;12;24.5;3406;76.4;57;21.8;Proline biosynthesis, glutamate => proline
+M00016;0;0.0;2239;47.5;0;0.0;0;0.0;0;0.0;0;0.0;2239;50.2;0;0.0;Lysine biosynthesis, succinyl-DAP pathway, aspartate => lysine
+M00017;0;0.0;787;16.7;0;0.0;0;0.0;0;0.0;0;0.0;787;17.7;0;0.0;Methionine biosynthesis, apartate => homoserine => methionine
+M00018;185;43.4;3608;76.5;0;0.0;78;94.0;107;88.4;0;0.0;3461;77.7;147;56.3;Threonine biosynthesis, aspartate => homoserine => threonine
+M00019;188;44.1;3475;73.7;0;0.0;78;94.0;110;90.9;0;0.0;3320;74.5;155;59.4;Valine/isoleucine biosynthesis, pyruvate => valine / 2-oxobutanoate => isoleucine
+M00020;332;77.9;2240;47.5;159;91.9;79;95.2;84;69.4;10;20.4;2221;49.8;19;7.3;Serine biosynthesis, glycerate-3P => serine
+M00021;98;23.0;3470;73.5;1;0.6;82;98.8;1;0.8;14;28.6;3392;76.1;78;29.9;Cysteine biosynthesis, serine => cysteine
+M00022;200;46.9;3588;76.0;0;0.0;79;95.2;109;90.1;12;24.5;3521;79.0;67;25.7;Shikimate pathway, phosphoenolpyruvate + erythrose-4P => chorismate
+M00023;188;44.1;3037;64.4;0;0.0;72;86.7;110;90.9;6;12.2;2844;63.8;193;73.9;Tryptophan biosynthesis, chorismate => tryptophan
+M00024;73;17.1;1182;25.1;0;0.0;1;1.2;72;59.5;0;0.0;1182;26.5;0;0.0;Phenylalanine biosynthesis, chorismate => phenylalanine
+M00025;0;0.0;837;17.7;0;0.0;0;0.0;0;0.0;0;0.0;837;18.8;0;0.0;Tyrosine biosynthesis, chorismate => tyrosine
+M00026;179;42.0;1961;41.6;0;0.0;78;94.0;98;81.0;3;6.1;1942;43.6;19;7.3;Histidine biosynthesis, PRPP => histidine
+M00027;266;62.4;509;10.8;160;92.5;1;1.2;105;86.8;0;0.0;494;11.1;15;5.7;GABA (gamma-Aminobutyrate) shunt
+M00028;195;45.8;2949;62.5;0;0.0;79;95.2;110;90.9;6;12.2;2856;64.1;93;35.6;Ornithine biosynthesis, glutamate => ornithine
+M00029;113;26.5;0;0.0;108;62.4;0;0.0;0;0.0;5;10.2;0;0.0;0;0.0;Urea cycle
+M00030;87;20.4;0;0.0;0;0.0;0;0.0;87;71.9;0;0.0;0;0.0;0;0.0;Lysine biosynthesis, AAA pathway, 2-oxoglutarate => 2-aminoadipate => lysine
+M00031;0;0.0;144;3.1;0;0.0;0;0.0;0;0.0;0;0.0;35;0.8;109;41.8;Lysine biosynthesis, mediated by LysW, 2-aminoadipate => lysine
+M00032;118;27.7;0;0.0;115;66.5;0;0.0;0;0.0;3;6.1;0;0.0;0;0.0;Lysine degradation, lysine => saccharopine => acetoacetyl-CoA
+M00033;0;0.0;401;8.5;0;0.0;0;0.0;0;0.0;0;0.0;394;8.8;7;2.7;Ectoine biosynthesis, aspartate => ectoine
+M00034;257;60.3;351;7.4;130;75.1;67;80.7;55;45.5;5;10.2;351;7.9;0;0.0;Methionine salvage pathway
+M00035;227;53.3;475;10.1;144;83.2;2;2.4;72;59.5;9;18.4;454;10.2;21;8.0;Methionine degradation
+M00036;282;66.2;324;6.9;145;83.8;67;80.7;63;52.1;7;14.3;324;7.3;0;0.0;Leucine degradation, leucine => acetoacetate + acetyl-CoA
+M00037;88;20.7;0;0.0;88;50.9;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Melatonin biosynthesis, tryptophan => serotonin => melatonin
+M00038;0;0.0;7;0.1;0;0.0;0;0.0;0;0.0;0;0.0;7;0.2;0;0.0;Tryptophan metabolism, tryptophan => kynurenine => 2-aminomuconate
+M00039;57;13.4;0;0.0;0;0.0;57;68.7;0;0.0;0;0.0;0;0.0;0;0.0;Monolignol biosynthesis, phenylalanine/tyrosine => monolignol
+M00040;80;18.8;197;4.2;0;0.0;79;95.2;0;0.0;1;2.0;197;4.4;0;0.0;Tyrosine biosynthesis, prephanate => pretyrosine => tyrosine
+M00042;92;21.6;0;0.0;92;53.2;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Catecholamine biosynthesis, tyrosine => dopamine => noradrenaline => adrenaline
+M00043;104;24.4;0;0.0;104;60.1;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Thyroid hormone biosynthesis, tyrosine => triiodothyronine/thyroxine
+M00044;98;23.0;0;0.0;98;56.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Tyrosine degradation, tyrosine => homogentisate
+M00045;6;1.4;1259;26.7;2;1.2;0;0.0;0;0.0;4;8.2;1245;27.9;14;5.4;Histidine degradation, histidine => N-formiminoglutamate => glutamate
+M00046;243;57.0;439;9.3;166;96.0;72;86.7;0;0.0;5;10.2;439;9.8;0;0.0;Pyrimidine degradation, uracil => beta-alanine, thymine => 3-aminoisobutanoate
+M00047;115;27.0;0;0.0;112;64.7;0;0.0;0;0.0;3;6.1;0;0.0;0;0.0;Creatine pathway
+M00048;319;74.9;3236;68.6;150;86.7;66;79.5;103;85.1;0;0.0;3189;71.6;47;18.0;Inosine monophosphate biosynthesis, PRPP + glutamine => IMP
+M00049;399;93.7;4274;90.6;172;99.4;80;96.4;114;94.2;33;67.3;4033;90.5;241;92.3;Adenine ribonucleotide biosynthesis, IMP => ADP,ATP
+M00050;392;92.0;3985;84.5;166;96.0;82;98.8;108;89.3;36;73.5;3985;89.4;0;0.0;Guanine ribonucleotide biosynthesis IMP => GDP,GTP
+M00051;274;64.3;864;18.3;164;94.8;2;2.4;103;85.1;5;10.2;684;15.3;180;69.0;Uridine monophosphate biosynthesis, glutamine (+ PRPP) => UMP
+M00052;407;95.5;3710;78.6;172;99.4;81;97.6;114;94.2;40;81.6;3471;77.9;239;91.6;Pyrimidine ribonucleotide biosynthesis, UMP => UDP/UTP,CDP/CTP
+M00053;0;0.0;728;15.4;0;0.0;0;0.0;0;0.0;0;0.0;728;16.3;0;0.0;Pyrimidine deoxyribonuleotide biosynthesis, CDP/CTP => dCDP/dCTP,dTDP/dTTP
+M00055;287;67.4;0;0.0;139;80.3;68;81.9;76;62.8;4;8.2;0;0.0;0;0.0;N-glycan precursor biosynthesis
+M00056;43;10.1;0;0.0;43;24.9;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;O-glycan biosynthesis, mucin type core
+M00057;138;32.4;0;0.0;137;79.2;0;0.0;0;0.0;1;2.0;0;0.0;0;0.0;Glycosaminoglycan biosynthesis, linkage tetrasaccharide
+M00058;141;33.1;0;0.0;141;81.5;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Glycosaminoglycan biosynthesis, chondroitin sulfate backbone
+M00059;168;39.4;0;0.0;168;97.1;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Glycosaminoglycan biosynthesis, heparan sulfate backbone
+M00060;0;0.0;512;10.9;0;0.0;0;0.0;0;0.0;0;0.0;512;11.5;0;0.0;Lipopolysaccharide biosynthesis, KDO2-lipid A
+M00061;0;0.0;774;16.4;0;0.0;0;0.0;0;0.0;0;0.0;774;17.4;0;0.0;D-Glucuronate degradation, D-glucuronate => pyruvate + D-glyceraldehyde 3P
+M00063;0;0.0;1823;38.6;0;0.0;0;0.0;0;0.0;0;0.0;1823;40.9;0;0.0;CMP-KDO biosynthesis
+M00064;0;0.0;1049;22.2;0;0.0;0;0.0;0;0.0;0;0.0;1049;23.5;0;0.0;ADP-L-glycero-D-manno-heptose biosynthesis
+M00065;298;70.0;0;0.0;147;85.0;64;77.1;83;68.6;4;8.2;0;0.0;0;0.0;GPI-anchor biosynthesis, core oligosaccharide
+M00066;104;24.4;0;0.0;104;60.1;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Lactosylceramide biosynthesis
+M00067;112;26.3;0;0.0;111;64.2;0;0.0;0;0.0;1;2.0;0;0.0;0;0.0;Sulfoglycolipids biosynthesis, ceramide/1-alkyl-2-acylglycerol => sulfatide/seminolipid
+M00068;77;18.1;0;0.0;77;44.5;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Glycosphingolipid biosynthesis, globo-series, LacCer => Gb4Cer
+M00069;105;24.6;0;0.0;105;60.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Glycosphingolipid biosynthesis, ganglio series, LacCer => GT3
+M00070;112;26.3;0;0.0;112;64.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Glycosphingolipid biosynthesis, lacto-series, LacCer => Lc4Cer
+M00071;110;25.8;0;0.0;110;63.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Glycosphingolipid biosynthesis, neolacto-series, LacCer => nLc4Cer
+M00072;330;77.5;0;0.0;154;89.0;71;85.5;101;83.5;4;8.2;0;0.0;0;0.0;N-glycosylation by oligosaccharyltransferase
+M00073;349;81.9;0;0.0;155;89.6;76;91.6;108;89.3;10;20.4;0;0.0;0;0.0;N-glycan precursor trimming
+M00074;27;6.3;0;0.0;0;0.0;0;0.0;27;22.3;0;0.0;0;0.0;0;0.0;N-glycan biosynthesis, high-mannose type
+M00075;101;23.7;0;0.0;101;58.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;N-glycan biosynthesis, complex type
+M00076;99;23.2;0;0.0;99;57.2;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Dermatan sulfate degradation
+M00077;104;24.4;0;0.0;104;60.1;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Chondroitin sulfate degradation
+M00078;103;24.2;0;0.0;103;59.5;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Heparan sulfate degradation
+M00079;114;26.8;0;0.0;114;65.9;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Keratan sulfate degradation
+M00080;0;0.0;50;1.1;0;0.0;0;0.0;0;0.0;0;0.0;50;1.1;0;0.0;Lipopolysaccharide biosynthesis, inner core => outer core => O-antigen
+M00081;96;22.5;0;0.0;0;0.0;66;79.5;30;24.8;0;0.0;0;0.0;0;0.0;Pectin degradation
+M00082;348;81.7;3395;72.0;161;93.1;79;95.2;95;78.5;13;26.5;3395;76.2;0;0.0;Fatty acid biosynthesis, initiation
+M00083;356;83.6;3836;81.3;163;94.2;79;95.2;95;78.5;19;38.8;3836;86.1;0;0.0;Fatty acid biosynthesis, elongation
+M00085;179;42.0;0;0.0;168;97.1;0;0.0;2;1.7;9;18.4;0;0.0;0;0.0;Fatty acid biosynthesis, elongation, mitochondria
+M00086;424;99.5;3290;69.7;173;100.0;82;98.8;121;100.0;48;98.0;3178;71.3;112;42.9;beta-Oxidation, acyl-CoA synthesis
+M00087;290;68.1;1424;30.2;171;98.8;78;94.0;22;18.2;19;38.8;1424;31.9;0;0.0;beta-Oxidation
+M00088;0;0.0;5;0.1;0;0.0;0;0.0;0;0.0;0;0.0;5;0.1;0;0.0;Ketone body biosynthesis, acetyl-CoA => acetoacetate/3-hydroxybutyrate/acetone
+M00089;171;40.1;0;0.0;168;97.1;2;2.4;0;0.0;1;2.0;0;0.0;0;0.0;Triacylglycerol biosynthesis
+M00090;138;32.4;0;0.0;123;71.1;0;0.0;15;12.4;0;0.0;0;0.0;0;0.0;Phosphatidylcholine (PC) biosynthesis, choline => PC
+M00091;234;54.9;289;6.1;109;63.0;4;4.8;111;91.7;10;20.4;288;6.5;1;0.4;Phosphatidylcholine (PC) biosynthesis, PE => PC
+M00092;349;81.9;0;0.0;169;97.7;75;90.4;73;60.3;32;65.3;0;0.0;0;0.0;Phosphatidylethanolamine (PE) biosynthesis, ethanolamine => PE
+M00093;108;25.4;2971;63.0;0;0.0;0;0.0;108;89.3;0;0.0;2971;66.7;0;0.0;Phosphatidylethanolamine (PE) biosynthesis, PA => PS => PE
+M00094;344;80.8;0;0.0;171;98.8;62;74.7;101;83.5;10;20.4;0;0.0;0;0.0;Ceramide biosynthesis
+M00095;312;73.2;45;1.0;152;87.9;67;80.7;83;68.6;10;20.4;21;0.5;24;9.2;C5 isoprenoid biosynthesis, mevalonate pathway
+M00096;80;18.8;1231;26.1;0;0.0;74;89.2;0;0.0;6;12.2;1231;27.6;0;0.0;C5 isoprenoid biosynthesis, non-mevalonate pathway
+M00097;68;16.0;0;0.0;0;0.0;68;81.9;0;0.0;0;0.0;0;0.0;0;0.0;beta-Carotene biosynthesis, GGAP => beta-carotene
+M00098;328;77.0;0;0.0;120;69.4;80;96.4;105;86.8;23;46.9;0;0.0;0;0.0;Acylglycerol degradation
+M00099;310;72.8;0;0.0;171;98.8;59;71.1;72;59.5;8;16.3;0;0.0;0;0.0;Sphingosine biosynthesis
+M00100;373;87.6;0;0.0;167;96.5;76;91.6;110;90.9;20;40.8;0;0.0;0;0.0;Sphingosine degradation
+M00101;79;18.5;0;0.0;79;45.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Cholesterol biosynthesis, squalene 2,3-epoxide => cholesterol
+M00102;101;23.7;0;0.0;0;0.0;0;0.0;101;83.5;0;0.0;0;0.0;0;0.0;Ergocalciferol biosynthesis
+M00103;91;21.4;0;0.0;91;52.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Cholecalciferol biosynthesis
+M00104;10;2.3;0;0.0;10;5.8;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Bile acid biosynthesis, cholesterol => cholate/chenodeoxycholate
+M00106;51;12.0;0;0.0;51;29.5;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Conjugated bile acid biosynthesis, cholate => taurocholate/glycocholate
+M00107;101;23.7;0;0.0;101;58.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Steroid hormone biosynthesis, cholesterol => prognenolone => progesterone
+M00108;5;1.2;0;0.0;5;2.9;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;C21-Steroid hormone biosynthesis, progesterone => corticosterone/aldosterone
+M00109;82;19.2;0;0.0;82;47.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;C21-Steroid hormone biosynthesis, progesterone => cortisol/cortisone
+M00110;102;23.9;0;0.0;102;59.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;C19/C18-Steroid hormone biosynthesis, pregnenolone => androstenedione => estrone
+M00112;84;19.7;45;1.0;0;0.0;80;96.4;0;0.0;4;8.2;45;1.0;0;0.0;Tocopherol/tocotorienol biosynthesis
+M00113;64;15.0;0;0.0;0;0.0;64;77.1;0;0.0;0;0.0;0;0.0;0;0.0;Jasmonic acid biosynthesis
+M00114;72;16.9;0;0.0;0;0.0;72;86.7;0;0.0;0;0.0;0;0.0;0;0.0;Ascorbate biosynthesis, plants, glucose-6P => ascorbate
+M00115;71;16.7;2489;52.8;0;0.0;71;85.5;0;0.0;0;0.0;2489;55.8;0;0.0;NAD biosynthesis, aspartate => NAD
+M00116;0;0.0;387;8.2;0;0.0;0;0.0;0;0.0;0;0.0;387;8.7;0;0.0;Menaquinone biosynthesis, chorismate => menaquinone
+M00117;0;0.0;561;11.9;0;0.0;0;0.0;0;0.0;0;0.0;561;12.6;0;0.0;Ubiquinone biosynthesis, prokaryotes, chorismate => ubiquinone
+M00118;299;70.2;1729;36.6;162;93.6;79;95.2;57;47.1;1;2.0;1728;38.8;1;0.4;Glutathione biosynthesis, glutamate => glutathione
+M00119;0;0.0;1612;34.2;0;0.0;0;0.0;0;0.0;0;0.0;1612;36.2;0;0.0;Pantothenate biosynthesis, valine/L-aspartate => pantothenate
+M00120;265;62.2;3820;81.0;158;91.3;65;78.3;36;29.8;6;12.2;3820;85.7;0;0.0;Coenzyme A biosynthesis, pantothenate => CoA
+M00121;0;0.0;424;9.0;0;0.0;0;0.0;0;0.0;0;0.0;424;9.5;0;0.0;Heme biosynthesis, glutamate => protoheme/siroheme
+M00122;0;0.0;959;20.3;0;0.0;0;0.0;0;0.0;0;0.0;959;21.5;0;0.0;Cobalamin biosynthesis, cobinamide => cobalamin
+M00123;160;37.6;2553;54.1;0;0.0;82;98.8;73;60.3;5;10.2;2536;56.9;17;6.5;Biotin biosynthesis, pimeloyl-ACP/CoA => biotin
+M00124;0;0.0;608;12.9;0;0.0;0;0.0;0;0.0;0;0.0;608;13.6;0;0.0;Pyridoxal biosynthesis, erythrose-4P => pyridoxal-5P
+M00125;10;2.3;1263;26.8;0;0.0;9;10.8;0;0.0;1;2.0;1263;28.3;0;0.0;Riboflavin biosynthesis, GTP => riboflavin/FMN/FAD
+M00126;109;25.6;1878;39.8;0;0.0;67;80.7;42;34.7;0;0.0;1878;42.1;0;0.0;Tetrahydrofolate biosynthesis, GTP => THF
+M00127;0;0.0;679;14.4;0;0.0;0;0.0;0;0.0;0;0.0;659;14.8;20;7.7;Thiamine biosynthesis, AIR => thiamine-P/thiamine-2P
+M00128;190;44.6;0;0.0;159;91.9;0;0.0;29;24.0;2;4.1;0;0.0;0;0.0;Ubiquinone biosynthesis, eukaryotes, 4-hydroxybenzoate => ubiquinone
+M00129;64;15.0;0;0.0;64;37.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Ascorbate biosynthesis, animals, glucose-1P => ascorbate
+M00130;175;41.1;0;0.0;172;99.4;0;0.0;0;0.0;3;6.1;0;0.0;0;0.0;Inositol phosphate metabolism, PI=> PIP2 => Ins(1,4,5)P3 => Ins(1,3,4,5)P4
+M00131;146;34.3;0;0.0;146;84.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Inositol phosphate metabolism, Ins(1,3,4,5)P4 => Ins(1,3,4)P3 => myo-inositol
+M00132;208;48.8;0;0.0;132;76.3;71;85.5;0;0.0;5;10.2;0;0.0;0;0.0;Inositol phosphate metabolism, Ins(1,3,4)P3 => phytate
+M00133;69;16.2;632;13.4;69;39.9;0;0.0;0;0.0;0;0.0;557;12.5;75;28.7;Polyamine biosynthesis, arginine => agmatine => putrescine => spermidine
+M00134;348;81.7;307;6.5;159;91.9;53;63.9;113;93.4;23;46.9;305;6.8;2;0.8;Polyamine biosynthesis, arginine => ornithine => putrescine
+M00135;121;28.4;238;5.0;121;69.9;0;0.0;0;0.0;0;0.0;238;5.3;0;0.0;GABA biosynthesis, eukaryotes, putrescine => GABA
+M00136;0;0.0;150;3.2;0;0.0;0;0.0;0;0.0;0;0.0;150;3.4;0;0.0;GABA biosynthesis, prokaryotes, putrescine => GABA
+M00137;67;15.7;0;0.0;0;0.0;67;80.7;0;0.0;0;0.0;0;0.0;0;0.0;Flavanone biosynthesis, phenylalanine => naringenin
+M00138;58;13.6;0;0.0;0;0.0;58;69.9;0;0.0;0;0.0;0;0.0;0;0.0;Flavonoid biosynthesis, naringenin => pelargonidin
+M00140;0;0.0;1550;32.9;0;0.0;0;0.0;0;0.0;0;0.0;1521;34.1;29;11.1;C1-unit interconversion, prokaryotes
+M00141;304;71.4;3;0.1;169;97.7;8;9.6;114;94.2;13;26.5;3;0.1;0;0.0;C1-unit interconversion, eukaryotes
+M00142;166;39.0;0;0.0;124;71.7;28;33.7;13;10.7;1;2.0;0;0.0;0;0.0;NADH:ubiquinone oxidoreductase, mitochondria
+M00143;296;69.5;0;0.0;161;93.1;37;44.6;93;76.9;5;10.2;0;0.0;0;0.0;NADH dehydrogenase (ubiquinone) Fe-S protein/flavoprotein complex, mitochondria
+M00144;0;0.0;2200;46.6;0;0.0;0;0.0;0;0.0;0;0.0;2200;49.4;0;0.0;NADH:quinone oxidoreductase, prokaryotes
+M00145;50;11.7;102;2.2;0;0.0;50;60.2;0;0.0;0;0.0;102;2.3;0;0.0;NAD(P)H:quinone oxidoreductase, chloroplasts and cyanobacteria
+M00146;107;25.1;0;0.0;107;61.8;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;NADH dehydrogenase (ubiquinone) 1 alpha subcomplex
+M00147;107;25.1;0;0.0;107;61.8;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;NADH dehydrogenase (ubiquinone) 1 beta subcomplex
+M00148;280;65.7;0;0.0;160;92.5;7;8.4;108;89.3;5;10.2;0;0.0;0;0.0;Succinate dehydrogenase (ubiquinone)
+M00149;0;0.0;2112;44.8;0;0.0;0;0.0;0;0.0;0;0.0;2038;45.7;74;28.4;Succinate dehydrogenase, prokaryotes
+M00150;0;0.0;578;12.3;0;0.0;0;0.0;0;0.0;0;0.0;578;13.0;0;0.0;Fumarate reductase, prokaryotes
+M00151;197;46.2;2009;42.6;119;68.8;46;55.4;24;19.8;8;16.3;2009;45.1;0;0.0;Cytochrome bc1 complex respiratory unit
+M00152;81;19.0;0;0.0;74;42.8;0;0.0;7;5.8;0;0.0;0;0.0;0;0.0;Cytochrome bc1 complex
+M00153;0;0.0;3137;66.5;0;0.0;0;0.0;0;0.0;0;0.0;3086;69.2;51;19.5;Cytochrome d ubiquinol oxidase
+M00154;66;15.5;0;0.0;66;38.2;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Cytochrome c oxidase
+M00155;0;0.0;2140;45.4;0;0.0;0;0.0;0;0.0;0;0.0;2099;47.1;41;15.7;Cytochrome c oxidase, prokaryotes
+M00156;0;0.0;906;19.2;0;0.0;0;0.0;0;0.0;0;0.0;906;20.3;0;0.0;Cytochrome c oxidase, cbb3-type
+M00157;60;14.1;4135;87.6;0;0.0;58;69.9;0;0.0;2;4.1;4118;92.4;17;6.5;F-type ATPase, prokaryotes and chloroplasts
+M00158;79;18.5;0;0.0;64;37.0;0;0.0;15;12.4;0;0.0;0;0.0;0;0.0;F-type ATPase, eukaryotes
+M00159;0;0.0;428;9.1;0;0.0;0;0.0;0;0.0;0;0.0;228;5.1;200;76.6;V/A-type ATPase, prokaryotes
+M00160;139;32.6;0;0.0;139;80.3;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;V-type ATPase, eukaryotes
+M00161;62;14.6;100;2.1;0;0.0;61;73.5;0;0.0;1;2.0;100;2.2;0;0.0;Photosystem II
+M00162;0;0.0;67;1.4;0;0.0;0;0.0;0;0.0;0;0.0;67;1.5;0;0.0;Cytochrome b6f complex
+M00163;63;14.8;101;2.1;0;0.0;61;73.5;0;0.0;2;4.1;101;2.3;0;0.0;Photosystem I
+M00165;72;16.9;195;4.1;0;0.0;71;85.5;0;0.0;1;2.0;195;4.4;0;0.0;Reductive pentose phosphate cycle (Calvin cycle)
+M00166;72;16.9;330;7.0;0;0.0;71;85.5;0;0.0;1;2.0;312;7.0;18;6.9;Reductive pentose phosphate cycle, ribulose-5P => glyceraldehyde-3P
+M00167;114;26.8;421;8.9;0;0.0;81;97.6;24;19.8;9;18.4;421;9.4;0;0.0;Reductive pentose phosphate cycle, glyceraldehyde-3P => ribulose-5P
+M00168;93;21.8;1941;41.1;1;0.6;82;98.8;0;0.0;10;20.4;1828;41.0;113;43.3;CAM (Crassulacean acid metabolism), dark
+M00169;82;19.2;607;12.9;0;0.0;77;92.8;0;0.0;5;10.2;607;13.6;0;0.0;CAM (Crassulacean acid metabolism), light
+M00170;77;18.1;0;0.0;1;0.6;71;85.5;0;0.0;5;10.2;0;0.0;0;0.0;C4-dicarboxylic acid cycle, phosphoenolpyruvate carboxykinase type
+M00171;70;16.4;0;0.0;0;0.0;70;84.3;0;0.0;0;0.0;0;0.0;0;0.0;C4-dicarboxylic acid cycle, NAD - malic enzyme type
+M00172;77;18.1;0;0.0;0;0.0;77;92.8;0;0.0;0;0.0;0;0.0;0;0.0;C4-dicarboxylic acid cycle, NADP - malic enzyme type
+M00173;0;0.0;25;0.5;0;0.0;0;0.0;0;0.0;0;0.0;25;0.6;0;0.0;Reductive citrate cycle (Arnon-Buchanan cycle)
+M00174;0;0.0;13;0.3;0;0.0;0;0.0;0;0.0;0;0.0;13;0.3;0;0.0;Methane oxidation, methanotroph, methane => formaldehyde
+M00175;0;0.0;460;9.7;0;0.0;0;0.0;0;0.0;0;0.0;410;9.2;50;19.2;Nitrogen fixation, nitrogen => ammonia
+M00176;118;27.7;1568;33.2;0;0.0;3;3.6;108;89.3;7;14.3;1555;34.9;13;5.0;Assimilatory sulfate reduction, sulfate => H2S
+M00177;385;90.4;0;0.0;156;90.2;82;98.8;107;88.4;40;81.6;0;0.0;0;0.0;Ribosome, eukaryotes
+M00178;52;12.2;4309;91.3;0;0.0;52;62.7;0;0.0;0;0.0;4309;96.7;0;0.0;Ribosome, bacteria
+M00179;54;12.7;256;5.4;0;0.0;54;65.1;0;0.0;0;0.0;0;0.0;256;98.1;Ribosome, archaea
+M00180;326;76.5;0;0.0;130;75.1;75;90.4;99;81.8;22;44.9;0;0.0;0;0.0;RNA polymerase II, eukaryotes
+M00181;341;80.0;0;0.0;158;91.3;74;89.2;101;83.5;8;16.3;0;0.0;0;0.0;RNA polymerase III, eukaryotes
+M00182;297;69.7;0;0.0;135;78.0;58;69.9;97;80.2;7;14.3;0;0.0;0;0.0;RNA polymerase I, eukaryotes
+M00183;0;0.0;3643;77.2;0;0.0;0;0.0;0;0.0;0;0.0;3643;81.7;0;0.0;RNA polymerase, bacteria
+M00184;0;0.0;201;4.3;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;201;77.0;RNA polymerase, archaea
+M00185;6;1.4;1580;33.5;0;0.0;6;7.2;0;0.0;0;0.0;1580;35.4;0;0.0;Sulfate transport system
+M00186;0;0.0;510;10.8;0;0.0;0;0.0;0;0.0;0;0.0;436;9.8;74;28.4;Tungstate transport system
+M00188;0;0.0;2223;47.1;0;0.0;0;0.0;0;0.0;0;0.0;2096;47.0;127;48.7;NitT/TauT family transport system
+M00189;0;0.0;2563;54.3;0;0.0;0;0.0;0;0.0;0;0.0;2484;55.7;79;30.3;Molybdate transport system
+M00190;0;0.0;1939;41.1;0;0.0;0;0.0;0;0.0;0;0.0;1891;42.4;48;18.4;Iron(III) transport system
+M00191;0;0.0;880;18.7;0;0.0;0;0.0;0;0.0;0;0.0;806;18.1;74;28.4;Thiamine transport system
+M00192;0;0.0;342;7.2;0;0.0;0;0.0;0;0.0;0;0.0;342;7.7;0;0.0;Putative thiamine transport system
+M00193;0;0.0;1159;24.6;0;0.0;0;0.0;0;0.0;0;0.0;1157;26.0;2;0.8;Putative spermidine/putrescine transport system
+M00194;0;0.0;495;10.5;0;0.0;0;0.0;0;0.0;0;0.0;495;11.1;0;0.0;Maltose/maltodextrin transport system
+M00196;0;0.0;768;16.3;0;0.0;0;0.0;0;0.0;0;0.0;768;17.2;0;0.0;Raffinose/stachyose/melibiose transport system
+M00197;0;0.0;23;0.5;0;0.0;0;0.0;0;0.0;0;0.0;23;0.5;0;0.0;Putative fructooligosaccharide transport system
+M00198;0;0.0;1049;22.2;0;0.0;0;0.0;0;0.0;0;0.0;1049;23.5;0;0.0;Putative sn-glycerol-phosphate transport system
+M00199;0;0.0;198;4.2;0;0.0;0;0.0;0;0.0;0;0.0;198;4.4;0;0.0;L-Arabinose/lactose transport system
+M00200;0;0.0;530;11.2;0;0.0;0;0.0;0;0.0;0;0.0;530;11.9;0;0.0;Putative sorbitol/mannitol transport system
+M00201;0;0.0;2609;55.3;0;0.0;0;0.0;0;0.0;0;0.0;2486;55.8;123;47.1;alpha-Glucoside transport system
+M00202;0;0.0;197;4.2;0;0.0;0;0.0;0;0.0;0;0.0;197;4.4;0;0.0;Oligogalacturonide transport system
+M00203;0;0.0;30;0.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;30;11.5;Glucose/arabinose transport system
+M00204;0;0.0;168;3.6;0;0.0;0;0.0;0;0.0;0;0.0;168;3.8;0;0.0;Trehalose/maltose transport system
+M00205;0;0.0;149;3.2;0;0.0;0;0.0;0;0.0;0;0.0;149;3.3;0;0.0;N-Acetylglucosamine transport system
+M00206;0;0.0;205;4.3;0;0.0;0;0.0;0;0.0;0;0.0;205;4.6;0;0.0;Cellobiose transport system
+M00207;0;0.0;2028;43.0;0;0.0;0;0.0;0;0.0;0;0.0;1933;43.4;95;36.4;Putative multiple sugar transport system
+M00208;0;0.0;1650;35.0;0;0.0;0;0.0;0;0.0;0;0.0;1614;36.2;36;13.8;Glycine betaine/proline transport system
+M00209;0;0.0;2153;45.6;0;0.0;0;0.0;0;0.0;0;0.0;2131;47.8;22;8.4;Osmoprotectant transport system
+M00210;0;0.0;1639;34.7;0;0.0;0;0.0;0;0.0;0;0.0;1639;36.8;0;0.0;Phospholipid transport system
+M00211;0;0.0;1064;22.6;0;0.0;0;0.0;0;0.0;0;0.0;1037;23.3;27;10.3;Putative ABC transport system
+M00212;0;0.0;1767;37.5;0;0.0;0;0.0;0;0.0;0;0.0;1764;39.6;3;1.1;Ribose transport system
+M00213;0;0.0;483;10.2;0;0.0;0;0.0;0;0.0;0;0.0;483;10.8;0;0.0;L-Arabinose transport system
+M00214;0;0.0;516;10.9;0;0.0;0;0.0;0;0.0;0;0.0;516;11.6;0;0.0;Methyl-galactoside transport system
+M00215;0;0.0;786;16.7;0;0.0;0;0.0;0;0.0;0;0.0;786;17.6;0;0.0;D-Xylose transport system
+M00216;0;0.0;466;9.9;0;0.0;0;0.0;0;0.0;0;0.0;466;10.5;0;0.0;Multiple sugar transport system
+M00217;0;0.0;72;1.5;0;0.0;0;0.0;0;0.0;0;0.0;72;1.6;0;0.0;D-Allose transport system
+M00218;0;0.0;203;4.3;0;0.0;0;0.0;0;0.0;0;0.0;203;4.6;0;0.0;Fructose transport system
+M00219;0;0.0;294;6.2;0;0.0;0;0.0;0;0.0;0;0.0;294;6.6;0;0.0;AI-2 transport system
+M00220;0;0.0;274;5.8;0;0.0;0;0.0;0;0.0;0;0.0;274;6.1;0;0.0;Rhamnose transport system
+M00221;0;0.0;1497;31.7;0;0.0;0;0.0;0;0.0;0;0.0;1463;32.8;34;13.0;Putative simple sugar transport system
+M00222;0;0.0;3800;80.5;0;0.0;0;0.0;0;0.0;0;0.0;3612;81.0;188;72.0;Phosphate transport system
+M00223;0;0.0;1390;29.5;0;0.0;0;0.0;0;0.0;0;0.0;1355;30.4;35;13.4;Phosphonate transport system
+M00224;0;0.0;140;3.0;0;0.0;0;0.0;0;0.0;0;0.0;119;2.7;21;8.0;Fluoroquinolone transport system
+M00225;0;0.0;389;8.2;0;0.0;0;0.0;0;0.0;0;0.0;389;8.7;0;0.0;Lysine/arginine/ornithine transport system
+M00226;0;0.0;527;11.2;0;0.0;0;0.0;0;0.0;0;0.0;527;11.8;0;0.0;Histidine transport system
+M00227;0;0.0;499;10.6;0;0.0;0;0.0;0;0.0;0;0.0;499;11.2;0;0.0;Glutamine transport system
+M00228;0;0.0;464;9.8;0;0.0;0;0.0;0;0.0;0;0.0;464;10.4;0;0.0;Putative glutamine transport system
+M00229;0;0.0;507;10.7;0;0.0;0;0.0;0;0.0;0;0.0;507;11.4;0;0.0;Arginine transport system
+M00230;0;0.0;791;16.8;0;0.0;0;0.0;0;0.0;0;0.0;791;17.7;0;0.0;Glutamate/aspartate transport system
+M00231;0;0.0;136;2.9;0;0.0;0;0.0;0;0.0;0;0.0;136;3.1;0;0.0;Octopine/nopaline transport system
+M00232;0;0.0;739;15.7;0;0.0;0;0.0;0;0.0;0;0.0;739;16.6;0;0.0;General L-amino acid transport system
+M00233;0;0.0;386;8.2;0;0.0;0;0.0;0;0.0;0;0.0;386;8.7;0;0.0;Glutamate transport system
+M00234;0;0.0;1072;22.7;0;0.0;0;0.0;0;0.0;0;0.0;1072;24.1;0;0.0;Cystine transport system
+M00235;0;0.0;205;4.3;0;0.0;0;0.0;0;0.0;0;0.0;205;4.6;0;0.0;Arginine/ornithine transport system
+M00236;0;0.0;3022;64.1;0;0.0;0;0.0;0;0.0;0;0.0;2932;65.8;90;34.5;Putative polar amino acid transport system
+M00237;0;0.0;2285;48.4;0;0.0;0;0.0;0;0.0;0;0.0;2200;49.4;85;32.6;Branched-chain amino acid transport system
+M00238;0;0.0;2757;58.4;0;0.0;0;0.0;0;0.0;0;0.0;2757;61.9;0;0.0;D-Methionine transport system
+M00239;0;0.0;3197;67.8;0;0.0;0;0.0;0;0.0;0;0.0;2983;66.9;214;82.0;Peptides/nickel transport system
+M00240;0;0.0;3511;74.4;0;0.0;0;0.0;0;0.0;0;0.0;3291;73.8;220;84.3;Iron complex transport system
+M00241;0;0.0;429;9.1;0;0.0;0;0.0;0;0.0;0;0.0;429;9.6;0;0.0;Vitamin B12 transport system
+M00242;0;0.0;2449;51.9;0;0.0;0;0.0;0;0.0;0;0.0;2354;52.8;95;36.4;Zinc transport system
+M00243;0;0.0;81;1.7;0;0.0;0;0.0;0;0.0;0;0.0;81;1.8;0;0.0;Manganese/iron transport system
+M00244;0;0.0;1251;26.5;0;0.0;0;0.0;0;0.0;0;0.0;1177;26.4;74;28.4;Putative zinc/manganese transport system
+M00245;0;0.0;809;17.1;0;0.0;0;0.0;0;0.0;0;0.0;668;15.0;141;54.0;Cobalt/nickel transport system
+M00246;0;0.0;894;18.9;0;0.0;0;0.0;0;0.0;0;0.0;753;16.9;141;54.0;Nickel transport system
+M00247;0;0.0;1071;22.7;0;0.0;0;0.0;0;0.0;0;0.0;1071;24.0;0;0.0;Putative ABC transport system
+M00249;0;0.0;473;10.0;0;0.0;0;0.0;0;0.0;0;0.0;473;10.6;0;0.0;Capsular polysaccharide transport system
+M00250;0;0.0;1101;23.3;0;0.0;0;0.0;0;0.0;0;0.0;1061;23.8;40;15.3;Lipopolysaccharide transport system
+M00251;0;0.0;483;10.2;0;0.0;0;0.0;0;0.0;0;0.0;483;10.8;0;0.0;Teichoic acid transport system
+M00252;0;0.0;424;9.0;0;0.0;0;0.0;0;0.0;0;0.0;407;9.1;17;6.5;Lipooligosaccharide transport system
+M00253;0;0.0;350;7.4;0;0.0;0;0.0;0;0.0;0;0.0;350;7.9;0;0.0;Sodium transport system
+M00254;0;0.0;4206;89.1;0;0.0;0;0.0;0;0.0;0;0.0;3955;88.7;251;96.2;ABC-2 type transport system
+M00255;0;0.0;2514;53.3;0;0.0;0;0.0;0;0.0;0;0.0;2476;55.6;38;14.6;Lipoprotein-releasing system
+M00256;0;0.0;3170;67.2;0;0.0;0;0.0;0;0.0;0;0.0;3170;71.1;0;0.0;Cell division transport system
+M00257;0;0.0;83;1.8;0;0.0;0;0.0;0;0.0;0;0.0;83;1.9;0;0.0;Hemin transport system
+M00258;0;0.0;3896;82.6;0;0.0;0;0.0;0;0.0;0;0.0;3710;83.2;186;71.3;Putative ABC transport system
+M00259;0;0.0;1535;32.5;0;0.0;0;0.0;0;0.0;0;0.0;1504;33.7;31;11.9;Heme transport system
+M00260;0;0.0;3789;80.3;0;0.0;0;0.0;0;0.0;0;0.0;3789;85.0;0;0.0;DNA polymerase III complex, bacteria
+M00261;386;90.6;0;0.0;159;91.9;80;96.4;110;90.9;37;75.5;0;0.0;0;0.0;DNA polymerase alpha / primase complex
+M00262;228;53.5;0;0.0;88;50.9;69;83.1;69;57.0;2;4.1;0;0.0;0;0.0;DNA polymerase delta complex
+M00263;181;42.5;0;0.0;136;78.6;9;10.8;34;28.1;2;4.1;0;0.0;0;0.0;DNA polymerase epsilon complex
+M00264;0;0.0;198;4.2;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;198;75.9;DNA polymerase II complex, archaea
+M00265;0;0.0;628;13.3;0;0.0;0;0.0;0;0.0;0;0.0;628;14.1;0;0.0;PTS system, glucose-specific II component
+M00266;0;0.0;477;10.1;0;0.0;0;0.0;0;0.0;0;0.0;477;10.7;0;0.0;PTS system, maltose/glucose-specific II component
+M00267;0;0.0;480;10.2;0;0.0;0;0.0;0;0.0;0;0.0;480;10.8;0;0.0;PTS system, N-acetylglucosamine-specific II component
+M00268;0;0.0;421;8.9;0;0.0;0;0.0;0;0.0;0;0.0;421;9.4;0;0.0;PTS system, alpha-glucoside-specific II component
+M00269;0;0.0;324;6.9;0;0.0;0;0.0;0;0.0;0;0.0;324;7.3;0;0.0;PTS system, sucrose-specific II component
+M00270;0;0.0;901;19.1;0;0.0;0;0.0;0;0.0;0;0.0;901;20.2;0;0.0;PTS system, trehalose-specific II component
+M00271;0;0.0;878;18.6;0;0.0;0;0.0;0;0.0;0;0.0;878;19.7;0;0.0;PTS system, beta-glucoside-specific II component
+M00272;0;0.0;234;5.0;0;0.0;0;0.0;0;0.0;0;0.0;234;5.3;0;0.0;PTS system, beta-glucoside (arbutin/salicin/cellobiose)-specific II component
+M00273;0;0.0;1897;40.2;0;0.0;0;0.0;0;0.0;0;0.0;1888;42.4;9;3.4;PTS system, fructose-specific II component
+M00274;0;0.0;996;21.1;0;0.0;0;0.0;0;0.0;0;0.0;996;22.3;0;0.0;PTS system, mannitol-specific II component
+M00275;0;0.0;1003;21.3;0;0.0;0;0.0;0;0.0;0;0.0;1003;22.5;0;0.0;PTS system, cellobiose-specific II component
+M00276;0;0.0;906;19.2;0;0.0;0;0.0;0;0.0;0;0.0;906;20.3;0;0.0;PTS system, mannose-specific II component
+M00277;0;0.0;351;7.4;0;0.0;0;0.0;0;0.0;0;0.0;351;7.9;0;0.0;PTS system, N-acetylgalactosamine-specific II component
+M00278;0;0.0;104;2.2;0;0.0;0;0.0;0;0.0;0;0.0;104;2.3;0;0.0;PTS system, sorbose-specific II component
+M00279;0;0.0;479;10.2;0;0.0;0;0.0;0;0.0;0;0.0;477;10.7;2;0.8;PTS system, galactitol-specific II component
+M00280;0;0.0;506;10.7;0;0.0;0;0.0;0;0.0;0;0.0;506;11.4;0;0.0;PTS system, glucitol/sorbitol-specific II component
+M00281;0;0.0;238;5.0;0;0.0;0;0.0;0;0.0;0;0.0;238;5.3;0;0.0;PTS system, lactose-specific II component
+M00282;0;0.0;17;0.4;0;0.0;0;0.0;0;0.0;0;0.0;17;0.4;0;0.0;PTS system, D-glucosamine-specific II component
+M00283;0;0.0;847;18.0;0;0.0;0;0.0;0;0.0;0;0.0;845;19.0;2;0.8;PTS system, ascorbate-specific II component
+M00284;340;79.8;0;0.0;159;91.9;73;88.0;104;86.0;4;8.2;0;0.0;0;0.0;Origin recognition complex
+M00285;421;98.8;0;0.0;171;98.8;82;98.8;120;99.2;48;98.0;0;0.0;0;0.0;MCM complex
+M00286;352;82.6;0;0.0;158;91.3;72;86.7;102;84.3;20;40.8;0;0.0;0;0.0;GINS complex
+M00287;0;0.0;88;1.9;0;0.0;0;0.0;0;0.0;0;0.0;88;2.0;0;0.0;PTS system, galactosamine-specific II component
+M00288;308;72.3;0;0.0;150;86.7;75;90.4;72;59.5;11;22.4;0;0.0;0;0.0;RPA complex
+M00289;422;99.1;0;0.0;172;99.4;81;97.6;121;100.0;48;98.0;0;0.0;0;0.0;RF-C complex
+M00290;362;85.0;0;0.0;156;90.2;78;94.0;109;90.1;19;38.8;0;0.0;0;0.0;Holo-TFIIH complex
+M00291;234;54.9;0;0.0;157;90.8;68;81.9;1;0.8;8;16.3;0;0.0;0;0.0;MRN complex
+M00292;18;4.2;0;0.0;0;0.0;0;0.0;18;14.9;0;0.0;0;0.0;0;0.0;MRX complex
+M00293;327;76.8;0;0.0;155;89.6;64;77.1;101;83.5;7;14.3;0;0.0;0;0.0;DNA polymerase zeta complex
+M00294;156;36.6;0;0.0;156;90.2;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;DNA polymerase gamma complex
+M00295;232;54.5;0;0.0;160;92.5;67;80.7;0;0.0;5;10.2;0;0.0;0;0.0;BRCA1-associated genome surveillance complex (BASC)
+M00296;127;29.8;0;0.0;124;71.7;0;0.0;0;0.0;3;6.1;0;0.0;0;0.0;BER complex
+M00297;159;37.3;0;0.0;140;80.9;7;8.4;0;0.0;12;24.5;0;0.0;0;0.0;DNA-PK complex
+M00298;0;0.0;232;4.9;0;0.0;0;0.0;0;0.0;0;0.0;230;5.2;2;0.8;Multidrug/hemolysin transport system
+M00299;0;0.0;1769;37.5;0;0.0;0;0.0;0;0.0;0;0.0;1744;39.1;25;9.6;Spermidine/putrescine transport system
+M00300;0;0.0;1018;21.6;0;0.0;0;0.0;0;0.0;0;0.0;1018;22.8;0;0.0;Putrescine transport system
+M00301;0;0.0;50;1.1;0;0.0;0;0.0;0;0.0;0;0.0;50;1.1;0;0.0;Mannopine transport system
+M00302;0;0.0;243;5.2;0;0.0;0;0.0;0;0.0;0;0.0;243;5.5;0;0.0;2-Aminoethylphosphonate transport system
+M00303;0;0.0;241;5.1;0;0.0;0;0.0;0;0.0;0;0.0;241;5.4;0;0.0;PTS system, N-acetylmuramic acid-specific II component
+M00304;0;0.0;25;0.5;0;0.0;0;0.0;0;0.0;0;0.0;25;0.6;0;0.0;PTS system, fructose-specific II component
+M00305;0;0.0;110;2.3;0;0.0;0;0.0;0;0.0;0;0.0;110;2.5;0;0.0;PTS system, 2-O-A-mannosyl-D-glycerate-specific II component
+M00306;0;0.0;231;4.9;0;0.0;0;0.0;0;0.0;0;0.0;231;5.2;0;0.0;PTS system, fructose-specific II-like component
+M00307;387;90.8;4311;91.4;170;98.3;82;98.8;104;86.0;31;63.3;4081;91.6;230;88.1;Pyruvate oxidation, pyruvate => acetyl-CoA
+M00308;0;0.0;21;0.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;21;8.0;Semi-phosphorylative Entner-Doudoroff pathway, gluconate => glycerate-3P
+M00309;0;0.0;30;0.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;30;11.5;Non-phosphorylative Entner-Doudoroff pathway, gluconate/galactonate => glycerate
+M00314;0;0.0;202;4.3;0;0.0;0;0.0;0;0.0;0;0.0;202;4.5;0;0.0;Bacitracin transport system
+M00315;0;0.0;207;4.4;0;0.0;0;0.0;0;0.0;0;0.0;207;4.6;0;0.0;Uncharacterized ABC transport system
+M00316;0;0.0;132;2.8;0;0.0;0;0.0;0;0.0;0;0.0;132;3.0;0;0.0;Manganese transport system
+M00317;0;0.0;482;10.2;0;0.0;0;0.0;0;0.0;0;0.0;482;10.8;0;0.0;Manganese/iron transport system
+M00318;0;0.0;54;1.1;0;0.0;0;0.0;0;0.0;0;0.0;54;1.2;0;0.0;Iron/zinc/manganese/copper transport system
+M00319;0;0.0;439;9.3;0;0.0;0;0.0;0;0.0;0;0.0;437;9.8;2;0.8;Manganese/zinc/iron transport system
+M00320;0;0.0;2504;53.1;0;0.0;0;0.0;0;0.0;0;0.0;2504;56.2;0;0.0;Lipopolysaccharide export system
+M00321;0;0.0;56;1.2;0;0.0;0;0.0;0;0.0;0;0.0;56;1.3;0;0.0;Bicarbonate transport system
+M00322;0;0.0;60;1.3;0;0.0;0;0.0;0;0.0;0;0.0;60;1.3;0;0.0;Neutral amino acid transport system
+M00323;0;0.0;1025;21.7;0;0.0;0;0.0;0;0.0;0;0.0;1024;23.0;1;0.4;Urea transport system
+M00324;0;0.0;885;18.8;0;0.0;0;0.0;0;0.0;0;0.0;885;19.9;0;0.0;Dipeptide transport system
+M00325;0;0.0;203;4.3;0;0.0;0;0.0;0;0.0;0;0.0;203;4.6;0;0.0;alpha-Hemolysin/cyclolysin transport system
+M00326;0;0.0;92;1.9;0;0.0;0;0.0;0;0.0;0;0.0;92;2.1;0;0.0;RTX toxin transport system
+M00327;0;0.0;3;0.1;0;0.0;0;0.0;0;0.0;0;0.0;3;0.1;0;0.0;S-Layer protein transport system
+M00328;0;0.0;176;3.7;0;0.0;0;0.0;0;0.0;0;0.0;176;3.9;0;0.0;Hemophore/metalloprotease transport system
+M00329;0;0.0;21;0.4;0;0.0;0;0.0;0;0.0;0;0.0;21;0.5;0;0.0;Multiple protein transport system
+M00330;0;0.0;721;15.3;0;0.0;0;0.0;0;0.0;0;0.0;721;16.2;0;0.0;Adhesin protein transport system
+M00331;0;0.0;737;15.6;0;0.0;0;0.0;0;0.0;0;0.0;737;16.5;0;0.0;Type II general secretion pathway
+M00332;0;0.0;592;12.5;0;0.0;0;0.0;0;0.0;0;0.0;592;13.3;0;0.0;Type III secretion system
+M00333;0;0.0;474;10.0;0;0.0;0;0.0;0;0.0;0;0.0;474;10.6;0;0.0;Type IV secretion system
+M00334;0;0.0;700;14.8;0;0.0;0;0.0;0;0.0;0;0.0;700;15.7;0;0.0;Type VI secretion system
+M00335;0;0.0;3309;70.1;0;0.0;0;0.0;0;0.0;0;0.0;3309;74.2;0;0.0;Sec (secretion) system
+M00336;71;16.7;3466;73.5;0;0.0;71;85.5;0;0.0;0;0.0;3319;74.5;147;56.3;Twin-arginine translocation (Tat) system
+M00337;86;20.2;0;0.0;86;49.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Immunoproteasome
+M00338;295;69.2;506;10.7;171;98.8;2;2.4;110;90.9;12;24.5;493;11.1;13;5.0;Cysteine biosynthesis, homocysteine + serine => cysteine
+M00339;0;0.0;423;9.0;0;0.0;0;0.0;0;0.0;0;0.0;423;9.5;0;0.0;RaxAB-RaxC type I secretion system
+M00340;405;95.1;0;0.0;163;94.2;81;97.6;116;95.9;45;91.8;0;0.0;0;0.0;Proteasome, 20S core particle
+M00341;403;94.6;0;0.0;166;96.0;82;98.8;112;92.6;43;87.8;0;0.0;0;0.0;Proteasome, 19S regulatory particle (PA700)
+M00342;0;0.0;301;6.4;0;0.0;0;0.0;0;0.0;0;0.0;301;6.8;0;0.0;Bacterial proteasome
+M00343;0;0.0;215;4.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;215;82.4;Archaeal proteasome
+M00344;46;10.8;0;0.0;0;0.0;0;0.0;46;38.0;0;0.0;0;0.0;0;0.0;Formaldehyde assimilation, xylulose monophosphate pathway
+M00345;0;0.0;295;6.3;0;0.0;0;0.0;0;0.0;0;0.0;292;6.6;3;1.1;Formaldehyde assimilation, ribulose monophosphate pathway
+M00346;0;0.0;23;0.5;0;0.0;0;0.0;0;0.0;0;0.0;23;0.5;0;0.0;Formaldehyde assimilation, serine pathway
+M00348;0;0.0;485;10.3;0;0.0;0;0.0;0;0.0;0;0.0;485;10.9;0;0.0;Glutathione transport system
+M00349;0;0.0;1078;22.8;0;0.0;0;0.0;0;0.0;0;0.0;1078;24.2;0;0.0;Microcin C transport system
+M00350;62;14.6;0;0.0;1;0.6;61;73.5;0;0.0;0;0.0;0;0.0;0;0.0;Capsaicin biosynthesis, L-Phenylalanine => Capsaicin
+M00351;291;68.3;0;0.0;140;80.9;70;84.3;64;52.9;17;34.7;0;0.0;0;0.0;Spliceosome, U1-snRNP
+M00352;297;69.7;0;0.0;154;89.0;80;96.4;44;36.4;19;38.8;0;0.0;0;0.0;Spliceosome, U2-snRNP
+M00353;243;57.0;0;0.0;170;98.3;69;83.1;2;1.7;2;4.1;0;0.0;0;0.0;Spliceosome, Prp19/CDC5L complex
+M00354;325;76.3;0;0.0;149;86.1;76;91.6;78;64.5;22;44.9;0;0.0;0;0.0;Spliceosome, U4/U6.U5 tri-snRNP
+M00355;318;74.6;0;0.0;162;93.6;78;94.0;67;55.4;11;22.4;0;0.0;0;0.0;Spliceosome, 35S U5-snRNP
+M00356;0;0.0;39;0.8;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;39;14.9;Methanogenesis, methanol => methane
+M00357;0;0.0;59;1.3;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;59;22.6;Methanogenesis, acetate => methane
+M00358;0;0.0;35;0.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;35;13.4;Coenzyme M biosynthesis
+M00359;379;89.0;277;5.9;146;84.4;81;97.6;111;91.7;41;83.7;277;6.2;0;0.0;Aminoacyl-tRNA biosynthesis, eukaryotes
+M00360;386;90.6;4351;92.2;150;86.7;81;97.6;112;92.6;43;87.8;4128;92.6;223;85.4;Aminoacyl-tRNA biosynthesis, prokaryotes
+M00361;272;63.8;7;0.1;164;94.8;74;89.2;30;24.8;4;8.2;7;0.2;0;0.0;Nucleotide sugar biosynthesis, eukaryotes
+M00362;1;0.2;583;12.4;1;0.6;0;0.0;0;0.0;0;0.0;558;12.5;25;9.6;Nucleotide sugar biosynthesis, prokaryotes
+M00363;0;0.0;14;0.3;0;0.0;0;0.0;0;0.0;0;0.0;14;0.3;0;0.0;EHEC pathogenicity signature, Shiga toxin
+M00364;86;20.2;2145;45.5;0;0.0;80;96.4;0;0.0;6;12.2;1889;42.4;256;98.1;C10-C20 isoprenoid biosynthesis, bacteria
+M00365;0;0.0;706;15.0;0;0.0;0;0.0;0;0.0;0;0.0;450;10.1;256;98.1;C10-C20 isoprenoid biosynthesis, archaea
+M00366;78;18.3;0;0.0;0;0.0;77;92.8;0;0.0;1;2.0;0;0.0;0;0.0;C10-C20 isoprenoid biosynthesis, plants
+M00367;289;67.8;0;0.0;162;93.6;0;0.0;111;91.7;16;32.7;0;0.0;0;0.0;C10-C20 isoprenoid biosynthesis, non-plant eukaryotes
+M00368;66;15.5;0;0.0;0;0.0;66;79.5;0;0.0;0;0.0;0;0.0;0;0.0;Ethylene biosynthesis, methionine => ethylene
+M00369;3;0.7;0;0.0;0;0.0;3;3.6;0;0.0;0;0.0;0;0.0;0;0.0;Cyanogenic glycoside biosynthesis, tyrosine => dhurrin
+M00370;8;1.9;0;0.0;0;0.0;8;9.6;0;0.0;0;0.0;0;0.0;0;0.0;Glucosinolate biosynthesis, tryptophan => glucobrassicin
+M00371;59;13.8;0;0.0;0;0.0;59;71.1;0;0.0;0;0.0;0;0.0;0;0.0;Castasterone biosynthesis, campesterol => castasterone
+M00372;66;15.5;0;0.0;0;0.0;66;79.5;0;0.0;0;0.0;0;0.0;0;0.0;Abscisic acid biosynthesis, beta-carotene => abscisic acid
+M00373;0;0.0;19;0.4;0;0.0;0;0.0;0;0.0;0;0.0;19;0.4;0;0.0;Ethylmalonyl pathway
+M00374;0;0.0;7;0.1;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;7;2.7;Dicarboxylate-hydroxybutyrate cycle
+M00375;0;0.0;18;0.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;18;6.9;Hydroxypropionate-hydroxybutylate cycle
+M00376;0;0.0;5;0.1;0;0.0;0;0.0;0;0.0;0;0.0;5;0.1;0;0.0;3-Hydroxypropionate bi-cycle
+M00377;0;0.0;24;0.5;0;0.0;0;0.0;0;0.0;0;0.0;24;0.5;0;0.0;Reductive acetyl-CoA pathway (Wood-Ljungdahl pathway)
+M00378;0;0.0;429;9.1;0;0.0;0;0.0;0;0.0;0;0.0;287;6.4;142;54.4;F420 biosynthesis
+M00379;106;24.9;0;0.0;0;0.0;0;0.0;106;87.6;0;0.0;0;0.0;0;0.0;SCF-MET30 complex
+M00380;242;56.8;0;0.0;164;94.8;1;1.2;74;61.2;3;6.1;0;0.0;0;0.0;SCF-BTRC complex
+M00381;227;53.3;0;0.0;156;90.2;69;83.1;0;0.0;2;4.1;0;0.0;0;0.0;SCF-SKP2 complex
+M00382;129;30.3;0;0.0;127;73.4;2;2.4;0;0.0;0;0.0;0;0.0;0;0.0;SCF-FBS complex
+M00383;165;38.7;0;0.0;165;95.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;ECV complex
+M00384;252;59.2;0;0.0;167;96.5;77;92.8;1;0.8;7;14.3;0;0.0;0;0.0;Cul3-SPOP complex
+M00385;186;43.7;0;0.0;112;64.7;74;89.2;0;0.0;0;0.0;0;0.0;0;0.0;Cul4-DDB1-DDB2 complex
+M00386;261;61.3;0;0.0;126;72.8;79;95.2;44;36.4;12;24.5;0;0.0;0;0.0;Cul4-DDB1-CSA complex
+M00387;199;46.7;0;0.0;165;95.4;23;27.7;0;0.0;11;22.4;0;0.0;0;0.0;SCF-FBW7 complex
+M00388;133;31.2;0;0.0;133;76.9;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;ECS complex
+M00389;171;40.1;0;0.0;112;64.7;52;62.7;1;0.8;6;12.2;0;0.0;0;0.0;APC/C complex
+M00390;374;87.8;191;4.0;158;91.3;78;94.0;103;85.1;35;71.4;0;0.0;191;73.2;Exosome, archaea
+M00391;345;81.0;0;0.0;148;85.5;73;88.0;109;90.1;15;30.6;0;0.0;0;0.0;Exosome, eukaryotes
+M00392;337;79.1;0;0.0;148;85.5;71;85.5;106;87.6;12;24.5;0;0.0;0;0.0;Ski complex
+M00393;245;57.5;0;0.0;138;79.8;0;0.0;101;83.5;6;12.2;0;0.0;0;0.0;TRAMP complex
+M00394;0;0.0;905;19.2;0;0.0;0;0.0;0;0.0;0;0.0;905;20.3;0;0.0;RNA degradosome
+M00395;176;41.3;0;0.0;148;85.5;0;0.0;28;23.1;0;0.0;0;0.0;0;0.0;Decapping complex
+M00396;364;85.4;0;0.0;163;94.2;79;95.2;90;74.4;32;65.3;0;0.0;0;0.0;Lsm 2-8 complex
+M00397;368;86.4;0;0.0;163;94.2;81;97.6;95;78.5;29;59.2;0;0.0;0;0.0;Lsm 1-7 complex
+M00398;382;89.7;0;0.0;160;92.5;80;96.4;104;86.0;38;77.6;0;0.0;0;0.0;Sm core complex
+M00399;366;85.9;0;0.0;164;94.8;78;94.0;110;90.9;14;28.6;0;0.0;0;0.0;Cap binding complex
+M00400;404;94.8;0;0.0;167;96.5;79;95.2;113;93.4;45;91.8;0;0.0;0;0.0;p97-Ufd1-Npl4 complex
+M00401;341;80.0;0;0.0;146;84.4;72;86.7;98;81.0;25;51.0;0;0.0;0;0.0;Sec61 complex
+M00402;146;34.3;0;0.0;145;83.8;0;0.0;0;0.0;1;2.0;0;0.0;0;0.0;Translocon-associated protein (TRAP) complex
+M00403;95;22.3;0;0.0;95;54.9;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;HRD1/SEL1 ERAD complex
+M00404;414;97.2;0;0.0;172;99.4;82;98.8;117;96.7;43;87.8;0;0.0;0;0.0;COPII complex
+M00405;260;61.0;0;0.0;172;99.4;74;89.2;3;2.5;11;22.4;0;0.0;0;0.0;THC complex
+M00406;242;56.8;0;0.0;158;91.3;73;88.0;3;2.5;8;16.3;0;0.0;0;0.0;TREX complex
+M00407;106;24.9;0;0.0;0;0.0;0;0.0;105;86.8;1;2.0;0;0.0;0;0.0;SCF-CDC4 complex
+M00408;281;66.0;0;0.0;169;97.7;0;0.0;110;90.9;2;4.1;0;0.0;0;0.0;ESCRT-0 complex
+M00409;149;35.0;0;0.0;149;86.1;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;ESCRT-I complex
+M00410;369;86.6;0;0.0;163;94.2;74;89.2;101;83.5;31;63.3;0;0.0;0;0.0;ESCRT-II complex
+M00411;106;24.9;0;0.0;0;0.0;2;2.4;104;86.0;0;0.0;0;0.0;0;0.0;SCF-GRR1 complex
+M00412;337;79.1;0;0.0;164;94.8;70;84.3;98;81.0;5;10.2;0;0.0;0;0.0;ESCRT-III complex
+M00413;103;24.2;0;0.0;103;59.5;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;FA core complex
+M00414;152;35.7;0;0.0;87;50.3;64;77.1;0;0.0;1;2.0;0;0.0;0;0.0;Bloom's syndrome complex
+M00415;340;79.8;0;0.0;167;96.5;73;88.0;88;72.7;12;24.5;0;0.0;0;0.0;Fatty acid biosynthesis, elongation, endoplasmic reticulum
+M00416;0;0.0;301;6.4;0;0.0;0;0.0;0;0.0;0;0.0;301;6.8;0;0.0;Cytochrome aa3-600 menaquinol oxidase
+M00417;0;0.0;1210;25.6;0;0.0;0;0.0;0;0.0;0;0.0;1210;27.1;0;0.0;Cytochrome o ubiquinol oxidase
+M00418;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Toluene degradation, anaerobic, toluene => benzoyl-CoA
+M00419;0;0.0;5;0.1;0;0.0;0;0.0;0;0.0;0;0.0;5;0.1;0;0.0;Cymene degradation, p-cymene => p-cumate
+M00422;0;0.0;76;1.6;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;75;28.7;Acetyl-CoA pathway, CO2 => acetyl-CoA
+M00423;0;0.0;124;2.6;0;0.0;0;0.0;0;0.0;0;0.0;30;0.7;94;36.0;Molybdate/tungstate transport system
+M00424;99;23.2;0;0.0;99;57.2;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Shelterin complex
+M00425;324;76.1;0;0.0;128;74.0;68;81.9;97;80.2;31;63.3;0;0.0;0;0.0;H/ACA ribonucleoprotein complex
+M00426;161;37.8;0;0.0;160;92.5;0;0.0;0;0.0;1;2.0;0;0.0;0;0.0;Survival motor neuron (SMN) complex
+M00427;145;34.0;0;0.0;145;83.8;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Nuclear pore complex
+M00428;389;91.3;0;0.0;172;99.4;80;96.4;114;94.2;23;46.9;0;0.0;0;0.0;eIF4F complex
+M00429;0;0.0;499;10.6;0;0.0;0;0.0;0;0.0;0;0.0;499;11.2;0;0.0;Competence-related DNA transformation transporter
+M00430;229;53.8;0;0.0;163;94.2;64;77.1;1;0.8;1;2.0;0;0.0;0;0.0;Exon junction complex (EJC)
+M00432;188;44.1;3572;75.7;0;0.0;76;91.6;111;91.7;1;2.0;3373;75.7;199;76.2;Leucine biosynthesis, 2-oxoisovalerate => 2-oxoisocaproate
+M00433;107;25.1;28;0.6;0;0.0;0;0.0;107;88.4;0;0.0;28;0.6;0;0.0;Lysine biosynthesis, 2-oxoglutarate => 2-oxoadipate
+M00434;0;0.0;2739;58.1;0;0.0;0;0.0;0;0.0;0;0.0;2738;61.4;1;0.4;PhoR-PhoB (phosphate starvation response) two-component regulatory system
+M00435;0;0.0;704;14.9;0;0.0;0;0.0;0;0.0;0;0.0;704;15.8;0;0.0;Taurine transport system
+M00436;0;0.0;1221;25.9;0;0.0;0;0.0;0;0.0;0;0.0;1221;27.4;0;0.0;Sulfonate transport system
+M00437;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Phthalate transport system
+M00438;0;0.0;651;13.8;0;0.0;0;0.0;0;0.0;0;0.0;651;14.6;0;0.0;Nitrate/nitrite transport system
+M00439;0;0.0;1967;41.7;0;0.0;0;0.0;0;0.0;0;0.0;1967;44.1;0;0.0;Oligopeptide transport system
+M00440;0;0.0;393;8.3;0;0.0;0;0.0;0;0.0;0;0.0;392;8.8;1;0.4;Nickel transport system
+M00442;0;0.0;286;6.1;0;0.0;0;0.0;0;0.0;0;0.0;286;6.4;0;0.0;Putative hydroxymethylpyrimidine transport system
+M00443;0;0.0;506;10.7;0;0.0;0;0.0;0;0.0;0;0.0;506;11.4;0;0.0;SenX3-RegX3 (phosphate starvation response) two-component regulatory system
+M00444;0;0.0;695;14.7;0;0.0;0;0.0;0;0.0;0;0.0;695;15.6;0;0.0;PhoQ-PhoP (magnesium transport) two-component regulatory system
+M00445;0;0.0;1357;28.8;0;0.0;0;0.0;0;0.0;0;0.0;1357;30.4;0;0.0;EnvZ-OmpR (osmotic stress response) two-component regulatory system
+M00446;0;0.0;611;13.0;0;0.0;0;0.0;0;0.0;0;0.0;611;13.7;0;0.0;RstB-RstA two-component regulatory system
+M00447;0;0.0;611;13.0;0;0.0;0;0.0;0;0.0;0;0.0;611;13.7;0;0.0;CpxA-CpxR (envelope stress response) two-component regulatory system
+M00448;0;0.0;132;2.8;0;0.0;0;0.0;0;0.0;0;0.0;132;3.0;0;0.0;CssS-CssR (secretion stress response) two-component regulatory system
+M00449;0;0.0;521;11.0;0;0.0;0;0.0;0;0.0;0;0.0;521;11.7;0;0.0;CreC-CreB (phosphate regulation) two-component regulatory system
+M00450;0;0.0;611;13.0;0;0.0;0;0.0;0;0.0;0;0.0;611;13.7;0;0.0;BaeS-BaeR (envelope stress response) two-component regulatory system
+M00451;0;0.0;347;7.4;0;0.0;0;0.0;0;0.0;0;0.0;347;7.8;0;0.0;BasS-BasR (antimicrobial peptide resistance) two-component regulatory system
+M00452;0;0.0;712;15.1;0;0.0;0;0.0;0;0.0;0;0.0;712;16.0;0;0.0;CusS-CusR (copper tolerance) two-component regulatory system
+M00453;0;0.0;769;16.3;0;0.0;0;0.0;0;0.0;0;0.0;769;17.3;0;0.0;QseC-QseB (quorum sensing) two-component regulatory system
+M00454;0;0.0;1690;35.8;0;0.0;0;0.0;0;0.0;0;0.0;1690;37.9;0;0.0;KdpD-KdpE (potassium transport) two-component regulatory system
+M00455;0;0.0;229;4.9;0;0.0;0;0.0;0;0.0;0;0.0;229;5.1;0;0.0;TorS-TorR (TMAO respiration) two-component regulatory system
+M00456;0;0.0;547;11.6;0;0.0;0;0.0;0;0.0;0;0.0;547;12.3;0;0.0;ArcB-ArcA (anoxic redox control) two-component regulatory system
+M00457;0;0.0;642;13.6;0;0.0;0;0.0;0;0.0;0;0.0;642;14.4;0;0.0;TctE-TctD (tricarboxylic acid transport) two-component regulatory system
+M00458;0;0.0;392;8.3;0;0.0;0;0.0;0;0.0;0;0.0;392;8.8;0;0.0;ResE-ResD (aerobic and anaerobic respiration) two-component regulatory system
+M00459;0;0.0;724;15.3;0;0.0;0;0.0;0;0.0;0;0.0;723;16.2;1;0.4;VicK-VicR (cell wall metabolism) two-component regulatory system
+M00460;0;0.0;359;7.6;0;0.0;0;0.0;0;0.0;0;0.0;359;8.1;0;0.0;MprB-MprA (maintenance of persistent infection) two-component regulatory system
+M00461;0;0.0;452;9.6;0;0.0;0;0.0;0;0.0;0;0.0;452;10.1;0;0.0;MtrB-MtrA (osmotic stress response) two-component regulatory system
+M00462;0;0.0;113;2.4;0;0.0;0;0.0;0;0.0;0;0.0;113;2.5;0;0.0;PrrB-PrrA (intracellular multiplication) two-component regulatory system
+M00463;0;0.0;82;1.7;0;0.0;0;0.0;0;0.0;0;0.0;82;1.8;0;0.0;TrcS-TrcR two-component regulatory system
+M00464;0;0.0;13;0.3;0;0.0;0;0.0;0;0.0;0;0.0;13;0.3;0;0.0;NrsS-NrsR (nickel tolerance) two-component regulatory system
+M00465;0;0.0;70;1.5;0;0.0;0;0.0;0;0.0;0;0.0;70;1.6;0;0.0;ManS-ManR (manganese homeostasis) two-component regulatory system
+M00466;0;0.0;8;0.2;0;0.0;0;0.0;0;0.0;0;0.0;8;0.2;0;0.0;NblS-NblR (photosynthesis) two-component regulatory system
+M00467;0;0.0;100;2.1;0;0.0;0;0.0;0;0.0;0;0.0;100;2.2;0;0.0;SasA-RpaAB (circadian timing mediating) two-component regulatory system
+M00468;0;0.0;144;3.1;0;0.0;0;0.0;0;0.0;0;0.0;144;3.2;0;0.0;SaeS-SaeR (staphylococcal virulence regulation) two-component regulatory system
+M00469;0;0.0;129;2.7;0;0.0;0;0.0;0;0.0;0;0.0;129;2.9;0;0.0;BceS-BceR (bacitracin transport) two-component regulatory system
+M00470;0;0.0;46;1.0;0;0.0;0;0.0;0;0.0;0;0.0;46;1.0;0;0.0;YxdK-YxdJ (antimicrobial peptide response) two-component regulatory system
+M00471;0;0.0;560;11.9;0;0.0;0;0.0;0;0.0;0;0.0;560;12.6;0;0.0;NarX-NarL (nitrate respiration) two-component regulatory system
+M00472;0;0.0;346;7.3;0;0.0;0;0.0;0;0.0;0;0.0;346;7.8;0;0.0;NarQ-NarP (nitrate respiration) two-component regulatory system
+M00473;0;0.0;347;7.4;0;0.0;0;0.0;0;0.0;0;0.0;347;7.8;0;0.0;UhpB-UhpA (hexose phosphates uptake) two-component regulatory system
+M00474;0;0.0;360;7.6;0;0.0;0;0.0;0;0.0;0;0.0;360;8.1;0;0.0;RcsC-RcsD-RcsB (capsule synthesis) two-component regulatory system
+M00475;0;0.0;661;14.0;0;0.0;0;0.0;0;0.0;0;0.0;661;14.8;0;0.0;BarA-UvrY (central carbon metabolism) two-component regulatory system
+M00476;0;0.0;96;2.0;0;0.0;0;0.0;0;0.0;0;0.0;96;2.2;0;0.0;ComP-ComA (competence) two-component regulatory system
+M00477;0;0.0;284;6.0;0;0.0;0;0.0;0;0.0;0;0.0;284;6.4;0;0.0;EvgS-EvgA (acid and drug tolerance) two-component regulatory system
+M00478;0;0.0;188;4.0;0;0.0;0;0.0;0;0.0;0;0.0;188;4.2;0;0.0;DegS-DegU (multicellular behavior control) two-component regulatory system
+M00479;0;0.0;594;12.6;0;0.0;0;0.0;0;0.0;0;0.0;594;13.3;0;0.0;DesK-DesR (membrane lipid fluidity regulation) two-component regulatory system
+M00480;0;0.0;83;1.8;0;0.0;0;0.0;0;0.0;0;0.0;83;1.9;0;0.0;VraS-VraR (cell-wall peptidoglycan synthesis) two-component regulatory system
+M00481;0;0.0;465;9.9;0;0.0;0;0.0;0;0.0;0;0.0;465;10.4;0;0.0;LiaS-LiaR (cell wall stress response) two-component regulatory system
+M00482;0;0.0;54;1.1;0;0.0;0;0.0;0;0.0;0;0.0;54;1.2;0;0.0;DevS-DevR (redox response) two-component regulatory system
+M00483;0;0.0;140;3.0;0;0.0;0;0.0;0;0.0;0;0.0;140;3.1;0;0.0;NreB-NreC (dissimilatory nitrate/nitrite reduction) two-component regulatory system
+M00484;0;0.0;80;1.7;0;0.0;0;0.0;0;0.0;0;0.0;80;1.8;0;0.0;YdfH-YdfI two-component regulatory system
+M00485;0;0.0;49;1.0;0;0.0;0;0.0;0;0.0;0;0.0;49;1.1;0;0.0;KinABCDE-Spo0FA (sporulation control) two-component regulatory system
+M00486;0;0.0;322;6.8;0;0.0;0;0.0;0;0.0;0;0.0;322;7.2;0;0.0;CitA-CitB (citrate fermentation) two-component regulatory system
+M00487;0;0.0;138;2.9;0;0.0;0;0.0;0;0.0;0;0.0;138;3.1;0;0.0;CitS-CitT (magnesium-citrate transport) two-component regulatory system
+M00488;0;0.0;287;6.1;0;0.0;0;0.0;0;0.0;0;0.0;287;6.4;0;0.0;DcuS-DcuR (C4-dicarboxylate metabolism) two-component regulatory system
+M00489;0;0.0;112;2.4;0;0.0;0;0.0;0;0.0;0;0.0;112;2.5;0;0.0;DctS-DctR (C4-dicarboxylate transport) two-component regulatory system
+M00490;0;0.0;175;3.7;0;0.0;0;0.0;0;0.0;0;0.0;175;3.9;0;0.0;MalK-MalR (malate transport) two-component regulatory system
+M00491;0;0.0;1056;22.4;0;0.0;0;0.0;0;0.0;0;0.0;979;22.0;77;29.5;arabinogalactan oligomer/maltooligosaccharide transport system
+M00492;0;0.0;335;7.1;0;0.0;0;0.0;0;0.0;0;0.0;335;7.5;0;0.0;LytS-LytR two-component regulatory system
+M00493;0;0.0;315;6.7;0;0.0;0;0.0;0;0.0;0;0.0;315;7.1;0;0.0;AlgZ-AlgR (alginate production) two-component regulatory system
+M00494;0;0.0;25;0.5;0;0.0;0;0.0;0;0.0;0;0.0;25;0.6;0;0.0;NatK-NatR (sodium extrusion) two-component regulatory system
+M00495;0;0.0;388;8.2;0;0.0;0;0.0;0;0.0;0;0.0;388;8.7;0;0.0;AgrC-AgrA (exoprotein synthesis) two-component regulatory system
+M00496;0;0.0;41;0.9;0;0.0;0;0.0;0;0.0;0;0.0;41;0.9;0;0.0;ComD-ComE (competence) two-component regulatory system
+M00497;0;0.0;1489;31.6;0;0.0;0;0.0;0;0.0;0;0.0;1489;33.4;0;0.0;GlnL-GlnG (nitrogen regulation) two-component regulatory system
+M00498;0;0.0;521;11.0;0;0.0;0;0.0;0;0.0;0;0.0;521;11.7;0;0.0;NtrY-NtrX (nitrogen regulation) two-component regulatory system
+M00499;0;0.0;252;5.3;0;0.0;0;0.0;0;0.0;0;0.0;252;5.7;0;0.0;HydH-HydG (metal tolerance) two-component regulatory system
+M00500;0;0.0;211;4.5;0;0.0;0;0.0;0;0.0;0;0.0;211;4.7;0;0.0;AtoS-AtoC (cPHB biosynthesis) two-component regulatory system
+M00501;0;0.0;436;9.2;0;0.0;0;0.0;0;0.0;0;0.0;436;9.8;0;0.0;PilS-PilR (type 4 fimbriae synthesis) two-component regulatory system
+M00502;0;0.0;533;11.3;0;0.0;0;0.0;0;0.0;0;0.0;533;12.0;0;0.0;GlrK-GlrR (amino sugar metabolism) two-component regulatory system
+M00503;0;0.0;161;3.4;0;0.0;0;0.0;0;0.0;0;0.0;161;3.6;0;0.0;PgtB-PgtA (phosphoglycerate transport) two-component regulatory system
+M00504;0;0.0;612;13.0;0;0.0;0;0.0;0;0.0;0;0.0;612;13.7;0;0.0;DctB-DctD (C4-dicarboxylate transport) two-component regulatory system
+M00505;0;0.0;105;2.2;0;0.0;0;0.0;0;0.0;0;0.0;105;2.4;0;0.0;KinB-AlgB (alginate production) two-component regulatory system
+M00506;0;0.0;158;3.3;0;0.0;0;0.0;0;0.0;0;0.0;158;3.5;0;0.0;CheA-CheYBV (chemotaxis) two-component regulatory system
+M00507;0;0.0;139;2.9;0;0.0;0;0.0;0;0.0;0;0.0;139;3.1;0;0.0;ChpA-ChpB/PilGH (chemosensory) two-component regulatory system
+M00508;0;0.0;15;0.3;0;0.0;0;0.0;0;0.0;0;0.0;15;0.3;0;0.0;PixL-PixGH (positive phototaxis) two-component regulatory system
+M00509;0;0.0;189;4.0;0;0.0;0;0.0;0;0.0;0;0.0;189;4.2;0;0.0;WspE-WspRF (chemosensory) two-component regulatory system
+M00510;0;0.0;10;0.2;0;0.0;0;0.0;0;0.0;0;0.0;10;0.2;0;0.0;Cph1-Rcp1 (light response) two-component regulatory system
+M00511;0;0.0;169;3.6;0;0.0;0;0.0;0;0.0;0;0.0;169;3.8;0;0.0;PleC-PleD (cell fate control) two-component regulatory system
+M00512;0;0.0;274;5.8;0;0.0;0;0.0;0;0.0;0;0.0;274;6.1;0;0.0;CckA-CtrA/CpdR (cell cycle control) two-component regulatory system
+M00513;0;0.0;40;0.8;0;0.0;0;0.0;0;0.0;0;0.0;40;0.9;0;0.0;LuxQN/CqsS-LuxU-LuxO (quorum sensing) two-component regulatory system
+M00514;0;0.0;186;3.9;0;0.0;0;0.0;0;0.0;0;0.0;186;4.2;0;0.0;TtrS-TtrR (tetrathionate respiration) two-component regulatory system
+M00515;0;0.0;343;7.3;0;0.0;0;0.0;0;0.0;0;0.0;343;7.7;0;0.0;FlrB-FlrC (polar flagellar synthesis) two-component regulatory system
+M00516;110;25.8;0;0.0;0;0.0;0;0.0;110;90.9;0;0.0;0;0.0;0;0.0;SLN1-YPD1-SSK1/SKN7 (osmosensing) two-component regulatory system
+M00517;0;0.0;72;1.5;0;0.0;0;0.0;0;0.0;0;0.0;72;1.6;0;0.0;RpfC-RpfG (cell-to-cell signaling) two-component regulatory system
+M00518;0;0.0;235;5.0;0;0.0;0;0.0;0;0.0;0;0.0;235;5.3;0;0.0;GlnK-GlnL (glutamine utilization) two-component regulatory system
+M00519;0;0.0;393;8.3;0;0.0;0;0.0;0;0.0;0;0.0;393;8.8;0;0.0;YesM-YesN two-component regulatory system
+M00520;0;0.0;383;8.1;0;0.0;0;0.0;0;0.0;0;0.0;383;8.6;0;0.0;ChvG-ChvI (acidity sensing) two-component regulatory system
+M00521;0;0.0;208;4.4;0;0.0;0;0.0;0;0.0;0;0.0;208;4.7;0;0.0;CiaH-CiaR two-component regulatory system
+M00522;0;0.0;45;1.0;0;0.0;0;0.0;0;0.0;0;0.0;45;1.0;0;0.0;SalK-SalR two-component regulatory system
+M00523;0;0.0;858;18.2;0;0.0;0;0.0;0;0.0;0;0.0;858;19.3;0;0.0;RegB-RegA (redox response) two-component regulatory system
+M00524;0;0.0;131;2.8;0;0.0;0;0.0;0;0.0;0;0.0;131;2.9;0;0.0;FixL-FixJ (nitrogen fixation) two-component regulatory system
+M00525;0;0.0;303;6.4;0;0.0;0;0.0;0;0.0;0;0.0;303;6.8;0;0.0;Lysine biosynthesis, acetyl-DAP pathway, aspartate => lysine
+M00526;0;0.0;242;5.1;0;0.0;0;0.0;0;0.0;0;0.0;240;5.4;2;0.8;Lysine biosynthesis, DAP dehydrogenase pathway, aspartate => lysine
+M00527;73;17.1;612;13.0;0;0.0;73;88.0;0;0.0;0;0.0;547;12.3;65;24.9;Lysine biosynthesis, DAP aminotransferase pathway, aspartate => lysine
+M00528;0;0.0;15;0.3;0;0.0;0;0.0;0;0.0;0;0.0;15;0.3;0;0.0;Nitrification, ammonia => nitrite
+M00529;0;0.0;157;3.3;0;0.0;0;0.0;0;0.0;0;0.0;157;3.5;0;0.0;Denitrification, nitrate => nitrogen
+M00530;0;0.0;1182;25.1;0;0.0;0;0.0;0;0.0;0;0.0;1182;26.5;0;0.0;Dissimilatory nitrate reduction, nitrate => ammonia
+M00531;143;33.6;209;4.4;0;0.0;79;95.2;59;48.8;5;10.2;187;4.2;22;8.4;Assimilatory nitrate reduction, nitrate => ammonia
+M00532;61;14.3;0;0.0;0;0.0;61;73.5;0;0.0;0;0.0;0;0.0;0;0.0;Photorespiration
+M00533;0;0.0;372;7.9;0;0.0;0;0.0;0;0.0;0;0.0;372;8.3;0;0.0;Homoprotocatechuate degradation, homoprotocatechuate => 2-oxohept-3-enedioate
+M00534;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Naphthalene degradation, naphthalene => salicylate
+M00535;0;0.0;239;5.1;0;0.0;0;0.0;0;0.0;0;0.0;114;2.6;125;47.9;Isoleucine biosynthesis, pyruvate => 2-oxobutanoate
+M00537;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Xylene degradation, xylene => methylbenzoate
+M00538;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Toluene degradation, toluene => benzoate
+M00539;0;0.0;6;0.1;0;0.0;0;0.0;0;0.0;0;0.0;6;0.1;0;0.0;Cumate degradation, p-cumate => 2-oxopent-4-enoate + 2-methylpropanoate
+M00540;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;Benzoate degradation, cyclohexanecarboxylic acid =>pimeloyl-CoA
+M00541;0;0.0;10;0.2;0;0.0;0;0.0;0;0.0;0;0.0;10;0.2;0;0.0;Benzoyl-CoA degradation, benzoyl-CoA => 3-hydroxypimeloyl-CoA
+M00542;0;0.0;14;0.3;0;0.0;0;0.0;0;0.0;0;0.0;14;0.3;0;0.0;EHEC/EPEC pathogenicity signature, T3SS and effectors
+M00543;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Biphenyl degradation, biphenyl => 2-oxopent-4-enoate + benzoate
+M00544;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Carbazole degradation, carbazole => 2-oxopent-4-enoate + anthranilate
+M00545;0;0.0;152;3.2;0;0.0;0;0.0;0;0.0;0;0.0;152;3.4;0;0.0;Trans-cinnamate degradation, trans-cinnamate => acetyl-CoA
+M00546;36;8.5;110;2.3;36;20.8;0;0.0;0;0.0;0;0.0;110;2.5;0;0.0;Purine degradation, xanthine => urea
+M00547;0;0.0;5;0.1;0;0.0;0;0.0;0;0.0;0;0.0;5;0.1;0;0.0;Benzene/toluene degradation, benzene => catechol / toluene => 3-methylcatechol
+M00548;0;0.0;77;1.6;0;0.0;0;0.0;0;0.0;0;0.0;77;1.7;0;0.0;Benzene degradation, benzene => catechol
+M00549;386;90.6;2219;47.0;169;97.7;77;92.8;115;95.0;25;51.0;2219;49.8;0;0.0;Nucleotide sugar biosynthesis, glucose => UDP-glucose
+M00550;0;0.0;459;9.7;0;0.0;0;0.0;0;0.0;0;0.0;459;10.3;0;0.0;Ascorbate degradation, ascorbate => D-xylulose-5P
+M00551;0;0.0;335;7.1;0;0.0;0;0.0;0;0.0;0;0.0;335;7.5;0;0.0;Benzoate degradation, benzoate => catechol / methylbenzoate => methylcatechol
+M00552;0;0.0;542;11.5;0;0.0;0;0.0;0;0.0;0;0.0;542;12.2;0;0.0;D-galactonate degradation, De Ley-Doudoroff pathway, D-galactonate => glycerate-3P
+M00554;248;58.2;1722;36.5;142;82.1;2;2.4;104;86.0;0;0.0;1687;37.9;35;13.4;Nucleotide sugar biosynthesis, galactose => UDP-galactose
+M00555;52;12.2;914;19.4;0;0.0;17;20.5;34;28.1;1;2.0;914;20.5;0;0.0;Betaine biosynthesis, choline => betaine
+M00563;0;0.0;30;0.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;30;11.5;Methanogenesis, methylamine/dimethylamine/trimethylamine => methane
+M00564;0;0.0;45;1.0;0;0.0;0;0.0;0;0.0;0;0.0;45;1.0;0;0.0;Helicobacter pylori pathogenicity signature, cagA pathogenicity island
+M00565;0;0.0;311;6.6;0;0.0;0;0.0;0;0.0;0;0.0;311;7.0;0;0.0;Trehalose biosynthesis, D-glucose 1P => trehalose
+M00566;0;0.0;85;1.8;0;0.0;0;0.0;0;0.0;0;0.0;85;1.9;0;0.0;Dipeptide transport system, Firmicutes
+M00567;0;0.0;80;1.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;80;30.7;Methanogenesis, CO2 => methane
+M00568;0;0.0;391;8.3;0;0.0;0;0.0;0;0.0;0;0.0;391;8.8;0;0.0;Catechol ortho-cleavage, catechol => 3-oxoadipate
+M00569;0;0.0;148;3.1;0;0.0;0;0.0;0;0.0;0;0.0;148;3.3;0;0.0;Catechol meta-cleavage, catechol => acetyl-CoA / 4-methylcatechol => propanoyl-CoA
+M00570;188;44.1;3107;65.9;0;0.0;78;94.0;110;90.9;0;0.0;3041;68.2;66;25.3;Isoleucine biosynthesis, threonine => 2-oxobutanoate => isoleucine
+M00571;0;0.0;35;0.7;0;0.0;0;0.0;0;0.0;0;0.0;35;0.8;0;0.0;AlgE-type Mannuronan C-5-Epimerase transport system
+M00572;0;0.0;904;19.2;0;0.0;0;0.0;0;0.0;0;0.0;904;20.3;0;0.0;Pimeloyl-ACP biosynthesis, BioC-BioH pathway, malonyl-ACP => pimeloyl-ACP
+M00573;0;0.0;51;1.1;0;0.0;0;0.0;0;0.0;0;0.0;51;1.1;0;0.0;Biotin biosynthesis, BioI pathway, long-chain-acyl-ACP => pimeloyl-ACP => biotin
+M00574;0;0.0;10;0.2;0;0.0;0;0.0;0;0.0;0;0.0;10;0.2;0;0.0;Pertussis pathogenicity signature 1, pertussis toxin
+M00575;0;0.0;8;0.2;0;0.0;0;0.0;0;0.0;0;0.0;8;0.2;0;0.0;Pertussis pathogenicity signature 2, T1SS
+M00577;0;0.0;221;4.7;0;0.0;0;0.0;0;0.0;0;0.0;204;4.6;17;6.5;Biotin biosynthesis, BioW pathway, pimelate => pimeloyl-CoA => biotin
+M00579;0;0.0;3046;64.6;0;0.0;0;0.0;0;0.0;0;0.0;3024;67.8;22;8.4;Phosphate acetyltransferase-acetate kinase pathway, acetyl-CoA => acetate
+M00580;0;0.0;412;8.7;0;0.0;0;0.0;0;0.0;0;0.0;226;5.1;186;71.3;Pentose phosphate pathway, archaea, fructose 6P => ribose 5P
+M00581;0;0.0;495;10.5;0;0.0;0;0.0;0;0.0;0;0.0;461;10.3;34;13.0;Biotin transport system
+M00582;0;0.0;1761;37.3;0;0.0;0;0.0;0;0.0;0;0.0;1651;37.0;110;42.1;Energy-coupling factor transport system
+M00583;0;0.0;81;1.7;0;0.0;0;0.0;0;0.0;0;0.0;81;1.8;0;0.0;Putative peptide transport system
+M00584;0;0.0;51;1.1;0;0.0;0;0.0;0;0.0;0;0.0;51;1.1;0;0.0;Acetoin utilization transport system
+M00585;0;0.0;224;4.7;0;0.0;0;0.0;0;0.0;0;0.0;224;5.0;0;0.0;L-Cystine transport system
+M00586;0;0.0;239;5.1;0;0.0;0;0.0;0;0.0;0;0.0;239;5.4;0;0.0;Putative amino-acid transport system
+M00587;0;0.0;17;0.4;0;0.0;0;0.0;0;0.0;0;0.0;17;0.4;0;0.0;Arginine/lysine/histidine/glutamine transport system
+M00589;0;0.0;262;5.6;0;0.0;0;0.0;0;0.0;0;0.0;262;5.9;0;0.0;Putative lysine transport system
+M00590;0;0.0;252;5.3;0;0.0;0;0.0;0;0.0;0;0.0;252;5.7;0;0.0;Erythritol transport system
+M00591;0;0.0;161;3.4;0;0.0;0;0.0;0;0.0;0;0.0;161;3.6;0;0.0;Putative xylitol transport system
+M00592;0;0.0;107;2.3;0;0.0;0;0.0;0;0.0;0;0.0;107;2.4;0;0.0;Inositol transport system
+M00593;0;0.0;259;5.5;0;0.0;0;0.0;0;0.0;0;0.0;259;5.8;0;0.0;Inositol transport system
+M00595;0;0.0;216;4.6;0;0.0;0;0.0;0;0.0;0;0.0;216;4.8;0;0.0;Thiosulfate oxidation by SOX complex, thiosulfate => sulfate
+M00596;0;0.0;89;1.9;0;0.0;0;0.0;0;0.0;0;0.0;75;1.7;14;5.4;Dissimilatory sulfate reduction, sulfate => H2S
+M00597;0;0.0;84;1.8;0;0.0;0;0.0;0;0.0;0;0.0;84;1.9;0;0.0;Anoxygenic photosystem II
+M00598;0;0.0;12;0.3;0;0.0;0;0.0;0;0.0;0;0.0;12;0.3;0;0.0;Anoxygenic photosystem I
+M00599;0;0.0;96;2.0;0;0.0;0;0.0;0;0.0;0;0.0;73;1.6;23;8.8;Inositol-phosphate transport system
+M00600;0;0.0;114;2.4;0;0.0;0;0.0;0;0.0;0;0.0;114;2.6;0;0.0;alpha-1,4-Digalacturonate transport system
+M00601;0;0.0;148;3.1;0;0.0;0;0.0;0;0.0;0;0.0;148;3.3;0;0.0;Putative chitobiose transport system
+M00602;0;0.0;106;2.2;0;0.0;0;0.0;0;0.0;0;0.0;106;2.4;0;0.0;Arabinosaccharide transport system
+M00603;0;0.0;506;10.7;0;0.0;0;0.0;0;0.0;0;0.0;506;11.4;0;0.0;Putative aldouronate transport system
+M00604;0;0.0;27;0.6;0;0.0;0;0.0;0;0.0;0;0.0;10;0.2;17;6.5;Trehalose transport system
+M00605;0;0.0;563;11.9;0;0.0;0;0.0;0;0.0;0;0.0;536;12.0;27;10.3;Glucose/mannose transport system
+M00606;0;0.0;134;2.8;0;0.0;0;0.0;0;0.0;0;0.0;134;3.0;0;0.0;N,N'-Diacetylchitobiose transport system
+M00607;0;0.0;328;7.0;0;0.0;0;0.0;0;0.0;0;0.0;328;7.4;0;0.0;Glycerol transport system
+M00608;0;0.0;79;1.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;79;30.3;2-Oxocarboxylic acid chain extension, 2-oxoglutarate => 2-oxoadipate => 2-oxopimelate => 2-oxosuberate
+M00609;0;0.0;166;3.5;0;0.0;0;0.0;0;0.0;0;0.0;166;3.7;0;0.0;Cysteine biosynthesis, methionine => cysteine
+M00610;0;0.0;108;2.3;0;0.0;0;0.0;0;0.0;0;0.0;108;2.4;0;0.0;PTS system, D-glucosaminate-specific II component
+M00611;63;14.8;99;2.1;0;0.0;62;74.7;0;0.0;1;2.0;99;2.2;0;0.0;Oxygenic photosynthesis in plants and cyanobacteria
+M00612;0;0.0;34;0.7;0;0.0;0;0.0;0;0.0;0;0.0;34;0.8;0;0.0;Anoxygenic photosynthesis in purple bacteria
+M00613;0;0.0;5;0.1;0;0.0;0;0.0;0;0.0;0;0.0;5;0.1;0;0.0;Anoxygenic photosynthesis in green nonsulfur bacteria
+M00614;0;0.0;8;0.2;0;0.0;0;0.0;0;0.0;0;0.0;8;0.2;0;0.0;Anoxygenic photosynthesis in green sulfur bacteria
+M00615;139;32.6;205;4.3;0;0.0;79;95.2;55;45.5;5;10.2;184;4.1;21;8.0;Nitrate assimilation
+M00616;1;0.2;1045;22.1;0;0.0;1;1.2;0;0.0;0;0.0;1045;23.4;0;0.0;Sulfate-sulfur assimilation
+M00617;0;0.0;85;1.8;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;85;32.6;Methanogen
+M00618;0;0.0;17;0.4;0;0.0;0;0.0;0;0.0;0;0.0;17;0.4;0;0.0;Acetogen
+M00619;0;0.0;15;0.3;0;0.0;0;0.0;0;0.0;0;0.0;15;0.3;0;0.0;Xylobiose transport system
+M00620;0;0.0;40;0.8;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;40;15.3;Incomplete reductive citrate cycle, acetyl-CoA => oxoglutarate
+M00622;0;0.0;110;2.3;0;0.0;0;0.0;0;0.0;0;0.0;110;2.5;0;0.0;Nicotinate degradation, nicotinate => fumarate
+M00623;0;0.0;18;0.4;0;0.0;0;0.0;0;0.0;0;0.0;18;0.4;0;0.0;Phthalate degradation, phthalate => protocatechuate
+M00624;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Terephthalate degradation, terephthalate => 3,4-dihydroxybenzoate
+M00625;0;0.0;14;0.3;0;0.0;0;0.0;0;0.0;0;0.0;14;0.3;0;0.0;Methicillin resistance
+M00627;0;0.0;121;2.6;0;0.0;0;0.0;0;0.0;0;0.0;121;2.7;0;0.0;beta-Lactam resistance, Bla system
+M00628;0;0.0;247;5.2;0;0.0;0;0.0;0;0.0;0;0.0;247;5.5;0;0.0;beta-Lactam resistance, AmpC system
+M00630;30;7.0;0;0.0;0;0.0;0;0.0;30;24.8;0;0.0;0;0.0;0;0.0;D-Galacturonate degradation (fungi), D-galacturonate => glycerol
+M00631;0;0.0;523;11.1;0;0.0;0;0.0;0;0.0;0;0.0;523;11.7;0;0.0;D-Galacturonate degradation (bacteria), D-galacturonate => pyruvate + D-glyceraldehyde 3P
+M00632;232;54.5;1469;31.1;136;78.6;1;1.2;95;78.5;0;0.0;1463;32.8;6;2.3;Galactose degradation, Leloir pathway, galactose => alpha-D-glucose-1P
+M00633;0;0.0;25;0.5;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;25;9.6;Semi-phosphorylative Entner-Doudoroff pathway, gluconate/galactonate => glycerate-3P
+M00634;0;0.0;57;1.2;0;0.0;0;0.0;0;0.0;0;0.0;57;1.3;0;0.0;Oleandomycin transport system
+M00635;0;0.0;41;0.9;0;0.0;0;0.0;0;0.0;0;0.0;41;0.9;0;0.0;Tetracycline resistance, TetAB(46) transporter
+M00636;0;0.0;7;0.1;0;0.0;0;0.0;0;0.0;0;0.0;7;0.2;0;0.0;Phthalate degradation, phthalate => protocatechuate
+M00637;0;0.0;155;3.3;0;0.0;0;0.0;0;0.0;0;0.0;155;3.5;0;0.0;Anthranilate degradation, anthranilate => catechol
+M00638;0;0.0;45;1.0;0;0.0;0;0.0;0;0.0;0;0.0;45;1.0;0;0.0;Salicylate degradation, salicylate => gentisate
+M00639;0;0.0;64;1.4;0;0.0;0;0.0;0;0.0;0;0.0;64;1.4;0;0.0;Multidrug resistance, efflux pump MexCD-OprJ
+M00641;0;0.0;99;2.1;0;0.0;0;0.0;0;0.0;0;0.0;99;2.2;0;0.0;Multidrug resistance, efflux pump MexEF-OprN
+M00642;0;0.0;144;3.1;0;0.0;0;0.0;0;0.0;0;0.0;144;3.2;0;0.0;Multidrug resistance, efflux pump MexJK-OprM
+M00643;0;0.0;98;2.1;0;0.0;0;0.0;0;0.0;0;0.0;98;2.2;0;0.0;Multidrug resistance, efflux pump MexXY-OprM
+M00644;0;0.0;17;0.4;0;0.0;0;0.0;0;0.0;0;0.0;17;0.4;0;0.0;Vanadium resistance, efflux pump MexGHI-OpmD
+M00645;0;0.0;20;0.4;0;0.0;0;0.0;0;0.0;0;0.0;20;0.4;0;0.0;Multidrug resistance, efflux pump SmeABC
+M00646;0;0.0;321;6.8;0;0.0;0;0.0;0;0.0;0;0.0;321;7.2;0;0.0;Multidrug resistance, efflux pump AcrAD-TolC
+M00647;0;0.0;901;19.1;0;0.0;0;0.0;0;0.0;0;0.0;901;20.2;0;0.0;Multidrug resistance, efflux pump AcrAB-TolC/SmeDEF
+M00648;0;0.0;448;9.5;0;0.0;0;0.0;0;0.0;0;0.0;448;10.1;0;0.0;Multidrug resistance, efflux pump MdtABC
+M00649;0;0.0;99;2.1;0;0.0;0;0.0;0;0.0;0;0.0;99;2.2;0;0.0;Multidrug resistance, efflux pump AdeABC
+M00651;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Vancomycin resistance, D-Ala-D-Lac type
+M00652;0;0.0;9;0.2;0;0.0;0;0.0;0;0.0;0;0.0;9;0.2;0;0.0;Vancomycin resistance, D-Ala-D-Ser type
+M00653;0;0.0;90;1.9;0;0.0;0;0.0;0;0.0;0;0.0;90;2.0;0;0.0;AauS-AauR (acidic amino acids utilization) two-component regulatory system
+M00654;0;0.0;59;1.3;0;0.0;0;0.0;0;0.0;0;0.0;59;1.3;0;0.0;ParS-ParR (polymyxin-adaptive resistance) two-component regulatory system
+M00655;0;0.0;189;4.0;0;0.0;0;0.0;0;0.0;0;0.0;189;4.2;0;0.0;AdeS-AdeR two-component regulatory system
+M00656;0;0.0;71;1.5;0;0.0;0;0.0;0;0.0;0;0.0;71;1.6;0;0.0;VanS-VanR (VanB type vancomycin resistance) two-component regulatory system
+M00657;0;0.0;79;1.7;0;0.0;0;0.0;0;0.0;0;0.0;79;1.8;0;0.0;VanS-VanR (VanE type vancomycin resistance) two-component regulatory system
+M00658;0;0.0;70;1.5;0;0.0;0;0.0;0;0.0;0;0.0;70;1.6;0;0.0;VanS-VanR (actinomycete type vancomycin resistance) two-component regulatory system
+M00660;0;0.0;23;0.5;0;0.0;0;0.0;0;0.0;0;0.0;23;0.5;0;0.0;Xanthomonas spp. pathogenicity signature, T3SS and effectors
+M00661;4;0.9;0;0.0;0;0.0;0;0.0;4;3.3;0;0.0;0;0.0;0;0.0;Paspaline biosynthesis, geranylgeranyl-PP + indoleglycerol phosphate => paspaline
+M00662;0;0.0;23;0.5;0;0.0;0;0.0;0;0.0;0;0.0;23;0.5;0;0.0;Hk1-Rrp1 (glycerol uptake and utilization) two-component regulatory system
+M00663;0;0.0;125;2.6;0;0.0;0;0.0;0;0.0;0;0.0;125;2.8;0;0.0;SsrA-SsrB two-component regulatory system
+M00664;0;0.0;48;1.0;0;0.0;0;0.0;0;0.0;0;0.0;48;1.1;0;0.0;Nodulation
+M00667;0;0.0;8;0.2;0;0.0;0;0.0;0;0.0;0;0.0;8;0.2;0;0.0;Tetracycline resistance, efflux pump
+M00668;0;0.0;139;2.9;0;0.0;0;0.0;0;0.0;0;0.0;139;3.1;0;0.0;Tetracycline resistance, TetA transporter
+M00669;0;0.0;920;19.5;0;0.0;0;0.0;0;0.0;0;0.0;920;20.6;0;0.0;gamma-Hexachlorocyclohexane transport system
+M00670;0;0.0;202;4.3;0;0.0;0;0.0;0;0.0;0;0.0;202;4.5;0;0.0;Mce transport system
+M00672;5;1.2;0;0.0;0;0.0;0;0.0;5;4.1;0;0.0;0;0.0;0;0.0;Penicillin biosynthesis, aminoadipate + cycteine + valine => penicillin
+M00673;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;Cephamycin C biosynthesis, aminoadipate + cycteine + valine => cephamycin C
+M00674;0;0.0;3;0.1;0;0.0;0;0.0;0;0.0;0;0.0;3;0.1;0;0.0;Clavaminate biosynthesis, arginine + glyceraldehyde-3P => clavaminate
+M00675;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Carbapenem-3-carboxylate biosynthesis, pyrroline-5-carboxylate + malonyl-CoA => carbapenem-3-carboxylate
+M00676;142;33.3;0;0.0;142;82.1;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;PI3K-Akt signaling
+M00677;166;39.0;0;0.0;166;96.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Wnt signaling
+M00678;99;23.2;0;0.0;99;57.2;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Hedgehog signaling
+M00679;155;36.4;0;0.0;155;89.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;BMP signaling
+M00680;105;24.6;0;0.0;105;60.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;TGF-beta signaling
+M00681;98;23.0;0;0.0;98;56.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Activin signaling
+M00682;164;38.5;0;0.0;163;94.2;0;0.0;0;0.0;1;2.0;0;0.0;0;0.0;Notch signaling
+M00683;146;34.3;0;0.0;146;84.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Hippo signaling
+M00684;152;35.7;0;0.0;152;87.9;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;JAK-STAT signaling
+M00685;112;26.3;0;0.0;112;64.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Apoptotic machinery
+M00686;101;23.7;0;0.0;101;58.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Toll-like receptor signaling
+M00687;149;35.0;0;0.0;147;85.0;2;2.4;0;0.0;0;0.0;0;0.0;0;0.0;MAPK (ERK1/2) signaling
+M00688;172;40.4;0;0.0;172;99.4;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;MAPK (JNK) signaling
+M00689;167;39.2;0;0.0;166;96.0;0;0.0;0;0.0;1;2.0;0;0.0;0;0.0;MAPK (p38) signaling
+M00690;104;24.4;0;0.0;103;59.5;0;0.0;0;0.0;1;2.0;0;0.0;0;0.0;MAPK (ERK5) signaling
+M00691;232;54.5;0;0.0;115;66.5;0;0.0;111;91.7;6;12.2;0;0.0;0;0.0;DNA damage-induced cell cycle checkpoints
+M00692;165;38.7;0;0.0;101;58.4;52;62.7;12;9.9;0;0.0;0;0.0;0;0.0;Cell cycle - G1/S transition
+M00693;363;85.2;0;0.0;159;91.9;77;92.8;113;93.4;14;28.6;0;0.0;0;0.0;Cell cycle - G2/M transition
+M00694;175;41.1;0;0.0;173;100.0;0;0.0;0;0.0;2;4.1;0;0.0;0;0.0;cGMP signaling
+M00695;287;67.4;0;0.0;170;98.3;0;0.0;113;93.4;4;8.2;0;0.0;0;0.0;cAMP signaling
+M00696;0;0.0;183;3.9;0;0.0;0;0.0;0;0.0;0;0.0;183;4.1;0;0.0;Multidrug resistance, efflux pump AcrEF-TolC
+M00697;0;0.0;75;1.6;0;0.0;0;0.0;0;0.0;0;0.0;75;1.7;0;0.0;Multidrug resistance, efflux pump MdtEF-TolC
+M00698;0;0.0;177;3.8;0;0.0;0;0.0;0;0.0;0;0.0;177;4.0;0;0.0;Multidrug resistance, efflux pump BpeEF-OprC
+M00699;0;0.0;16;0.3;0;0.0;0;0.0;0;0.0;0;0.0;16;0.4;0;0.0;Multidrug resistance, efflux pump AmeABC
+M00700;0;0.0;204;4.3;0;0.0;0;0.0;0;0.0;0;0.0;204;4.6;0;0.0;Multidrug resistance, efflux pump AbcA
+M00701;0;0.0;436;9.2;0;0.0;0;0.0;0;0.0;0;0.0;436;9.8;0;0.0;Multidrug resistance, efflux pump EmrAB
+M00702;0;0.0;79;1.7;0;0.0;0;0.0;0;0.0;0;0.0;79;1.8;0;0.0;Multidrug resistance, efflux pump NorB
+M00704;0;0.0;53;1.1;0;0.0;0;0.0;0;0.0;0;0.0;53;1.2;0;0.0;Tetracycline resistance, efflux pump Tet38
+M00705;0;0.0;51;1.1;0;0.0;0;0.0;0;0.0;0;0.0;51;1.1;0;0.0;Multidrug resistance, efflux pump MepA
+M00706;0;0.0;168;3.6;0;0.0;0;0.0;0;0.0;0;0.0;168;3.8;0;0.0;Multidrug resistance, EfrAB transporter
+M00707;0;0.0;1416;30.0;0;0.0;0;0.0;0;0.0;0;0.0;1416;31.8;0;0.0;Multidrug resistance, MdlAB/SmdAB transporter
+M00708;0;0.0;241;5.1;0;0.0;0;0.0;0;0.0;0;0.0;241;5.4;0;0.0;Multidrug resistance, PatAB transporter
+M00709;0;0.0;458;9.7;0;0.0;0;0.0;0;0.0;0;0.0;458;10.3;0;0.0;Macrolide resistance, MacAB-TolC transporter
+M00710;0;0.0;75;1.6;0;0.0;0;0.0;0;0.0;0;0.0;75;1.7;0;0.0;Multidrug resistance, efflux pump EbrAB
+M00711;0;0.0;484;10.3;0;0.0;0;0.0;0;0.0;0;0.0;484;10.9;0;0.0;Multidrug resistance, efflux pump MdtIJ
+M00712;0;0.0;320;6.8;0;0.0;0;0.0;0;0.0;0;0.0;320;7.2;0;0.0;Multidrug resistance, efflux pump YkkCD
+M00713;0;0.0;8;0.2;0;0.0;0;0.0;0;0.0;0;0.0;8;0.2;0;0.0;Fluoroquinolone resistance, efflux pump LfrA
+M00714;0;0.0;13;0.3;0;0.0;0;0.0;0;0.0;0;0.0;13;0.3;0;0.0;Multidrug resistance, efflux pump QacA
+M00715;0;0.0;152;3.2;0;0.0;0;0.0;0;0.0;0;0.0;149;3.3;3;1.1;Lincosamide resistance, efflux pump LmrB
+M00716;0;0.0;86;1.8;0;0.0;0;0.0;0;0.0;0;0.0;86;1.9;0;0.0;ArlS-ArlR (virulence regulation) two-component regulatory system
+M00717;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Multidrug resistance, efflux pump NorA
+M00718;0;0.0;22;0.5;0;0.0;0;0.0;0;0.0;0;0.0;22;0.5;0;0.0;Multidrug resistance, efflux pump MexAB-OprM
+M00719;0;0.0;58;1.2;0;0.0;0;0.0;0;0.0;0;0.0;58;1.3;0;0.0;Ihk-Irr (virulence regulation) two-component regulatory system
+M00720;0;0.0;212;4.5;0;0.0;0;0.0;0;0.0;0;0.0;212;4.8;0;0.0;Multidrug resistance, efflux pump VexEF-TolC
+M00721;0;0.0;377;8.0;0;0.0;0;0.0;0;0.0;0;0.0;377;8.5;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, arnBCADTEF operon
+M00722;0;0.0;329;7.0;0;0.0;0;0.0;0;0.0;0;0.0;329;7.4;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, ethanolaminephosphotransferase EptA
+M00723;0;0.0;4;0.1;0;0.0;0;0.0;0;0.0;0;0.0;4;0.1;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, ethanolaminephosphotransferase EptB
+M00724;0;0.0;358;7.6;0;0.0;0;0.0;0;0.0;0;0.0;358;8.0;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, palmitoyl transferase PagP
+M00725;0;0.0;68;1.4;0;0.0;0;0.0;0;0.0;0;0.0;68;1.5;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, dltABCD operon
+M00726;0;0.0;77;1.6;0;0.0;0;0.0;0;0.0;0;0.0;77;1.7;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, lysyl-phosphatidylglycerol (L-PG) synthase MprF
+M00727;0;0.0;607;12.9;0;0.0;0;0.0;0;0.0;0;0.0;607;13.6;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, N-acetylmuramoyl-L-alanine amidase AmiA and AmiC
+M00728;0;0.0;609;12.9;0;0.0;0;0.0;0;0.0;0;0.0;609;13.7;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, envelope protein folding and degrading factors DegP and DsbA
+M00729;0;0.0;122;2.6;0;0.0;0;0.0;0;0.0;0;0.0;122;2.7;0;0.0;Fluoroquinolone resistance, gyrase-protecting protein Qnr
+M00730;0;0.0;66;1.4;0;0.0;0;0.0;0;0.0;0;0.0;66;1.5;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, VraFG transporter
+M00731;0;0.0;70;1.5;0;0.0;0;0.0;0;0.0;0;0.0;70;1.6;0;0.0;Bacitracin transport system
+M00732;0;0.0;67;1.4;0;0.0;0;0.0;0;0.0;0;0.0;67;1.5;0;0.0;Cationic antimicrobial peptide transport system
+M00733;0;0.0;78;1.7;0;0.0;0;0.0;0;0.0;0;0.0;78;1.8;0;0.0;GraS-GraR (cationic antimicrobial peptide transport) two-component regulatory system
+M00734;0;0.0;74;1.6;0;0.0;0;0.0;0;0.0;0;0.0;74;1.7;0;0.0;BraS-BraR (bacitracin transport) two-component regulatory system
+M00736;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Nocardicin A biosynthesis, L-pHPG + arginine + serine => nocardicin A
+M00737;0;0.0;66;1.4;0;0.0;0;0.0;0;0.0;0;0.0;66;1.5;0;0.0;Bacitracin resistance, VraDE transporter
+M00738;0;0.0;123;2.6;0;0.0;0;0.0;0;0.0;0;0.0;123;2.8;0;0.0;Bacitracin resistance, BceAB transporter
+M00739;0;0.0;585;12.4;0;0.0;0;0.0;0;0.0;0;0.0;585;13.1;0;0.0;Cationic peptide transport system
+M00740;0;0.0;7;0.1;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;7;2.7;Methylaspartate cycle
+M00741;133;31.2;585;12.4;120;69.4;3;3.6;0;0.0;10;20.4;527;11.8;58;22.2;Propanoyl-CoA metabolism, propanoyl-CoA => succinyl-CoA
+M00742;0;0.0;1914;40.6;0;0.0;0;0.0;0;0.0;0;0.0;1914;42.9;0;0.0;Aminoglycoside resistance, protease FtsH
+M00743;0;0.0;1181;25.0;0;0.0;0;0.0;0;0.0;0;0.0;1181;26.5;0;0.0;Aminoglycoside resistance, protease HtpX
+M00744;0;0.0;53;1.1;0;0.0;0;0.0;0;0.0;0;0.0;53;1.2;0;0.0;Cationic antimicrobial peptide (CAMP) resistance, protease PgtE
+M00745;0;0.0;95;2.0;0;0.0;0;0.0;0;0.0;0;0.0;95;2.1;0;0.0;Imipenem resistance, repression of porin OprD
+M00746;0;0.0;43;0.9;0;0.0;0;0.0;0;0.0;0;0.0;43;1.0;0;0.0;Multidrug resistance, repression of porin OmpF
+M00747;0;0.0;120;2.5;0;0.0;0;0.0;0;0.0;0;0.0;117;2.6;3;1.1;Bacitracin transport system
+M00754;0;0.0;56;1.2;0;0.0;0;0.0;0;0.0;0;0.0;56;1.3;0;0.0;Nisin resistance, phage shock protein homolog LiaH
+M00760;0;0.0;10;0.2;0;0.0;0;0.0;0;0.0;0;0.0;10;0.2;0;0.0;Erythromycin resistance, macrolide 2'-phosphotransferase I MphA
+M00761;0;0.0;391;8.3;0;0.0;0;0.0;0;0.0;0;0.0;391;8.8;0;0.0;Undecaprenylphosphate alpha-L-Ara4N biosynthesis, UDP-GlcA => undecaprenyl phosphate alpha-L-Ara4N
+M00762;0;0.0;350;7.4;0;0.0;0;0.0;0;0.0;0;0.0;338;7.6;12;4.6;Copper-processing system
+M00763;0;0.0;29;0.6;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;29;11.1;Ornithine biosynthesis, mediated by LysW, glutamate => ornithine
+M00764;0;0.0;119;2.5;0;0.0;0;0.0;0;0.0;0;0.0;119;2.7;0;0.0;PTS system, fructoselysine/glucoselysine-specific II component
+M00765;0;0.0;27;0.6;0;0.0;0;0.0;0;0.0;0;0.0;27;0.6;0;0.0;Multidrug resistance, efflux pump Bmr
+M00766;0;0.0;99;2.1;0;0.0;0;0.0;0;0.0;0;0.0;99;2.2;0;0.0;Streptomycin resistance, deactivating enzyme StrAB
+M00767;0;0.0;97;2.1;0;0.0;0;0.0;0;0.0;0;0.0;97;2.2;0;0.0;Multidrug resistance, efflux pump OqxAB
+M00768;0;0.0;54;1.1;0;0.0;0;0.0;0;0.0;0;0.0;54;1.2;0;0.0;Multidrug resistance, efflux pump GesABC
+M00769;0;0.0;18;0.4;0;0.0;0;0.0;0;0.0;0;0.0;18;0.4;0;0.0;Multidrug resistance, efflux pump MexPQ-OpmE
+M00770;0;0.0;116;2.5;0;0.0;0;0.0;0;0.0;0;0.0;116;2.6;0;0.0;PfeS-PfeR (enterobactin-dependent iron acquisition) two-component regulatory system
+M00771;0;0.0;6;0.1;0;0.0;0;0.0;0;0.0;0;0.0;6;0.1;0;0.0;FitF-FitH (insecticidal toxin regulation) two-component regulatory system
+M00772;0;0.0;76;1.6;0;0.0;0;0.0;0;0.0;0;0.0;76;1.7;0;0.0;HupT-HupR (hydrogenase synthesis regulation) two-component regulatory system
+M00773;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Tylosin biosynthesis, methylmalonyl-CoA + malonyl-CoA => tylactone => tylosin
+M00774;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Erythromycin biosynthesis, propanoyl-CoA + methylmalonyl-CoA => deoxyerythronolide B => erythromycin A/B
+M00775;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Oleandomycin biosynthesis, malonyl-CoA + methylmalonyl-CoA => 8,8a-deoxyoleandolide => oleandomycin
+M00776;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Pikromycin/methymycin/neomethymycin biosynthesis, methylmalonyl-CoA + malonyl-CoA => narbonolide/10-deoxymethynolide => pikromycin/methymycin/neomethymycin
+M00777;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Avermectin biosynthesis, 2-methylbutanoyl-CoA/isobutyryl-CoA => 6,8a-Seco-6,8a-deoxy-5-oxoavermectin 1a/1b aglycone => avermectin A1a/B1a/A1b/B1b
+M00778;0;0.0;40;0.8;0;0.0;0;0.0;0;0.0;0;0.0;40;0.9;0;0.0;Type II polyketide backbone biosynthesis, acyl-CoA + malonyl-CoA => polyketide
+M00779;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;Dihydrokalafungin biosynthesis, octaketide => dihydrokalafungin
+M00780;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Tetracycline/oxytetracycline biosynthesis, pretetramide => tetracycline/oxytetracycline
+M00781;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;Nogalavinone/aklavinone biosynthesis, deoxynogalonate/deoxyaklanonate => nogalavinone/aklavinone
+M00782;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Mithramycin biosynthesis, 4-demethylpremithramycinone => mithramycin
+M00783;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Tetracenomycin C/8-demethyltetracenomycin C biosynthesis, tetracenomycin F2 => tetracenomycin C/8-demethyltetracenomycin C
+M00784;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Elloramycin biosynthesis, 8-demethyltetracenomycin C => elloramycin A
+M00785;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Cycloserine biosynthesis, arginine/serine => cycloserine
+M00786;1;0.2;0;0.0;0;0.0;0;0.0;1;0.8;0;0.0;0;0.0;0;0.0;Fumitremorgin alkaloid biosynthesis, tryptophan + proline => fumitremorgin C/A
+M00787;0;0.0;43;0.9;0;0.0;0;0.0;0;0.0;0;0.0;43;1.0;0;0.0;Bacilysin biosynthesis, prephenate => bacilysin
+M00788;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Terpentecin biosynthesis, GGAP => terpentecin
+M00789;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Rebeccamycin biosynthesis, tryptophan => rebeccamycin
+M00790;0;0.0;42;0.9;0;0.0;0;0.0;0;0.0;0;0.0;42;0.9;0;0.0;Pyrrolnitrin biosynthesis, tryptophan => pyrrolnitrin
+M00791;0;0.0;76;1.6;0;0.0;0;0.0;0;0.0;0;0.0;76;1.7;0;0.0;Manganese/zinc transport system
+M00792;0;0.0;272;5.8;0;0.0;0;0.0;0;0.0;0;0.0;272;6.1;0;0.0;Manganese/zinc transport system
+M00793;0;0.0;2642;56.0;0;0.0;0;0.0;0;0.0;0;0.0;2514;56.4;128;49.0;dTDP-L-rhamnose biosynthesis
+M00794;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;dTDP-6-deoxy-D-allose biosynthesis
+M00795;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;dTDP-beta-L-noviose biosynthesis
+M00796;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;dTDP-D-mycaminose biosynthesis
+M00797;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;dTDP-D-desosamine biosynthesis
+M00798;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;dTDP-L-mycarose biosynthesis
+M00799;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;dTDP-L-oleandrose biosynthesis
+M00800;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;dTDP-L-megosamine biosynthesis
+M00801;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;dTDP-L-olivose biosynthesis
+M00802;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;dTDP-D-forosamine biosynthesis
+M00803;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;dTDP-D-angolosamine biosynthesis
+M00804;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;Complete nitrification, comammox, ammonia => nitrite => nitrate
+M00805;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Staurosporine biosynthesis, tryptophan => staurosporine
+M00806;0;0.0;269;5.7;0;0.0;0;0.0;0;0.0;0;0.0;269;6.0;0;0.0;PTS system, maltose-specific II component
+M00807;0;0.0;118;2.5;0;0.0;0;0.0;0;0.0;0;0.0;118;2.6;0;0.0;PTS system, galactose-specific II component
+M00808;0;0.0;3;0.1;0;0.0;0;0.0;0;0.0;0;0.0;3;0.1;0;0.0;Violacein biosynthesis, tryptophan => violacein
+M00809;0;0.0;400;8.5;0;0.0;0;0.0;0;0.0;0;0.0;400;9.0;0;0.0;PTS system, glucose-specific II component
+M00810;0;0.0;3;0.1;0;0.0;0;0.0;0;0.0;0;0.0;3;0.1;0;0.0;Nicotine degradation, pyridine pathway, nicotine => 2,6-dihydroxypyridine/succinate semialdehyde
+M00811;0;0.0;3;0.1;0;0.0;0;0.0;0;0.0;0;0.0;3;0.1;0;0.0;Nicotine degradation, pyrrolidine pathway, nicotine => succinate semialdehyde
+M00812;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;AgrC2-AgrA2 (virulence regulation) two-component regulatory system
+M00813;0;0.0;184;3.9;0;0.0;0;0.0;0;0.0;0;0.0;184;4.1;0;0.0;Lantibiotic transport system
+M00814;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Acarbose biosynthesis, sedoheptulopyranose-7P => acarbose
+M00815;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;Validamycin A biosynthesis, sedoheptulopyranose-7P => validamycin A
+M00816;0;0.0;236;5.0;0;0.0;0;0.0;0;0.0;0;0.0;236;5.3;0;0.0;NisK-NisR (lantibiotic biosynthesis) two-component regulatory system
+M00817;0;0.0;208;4.4;0;0.0;0;0.0;0;0.0;0;0.0;208;4.7;0;0.0;Lantibiotic transport system
+M00818;0;0.0;110;2.3;0;0.0;0;0.0;0;0.0;0;0.0;110;2.5;0;0.0;FusK-FusR (virulence regulation) two-component regulatory system
+M00819;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;Pentalenolactone biosynthesis, farnesyl-PP => pentalenolactone
+M00820;0;0.0;115;2.4;0;0.0;0;0.0;0;0.0;0;0.0;115;2.6;0;0.0;SagS-HptB-HsbR (swarming activity and biofilm formation) two-component regulatory system
+M00821;0;0.0;188;4.0;0;0.0;0;0.0;0;0.0;0;0.0;188;4.2;0;0.0;Multidrug resistance, efflux pump TriABC-TolC
+M00822;0;0.0;79;1.7;0;0.0;0;0.0;0;0.0;0;0.0;79;1.8;0;0.0;Multidrug resistance, efflux pump MexMN-OprM
+M00823;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Chlortetracycline biosynthesis, pretetramide => chlortetracycline
+M00824;0;0.0;19;0.4;0;0.0;0;0.0;0;0.0;0;0.0;19;0.4;0;0.0;9-membered enediyne core biosynthesis, malonyl-CoA => 3-hydroxyhexadeca-4,6,8,10,12,14-hexaenoyl-ACP => 9-membered enediyne core
+M00825;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;10-membered enediyne core biosynthesis, malonyl-CoA => 3-hydroxyhexadeca-4,6,8,10,12,14-hexaenoyl-ACP => 10-membered enediyne core
+M00826;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;C-1027 benzoxazolinate moiety biosynthesis, chorismate => benzoxazolinyl-CoA
+M00827;0;0.0;3;0.1;0;0.0;0;0.0;0;0.0;0;0.0;3;0.1;0;0.0;C-1027 beta-amino acid moiety biosynthesis, tyrosine => 3-chloro-4,5-dihydroxy-beta-phenylalanyl-PCP
+M00828;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Maduropeptin beta-hydroxy acid moiety biosynthesis, tyrosine => 3-(2-chloro-3-hydroxy-4-methoxyphenyl)-3-hydroxypropanoyl-PCP
+M00829;0;0.0;3;0.1;0;0.0;0;0.0;0;0.0;0;0.0;3;0.1;0;0.0;3,6-Dimethylsalicylyl-CoA biosynthesis, malonyl-CoA => 6-methylsalicylate => 3,6-dimethylsalicylyl-CoA
+M00830;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Neocarzinostatin naphthoate moiety biosynthesis, malonyl-CoA => 2-hydroxy-5-methyl-1-naphthoate => 2-hydroxy-7-methoxy-5-methyl-1-naphthoyl-CoA
+M00831;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Kedarcidin 2-hydroxynaphthoate moiety biosynthesis, malonyl-CoA => 3,6,8-trihydroxy-2-naphthoate => 3-hydroxy-7,8-dimethoxy-6-isopropoxy-2-naphthoyl-CoA
+M00832;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;Kedarcidin 2-aza-3-chloro-beta-tyrosine moiety biosynthesis, azatyrosine => 2-aza-3-chloro-beta-tyrosyl-PCP
+M00833;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Calicheamicin biosynthesis, calicheamicinone => calicheamicin
+M00834;0;0.0;1;0.0;0;0.0;0;0.0;0;0.0;0;0.0;1;0.0;0;0.0;Calicheamicin orsellinate moiety biosynthesis, malonyl-CoA => orsellinate-ACP => 5-iodo-2,3-dimethoxyorsellinate-ACP
+M00835;0;0.0;20;0.4;0;0.0;0;0.0;0;0.0;0;0.0;20;0.4;0;0.0;Pyocyanine biosynthesis, chorismate => pyocyanine
+M00836;0;0.0;35;0.7;0;0.0;0;0.0;0;0.0;0;0.0;0;0.0;35;13.4;Coenzyme F430 biosynthesis, sirohydrochlorin => coenzyme F430
+M00837;0;0.0;7;0.1;0;0.0;0;0.0;0;0.0;0;0.0;7;0.2;0;0.0;Prodigiosin biosynthesis, L-proline => prodigiosin
+M00838;0;0.0;2;0.0;0;0.0;0;0.0;0;0.0;0;0.0;2;0.0;0;0.0;Undecylprodigiosin biosynthesis, L-proline => undecylprodigiosin
+M00839;0;0.0;581;12.3;0;0.0;0;0.0;0;0.0;0;0.0;581;13.0;0;0.0;PdtaS-PdtaR two-component regulatory system
+M00840;0;0.0;80;1.7;0;0.0;0;0.0;0;0.0;0;0.0;80;1.8;0;0.0;Tetrahydrofolate biosynthesis, mediated by ribA and trpF, GTP => THF
+M00841;6;1.4;0;0.0;0;0.0;0;0.0;0;0.0;6;12.2;0;0.0;0;0.0;Tetrahydrofolate biosynthesis, mediated by PTPS, GTP => THF
+M00842;167;39.2;0;0.0;163;94.2;0;0.0;0;0.0;4;8.2;0;0.0;0;0.0;Tetrahydrobiopterin biosynthesis, GTP => BH4
+M00843;0;0.0;11;0.2;0;0.0;0;0.0;0;0.0;0;0.0;11;0.2;0;0.0;L-threo-Tetrahydrobiopterin biosynthesis, GTP => L-threo-BH4

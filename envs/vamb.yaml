@@ -1,0 +1,21 @@
+name: vamb
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+  - pytorch
+dependencies:
+  - pytorch::pytorch
+  - pytorch::torchvision
+  - pytorch::torchaudio
+  - cudatoolkit=11.1.1=h6406543_8
+  - cudatoolkit-dev=11.4.0=py39h3811e60_1  
+#  - cudatoolkit-dev=11.0
+#  - cudatoolkit-dev=11.4.0=py38h497a2fe_1
+#  - conda-forge::cudatoolkit=11.0
+#  - pytorch::cudatoolkit=11.0
+#- conda-forge::cudatoolkit-dev=11.4.0=py38h497a2fe_1
+  - conda-forge::pip=21.2.1=pyhd8ed1ab_0
+
+  - pip: #https://stackoverflow.com/questions/35245401/combining-conda-environment-yml-with-pip-requirements-txt
+    - https://github.com/RasmussenLab/vamb/archive/v3.0.3.zip

@@ -1,0 +1,8 @@
+name: coverm
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - bioconda::coverm=0.6.0=hc216eb9_0
