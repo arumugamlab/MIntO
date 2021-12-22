@@ -227,14 +227,14 @@ Contigs longer than 2500bp from all the combinations of assemblies in assembly.s
 
 | Parameters  |       | Description                   |
 |-------------|-------|-------------------------------|
-| BWA_threads | <int> | Number of threads used by BWA |
+| BWA_threads | int | Number of threads used by BWA |
 
 #### samtools settings - Used when sorting bam files
 
 | Parameters              |       | Description                               |
 |-------------------------|-------|-------------------------------------------|
-| SAMTOOLS_sort_threads   | <int> | Number of threads used by samtools        |
-| SAMTOOLS_sort_memory_gb | <int> | Number of GBs per thread used by samtools |
+| SAMTOOLS_sort_threads   | int | Number of threads used by samtools        |
+| SAMTOOLS_sort_memory_gb | int | Number of GBs per thread used by samtools |
 
 binning_preparation.smk script can be run like:
 
@@ -293,7 +293,7 @@ MIntO generates the required configuration file in <working_dir>/<omics>/mapping
 
 | Parameters    |   | Description                                                                               |
 |---------------|---|-------------------------------------------------------------------------------------------|
-| reference_dir |   | point to the directory where all the publicly available genome’s directories are located. |
+| reference_dir | path  | point to the directory where all the publicly available genome’s directories are located. |
 
 gene_annotation.smk script can be run like:
 - snakemake --snakefile <PathToMIntO>/gene_annotation.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/mapping.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
