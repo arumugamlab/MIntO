@@ -32,8 +32,12 @@ Please note:
 Snakemake can be downloaded and installed using Conda, following the instructions at https://snakemake.readthedocs.io/en/stable/getting_started/installation.html
 
 ### Download Databases
-In addition, MIntO uses several databases that have to be downloaded by the user.
-- Before running QC_2.smk for the first time, SortMeRNA database has to be downloaded and indexed.
+In addition, MIntO uses several databases that can be downloaded using the smk script dependencies.smk.
+
+- snakemake --snakefile <PathToMIntO>/smk/dependencies.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <PathToConfigFile>dependencies.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
+
+However, the user can also dowload the required databases manually:
+- Before running QC_2.smk for the first time, SortMeRNA database has to be downloaded. MIntO will index the rRNA database.
   - SortMeRNA databases can be downloaded here:  https://github.com/biocore/sortmerna/tree/master/data/rRNA_databases
  
 - Before running gene_annotation.smk for the first time, there are three databases to download/install: emapperdb, KOfam database and dbcan database
@@ -95,9 +99,9 @@ MIntO requires a configuration file as an input which includes several parameter
 
 | Parameters     |   | Description                                                                                                                                                                               |
 |-------------|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| PROJECT     | path  | Name of the project.                                                                                                                                                                               |
-| working_dir |  metaG or metaT | Path to the directory where MIntO generates the output directories and files.                                                                                                                      |
-| omics       | path | Type of reads used as input. ‘metaG’ for metagenomic reads. ‘metaT’ for metatranscriptomic reads.                                                                                                  |
+| PROJECT     | str  | Name of the project.                                                                                                                                                                               |
+| working_dir |  path | Path to the directory where MIntO generates the output directories and files.                                                                                                                      |
+| omics       | <metaG or metaT> | Type of reads used as input. ‘metaG’ for metagenomic reads. ‘metaT’ for metatranscriptomic reads.                                                                                                  |
 | local_dir   | path  | Local directory where temporary files are generated while Snakemake rules are run. These temporary files are deleted when the rule is finished.                                                    |
 | minto_dir   | path  | Location where MIntO has been downloaded.                                                                                                                                                          |
 | METADATA    | path/file | Plain text metadata file with the first 3 columns as: sample ID, conditions and sample alias. This file is used to generate the output plots. If no metadata is provided, the sample IDs are used. |
@@ -118,7 +122,7 @@ In the pre-processing of metaG and metaT data, the first step is the quality rea
 
 QC_1.smk script can be run like:
 
-- snakemake --snakefile <PathToMIntO>/QC_1.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <PathToConfigFile>QC1.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
+- snakemake --snakefile <PathToMIntO>/smk/QC_1.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <PathToConfigFile>QC1.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
 
 ### Parameters used in QC_2.smk should be included in QC_2.yaml
 In the pre-processing of metaG and metaT data, the second step is the read length filtering. In order to keep as many sequences as possible, the raw reads are filtered by read length using Trimmomatic  v0.39 and the MINLEN parameter calculated in QC_1.smk. 
@@ -162,7 +166,7 @@ MIntO generates the required configuration file in <working_dir>/<omics>/QC_2.ya
 
 QC_2.smk script can be run like:
 
-- snakemake --snakefile <PathToMIntO>/QC_2.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/QC2.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
+- snakemake --snakefile <PathToMIntO>/smk/QC_2.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/QC2.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
 
 ### Parameters used in assembly.smk should be included in assemblies.yaml
 
@@ -217,7 +221,7 @@ Note:
 Memory per coassembly is calculated to be 10G per sample in the coassembly. Please make sure that there is enough RAM on the server.
 
 assembly.smk script can be run like:
-- snakemake --snakefile <PathToMIntO>/assembly.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/assemblies.yam --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp --use-singularity  --keep-going  --restart-times 1
+- snakemake --snakefile <PathToMIntO>/smk/assembly.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/assemblies.yam --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp --use-singularity  --keep-going  --restart-times 1
 
 ### Parameters used in binning_preparation.smk should be included in assemblies.yaml
 
@@ -238,7 +242,7 @@ Contigs longer than 2500bp from all the combinations of assemblies in assembly.s
 
 binning_preparation.smk script can be run like:
 
-- snakemake --snakefile <PathToMIntO>/binning_preparation.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/assemblies.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp --use-singularity --keep-going  --restart-times 1
+- snakemake --snakefile <PathToMIntO>/smk/binning_preparation.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/assemblies.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp --use-singularity --keep-going  --restart-times 1
 
 ### Parameters used in mags_generation.smk should be included in mags_generation.yaml
 
@@ -279,7 +283,7 @@ MIntO generates the required configuration file in <working_dir>/<omics>/mags_ge
 | DATABASE FOLDER      | str    | Path to the folder where to store the database, or where databases are already present.  We suggest having a folder with all the databases.  default: “.” ( same folder where MIntO has be launched) |
 
 mags_generation.smk script can be run like:
-- snakemake --snakefile <PathToMIntO>/mags_generation.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/mags_generation.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
+- snakemake --snakefile <PathToMIntO>/smk/mags_generation.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/mags_generation.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
 
 ### Parameters used in gene_annotation.smk should be included in mapping.yaml
 
@@ -293,10 +297,13 @@ MIntO generates the required configuration file in <working_dir>/<omics>/mapping
 
 | Parameters    |   | Description                                                                               |
 |---------------|---|-------------------------------------------------------------------------------------------|
-| reference_dir | path  | point to the directory where all the publicly available genome’s directories are located. |
+| map_reference | <MAG or reference_genome > | Select the mode that MIntO should be run depending on the input given by the user:        |
+| reference_dir | path  | point to the directory where all the publicly available genome’s directories are located if running reference_genome mode. |
+
+This smk script uses between 5 and 9 threads and between 5 and 10 GB per thread. In addition, to performe the annotation, MIntO expects to have KEGG, eggNOG, Pfam and dbCAN databases in {minto_dir}/data/.
 
 gene_annotation.smk script can be run like:
-- snakemake --snakefile <PathToMIntO>/gene_annotation.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/mapping.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
+- snakemake --snakefile <PathToMIntO>/smk/gene_annotation.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/mapping.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
 
 ### Parameters used in gene_abundance.smk should be included in mapping.yaml
 
@@ -313,13 +320,15 @@ The high-quality filtered (host-free for metaG and host- and rRNA-free for metaT
 
 | Parameters              |             | Description                                                     |
 |-------------------------|-------------|-----------------------------------------------------------------|
-| abundance_normalization | <TPM or MG> | Type of abundance normalization (gene abundance or transcripts) |
+| abundance_normalization | < TPM or MG > | Type of abundance normalization (gene abundance or transcripts): TPM (Transcripts Per Kilobase Million) or MG (Marker Genes) |
+| fetchMGs_dir | < path > | Point to the directory where fetchMGs.pl is located (when map_reference= <MAG or reference_genome> and abundance_normalization=MG). When map_reference=genes_db, TPM is only available normalization. |
 
 #### Map reads to reference
 | Parameters       |                                      | Description                                                                               |
 |------------------|--------------------------------------|-------------------------------------------------------------------------------------------|
 | map_reference    | <MAG, reference_genome  or genes_db> | Select the mode that MIntO should be run depending on the input given by the user:        |
-| reference_dir    | path                               | point to the directory where all the publicly available genome’s directories are located. |
+| PATH_reference   | path                               | Point to the directory where all the publicly available genome’s directories are located (when map_reference=reference_genome) or point to the directory where gene catalog fasta file is located (when map_reference =genes_db). |
+| NAME_reference | str                               | File name of gene catalog fasta file. MIntO will generate bwa index with same name (when map_reference=genes_db). |
 | BWAindex_threads | int                                | Number of threads used by BWA to generate the index.                                      |
 | BWAindex_memory: | int                                | Number of GBs per thread used by BWA to generate the index.                               |
 | BWA_threads      | int                                | Number of threads used by BWA.                                                            |
@@ -327,7 +336,7 @@ The high-quality filtered (host-free for metaG and host- and rRNA-free for metaT
 | ILLUMINA         |                                      | List of Illumina samples that will be aligned individually to the reference..             |
 
 gene_abundance.smk script can be run like:
-- snakemake --snakefile <PathToMIntO>/gene_abundance.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/mapping.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
+- snakemake --snakefile <PathToMIntO>/smk/gene_abundance.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/mapping.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
 
 ### Parameters used in integration.smk should be included in data_integration.yaml
 
@@ -338,11 +347,11 @@ gene_abundance.smk script can be run like:
 | map_reference           | <MAG, reference_genome  or genes_db> |                                                                            |
 | MERGE_memory            | int                                | Number of threads used to generate the gene and function profiles.         |
 | MERGE_threads           | int                                | Number of GBs per thread used  to generate the gene and function profiles. |
-| ANNOTATION_file         | path                               |                                                                            |
-| ANNOTATION_ids          |                                      | list                                                                       |
+| ANNOTATION_file         | path                               | Point to the file with gene annotations (when map_reference=genes_db). Columns should correspond to type of annotation and rows should correspond to gene IDs.|
+| ANNOTATION_ids          | list                                     | Type of annotation list to generate function profiles. If map_reference= <MAG or reference_genome>, this list correspond to 'eggNOG.OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod' and 'dbCAN.enzclass. The names should match the ANNOTATION_file column names.|
 
 integration.smk script can be run like:
-- snakemake --snakefile <PathToMIntO>/integration.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/data_integration.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
+- snakemake --snakefile <PathToMIntO>/smk/integration.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/data_integration.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
 
 Further analyses can be done using the output files. MIntO generates three different types of table: 
 - (1) assembly-free and assembly-based taxonomic profiles
