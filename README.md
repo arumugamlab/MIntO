@@ -101,7 +101,7 @@ MIntO requires a configuration file as an input which includes several parameter
 |-------------|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | PROJECT     | str  | Name of the project.                                                                                                                                                                               |
 | working_dir |  path | Path to the directory where MIntO generates the output directories and files.                                                                                                                      |
-| omics       | <metaG or metaT> | Type of reads used as input. ‘metaG’ for metagenomic reads. ‘metaT’ for metatranscriptomic reads.                                                                                                  |
+| omics       | metaG or metaT | Type of reads used as input. ‘metaG’ for metagenomic reads. ‘metaT’ for metatranscriptomic reads.                                                                                                  |
 | local_dir   | path  | Local directory where temporary files are generated while Snakemake rules are run. These temporary files are deleted when the rule is finished.                                                    |
 | minto_dir   | path  | Location where MIntO has been downloaded.                                                                                                                                                          |
 | METADATA    | path/file | Plain text metadata file with the first 3 columns as: sample ID, conditions and sample alias. This file is used to generate the output plots. If no metadata is provided, the sample IDs are used. |
@@ -272,7 +272,7 @@ MIntO generates the required configuration file in <working_dir>/<omics>/mags_ge
 | CLEAN_CHECKM         | yes/no> | Clean the checkm intermediates file.  default: yes                                                                                                                                                   |
 | COVERM_THREADS       | int    | Cores to be used by coverm.  default: 10                                                                                                                                                             |
 | COVERM_memory        | int    | memory to be used by Checkm default: 10                                                                                                                                                              |
-| SCORE_METHOD         | <checkm> | This can only be checkm at the moment!                                                                                                                                                               |
+| SCORE_METHOD         | checkm | This can only be checkm at the moment!                                                                                                                                                               |
 | RUN_PROKKA           | <yes/no> | Run prokka on the unique genomes retrieved? default: yes Careful: if it is no, MIntO will not continue with the next rules, since it misses the input!                                               |
 | PROKKA_CPUS          | int    | How many CPUs should be used by Prokka default: 10                                                                                                                                                   |
 | PROKKA_memory        | int    | Gb Ram memory to be used by prokka default: 8                                                                                                                                                        |
@@ -297,7 +297,7 @@ MIntO generates the required configuration file in <working_dir>/<omics>/mapping
 
 | Parameters    |   | Description                                                                               |
 |---------------|---|-------------------------------------------------------------------------------------------|
-| map_reference | <MAG or reference_genome > | Select the mode that MIntO should be run depending on the input given by the user:        |
+| map_reference | MAG or reference_genome | Select the mode that MIntO should be run depending on the input given by the user:        |
 | reference_dir | path  | point to the directory where all the publicly available genome’s directories are located if running reference_genome mode. |
 
 This smk script uses between 5 and 9 threads and between 5 and 10 GB per thread. In addition, to performe the annotation, MIntO expects to have KEGG, eggNOG, Pfam and dbCAN databases in {minto_dir}/data/.
@@ -320,20 +320,20 @@ The high-quality filtered (host-free for metaG and host- and rRNA-free for metaT
 
 | Parameters              |             | Description                                                     |
 |-------------------------|-------------|-----------------------------------------------------------------|
-| abundance_normalization | < TPM or MG > | Type of abundance normalization (gene abundance or transcripts): TPM (Transcripts Per Kilobase Million) or MG (Marker Genes) |
-| fetchMGs_dir | < path > | Point to the directory where fetchMGs.pl is located (when map_reference= <MAG or reference_genome> and abundance_normalization=MG). When map_reference=genes_db, TPM is only available normalization. |
+| abundance_normalization | TPM or MG | Type of abundance normalization (gene abundance or transcripts): TPM (Transcripts Per Kilobase Million) or MG (Marker Genes) |
+| fetchMGs_dir | path | Point to the directory where fetchMGs.pl is located (when map_reference= <MAG or reference_genome> and abundance_normalization=MG). When map_reference=genes_db, TPM is only available normalization. |
 
 #### Map reads to reference
 | Parameters       |                                      | Description                                                                               |
 |------------------|--------------------------------------|-------------------------------------------------------------------------------------------|
-| map_reference    | <MAG, reference_genome  or genes_db> | Select the mode that MIntO should be run depending on the input given by the user:        |
+| map_reference    | MAG, reference_genome  or genes_db | Select the mode that MIntO should be run depending on the input given by the user:        |
 | PATH_reference   | path                               | Point to the directory where all the publicly available genome’s directories are located (when map_reference=reference_genome) or point to the directory where gene catalog fasta file is located (when map_reference =genes_db). |
 | NAME_reference | str                               | File name of gene catalog fasta file. MIntO will generate bwa index with same name (when map_reference=genes_db). |
 | BWAindex_threads | int                                | Number of threads used by BWA to generate the index.                                      |
 | BWAindex_memory: | int                                | Number of GBs per thread used by BWA to generate the index.                               |
 | BWA_threads      | int                                | Number of threads used by BWA.                                                            |
 | BWA_memory       | int                                | Number of GBs per thread used by BWA.                                                     |
-| ILLUMINA         |                                      | List of Illumina samples that will be aligned individually to the reference..             |
+| ILLUMINA         | list                                     | List of Illumina samples that will be aligned individually to the reference..             |
 
 gene_abundance.smk script can be run like:
 - snakemake --snakefile <PathToMIntO>/smk/gene_abundance.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <working_dir>/<omics>/mapping.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
@@ -343,8 +343,8 @@ gene_abundance.smk script can be run like:
 | Parameters              |                                      | Description                                                                |
 |-------------------------|--------------------------------------|----------------------------------------------------------------------------|
 | alignment_identity      | int                                |                                                                            |
-| abundance_normalization | <TPM or MG>                          |                                                                            |
-| map_reference           | <MAG, reference_genome  or genes_db> |                                                                            |
+| abundance_normalization | TPM or MG                          | Type of abundance normalization (gene abundance or transcripts): TPM (Transcripts Per Kilobase Million) or MG (Marker Genes)|
+| map_reference           | MAG, reference_genome or genes_db| Select the mode that MIntO should be run depending on the input given by the user. |
 | MERGE_memory            | int                                | Number of threads used to generate the gene and function profiles.         |
 | MERGE_threads           | int                                | Number of GBs per thread used  to generate the gene and function profiles. |
 | ANNOTATION_file         | path                               | Point to the file with gene annotations (when map_reference=genes_db). Columns should correspond to type of annotation and rows should correspond to gene IDs.|
