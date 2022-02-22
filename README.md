@@ -32,7 +32,7 @@ Please note:
 Snakemake can be downloaded and installed using Conda, following the instructions at https://snakemake.readthedocs.io/en/stable/getting_started/installation.html
 
 ### Download Databases
-In addition, MIntO uses several databases that can be downloaded using the smk script dependencies.smk.
+In addition, MIntO uses several databases that can be downloaded using the smk script dependencies.smk and dependencies.yaml (located in MIntO/data/), where the user has to specify the number of threads and GB per threads to use when downloading the databases and indexing the rRNA database. 
 
 - snakemake --snakefile <PathToMIntO>/smk/dependencies.smk --quiet --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 30 --jobs <int> --configfile <PathToConfigFile>dependencies.yaml --use-conda --conda-prefix <PathToTmpCondaEnv>/tmp
 
