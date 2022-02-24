@@ -6,7 +6,7 @@ The distinctive feature of this pipeline is the computation of gene expression p
 The integrated pipeline will be relevant to provide unique biochemical insights into the microbial ecology by linking functions to retrieved genomes and to examine gene expression variations. MIntO can be downloaded from https://github.com/arumugamlab/MIntO.
 
 
-<p align="center"><img src="images/MIntO_logo.png" height="400" /></p>
+<p align="center"><img src="images/MIntO_blu_Microbiome_integrated_meta_omics.png" height="400" /></p>
 
 MIntO implementation and automation are achieved by Snakemake (Mölder et al. 2021):
 - User-friendly framework 
