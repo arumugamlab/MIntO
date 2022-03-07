@@ -6,7 +6,7 @@ Assembling metagenomes from combinations of illumina/bgi-seq and nanopore sequen
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-include: 'scripts/07-common-rules.smk'
+include: '../scripts/07-common-rules.smk'
 
 localrules: mark_circular_metaspades_contigs, mark_circular_flye_contigs, rename_megahit_contigs
 
@@ -143,6 +143,12 @@ if config['MEGAHIT_presets'] is None:
 if config['METAFLYE_presets'] is None:
     print('ERROR in ', config_path, ': METAFLYE_presets list of METAFLYE parameters to run per long-read assembly is empty. Please, complete ', config_path)
 
+if config['MEGAHIT_memory'] is None:
+    print('ERROR in ', config_path, ': MEGAHIT_memory variable is empty. Please, complete ', config_path)
+elif type(config['MEGAHIT_memory']) != int:
+    print('ERROR in ', config_path, ': MEGAHIT_memory variable is not an integer. Please, complete ', config_path)
+elif type(config['MEGAHIT_memory']) == int:
+    memory_config=config['MEGAHIT_memory']
 # Define all the outputs needed by target 'all'
 
 def illumina_single_assembly_output():
@@ -311,9 +317,10 @@ rule coassembly_megahit:
         tmp_asm=lambda wildcards: "{local_dir}/{omics}_{name}_coassembly_megahit".format(local_dir=local_dir, omics=wildcards.omics, name=wildcards.coassembly),
         fwd_reads=lambda wildcards, input: ",".join(input.fwd),
         rev_reads=lambda wildcards, input: ",".join(input.rev),
+        memory_config=config['MEGAHIT_memory']
     resources:
-        mem = lambda wildcards, input, attempt: len(input.fwd)*(5+6*attempt),
-        mem_bytes=lambda wildcards, input, attempt: len(input.fwd)*(5+6*attempt)*1024*1024*1024
+        mem = lambda wildcards, input, attempt: len(input.fwd)*(memory_config+6*attempt), #lambda wildcards, input, attempt: len(input.fwd)*(5+6*attempt),
+        mem_bytes=lambda wildcards, input, attempt: len(input.fwd)*(memory_config+6*attempt)*1024*1024*1024 #lambda wildcards, input, attempt: len(input.fwd)*(5+6*attempt)*1024*1024*1024
     log:
         "{wd}/logs/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}_{assembly_preset}_coassembly_megahit.log"
     threads: config['MEGAHIT_threads']
@@ -418,6 +425,8 @@ rule rename_megahit_contigs:
         "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa"
     output:
         "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta"
+    conda: 
+        config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """ 
         perl -ne 's/^>k(\d+)_(\d+) (.*)len=(\d+)/>MEGAHIT.{wildcards.assembly_preset}.{wildcards.coassembly}_NODE_$2_length_$4_k_$1/ if m/^>/; print $_;' < {input} > {output}

@@ -8,8 +8,8 @@ Authors: Carmen Saenz, Mani Arumugam
 
 import snakemake
 
-include: 'scripts/07-common-rules.smk'
-include: 'scripts/08-common-rules.smk'
+include: '../scripts/07-common-rules.smk'
+include: '../scripts/08-common-rules.smk'
 
 # snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/binning-preparation_Mani.smk --restart-times 1 --keep-going --latency-wait 30 --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --use-conda --conda-prefix /emc/cbmr/users/rzv923/ibdmdb_test/tmp_porus/ --configfile assemblies.smk.yaml --jobs 10
 # snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/binning-preparation_Mani.smk --restart-times 1 --keep-going --latency-wait 30 --cluster "sbatch -J {name} --mem={resources.mem}G -c {threads} -e slurm-%x.e%A -o slurm-%x.o%A"  --use-conda --conda-prefix /data/MIntO_snakemake_env/ --configfile assemblies.smk.yaml --jobs 10
@@ -62,6 +62,9 @@ else:
     minto_dir=config["minto_dir"]
 
 if config['METADATA'] is None:
+    print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
+    metadata=config["METADATA"]
+elif config['METADATA'] == "None":
     print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
     metadata=config["METADATA"]
 elif path.exists(config['METADATA']) is False:

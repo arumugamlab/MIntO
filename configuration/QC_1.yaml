@@ -1,0 +1,23 @@
+# General parameters
+PROJECT: 
+working_dir: 
+omics: 
+local_dir: 
+minto_dir: 
+METADATA: 
+raw_reads_dir: 
+
+# Pre-processing - quality reads filtering
+trimmomatic_adaptors: 
+perc_remaining_reads:  
+TRIMMOMATIC_threads: 
+TRIMMOMATIC_memory: 
+
+# Input data
+# ILLUMINA section:
+# -----------------
+# List of illumina samples that will be assembled individually using MetaSPAdes.
+# - SRR7947178
+# - SRR7947179
+#
+ILLUMINA:

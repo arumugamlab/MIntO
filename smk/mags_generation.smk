@@ -62,10 +62,25 @@ else:
     minto_dir=config["minto_dir"]
     script_dir=config["minto_dir"]+"/scripts/"
 
-if config['BINNERS'] in ('vamb_256', 'vamb_384', 'vamb_512', 'vamb_768'):
-    pass
+if 'BINNERS' in config:
+    if config['BINNERS'] is None:
+        print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 and/or vamb_768. Please, complete ', config_path)
+    else:
+        try:
+            # Make list of illumina samples, if ILLUMINA in config
+            ilmn_samples = list()
+            if 'BINNERS' in config:
+                #print("Samples:")
+                for bin in config["BINNERS"]:
+                    if bin in ('vamb_256', 'vamb_384', 'vamb_512', 'vamb_768'):
+                        pass
+                    else:
+                        raise TypeError('BINNERS variable is not correct. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 or vamb_768. Please, complete ', config_path)
+        except: 
+            print('ERROR in ', config_path, ': BINNERS variable is not correct. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 or vamb_768.')
 else:
-    print('ERROR in ', config_path, ': BINNERS variable is not correct. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 or vamb_768.')
+    print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 and/or vamb_768. Please, complete', config_path)
+
 
 if config['VAMB_THREADS'] is None:
     print('ERROR in ', config_path, ': VAMB_THREADS variable is empty. Please, complete ', config_path)
@@ -79,9 +94,9 @@ elif type(config['VAMB_memory']) != int:
 
 if config['VAMB_GPU'] is None:
     print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
-elif config['VAMB_GPU'] is yes:
+elif config['VAMB_GPU'] == True:
     print('WARNING in ', config_path, ': MIntO is using the GPU')
-elif config['VAMB_GPU'] is no:
+elif config['VAMB_GPU'] == False:
     print('WARNING in ', config_path, ': MIntO is not using the GPU')
 else:
 	print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
@@ -95,11 +110,6 @@ if config['CHECKM_THREADS'] is None:
     print('ERROR in ', config_path, ': CHECKM_THREADS variable is empty. Please, complete ', config_path)
 elif type(config['CHECKM_THREADS']) != int:
     print('ERROR in ', config_path, ': CHECKM_THREADS variable is not an integer. Please, complete ', config_path)
-
-if config['PPLACER_THREADS'] is None:
-    print('ERROR in ', config_path, ': PPLACER_THREADS variable is empty. Please, complete ', config_path)
-elif type(config['PPLACER_THREADS']) != int:
-    print('ERROR in ', config_path, ': PPLACER_THREADS variable is not an integer. Please, complete ', config_path)
 
 if config['CHECKM_memory'] is None:
     print('ERROR in ', config_path, ': CHECKM_memory variable is empty. Please, complete ', config_path)
@@ -118,9 +128,9 @@ elif type(config['CHECKM_CONTAMINATION']) != int:
 
 if config['CLEAN_CHECKM'] is None:
     print('ERROR in ', config_path, ': CLEAN_CHECKM variable is empty. "CLEAN_CHECKM" variable should be yes or no')
-elif config['CLEAN_CHECKM'] is yes:
+elif config['CLEAN_CHECKM'] == True:
     print('WARNING in ', config_path, ': MIntO is cleaning the checkm intermediates files')
-elif config['CLEAN_CHECKM'] is no:
+elif config['CLEAN_CHECKM'] == False:
     print('WARNING in ', config_path, ': MIntO is keeping the checkm intermediates files')
 else:
 	print('ERROR in ', config_path, ': CLEAN_CHECKM variable is empty. "CLEAN_CHECKM" variable should be yes or no')
@@ -135,16 +145,16 @@ if config['COVERM_memory'] is None:
 elif type(config['COVERM_memory']) != int:
     print('ERROR in ', config_path, ': COVERM_memory variable is not an integer. Please, complete ', config_path)
 
-if config['SCORE_METHOD'] is 'checkm':
+if config['SCORE_METHOD'] == 'checkm':
     pass
 else:
     print('ERROR in ', config_path, ': SCORE_METHOD variable can only be checkm at the moment!')
 
 if config['RUN_PROKKA'] is None:
     print('ERROR in ', config_path, ': RUN_PROKKA variable is empty. "RUN_PROKKA" variable should be yes or no')
-elif config['RUN_PROKKA'] is yes:
+elif config['RUN_PROKKA'] == True:
     print('WARNING in ', config_path, ': MIntO is running Prokka on the unique genomes retrieved.')
-elif config['RUN_PROKKA'] is no:
+elif config['RUN_PROKKA'] == False:
     print('WARNING in ', config_path, ': MIntO is not running Prokka on the unique genomes retrieved.')
 else:
 	print('ERROR in ', config_path, ': RUN_PROKKA variable is empty. "RUN_PROKKA" variable should be yes or no')
@@ -161,9 +171,10 @@ elif type(config['PROKKA_memory']) != int:
 
 if config['RUN_TAXONOMY'] is None:
     print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
-elif config['RUN_TAXONOMY'] is yes:
+elif config['RUN_TAXONOMY'] == True:
     print('WARNING in ', config_path, ': MIntO is running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
-elif config['RUN_TAXONOMY'] is no:
+    run_taxonomy = "yes"
+elif config['RUN_TAXONOMY'] == False:
     print('WARNING in ', config_path, ': MIntO is not running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
 else:
 	print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
@@ -181,13 +192,13 @@ if config['TAXONOMY_memory'] is None:
 elif type(config['TAXONOMY_memory']) != int:
     print('ERROR in ', config_path, ': TAXONOMY_memory variable is not an integer. Please, complete ', config_path)
 
-if config['DATABASE FOLDER'] is None:
-    print('ERROR in ', config_path, ': DATABASE FOLDER variable is empty. Please, complete ', config_path)
-elif path.exists(config['DATABASE FOLDER']) is False:
-    print('ERROR in ', config_path, ': DATABASE FOLDER variable path does not exit. Please, complete ', config_path)
-
-
-print(config['BINNERS'])
+if config['DATABASE_FOLDER'] is None:
+   print('ERROR in ', config_path, ': DATABASE_FOLDER variable is empty. Please, complete ', config_path)
+elif path.exists(config['DATABASE_FOLDER']) is False:
+   print('ERROR in ', config_path, ': DATABASE_FOLDER variable path does not exit. Please, complete ', config_path)
+elif path.exists(config['DATABASE_FOLDER']) is True:
+   db_folder = config["DATABASE_FOLDER"]
+   #print(db_folder)
 
 ## Configuration file
 # This is given by Carmen (fasta files and contigs file)
@@ -676,7 +687,7 @@ rule run_prokka:
 		config["PROKKA_CPUS"]
 	
 	conda:
-		config["minto_dir"]+"/envs/prokka.yaml"
+		config["minto_dir"]+"/envs/prokka_try_MIntO_3.yaml"
 	
 	shell: 
 		""" time (sh {script_dir}run_prokka.sh {params.run_prokka} {threads} {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/ {params.unique_genomes_folder} {output.prokka_ended})&> {log} """
@@ -693,13 +704,13 @@ rule run_taxonomy:
 	params:
 		unique_genomes_folder = "{wd}/metaG/8-1-binning/mags_generation_pipeline/unique_genomes",
 		output_phylophlan = "{wd}/metaG/8-1-binning/mags_generation_pipeline/taxonomy",
-		run_taxonomy = config["RUN_TAXONOMY"],
+		run_taxonomy = "{run_taxonomy}".format(run_taxonomy = run_taxonomy),
+        database_folder = "{db_folder}".format(db_folder = db_folder),
 		#taxonomy_cpus = config["TAXONOMY_CPUS"], # Moved to threads
 		#taxonomy_script = "{script_dir}/run_taxonomy.sh",
 		#taxonomy_folder = config["INITIAL_FOLDER"],
 		taxonomy_database = config["TAXONOMY_DATABASE"],
-		database_folder = config["DATABASE_FOLDER"]
-	
+        #database_folder = "{db_folder}".format(db_folder = db_folder) #config["DATABASE_FOLDER"], #"{db_folder}/",
 	log:
  		"{wd}/logs/metaG/mags_generation/run_taxonomy.log"
 	
