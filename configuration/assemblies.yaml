@@ -1,12 +1,12 @@
 ######################
 # General settings
 ######################
-PROJECT: illum_ont
-working_dir: /emc/cbmr/users/rzv923/Illumina_ONT
-omics: metaG
-local_dir: /data/rzv923/illum_ont_metaG
-minto_dir: /emc/cbmr/users/rzv923/github/MIntO
-METADATA: None
+PROJECT: 
+working_dir: 
+omics: 
+local_dir: 
+minto_dir: 
+METADATA: 
 
 ######################
 # Program settings
@@ -14,17 +14,17 @@ METADATA: None
 # MetaSPAdes settings
 #
 METASPADES_qoffset: auto
-METASPADES_threads: 16
-METASPADES_memory: 60
-METASPADES_hybrid_max_k: 99
-METASPADES_illumina_max_k: 99
+METASPADES_threads: 
+METASPADES_memory: 
+METASPADES_hybrid_max_k: 
+METASPADES_illumina_max_k: 
 
 # MEGAHIT settings
 #
 # Memory is not given here but calculated to be 10G per sample in the coassembly.
 # Please make sure that there is enough RAM on the server.
-MEGAHIT_threads: 20
-MEGAHIT_memory: 1
+MEGAHIT_threads: 
+MEGAHIT_memory: 
 MEGAHIT_presets:
  - meta-sensitive
  - meta-large
@@ -51,13 +51,13 @@ METAFLYE_presets:
 # BWA settings
 # Used when mapping reads back to contigs
 #
-BWA_threads: 16
+BWA_threads: 
 
 # samtools settings
 # Used when sorting bam files
 #
-SAMTOOLS_sort_threads: 8
-SAMTOOLS_sort_memory_gb: 20
+SAMTOOLS_sort_threads: 
+SAMTOOLS_sort_memory_gb: 
 
 # Input data
 
@@ -95,7 +95,7 @@ SAMTOOLS_sort_memory_gb: 20
 # Please make sure that there is enough RAM on the server.
 #
 COASSEMBLY:
-  Full: SRR7947178+SRR7947179+SRR7947181+SRR7947184+SRR7947185
+  Full: 
 
 # NANOPORE section:
 # -----------------
@@ -108,8 +108,4 @@ COASSEMBLY:
 # List of illumina samples that will be assembled individually using MetaSPAdes.
 #
 ILLUMINA:
-- SRR7947178
-- SRR7947179
-- SRR7947181
-- SRR7947184
-- SRR7947185
+

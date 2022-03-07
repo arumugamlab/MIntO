@@ -1,0 +1,22 @@
+######################
+# General settings
+######################
+PROJECT: 
+working_dir: 
+omics: 
+local_dir: 
+minto_dir: 
+METADATA: 
+
+######################
+# Program settings
+######################
+alignment_identity: 
+abundance_normalization: 
+map_reference: 
+
+MERGE_threads: 
+MERGE_memory: 
+
+ANNOTATION_file:
+ANNOTATION_ids:
