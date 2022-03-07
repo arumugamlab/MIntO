@@ -1,0 +1,115 @@
+######################
+# General settings
+######################
+PROJECT: illum_ont
+working_dir: /emc/cbmr/users/rzv923/Illumina_ONT
+omics: metaG
+local_dir: /data/rzv923/illum_ont_metaG
+minto_dir: /emc/cbmr/users/rzv923/github/MIntO
+METADATA: None
+
+######################
+# Program settings
+######################
+# MetaSPAdes settings
+#
+METASPADES_qoffset: auto
+METASPADES_threads: 16
+METASPADES_memory: 60
+METASPADES_hybrid_max_k: 99
+METASPADES_illumina_max_k: 99
+
+# MEGAHIT settings
+#
+# Memory is not given here but calculated to be 10G per sample in the coassembly.
+# Please make sure that there is enough RAM on the server.
+MEGAHIT_threads: 20
+MEGAHIT_memory: 1
+MEGAHIT_presets:
+ - meta-sensitive
+ - meta-large
+
+# MetaFlye settings
+#
+# MetaFlye will be run for each parameter preset listed here.
+# By default Flye will be run with these parameters:
+#    --meta --genome-size 3.0m
+# If you need to add more options, define them here and name them for future reference.
+# Notes:
+# ------
+# 1. Each preset parameter will be applied to each sample. If you only
+#    want one parameter to be used, please comment everything else.
+# 2. If nothing is listed here, then MetaFlye won't be run.
+#    If you just want our default parameters above, then here is a possible option:
+#      metaflye-default: 
+# 3. 'tres-o3000-3x' is valid for flye 2.8.3. From 2.9.x, --plasmids and --trestle are
+#    not valid. So please use valid options if you are using newer versions of flye.
+METAFLYE_presets:
+  tres-o3000-3x: --plasmids --trestle --min-overlap 3000 --iterations 3
+  #metaflye-default: 
+
+# BWA settings
+# Used when mapping reads back to contigs
+#
+BWA_threads: 16
+
+# samtools settings
+# Used when sorting bam files
+#
+SAMTOOLS_sort_threads: 8
+SAMTOOLS_sort_memory_gb: 20
+
+# Input data
+
+# HYBRID section:
+# ---------------
+# MetaSPAdes hybrid assembly will be performed using these definitions.
+# Definition format:
+#   Each nanopore sample is in the LHS, and corresponding illumina sample(s) are in RHS (delimited by '+').
+#   Hybrid assemblies will be performed for each combination of nanopore and illumina samples.
+#   E.g.:
+#
+#   N1: I3+I4 
+#
+#   The above will result in 2 hybrid assemblies: 'N1-I3' and 'N1-I4'
+#
+#   This definition was designed based on our practice of pooling multiple samples derived from the same
+#   donor for nanopore sequencing to strike a balance between price and sensitivity. If your nanopore samples
+#   are paired one-to-one with illumina samples, then the definition gets simpler.
+#   E.g.:
+#
+#   N1: I3
+#   N2: I4
+#
+#   The above will result in 2 hybrid assemblies: 'N1-I3' and 'N2-I4'
+#
+#HYBRID:
+
+# COASSEMBLY section:
+# -------------------
+# MEGAHIT coassembly will be performed using the following definitions.
+# Each coassembly is named in the LHS, and corresponding illumina sample(s) are in RHS (delimited by '+').
+# One coassembly will be performed for each line. 
+# E.g. 'Subject1: I3+I4' will result in 1 coassembly: 'Subject1' using I3 and I4 data.
+# Memory per coassembly is calculated to be 10G per sample in the coassembly.
+# Please make sure that there is enough RAM on the server.
+#
+COASSEMBLY:
+  Full: SRR7947178+SRR7947179+SRR7947181+SRR7947184+SRR7947185
+
+# NANOPORE section:
+# -----------------
+# List of nanopore samples that will be assembled individually using MetaFlye.
+#
+#NANOPORE:
+
+# ILLUMINA section:
+# -----------------
+# List of illumina samples that will be assembled individually using MetaSPAdes.
+#
+ILLUMINA:
+- SRR7947178
+- SRR7947179
+- SRR7947181
+- SRR7947184
+- SRR7947185

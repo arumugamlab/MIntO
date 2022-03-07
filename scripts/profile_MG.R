@@ -8,6 +8,9 @@ gene_abund_bed <- args[3]
 fetchMG_table <- args[4]
 gene_MG_csv <- args[5]
 omics <- args[6]
+read_n <- args[7]
+
+read_n <- as.numeric(read_n)
 
 ##########################  ** Load libraries **  ########################## 
 #if("dplyr" %in% rownames(installed.packages()) == FALSE) {install.packages("dplyr")}
@@ -17,18 +20,6 @@ library(data.table)
 
 setDTthreads(threads = threads_n)
 
-# #################
-# #** Load directories **
-# dir_path <- "/emc/cbmr/users/rzv923/ibdmdb/" #"/emc/cbmr/data/microbiome/processed/SHIME/Diet1/"
-# dir_fetchMG <- paste0(dir_path,"DB/9-MAGs-post-analysis-prokka/fetchMG/")
-# omics <- 'metaT'
-# gene_abund_bed <- paste0(dir_path,omics,"/6-mapping-profiles/BWA_reads-MAGs_genes/genes_abundances.p95.bed")
-# fetchMG_table <- paste0(dir_path,"/DB/9-MAGs-prokka-post-analysis//all.marker_genes_scores.table")
-# gene_MG_csv <- paste0(dir_path,omics,"/6-mapping-profiles/BWA_reads-MAGs_genes/genes_abundances.p95.MG.csv")
-# 
-# # Load data - fetchMG output
-# fetchMG_table <- paste0(dir_fetchMG,"all.marker_genes_scores.table")
-# #################
 
 fetchMG_df <- as.data.frame(fread(fetchMG_table, header=T), stringsAsFactors = F)
 names(fetchMG_df) <- c('header', 'HMM_score', 'COG', 'taxid.projectid')
@@ -41,18 +32,22 @@ fetchMG_sub_df <- subset(fetchMG_df, select=c('header','COG')) #c('ID', 'ID_MAG'
 fetchMG_sub_df <- fetchMG_sub_df[fetchMG_sub_df$COG %in% c('COG0012', 'COG0016', 'COG0018', 'COG0172', 'COG0215', 
                                                            'COG0495','COG0525', 'COG0533', 'COG0541', 'COG0552'),]
 
+## Bed file colnames
+gene_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
 # Load data - raw counts
 ## GENE ABUNDANCES per SAMPLE
 gene_abund_bed_df <- as.data.frame(fread(gene_abund_bed, header=T), stringsAsFactors = F)
+## Filter number of mapped reads bellow the threashold
 gene_abund_bed_coord_df <- gene_abund_bed_df
+gene_abund_bed_coord_df[,!colnames(gene_abund_bed_coord_df) 
+                        %in% gene_info][gene_abund_bed_coord_df[,!colnames(gene_abund_bed_coord_df)
+                                                                %in% gene_info] <=read_n] <- 0
 gene_abund_bed_coord_df$coord <- paste0(gene_abund_bed_coord_df$chr, '_',gene_abund_bed_coord_df$start, '_', gene_abund_bed_coord_df$stop)
 gene_abund_bed_coord_df$coord <- gsub('\\-', '\\_', gene_abund_bed_coord_df$coord)
 
 ### Calculate gene length
 gene_abund_bed_coord_df$gene_lenght <- abs(gene_abund_bed_coord_df$stop- gene_abund_bed_coord_df$start) +1
 ### Subset df by colname
-gene_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
-
 ### Gene abundances
 gene_abund_samples_df <- gene_abund_bed_coord_df[!colnames(gene_abund_bed_coord_df) %in% gene_info]
 #### Filter gene abundances df by gene coordinates

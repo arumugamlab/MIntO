@@ -56,15 +56,15 @@ else:
     print('ERROR in ', config_path, ': map_reference variable is not correct. "map_reference" variable should be MAG or reference_genome.')
 
 if map_reference == 'MAG':
-    print('WARNING in ', config_path, ': MIntO is using "'+ working_dir+'/metaG/8-1-binning/mags_generation_pipeline/prokka" as reference_dir variable')
+    print('WARNING in ', config_path, ': MIntO is using "'+ working_dir+'/metaG/8-1-binning/mags_generation_pipeline/prokka" as PATH_reference variable')
     reference_dir="{wd}/metaG/8-1-binning/mags_generation_pipeline/prokka".format(wd=working_dir)
 elif map_reference == 'reference_genome':
-    print('WARNING in ', config_path, ': MIntO is using "'+ working_dir+'/metaG/8-1-binning/mags_generation_pipeline/prokka" as reference_dir variable')
-    reference_dir=config["reference_dir"]
-elif config['reference_dir'] is None:
-    print('ERROR in ', config_path, ': reference_dir variable is empty. Please, complete ', config_path)
-elif path.exists(config['reference_dir']) is False:
-    print('ERROR in ', config_path, ': reference_dir variable path does not exit. Please, complete ', config_path)
+    reference_dir=config["PATH_reference"]
+    print('WARNING in ', config_path, ': MIntO is using "'+ reference_dir+'" as PATH_reference variable')
+elif config['PATH_reference'] is None:
+    print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
+elif path.exists(config['PATH_reference']) is False:
+    print('ERROR in ', config_path, ': PATH_reference variable path does not exit. Please, complete ', config_path)
 
 
 # Define all the outputs needed by target 'all'

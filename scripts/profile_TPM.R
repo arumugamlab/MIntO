@@ -6,25 +6,29 @@ library(dplyr)
 if("data.table" %in% rownames(installed.packages()) == FALSE) {install.packages("data.table")}
 library(data.table)
 
-# dir_set <- "/emc/cbmr/data/microbiome/processed/BATCH/Cdiff1/"
-# omics <- 'metaT'
-# gene_abund_bed <- paste0(dir_set,omics,"/6-mapping-profiles/BWA_reads_Cdiff_4prob-5genomes/genes-PBGCs-SBGC-smORFs_abundances-Cdiff_4prob.p95.locus-tag.bed") #genes-BGC-smORFs_abundances_BWA_reads-Diet1.AMUC.genome.v2.p95.bed") #
-# gene_tpm_csv <- paste0(dir_set,omics,"/6-mapping-profiles/BWA_reads_Cdiff_4prob-5genomes/genes-PBGCs-SBGC-smORFs_abundances-Cdiff_4prob.p95.locus-tag.TPM.csv") #genes-BGC-smORFs_Diet1.AMUC.genome.v2.p95.TPM.csv") #
-
 gene_abund_bed <- args[1]
 gene_tpm_csv <- args[2]
 omics <- args[3]
+read_n <- args[4]
+read_n <- as.numeric(read_n)
+
+
+## Bed file colnames
+gene_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
 
 # GENE ABUNDANCES per SAMPLE
 gene_abund_bed_df <- as.data.frame(fread(gene_abund_bed, header=T), stringsAsFactors = F)
+## Filter number of mapped reads bellow the threashold
 gene_abund_bed_coord_df <- gene_abund_bed_df
+gene_abund_bed_coord_df[,!colnames(gene_abund_bed_coord_df) 
+                        %in% gene_info][gene_abund_bed_coord_df[,!colnames(gene_abund_bed_coord_df)
+                                                                %in% gene_info] <=read_n] <- 0
 gene_abund_bed_coord_df$coord <- paste0(gene_abund_bed_coord_df$chr, '_',gene_abund_bed_coord_df$start, '_', gene_abund_bed_coord_df$stop)
 #gene_abund_bed_coord_df$coord[!gene_abund_bed_coord_df$name == '.'] <- gene_abund_bed_coord_df$name[!gene_abund_bed_coord_df$name == '.']
 gene_abund_bed_coord_df$coord <- gsub('-', '_', gene_abund_bed_coord_df$coord)
 
 gene_abund_bed_coord_df$gene_lenght <- abs(gene_abund_bed_coord_df$stop- gene_abund_bed_coord_df$start) +1
 ## Subset df by colname
-gene_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
 ### Gene info
 gene_info_bed_df <- gene_abund_bed_coord_df[colnames(gene_abund_bed_coord_df) %in% c(gene_info, "coord", "gene_lenght")]
 colnames(gene_info_bed_df) <- c("chr","start","stop","name","score","strand","source","feature","frame","info", "coord", "gene_lenght")

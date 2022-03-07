@@ -1,0 +1,43 @@
+######################
+# General settings
+######################
+PROJECT: illum_ont
+working_dir: /emc/cbmr/users/rzv923/Illumina_ONT
+omics: metaG
+local_dir: /data/rzv923/illum_ont_metaG
+minto_dir: /emc/cbmr/users/rzv923/github/MIntO
+METADATA: None
+
+######################
+# Program settings
+######################
+# BWA Alignment 
+msamtools_filter_length: 50
+alignment_identity: 95
+
+# Normalization approach
+abundance_normalization: TPM
+fetchMGs_dir:
+
+# Map reads to reference
+map_reference: MAG
+PATH_reference: # path to gene catalog fasta file 
+NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+
+BWAindex_threads:
+BWAindex_memory:
+BWA_threads:
+BWA_memory:
+
+# Input data
+
+# ILLUMINA section:
+# -----------------
+# List of illumina samples that will be assembled individually using MetaSPAdes.
+#
+ILLUMINA:
+- SRR7947178
+- SRR7947179
+- SRR7947181
+- SRR7947184
+- SRR7947185

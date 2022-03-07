@@ -62,6 +62,9 @@ else:
 if config['METADATA'] is None:
     print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
     metadata=config["METADATA"]
+elif config['METADATA'] == "None":
+    print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
+    metadata=config["METADATA"]
 elif path.exists(config['METADATA']) is False:
     print('ERROR in ', config_path, ': METADATA variable path does not exit. Please, complete ', config_path)
 else:
@@ -78,7 +81,7 @@ if 'ILLUMINA' in config:
             if 'ILLUMINA' in config:
                 #print("Samples:")
                 for ilmn in config["ILLUMINA"]:
-                    if path.exists(working_dir+'/'+omics+'/3-minlength/'+ilmn+'/'+ilmn+'.1.paired.fq.gz') is True:
+                    if path.exists(working_dir+'/'+omics+'/1-trimmed/'+ilmn+'/'+ilmn+'.1.paired.fq.gz') is True:
                         #print(ilmn)
                         ilmn_samples.append(ilmn)
                     else:
@@ -670,6 +673,7 @@ METASPADES_illumina_max_k:
 # Memory is not given here but calculated to be 10G per sample in the coassembly.
 # Please make sure that there is enough RAM on the server.
 MEGAHIT_threads: 32
+MEGAHIT_memory: 5
 MEGAHIT_presets:
  - meta-sensitive
  - meta-large
@@ -809,6 +813,7 @@ BWAindex_threads:
 BWAindex_memory:
 BWA_threads:
 BWA_memory:
+MIN_mapped_reads:
 
 # Input data
 

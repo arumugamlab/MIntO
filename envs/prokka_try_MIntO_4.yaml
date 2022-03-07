@@ -1,0 +1,8 @@
+name: prokka_try_MIntO_1.14.6
+channels:
+ - conda-forge
+ - bioconda
+ - defaults
+
+dependencies:
+ - bioconda::prokka=1.14.6
