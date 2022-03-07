@@ -1,12 +1,12 @@
 ######################
 # General settings
 ######################
-PROJECT: illum_ont
-working_dir: /emc/cbmr/users/rzv923/Illumina_ONT
-omics: metaG
-local_dir: /data/rzv923/illum_ont_metaG
-minto_dir: /emc/cbmr/users/rzv923/github/MIntO
-METADATA: None
+PROJECT: 
+working_dir: 
+omics: 
+local_dir: 
+minto_dir: 
+METADATA: 
 
 ######################
 # Program settings
@@ -28,7 +28,7 @@ VAMB_memory:
 
 # Use GPU in VAMB:
 # could be yes or not
-VAMB_GPU: yes
+VAMB_GPU: 
 
 
 # CHECKM settings
@@ -41,7 +41,7 @@ CHECKM_COMPLETENESS: 90  #higher than this
 CHECKM_CONTAMINATION: 5  # lower than this
 
 # Clean up checkm files?
-CLEAN_CHECKM: yes # can be yes or not
+CLEAN_CHECKM:  # can be yes or not
 
 # COVERM settings
 #
@@ -56,14 +56,14 @@ SCORE_METHOD: checkm
 
 # PROKKA settings
 #
-RUN_PROKKA: yes
+RUN_PROKKA: 
 PROKKA_CPUS: 
 PROKKA_memory: 
 
 # PHYLOPHLAN METAGENOMICS settings
 #
-RUN_TAXONOMY: yes
-TAXONOMY_DATABASE: SGB.Jan20
+RUN_TAXONOMY: 
+TAXONOMY_DATABASE: 
 TAXONOMY_CPUS: 
 TAXONOMY_memory: 
 DATABASE_FOLDER:

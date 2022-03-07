@@ -1,12 +1,12 @@
 ######################
 # General settings
 ######################
-PROJECT: illum_ont
-working_dir: /emc/cbmr/users/rzv923/Illumina_ONT
-omics: metaG
-local_dir: /data/rzv923/illum_ont_metaG
-minto_dir: /emc/cbmr/users/rzv923/github/MIntO
-METADATA: None
+PROJECT: 
+working_dir: 
+omics: 
+local_dir: 
+minto_dir: 
+METADATA: 
 
 ######################
 # Program settings
@@ -36,8 +36,4 @@ BWA_memory:
 # List of illumina samples that will be assembled individually using MetaSPAdes.
 #
 ILLUMINA:
-- SRR7947178
-- SRR7947179
-- SRR7947181
-- SRR7947184
-- SRR7947185
+
