@@ -19,7 +19,7 @@
 library(data.table)
 library(dplyr)
 library(ggplot2)
-
+library(tidyr)
 
 # Arguments
 args = commandArgs(trailingOnly=TRUE)
@@ -52,6 +52,16 @@ read_len_df_total_reads$n_reads <- read_len_df_total_reads$len_reads <- read_len
 read_len_df_plot <- merge(read_len_df_cumsum_total_reads, read_len_df_total_reads, all=TRUE)
 read_len_df_plot$cumsum_total_perc=as.numeric((100*read_len_df_plot$cumsum_total)/read_len_df_plot$total_reads)
 
+# https://stackoverflow.com/questions/31150028/insert-missing-time-rows-into-a-dataframe
+read_len_df_plot <- merge(expand.grid(sample=unique(read_len_df_plot$sample), 
+                          len_reads=min(read_len_df_plot$len_reads):max(read_len_df_plot$len_reads)),
+              read_len_df_plot, all=TRUE)
+read_len_df_plot <- read_len_df_plot[,(names(read_len_df_plot) %in% c('sample', 'len_reads', 'cumsum_total_perc'))]
+
+read_len_df_plot <- read_len_df_plot[with(read_len_df_plot, order(sample, len_reads)),]
+# https://stackoverflow.com/questions/23340150/replace-missing-values-na-with-most-recent-non-na-by-group
+read_len_df_plot <- read_len_df_plot %>% dplyr::group_by(sample) %>% tidyr::fill(cumsum_total_perc)
+
 # Prepare data to plot
 read_len_df_plot$sample_name = gsub('(.*)\\_(.*)',"\\1",read_len_df_plot$sample)
 read_len_df_plot$sample_pair  = gsub('(.*)\\_(.*)',"\\2",read_len_df_plot$sample)
@@ -72,12 +82,20 @@ read_len_df_plot$cumsum_total_perc <- read_len_df_plot$cumsum_total_perc
 
 read_len_df_plot_filter <- read_len_df_plot %>% 
 mutate_at(vars(cumsum_total_perc), round, 2) %>% 
-filter(cumsum_total_perc >= fraction_remain) %>% 
-filter(cumsum_total_perc < (fraction_remain+1))
+filter(cumsum_total_perc >= fraction_remain) #%>% 
+#filter(cumsum_total_perc < (fraction_remain+1))
 
-min_len_read = min(read_len_df_plot_filter$len_reads)
+read_len_df_plot_filter2 <- as.data.frame(read_len_df_plot_filter %>% 
+                                            dplyr::group_by(sample) %>% 
+                                            dplyr::filter(cumsum_total_perc %in% min(cumsum_total_perc)) %>% 
+                                            dplyr::filter(len_reads %in% max(len_reads)))
+
+
+min_len_read = min(as.numeric(read_len_df_plot_filter2$len_reads))
 if (min_len_read < 50){
   min_len_read = 50
+} else{
+  min_len_read=min_len_read
 }
 
 # MINLEN parameter in Trimmomatic

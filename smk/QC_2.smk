@@ -23,7 +23,7 @@ from os import path
 # config_path = args[args.index("--configfile") + 1]
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
-print(" Reading configuration yaml file: ", config_path)
+print(" Reading configuration yaml file") #: ", config_path)
 print(" *******************************")
 print("  ")
 
@@ -252,7 +252,7 @@ if omics == 'metaG':
     #TAXA_memory=config["TAXA_memory"]
     if taxa != 'metaphlan':
         taxa_motus=taxa
-        print({taxa_motus})
+        #print({taxa_motus})
         def extra_output():
             result = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxa_motus}", 
                         wd = working_dir,
@@ -808,6 +808,11 @@ fetchMGs_dir:
 map_reference: MAG
 PATH_reference: # path to gene catalog fasta file 
 NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+# List of databases used to performe the genome annotation:
+# - dbCAN
+# - KEGG
+# - eggNOG
+ANNOTATION:
 
 BWAindex_threads:
 BWAindex_memory:
@@ -819,7 +824,11 @@ MIN_mapped_reads:
 
 # ILLUMINA section:
 # -----------------
-# List of illumina samples that will be assembled individually using MetaSPAdes.
+# List of illumina samples.
+#
+# E.g.:
+# - I1
+# - I2
 #
 ILLUMINA:" > {params.tmp_map_yaml}assembly.yaml
 cat {params.tmp_map_yaml}/samples_illumina.txt >> {params.tmp_map_yaml}assembly.yaml

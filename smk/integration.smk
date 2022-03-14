@@ -123,7 +123,7 @@ elif map_reference == 'reference_genome':
     "{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv"
 
 if map_reference in ('MAG', 'reference_genome'):
-    print('WARNING in ', config_path, ': MIntO is using eggNOG.OGs,KEGG_Pathway, KEGG_Module, merged_KO, PFAMs, dbCAN.mod and dbCAN.enzclass as ANNOTATION_ids variable.')
+    print('WARNING in ', config_path, ': MIntO is using eggNOG_OGs,KEGG_Pathway, KEGG_Module, merged_KO, PFAMs, dbCAN.mod and dbCAN.enzclass as ANNOTATION_ids variable.')
 elif map_reference in ('genes_db'):
     if config['ANNOTATION_ids'] is None:
         print('ERROR in ', config_path, ': ANNOTATION_ids variable in configuration yaml file is empty. Please, complete ', config_path)
@@ -151,15 +151,15 @@ if map_reference == 'MAG':
     post_analysis_out="MAGs_genes"
     post_analysis_genome="MAGs_genes"
     annot_file="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir, post_analysis_genome = post_analysis_genome)
-    funct_opt=('eggNOG.OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')
-    funct_opt_list = ','.join(['"' + id + '"' for id in ('eggNOG OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')])
+    funct_opt=('eggNOG_OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')
+    funct_opt_list = ','.join(['"' + id + '"' for id in ('eggNOG_OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')])
 elif map_reference == 'reference_genome':
     post_analysis_dir="9-reference-genes-post-analysis"
     post_analysis_out="reference_genes"
     post_analysis_genome="reference_genes"
     annot_file="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir, post_analysis_genome = post_analysis_genome)
-    funct_opt=('eggNOG.OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')
-    funct_opt_list = ','.join(['"' + id + '"' for id in ('eggNOG OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')])
+    funct_opt=('eggNOG_OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')
+    funct_opt_list = ','.join(['"' + id + '"' for id in ('eggNOG_OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')])
 elif map_reference == 'genes_db':
     post_analysis_dir="9-genes-db-post-analysis"
     post_analysis_out="db_genes"

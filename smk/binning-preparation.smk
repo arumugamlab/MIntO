@@ -25,7 +25,7 @@ from os import path
 # config_path = args[args.index("--configfile") + 1]
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
-print(" Reading configuration yaml file: ")#, config_path)
+print(" Reading configuration yaml file")#: , config_path)
 print(" *******************************")
 print("  ")
 
@@ -173,7 +173,7 @@ rule all:
                 wd = working_dir, 
                 omics = omics,
                 project = project_name),
-        config_yaml = "{wd}/{omics}/mag_generation.yaml".format(
+        config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
                 wd = working_dir, 
                 omics = omics)
 
@@ -450,14 +450,14 @@ rule config_yml_binning:
                 omics = wildcards.omics,
                 project = project_name),
     output: 
-        config_file="{wd}/{omics}/mag_generation.yaml",
+        config_file="{wd}/{omics}/mags_generation.yaml",
     params: 
         tmp_binning_yaml=lambda wildcards: "{local_dir}/{omics}_config_yml_binning/".format(local_dir=local_dir, omics = omics),
     resources:
         mem=2
     threads: 2
     log: 
-        "{wd}/logs/{omics}/config_yml_mag_generation.log"
+        "{wd}/logs/{omics}/config_yml_mags_generation.log"
     shell: 
         """
         mkdir -p {params.tmp_binning_yaml}
@@ -529,8 +529,8 @@ RUN_TAXONOMY: yes
 TAXONOMY_DATABASE: SGB.Jan20
 TAXONOMY_CPUS: 
 TAXONOMY_memory: 
-DATABASE_FOLDER:" > {params.tmp_binning_yaml}mag_generation.yaml
+DATABASE_FOLDER:" > {params.tmp_binning_yaml}mags_generation.yaml
 
-rsync {params.tmp_binning_yaml}mag_generation.yaml {output.config_file}) >& {log}
+rsync {params.tmp_binning_yaml}mags_generation.yaml {output.config_file}) >& {log}
 rm -rf {params.tmp_binning_yaml}
         """
