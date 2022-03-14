@@ -330,7 +330,11 @@ echo "
 # Input data
 # ILLUMINA section:
 # -----------------
-# List of illumina samples that will be filtered by read length.
+# List of illumina samples that will be prerpocessed.
+#
+# E.g.:
+# - I1
+# - I2
 #
 ILLUMINA:" >> {params.tmp_qc1_yaml}QC_2.yaml
 cat {params.tmp_qc1_yaml}/samples_illumina.txt >> {params.tmp_qc1_yaml}QC_2.yaml

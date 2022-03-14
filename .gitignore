@@ -3,3 +3,4 @@ data/kofam_db/
 data/eggnog_data/
 data/metaphlan/
 data/rRNA_databases/
+tmp/

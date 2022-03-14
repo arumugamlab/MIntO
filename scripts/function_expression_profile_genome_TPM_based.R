@@ -250,27 +250,51 @@ if (omics == 'metaG_metaT'){
       ### Annotation descriptions ####
       # library(purrr)
       # library(magrittr)
-      if (db_name == 'eggNOG.OGs'){
+      if (db_name == 'eggNOG_OGs'){
         cog_df <- as.data.frame(fread(paste0(minto_dir,'/data/cog-20.def.tab'), sep ="\t", header = F, stringsAsFactors = F))
         names(cog_df) <- c('ID_COG', 'funct_category_COG', 'name_COG', 'name_gene', 'funct_pathway', 'ID_PubMed', 'ID_PDB')
         #cog_df <- subset(cog_df, select=c('ID_COG', 'name_COG', 'funct_pathway'))
         cog_df <- subset(cog_df, select=c('ID_COG', 'name_COG'))
         names(cog_df) <- c('Funct', 'Description')
-        annot_df <- merge(keyMap_funct, cog_df, by = 'Funct', all.x = T)
-      } else if  (db_name == 'merged_KO'){
-        annot_df <- data.frame(Description=unlist(lapply(keyMap_funct$Funct, function (x) keggFind('ko', x))),stringsAsFactors = F)
-        annot_df$Funct <- rownames(annot_df)
-        annot_df$Funct <- gsub('ko:', '', annot_df$Funct)
-      }else if  (db_name == 'KEGG_Pathway'){
-        annot_df <- data.frame(Description=unlist(lapply(keyMap_funct$Funct, function (x) keggFind('pathway', x))),stringsAsFactors = F)
-        annot_df$Funct <- rownames(annot_df)
-        annot_df$Funct <- gsub('path:', '', annot_df$Funct)
-      }else if  (db_name == 'KEGG_Module'){
+        keyMap_funct_desc <- merge(keyMap_funct, cog_df, by = 'Funct', all.x = T)
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
+      } 
+      else if  (db_name == 'merged_KO'){
+        keyMap_funct_desc <- data.frame(Description=unlist(lapply(keyMap_funct$Funct, function (x) keggFind('ko', x))),stringsAsFactors = F)
+        keyMap_funct_desc$Funct <- rownames(keyMap_funct_desc)
+        keyMap_funct_desc$Funct <- gsub('ko:', '', keyMap_funct_desc$Funct)
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
+      }
+      else if  (db_name == 'KEGG_Pathway'){
+        keyMap_funct_desc <- data.frame(Description=unlist(lapply(keyMap_funct$Funct, function (x) keggFind('pathway', x))),stringsAsFactors = F)
+        keyMap_funct_desc$Funct <- rownames(keyMap_funct_desc)
+        keyMap_funct_desc$Funct <- gsub('path:', '', keyMap_funct_desc$Funct)
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
+      }
+      else if  (db_name == 'KEGG_Module'){
         modules_list <- as.data.frame(fread(paste0(minto_dir,'/data/KEGG_Modules_20171212.csv'), header=T), stringsAsFactors = F)
         modules_list_sub <- subset(modules_list, select=c('Module', 'Definition'))
         names(modules_list_sub) <- c('Funct', 'Description')
-        annot_df <- merge(keyMap_funct, modules_list_sub, by='Funct', all=T)
-      }else if  (db_name %in% c('PFAMs')){
+        keyMap_funct_desc <- merge(keyMap_funct, modules_list_sub, by='Funct', all=T)
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
+      }
+      else if  (db_name %in% c('PFAMs')){
         x <- PFAMID
         mapped_keys <- mappedkeys(x)
         xx <- as.list(x[mapped_keys])
@@ -284,10 +308,15 @@ if (omics == 'metaG_metaT'){
         names(test2) <- 'Description'
         test2$Pfam_id <- rownames(test2)
         test3 <- merge(test, test2, by='Pfam_id')
-        annot_df <- merge(keyMap_funct, test3, by.x='Funct' , by.y='Pfam_family', all.x=T)
-        annot_df$Pfam_id <- NULL
-        rm(test, test2, test3, x, xx)
-      } else if  (db_name %in% c('dbCAN.mod', 'dbCAN.enzclass', 'CAZy')){
+        keyMap_funct_desc <- merge(keyMap_funct, test3, by.x='Funct' , by.y='Pfam_family', all.x=T)
+        keyMap_funct_desc$Pfam_id <- NULL
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(test, test2, test3, x, xx,keyMap_funct_desc,keyMap_funct_desc2)
+      } 
+      else if  (db_name %in% c('dbCAN.mod', 'dbCAN.enzclass', 'CAZy')){
         x <- PFAMCAZY
         mapped_keys <- mappedkeys(x)
         xx <- as.list(x[mapped_keys])
@@ -313,12 +342,22 @@ if (omics == 'metaG_metaT'){
         names(test2) <- 'Description'
         test2$Pfam_id <- rownames(test2)
         test3 <- merge(test_cazy.keyMap, test2, by='Pfam_id')
-        annot_df <- merge(keyMap_funct, test3, by='Funct', all.x=T)
-        annot_df$Pfam_id <- NULL
-        rm(test, test2, test3, test_cazy, test_cazy.keyMap, test_cazy.singleKeys, x, xx)
-      } else {
-        annot_df <- keyMap_funct
-        annot_df$Description <- '-'
+        keyMap_funct_desc <- merge(keyMap_funct, test3, by='Funct', all.x=T)
+        keyMap_funct_desc$Pfam_id <- NULL
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(test, test2, test3, test_cazy, test_cazy.keyMap, test_cazy.singleKeys, x, xx,keyMap_funct_desc,keyMap_funct_desc2)
+      } 
+      else {
+        keyMap_funct_desc <- keyMap_funct
+        keyMap_funct_desc$Description <- '-'
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
       
       #### metaG ####
@@ -764,27 +803,51 @@ if (omics == 'metaG_metaT'){
       ### Annotation descriptions ####
       # library(purrr)
       # library(magrittr)
-      if (db_name == 'eggNOG.OGs'){
+      if (db_name == 'eggNOG_OGs'){
         cog_df <- as.data.frame(fread(paste0(minto_dir,'/data/cog-20.def.tab'), sep ="\t", header = F, stringsAsFactors = F))
         names(cog_df) <- c('ID_COG', 'funct_category_COG', 'name_COG', 'name_gene', 'funct_pathway', 'ID_PubMed', 'ID_PDB')
         #cog_df <- subset(cog_df, select=c('ID_COG', 'name_COG', 'funct_pathway'))
         cog_df <- subset(cog_df, select=c('ID_COG', 'name_COG'))
         names(cog_df) <- c('Funct', 'Description')
-        annot_df <- merge(keyMap_funct, cog_df, by = 'Funct', all.x = T)
-      } else if  (db_name == 'merged_KO'){
-        annot_df <- data.frame(Description=unlist(lapply(keyMap_funct$Funct, function (x) keggFind('ko', x))),stringsAsFactors = F)
-        annot_df$Funct <- rownames(annot_df)
-        annot_df$Funct <- gsub('ko:', '', annot_df$Funct)
-      }else if  (db_name == 'KEGG_Pathway'){
-        annot_df <- data.frame(Description=unlist(lapply(keyMap_funct$Funct, function (x) keggFind('pathway', x))),stringsAsFactors = F)
-        annot_df$Funct <- rownames(annot_df)
-        annot_df$Funct <- gsub('path:', '', annot_df$Funct)
-      }else if  (db_name == 'KEGG_Module'){
+        keyMap_funct_desc <- merge(keyMap_funct, cog_df, by = 'Funct', all.x = T)
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
+      } 
+      else if  (db_name == 'merged_KO'){
+        keyMap_funct_desc <- data.frame(Description=unlist(lapply(keyMap_funct$Funct, function (x) keggFind('ko', x))),stringsAsFactors = F)
+        keyMap_funct_desc$Funct <- rownames(keyMap_funct_desc)
+        keyMap_funct_desc$Funct <- gsub('ko:', '', keyMap_funct_desc$Funct)
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
+      }
+      else if  (db_name == 'KEGG_Pathway'){
+        keyMap_funct_desc <- data.frame(Description=unlist(lapply(keyMap_funct$Funct, function (x) keggFind('pathway', x))),stringsAsFactors = F)
+        keyMap_funct_desc$Funct <- rownames(keyMap_funct_desc)
+        keyMap_funct_desc$Funct <- gsub('path:', '', keyMap_funct_desc$Funct)
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
+      }
+      else if  (db_name == 'KEGG_Module'){
         modules_list <- as.data.frame(fread(paste0(minto_dir,'/data/KEGG_Modules_20171212.csv'), header=T), stringsAsFactors = F)
         modules_list_sub <- subset(modules_list, select=c('Module', 'Definition'))
         names(modules_list_sub) <- c('Funct', 'Description')
-        annot_df <- merge(keyMap_funct, modules_list_sub, by='Funct', all=T)
-      }else if  (db_name %in% c('PFAMs')){
+        keyMap_funct_desc <- merge(keyMap_funct, modules_list_sub, by='Funct', all=T)
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
+      }
+      else if  (db_name %in% c('PFAMs')){
         x <- PFAMID
         mapped_keys <- mappedkeys(x)
         xx <- as.list(x[mapped_keys])
@@ -798,10 +861,15 @@ if (omics == 'metaG_metaT'){
         names(test2) <- 'Description'
         test2$Pfam_id <- rownames(test2)
         test3 <- merge(test, test2, by='Pfam_id')
-        annot_df <- merge(keyMap_funct, test3, by.x='Funct' , by.y='Pfam_family', all.x=T)
-        annot_df$Pfam_id <- NULL
-        rm(test, test2, test3, x, xx)
-      } else if  (db_name %in% c('dbCAN.mod', 'dbCAN.enzclass', 'CAZy')){
+        keyMap_funct_desc <- merge(keyMap_funct, test3, by.x='Funct' , by.y='Pfam_family', all.x=T)
+        keyMap_funct_desc$Pfam_id <- NULL
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(test, test2, test3, x, xx,keyMap_funct_desc,keyMap_funct_desc2)
+      } 
+      else if  (db_name %in% c('dbCAN.mod', 'dbCAN.enzclass', 'CAZy')){
         x <- PFAMCAZY
         mapped_keys <- mappedkeys(x)
         xx <- as.list(x[mapped_keys])
@@ -827,12 +895,22 @@ if (omics == 'metaG_metaT'){
         names(test2) <- 'Description'
         test2$Pfam_id <- rownames(test2)
         test3 <- merge(test_cazy.keyMap, test2, by='Pfam_id')
-        annot_df <- merge(keyMap_funct, test3, by='Funct', all.x=T)
-        annot_df$Pfam_id <- NULL
-        rm(test, test2, test3, test_cazy, test_cazy.keyMap, test_cazy.singleKeys, x, xx)
-      } else {
-        annot_df <- keyMap_funct
-        annot_df$Description <- '-'
+        keyMap_funct_desc <- merge(keyMap_funct, test3, by='Funct', all.x=T)
+        keyMap_funct_desc$Pfam_id <- NULL
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(test, test2, test3, test_cazy, test_cazy.keyMap, test_cazy.singleKeys, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
+      } 
+      else {
+        keyMap_funct_desc <- keyMap_funct
+        keyMap_funct_desc$Description <- '-'
+        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
+                                              dplyr::group_by(Funct)%>%
+                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
+        rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
       
       #### omics ####

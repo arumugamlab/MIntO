@@ -19,7 +19,7 @@ from os import path
 # config_path = args[args.index("--configfile") + 1]
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
-print(" Reading configuration yaml file: ", config_path)
+print(" Reading configuration yaml file")#: ", config_path)
 print(" *******************************")
 print("  ")
 

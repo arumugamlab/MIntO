@@ -68,7 +68,7 @@ if 'BINNERS' in config:
     else:
         try:
             # Make list of illumina samples, if ILLUMINA in config
-            ilmn_samples = list()
+            vamb_list = list()
             if 'BINNERS' in config:
                 #print("Samples:")
                 for bin in config["BINNERS"]:
@@ -95,8 +95,10 @@ elif type(config['VAMB_memory']) != int:
 if config['VAMB_GPU'] is None:
     print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
 elif config['VAMB_GPU'] == True:
+    vamb_gpu = "yes"
     print('WARNING in ', config_path, ': MIntO is using the GPU')
 elif config['VAMB_GPU'] == False:
+    vamb_gpu = "no"
     print('WARNING in ', config_path, ': MIntO is not using the GPU')
 else:
 	print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
@@ -130,7 +132,9 @@ if config['CLEAN_CHECKM'] is None:
     print('ERROR in ', config_path, ': CLEAN_CHECKM variable is empty. "CLEAN_CHECKM" variable should be yes or no')
 elif config['CLEAN_CHECKM'] == True:
     print('WARNING in ', config_path, ': MIntO is cleaning the checkm intermediates files')
+    clean_checkm = "yes"
 elif config['CLEAN_CHECKM'] == False:
+    clean_checkm = "no"
     print('WARNING in ', config_path, ': MIntO is keeping the checkm intermediates files')
 else:
 	print('ERROR in ', config_path, ': CLEAN_CHECKM variable is empty. "CLEAN_CHECKM" variable should be yes or no')
@@ -153,8 +157,10 @@ else:
 if config['RUN_PROKKA'] is None:
     print('ERROR in ', config_path, ': RUN_PROKKA variable is empty. "RUN_PROKKA" variable should be yes or no')
 elif config['RUN_PROKKA'] == True:
+    run_prokka = "yes"
     print('WARNING in ', config_path, ': MIntO is running Prokka on the unique genomes retrieved.')
 elif config['RUN_PROKKA'] == False:
+    run_prokka = "no"
     print('WARNING in ', config_path, ': MIntO is not running Prokka on the unique genomes retrieved.')
 else:
 	print('ERROR in ', config_path, ': RUN_PROKKA variable is empty. "RUN_PROKKA" variable should be yes or no')
@@ -175,6 +181,7 @@ elif config['RUN_TAXONOMY'] == True:
     print('WARNING in ', config_path, ': MIntO is running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
     run_taxonomy = "yes"
 elif config['RUN_TAXONOMY'] == False:
+    run_taxonomy = "no"
     print('WARNING in ', config_path, ': MIntO is not running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
 else:
 	print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
@@ -262,7 +269,7 @@ rule run_vamb:
 		"{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/tnf.npz",#.format(wd = working_dir, binner = binner), 
 	
 	params:
-		gpu=config["VAMB_GPU"],
+		gpu="{vamb_gpu}".format(vamb_gpu = vamb_gpu), #config["VAMB_GPU"],
 		#run_vamb = "{script_dir}/run_vamb.sh"
 	
 	log:
@@ -275,7 +282,8 @@ rule run_vamb:
 		config["VAMB_THREADS"]
 	
 	conda:
-		config["minto_dir"]+"/envs/vamb.yaml" #"/emc/cbmr/users/rzv923/vamb_orig.yaml" #f68d45ef
+		"/emc/cbmr/users/rzv923/vamb_2022_v1.yml" #config["minto_dir"]+"/envs/vamb.yaml" 
+        #"/emc/cbmr/users/rzv923/vamb_orig.yaml" #f68d45ef
 		#"/emc/cbmr/users/rzv923/vamb_orig.yaml" 90d82712
 	
 	shell:
@@ -428,7 +436,7 @@ rule make_comphrensive_table:
 	
 	params:
 		checkm_tsv_tables = "{wd}/metaG/8-1-binning/mags_generation_pipeline/checkm",
-		remove_intermediate_files_checkm = config["CLEAN_CHECKM"]
+		remove_intermediate_files_checkm = "{clean_checkm}".format(clean_checkm = clean_checkm), #config["CLEAN_CHECKM"]
 		#make_comprehensive="{}/make_comprehensive_checkm.py".format(config["SCRIPT_FOLDER"])
 	
 	log:
@@ -672,7 +680,7 @@ rule run_prokka:
 	
 	params:
 		unique_genomes_folder = "{wd}/metaG/8-1-binning/mags_generation_pipeline/unique_genomes",
-		run_prokka = config["RUN_PROKKA"],
+		run_prokka = "{run_prokka}".format(run_prokka = run_prokka), #config["RUN_PROKKA"],
 		#prokka_cpus = config["PROKKA_CPUS"], # Moved to threads
 		#prokka_script = "{script_dir}/run_prokka.sh",
 		#prokka_folder = config["INITIAL_FOLDER"] #Replaced by wd
@@ -687,7 +695,7 @@ rule run_prokka:
 		config["PROKKA_CPUS"]
 	
 	conda:
-		config["minto_dir"]+"/envs/prokka_try_MIntO_3.yaml"
+		config["minto_dir"]+"/envs/prokka.yaml"
 	
 	shell: 
 		""" time (sh {script_dir}run_prokka.sh {params.run_prokka} {threads} {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/ {params.unique_genomes_folder} {output.prokka_ended})&> {log} """
