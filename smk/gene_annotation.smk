@@ -6,9 +6,6 @@ Gene prediction and functional annotation step
 Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
 '''
 
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/gene_annotation.smk --restart-times 1 --keep-going --latency-wait 30 --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --use-conda --conda-prefix /data/rzv923/MIntO_snakemake_env/ --configfile mapping.smk.yaml --jobs 5
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/gene_annotation.smk --restart-times 1 --keep-going --latency-wait 30 --cluster "sbatch -J {name} --mem={resources.mem}G -c {threads} -e slurm-%x.e%A -o slurm-%x.o%A"  --use-conda --conda-prefix /data/rzv923/MIntO_snakemake_env/ --configfile mapping.smk.yaml --jobs 5
-
 # configuration yaml file
 # import sys
 import os.path
@@ -18,7 +15,7 @@ from os import path
 # config_path = args[args.index("--configfile") + 1]
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
-print(" Reading configuration yaml file: ") #, config_path)
+print(" Reading configuration yaml file")#: , config_path)
 print(" *******************************")
 print("  ")
 
@@ -66,6 +63,25 @@ elif config['PATH_reference'] is None:
 elif path.exists(config['PATH_reference']) is False:
     print('ERROR in ', config_path, ': PATH_reference variable path does not exit. Please, complete ', config_path)
 
+if 'ANNOTATION' in config:
+    if config['ANNOTATION'] is None:
+        print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete ', config_path)
+    else:
+        try:
+            # Make list of illumina samples, if ILLUMINA in config
+            annot_list = list()
+            if 'ANNOTATION' in config:
+                #print("Samples:")
+                for annot in config["ANNOTATION"]:
+                    if annot in ('dbCAN', 'KEGG', 'eggNOG'):
+                        annot_list.append(annot)
+                        pass
+                    else:
+                        raise TypeError('ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete ', config_path)
+        except: 
+            print('ERROR in ', config_path, ': ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG.')
+else:
+    print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete', config_path)
 
 # Define all the outputs needed by target 'all'
 
@@ -136,26 +152,14 @@ if map_reference == 'genes_db':
         result = expand()
         return(result)
 
-def predicted_genes_kofam_out():
-    result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out)
-    return(result)
+def predicted_genes_annot_out():
+        result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_{annot}.tsv",
+                        wd = working_dir,
+                        post_analysis_dir = post_analysis_dir,
+                        post_analysis_out = post_analysis_out,
+                        annot = config["ANNOTATION"] if "ANNOTATION" in config else []),
+        return(result)
 
-def predicted_genes_dbcan_out():
-    result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out)
-    return(result)
-
-def predicted_genes_eggnog_out():
-    result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.eggNOG5.annotations",
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out)
-    return(result)
 def predicted_genes_collate_out():
     result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.annotations.tsv",
                     wd = working_dir,
@@ -166,9 +170,7 @@ def predicted_genes_collate_out():
 rule all:
     input: 
         merge_genes_output(),
-        predicted_genes_dbcan_out(),
-        predicted_genes_kofam_out(),
-        predicted_genes_eggnog_out(),
+        predicted_genes_annot_out(),
         predicted_genes_collate_out()
 
 
@@ -301,7 +303,7 @@ rule gene_annot_kofamscan:
     input: 
         fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
     output: 
-        kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
+        kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
     params:
         tmp_kofamscan=lambda wildcards: "{local_dir}/{post_analysis_out}_kofamscan/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
         prefix="{post_analysis_out}_translated_cds_SUBSET",
@@ -318,11 +320,11 @@ rule gene_annot_kofamscan:
         mkdir -p {params.tmp_kofamscan}tmp
         remote_dir=$(dirname {output.kofam_out})
         time (exec_annotation -k {params.kofam_db}/ko_list -p {params.kofam_db}/profiles/prokaryote.hal --tmp-dir {params.tmp_kofamscan}tmp --create-alignment -f mapper --cpu {threads} -o {params.tmp_kofamscan}{params.prefix}_kofam_mapper.txt {input.fasta_subset}
-        {script_dir}/kofam_hits.pl {params.tmp_kofamscan}{params.prefix}_kofam_mapper.txt > {params.tmp_kofamscan}{params.prefix}_kofam.tsv
-        sed -i 's/\\;K/\\,K/g' {params.tmp_kofamscan}{params.prefix}_kofam.tsv
+        {script_dir}/kofam_hits.pl {params.tmp_kofamscan}{params.prefix}_kofam_mapper.txt > {params.tmp_kofamscan}{params.prefix}_KEGG.tsv
+        sed -i 's/\\;K/\\,K/g' {params.tmp_kofamscan}{params.prefix}_KEGG.tsv
         rm -rf {params.tmp_kofamscan}tmp
         mkdir -p ${{remote_dir}}
-        rsync {params.tmp_kofamscan}{params.prefix}_kofam.tsv {output.kofam_out}) &> {log}
+        rsync {params.tmp_kofamscan}{params.prefix}_KEGG.tsv {output.kofam_out}) &> {log}
         rm -rf {params.tmp_kofamscan}
         """
 
@@ -356,7 +358,7 @@ rule gene_annot_eggnog:
     input: 
         fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
     output: 
-        eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.eggNOG5.annotations",
+        eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_eggNOG.tsv",
     params:
         tmp_eggnog=lambda wildcards: "{local_dir}/{post_analysis_out}_eggnog/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
         prefix="{post_analysis_out}_translated_cds_SUBSET",
@@ -382,11 +384,10 @@ rule gene_annot_eggnog:
         emapper.py --annotate_hits_table {params.tmp_eggnog}/{params.prefix}.emapper.seed_orthologs \
 --data_dir /dev/shm/eggnog_data/ -m no_search --no_file_comments --override -o {params.prefix} --output_dir {params.tmp_eggnog} --cpu {threads}
         cut -f 1,5,12,13,14,21 {params.tmp_eggnog}/{params.prefix}.emapper.annotations > {params.tmp_eggnog}/{params.prefix}.eggNOG5
-        {script_dir}/process_eggNOG_OGs.pl {params.tmp_eggnog}/{params.prefix}.eggNOG5 > {params.tmp_eggnog}/{params.prefix}.eggNOG5.annotations
+        {script_dir}/process_eggNOG_OGs.pl {params.tmp_eggnog}/{params.prefix}.eggNOG5 > {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
         rm {params.tmp_eggnog}/{params.prefix}.eggNOG5
-        sed -i 's/\#query/ID/' {params.tmp_eggnog}/{params.prefix}.eggNOG5.annotations
-        sed -i 's/ko\://g' {params.tmp_eggnog}/{params.prefix}.eggNOG5.annotations
-        rm -rf /dev/shm/eggnog_data
+        sed -i 's/\#query/ID/' {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
+        sed -i 's/ko\://g' {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
         rsync {params.tmp_eggnog}* {wildcards.wd}/DB/{post_analysis_dir}/annot/)&> {log}
         rm -rf {params.tmp_eggnog}
         """
@@ -397,9 +398,10 @@ rule gene_annot_eggnog:
 
 rule predicted_gene_annotation_collate:
     input: 
-        kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
-        dbcan_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
-        eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.eggNOG5.annotations",
+        #kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
+        #dbcan_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
+        #eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.eggNOG5.annotations",
+        annot_out=expand("{{wd}}/DB/{{post_analysis_dir}}/annot/{{post_analysis_out}}_translated_cds_SUBSET_{annot}.tsv", annot=annot_list)
     output: 
         annot_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.annotations.tsv",
     params:
