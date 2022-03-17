@@ -51,4 +51,4 @@ dependencies:
     - biopython==1.76
     - numpy==1.20.2
     - psutil==5.7.0
-prefix: /home/rzv923/anaconda3/envs/py38_ironmenv
+prefix: py38_ironmenv

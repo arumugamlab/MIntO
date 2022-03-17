@@ -339,4 +339,4 @@ dependencies:
   - pip:
     - pyqt5-sip==4.19.18
     - pyqtwebengine==5.12.1
-prefix: /home/rzv923/anaconda3/envs/py36_ironmenv
+prefix: py36_ironmenv
