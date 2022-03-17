@@ -752,6 +752,10 @@ echo "
 # -----------------
 # List of illumina samples that will be assembled individually using MetaSPAdes.
 #
+# E.g.:
+# - I1
+# - I2
+#
 ILLUMINA:" >> {params.tmp_assembly_yaml}assembly.yaml
 cat {params.tmp_assembly_yaml}/samples_illumina.txt >> {params.tmp_assembly_yaml}assembly.yaml
 rsync {params.tmp_assembly_yaml}assembly.yaml {output.config_file}) >& {log}

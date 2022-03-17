@@ -107,5 +107,9 @@ COASSEMBLY:
 # -----------------
 # List of illumina samples that will be assembled individually using MetaSPAdes.
 #
+# E.g.:
+# - I1
+# - I2
+#
 ILLUMINA:
 

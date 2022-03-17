@@ -21,9 +21,11 @@ TRIMMOMATIC_memory: 5
 # Input data
 # ILLUMINA section:
 # -----------------
-# List of illumina samples that will be assembled individually using MetaSPAdes.
-# - SRR7947178
-# - SRR7947179
+# List of illumina samples that will be filtered by quality.
+#
+# E.g.:
+# - I1
+# - I2
 #
 ILLUMINA:
 - CD136

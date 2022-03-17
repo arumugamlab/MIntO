@@ -331,7 +331,7 @@ echo "
 # Input data
 # ILLUMINA section:
 # -----------------
-# List of illumina samples that will be prerpocessed.
+# List of illumina samples that will be filtered by read length.
 #
 # E.g.:
 # - I1

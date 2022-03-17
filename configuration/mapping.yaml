@@ -28,12 +28,17 @@ BWAindex_threads:
 BWAindex_memory:
 BWA_threads:
 BWA_memory:
+MIN_mapped_reads:
 
 # Input data
 
 # ILLUMINA section:
 # -----------------
-# List of illumina samples that will be assembled individually using MetaSPAdes.
+# List of illumina samples.
+#
+# E.g.:
+# - I1
+# - I2
 #
 ILLUMINA:
 
