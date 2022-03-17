@@ -355,11 +355,12 @@ rule nanopore_assembly_metaflye:
     threads: 16
     params:
         options = lambda wildcards: config['METAFLYE_presets'][wildcards.assembly_preset]
-    singularity: "docker://quay.io/biocontainers/flye:2.8.3--py38h69e0bdc_1"
+    singularity: "docker://quay.io/biocontainers/flye:2.9--py38h69e0bdc_0"
+    #"docker://quay.io/biocontainers/flye:2.8.3--py38h69e0bdc_1"
     shell:
         """
         mkdir -p $(dirname {output[0]})
-        flye --nano-raw {input} --out-dir $(dirname {output[0]}) --threads {threads} --meta --genome-size 3.0m {params.options} >& {log}
+        flye --nano-raw {input} --out-dir $(dirname {output[0]}) --threads {threads} --meta {params.options} >& {log}
         """
 
 ###############################################################################################

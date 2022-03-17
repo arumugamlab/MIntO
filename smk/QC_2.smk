@@ -674,7 +674,7 @@ MEGAHIT_presets:
  - meta-sensitive
  - meta-large
 
-# MetaFlye settings - deprecated
+# MetaFlye settings
 #
 # MetaFlye will be run for each parameter preset listed here.
 # By default Flye will be run with these parameters:
@@ -689,8 +689,8 @@ MEGAHIT_presets:
 #      metaflye-default: ""
 # 3. 'tres-o3000-3x' is valid for flye 2.8.3. From 2.9.x, --plasmids and --trestle are
 #    not valid. So please use valid options if you are using newer versions of flye.
-#METAFLYE_presets:
-#  tres-o3000-3x: --plasmids --trestle --min-overlap 3000 --iterations 3
+METAFLYE_presets:
+  tres-o3000-3x: --min-overlap 3000 --iterations 3
   #metaflye-default: ""
 
 # BWA settings
