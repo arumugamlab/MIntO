@@ -15,11 +15,6 @@ MAGs recovery and annotation
 Authors: Eleonora Nigro, Mani Arumugam
 '''
 
-# snakemake --snakefile mags_generation.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 60 --jobs 25 --configfile mags_generation.yaml --use-conda #--conda-prefix tmp
-# snakemake  --cluster "sbatch -J try_vamb --gres=gpu:1  -c 8" --jobs 1 --use-conda
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/mags_generation.smk --restart-times 0 --keep-going --latency-wait 30 --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --use-conda --conda-prefix /emc/cbmr/users/rzv923/ibdmdb_test/tmp_porus/ --configfile mags_generation.smk.yaml --jobs 10
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/mags_generation_test.smk --restart-times 0 --keep-going --latency-wait 30 --cluster "sbatch -J {name} --mem={resources.mem}G --gres=gpu:1 -c {threads} -e slurm-%x.e%A -o slurm-%x.o%A"  --use-conda --conda-prefix /data/MIntO_snakemake_env/ --configfile mags_generation.smk.yaml --jobs 10
-
 # configuration yaml file
 # import sys
 import os.path
@@ -207,11 +202,7 @@ elif path.exists(config['DATABASE_FOLDER']) is True:
    db_folder = config["DATABASE_FOLDER"]
    #print(db_folder)
 
-## Configuration file
-# This is given by Carmen (fasta files and contigs file)
-#configfile: "/emc/cbmr/users/wdm117/github/mags_generation_pipeline/mags_generation_pipeline_snakemake/config_binning.yaml" # could be deleted 
 
-##############################
 def mags_recovery():
     result = expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/clusters.tsv",
                     wd = working_dir,
@@ -282,48 +273,15 @@ rule run_vamb:
 		config["VAMB_THREADS"]
 	
 	conda:
-		"/emc/cbmr/users/rzv923/vamb_2022_v1.yml" #config["minto_dir"]+"/envs/vamb.yaml" 
-        #"/emc/cbmr/users/rzv923/vamb_orig.yaml" #f68d45ef
-		#"/emc/cbmr/users/rzv923/vamb_orig.yaml" 90d82712
+		config["minto_dir"]+"/envs/vamb.yaml" 
+        #"vamb_2022_v1.yml" #
+        #"vamb_orig.yaml" #f68d45ef
+		#"vamb_orig.yaml" 90d82712
 	
 	shell:
 		""" time (sh {script_dir}/run_vamb.sh {params.gpu} {wildcards.binner} {input.contigs_file} {input.depth_file} {threads} {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}
 		rsync {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}/tmp/*  {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}
 		rm -rf {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}/tmp) &> {log}"""
-
-#####
-		#"""gpu={params.gpu}; \
-		#	binner={wildcards.binner};\
-		#	contigs_file={input.contigs_file}; \
-		#	depth_file={input.depth_file};\
-		#	threads={threads}; \
-		#	output={wildcards.initial_folder}/{wildcards.binner};\
-		#	echo "gpu: ${{gpu}}" ;echo "binner: ${{binner}}"; echo "contigs file: ${{contigs_file}}"; echo "depth file:  ${{depth_file}}"; echo "threads: ${{threads}}"; echo "output: ${{output}}" ;\
-		#	if [ $gpu == "yes" ]; then \
-		#		if [ ${{binner}} == "vamb_256" ]; then \
-		#			echo "Launching vamb 256" \
-		#			vamb -l 16 -n 256 256  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --cuda --outdir $output/tmp \
-		#		elif [ ${{binner}} == "vamb_384" ]; then \
-		#			vamb -l 24 -n 384 384  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --cuda --outdir $output/tmp \
-		#		elif [ ${{binner}} == "vamb_512" ]; then \
-		#			vamb -l 32 -n 512 512 --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --cuda --outdir $output/tmp \
-		#		elif [ $binner == "vamb_768" ]; then \
-		#			vamb -l 40 -n 768 786 --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --cuda --outdir $output/tmp \
-		#		else echo "Something went wrong" \
-		#		fi \
-		#	else \
-		#		if [ ${{binner}} == "vamb_256" ]; then \
-		#			vamb -l 16 -n 256 256  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads  --outdir $output/tmp \
-		#		elif [ ${{binner}} == "vamb_384" ]; then \
-		#			vamb -l 24 -n 384 384  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads  --outdir $output/tmp \
-		#		elif [ ${{binner}} == "vamb_512" ]; then \
-		#			vamb -l 32 -n 512 512  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads  --outdir $output/tmp \
-		#		elif [ ${{binner}} == "vamb_768" ]; then \
-		#			vamb -l 40 -n 768 768  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads  --outdir $output/tmp \
-		#		else echo "Something went wrong" \
-		#		fi \ 
-		#	fi \
-		#	rsync {wildcards.initial_folder}/{wildcards.binner}/tmp/* {wildcards.initial_folder}/{wildcards.binner} && rm -rf {wildcards.initial_folder}/{wildcards.binner}/tmp"""	
 
 ### Run take all genomes [put all the genomes in a folder "all" where CheckM will be launched] # this is on vamb, if there are other binners, depending on the output, the bins should be moved in all
 rule take_all_genomes_for_each_run:
@@ -415,11 +373,6 @@ rule run_checkm:
 		config["minto_dir"]+"/envs/checkm.yaml"
 	
 	shell:
-		# """ rsync {input.all_genomes}/*.fna {wildcards.initial_folder}/checkm
-		# cd {wildcards.wd}/checkm
-		# sh {params.making_batch}
-		# sh {params.run_checkm} {params.checkm_threads} {params.pplacer_threads}
-		# echo 'checkm finished!' >> {wildcards.wd}/checkm_completed.txt """
 		""" time (rsync {input.all_genomes}/*.fna {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/checkm
 		cd {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/checkm
 		sh {script_dir}/making_batch_checkm.sh
@@ -447,9 +400,6 @@ rule make_comphrensive_table:
 	
 	threads:
  		8
-
-	#shell:
-	#	"python {params.make_comprehensive --folder_with_checkm {input.checkm_tsv_tables} --output_file {output.checkm_total} --remove_intermediate_files {params.remove_intermediates_files_checkm}"
 
 	run:	
 		import glob

@@ -10,10 +10,6 @@ Assembly-free taxonomy profiling step
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/QC_2.smk --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --latency-wait 60 --jobs 15 --configfile QC_2.yaml --use-singularity --use-conda --conda-prefix /emc/cbmr/users/rzv923/ibdmdb/tmp_porus/
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/QC_2.smk --restart-times 0 --keep-going --latency-wait 30 --cluster "sbatch -J {name} --mem={resources.mem}G -c {threads} -e slurm-%x.e%A -o slurm-%x.o%A" --jobs 8 --configfile metaG_samples_QC_2.yaml --use-conda --conda-prefix /emc/cbmr/users/rzv923/ibdmdb/metaG/tmp_ironman/
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/QC_2.smk --restart-times 0 --keep-going --latency-wait 30 --cluster "sbatch -J {name} --mem={resources.mem}G -c {threads} -e slurm-%x.e%A -o slurm-%x.o%A" --jobs 8 --configfile metaG_samples_QC_2.yaml --use-singularity
-
 # configuration yaml file
 # import sys
 import os.path
@@ -678,7 +674,7 @@ MEGAHIT_presets:
  - meta-sensitive
  - meta-large
 
-# MetaFlye settings
+# MetaFlye settings - deprecated
 #
 # MetaFlye will be run for each parameter preset listed here.
 # By default Flye will be run with these parameters:
@@ -693,8 +689,8 @@ MEGAHIT_presets:
 #      metaflye-default: ""
 # 3. 'tres-o3000-3x' is valid for flye 2.8.3. From 2.9.x, --plasmids and --trestle are
 #    not valid. So please use valid options if you are using newer versions of flye.
-METAFLYE_presets:
-  tres-o3000-3x: --plasmids --trestle --min-overlap 3000 --iterations 3
+#METAFLYE_presets:
+#  tres-o3000-3x: --plasmids --trestle --min-overlap 3000 --iterations 3
   #metaflye-default: ""
 
 # BWA settings

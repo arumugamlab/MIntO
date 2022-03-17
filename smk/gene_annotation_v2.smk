@@ -6,9 +6,6 @@ Gene prediction and functional annotation step
 Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
 '''
 
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/gene_annotation.smk --restart-times 1 --keep-going --latency-wait 30 --cluster "qsub -pe smp {threads} -l h_vmem={resources.mem}G -N {name} -cwd" --use-conda --conda-prefix /data/rzv923/MIntO_snakemake_env/ --configfile mapping.smk.yaml --jobs 5
-# snakemake --snakefile /emc/cbmr/users/rzv923/MIntO/gene_annotation.smk --restart-times 1 --keep-going --latency-wait 30 --cluster "sbatch -J {name} --mem={resources.mem}G -c {threads} -e slurm-%x.e%A -o slurm-%x.o%A"  --use-conda --conda-prefix /data/rzv923/MIntO_snakemake_env/ --configfile mapping.smk.yaml --jobs 5
-
 # configuration yaml file
 # import sys
 import os.path
@@ -18,7 +15,7 @@ from os import path
 # config_path = args[args.index("--configfile") + 1]
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
-print(" Reading configuration yaml file: ") #, config_path)
+print(" Reading configuration yaml file")#: , config_path)
 print(" *******************************")
 print("  ")
 
@@ -163,61 +160,6 @@ def predicted_genes_annot_out():
                         annot = config["ANNOTATION"] if "ANNOTATION" in config else []),
         return(result)
 
-# if all(var in annot_list for var in ('dbCAN', 'KEGG', 'eggNOG')):
-#     def predicted_genes_annot_out():
-#         result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
-#                         wd = working_dir,
-#                         post_analysis_dir = post_analysis_dir,
-#                         post_analysis_out = post_analysis_out),
-#         expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
-#                         wd = working_dir,
-#                         post_analysis_dir = post_analysis_dir,
-#                         post_analysis_out = post_analysis_out),
-#         expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.eggNOG5.annotations",
-#                         wd = working_dir,
-#                         post_analysis_dir = post_analysis_dir,
-#                         post_analysis_out = post_analysis_out)
-#         return(result)
-# elif all(var in annot_list for var in ('dbCAN', 'KEGG')):
-#     def predicted_genes_annot_out():
-#         result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
-#                         wd = working_dir,
-#                         post_analysis_dir = post_analysis_dir,
-#                         post_analysis_out = post_analysis_out),
-#         expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
-#                         wd = working_dir,
-#                         post_analysis_dir = post_analysis_dir,
-#                         post_analysis_out = post_analysis_out)
-#         return(result)
-# elif all(var in annot_list for var in ('dbCAN', 'eggNOG')):
-#     def predicted_genes_annot_out():
-#         result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
-#                         wd = working_dir,
-#                         post_analysis_dir = post_analysis_dir,
-#                         post_analysis_out = post_analysis_out),
-#         expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
-#                         wd = working_dir,
-#                         post_analysis_dir = post_analysis_dir,
-#                         post_analysis_out = post_analysis_out),
-#         expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.eggNOG5.annotations",
-#                         wd = working_dir,
-#                         post_analysis_dir = post_analysis_dir,
-#                         post_analysis_out = post_analysis_out)
-#         return(result)
-
-# def predicted_genes_dbcan_out():
-#     result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
-#                     wd = working_dir,
-#                     post_analysis_dir = post_analysis_dir,
-#                     post_analysis_out = post_analysis_out)
-#     return(result)
-
-# def predicted_genes_eggnog_out():
-#     result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.eggNOG5.annotations",
-#                     wd = working_dir,
-#                     post_analysis_dir = post_analysis_dir,
-#                     post_analysis_out = post_analysis_out)
-#     return(result)
 def predicted_genes_collate_out():
     result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.annotations.tsv",
                     wd = working_dir,
@@ -228,9 +170,6 @@ def predicted_genes_collate_out():
 rule all:
     input: 
         merge_genes_output(),
-        #predicted_genes_dbcan_out(),
-        #predicted_genes_kofam_out(),
-        #predicted_genes_eggnog_out(),
         predicted_genes_annot_out(),
         predicted_genes_collate_out()
 
