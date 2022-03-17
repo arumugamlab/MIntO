@@ -5,7 +5,6 @@ Download and install dependencies
 
 Authors: Carmen Saenz
 '''
-#
 
 # configuration yaml file
 #import sys
@@ -38,18 +37,35 @@ if config['local_dir'] is None:
 else:
     local_dir = config['local_dir']
 
+if config['download_threads'] is None:
+    print('ERROR in ', config_path, ': download_threads variable is empty. Please, complete ', config_path)
+elif type(config['download_threads']) != int:
+    print('ERROR in ', config_path, ': download_threads variable is not an integer. Please, complete ', config_path)
+else:
+    download_threads=config["download_threads"]
 
 
-#sortmeRNA_db="{minto_dir}/rRNA_databases/"
-#sortmeRNA_db_idx= "{minto_dir}/rRNA_databases/idx"
-#eggnog_db="{minto_dir}/data/eggnog_data/"
-#kofam_db="{minto_dir}/data/kofam_db/"
-#dbCAN_db="{minto_dir}/data/dbCAN_db/"
+if config['download_memory'] is None:
+    print('ERROR in ', config_path, ': download_memory variable is empty. Please, complete ', config_path)
+elif type(config['download_memory']) != int:
+    print('ERROR in ', config_path, ': download_memory variable is not an integer. Please, complete ', config_path)
+else:
+    download_memory=config["download_memory"]
 
-download_threads=config["download_threads"]
-download_memory=config["download_memory"]
-index_threads=config["rRNA_index_threads"]
-index_memory=config["rRNA_index_memory"]
+if config['rRNA_index_threads'] is None:
+    print('ERROR in ', config_path, ': rRNA_index_threads variable is empty. Please, complete ', config_path)
+elif type(config['rRNA_index_threads']) != int:
+    print('ERROR in ', config_path, ': rRNA_index_threads variable is not an integer. Please, complete ', config_path)
+else:
+    index_threads=config["rRNA_index_threads"]
+
+if config['rRNA_index_memory'] is None:
+    print('ERROR in ', config_path, ': rRNA_index_memory variable is empty. Please, complete ', config_path)
+elif type(config['rRNA_index_memory']) != int:
+    print('ERROR in ', config_path, ': rRNA_index_memory variable is not an integer. Please, complete ', config_path)
+else:
+    index_memory=config["rRNA_index_memory"]
+
 
 def rRNA_db_out():
     result = expand("{minto_dir}/data/rRNA_databases/rfam-5.8s-database-id98.fasta",
@@ -120,6 +136,21 @@ def metaphlan_db_out():
         minto_dir=minto_dir)
     return(result)
 
+def conda_env_out():
+    result=expand("{minto_dir}/logs/vamb_env.log",
+        minto_dir=minto_dir),\
+    expand("{minto_dir}/logs/checkm_env.log",
+        minto_dir=minto_dir),\
+    expand("{minto_dir}/logs/coverm_env.log",
+        minto_dir=minto_dir),\
+    expand("{minto_dir}/logs/phylophlan3_env.log",
+        minto_dir=minto_dir),\
+    expand("{minto_dir}/logs/prokka_env.log",
+        minto_dir=minto_dir),\
+    expand("{minto_dir}/logs/py36_env.log",
+        minto_dir=minto_dir)
+    return(result)
+
 # Define all the outputs needed by target 'all'
 rule all:
     input: 
@@ -127,7 +158,8 @@ rule all:
         eggnog_db_out(),
         Kofam_db_out(),
         dbCAN_db_out(),
-        metaphlan_db_out()
+        metaphlan_db_out(),
+        conda_env_out()
 
 ###############################################################################################
 # Download and index rRNA database - SortMeRNA
@@ -146,6 +178,8 @@ rule rRNA_db_download:
         "{minto_dir}/logs/rRNA_db_download.log"#.format(minto_dir = config["minto_dir"]),
     resources: mem=download_memory
     threads: download_threads
+    conda:
+        config["minto_dir"]+"/envs/motus_env.yml"
     shell:
         """ 
         mkdir -p {minto_dir}/data/rRNA_databases
@@ -210,6 +244,8 @@ rule eggnog_db:
         eggnog_db4="{minto_dir}/data/eggnog_data/data/eggnog.taxa.db.traverse.pkl",
         eggnog_db5=directory("{minto_dir}/data/eggnog_data/data/mmseqs"),
         eggnog_db6=directory("{minto_dir}/data/eggnog_data/data/pfam"),
+    params:
+        eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
     resources: mem=download_memory
     threads: download_threads
     log:
@@ -222,6 +258,12 @@ rule eggnog_db:
         time (cd {minto_dir}/data/eggnog_data/
         wget https://raw.githubusercontent.com/eggnogdb/eggnog-mapper/master/download_eggnog_data.py
         printf "y\\ny\\ny\\ny\\ny\\n" |python3 {minto_dir}/data/eggnog_data/download_eggnog_data.py --data_dir {minto_dir}/data/eggnog_data/data -P -M -f
+        cd {params.eggnog_db}
+        [[ -d /dev/shm/eggnog_data ]] || mkdir /dev/shm/eggnog_data
+        eggnogdata=(eggnog.db eggnog_proteins.dmnd eggnog.taxa.db eggnog.taxa.db.traverse.pkl)
+        for e in "${{eggnogdata[@]}}"
+            do [[ -f /dev/shm/eggnog_data/$e ]] || cp data/$e /dev/shm/eggnog_data/
+        done
         echo 'eggNOG database downloaded') &> {log}
         """ 
 
@@ -238,6 +280,8 @@ rule Kofam_db:
     threads: download_threads
     log:
         "{minto_dir}/logs/kofam_db_download.log" #.format(minto_dir = config["minto_dir"]),
+    conda:
+        config["minto_dir"]+"/envs/kofamscan_env.yml" #config["dbcan_ironmenv"]
     shell:
         """ 
         mkdir -p {minto_dir}/data/kofam_db/
@@ -336,7 +380,7 @@ rule metaphlan_db:
     log:
         "{minto_dir}/logs/metaphlan_download_db.log"
     conda:
-        config["minto_dir"]+"/envs/taxa_env.yml" #metaphlan or motus2
+        config["minto_dir"]+"/envs/taxa_env.yml" 
     shell:
         """ 
         mkdir -p {minto_dir}/data/metaphlan/
@@ -346,9 +390,109 @@ rule metaphlan_db:
         """
 
 
+###############################################################################################
+# Generate conda environments
+###############################################################################################
 
+rule mags_gen_vamb:
+    output: 
+        vamb_env="{minto_dir}/logs/vamb_env.log"
+    resources: 
+        mem=download_memory
+    threads: 
+        download_threads
+    log:
+        "{minto_dir}/logs/vamb_env.log"
+    conda:
+        config["minto_dir"]+"/envs/vamb.yaml"
+    shell:
+        """ 
+        time (
+        echo 'VAMB environment generated') &> {log}
+        """
 
+rule mags_gen_checkm:
+    output: 
+        checkm_env="{minto_dir}/logs/checkm_env.log"
+    resources: 
+        mem=download_memory
+    threads: 
+        download_threads
+    log:
+        "{minto_dir}/logs/checkm_env.log"
+    conda:
+        config["minto_dir"]+"/envs/checkm.yaml"
+    shell:
+        """ 
+        time (
+        echo 'CheckM environment generated') &> {log}
+        """
 
+rule mags_gen_coverm:
+    output: 
+        coverm_env="{minto_dir}/logs/coverm_env.log"
+    resources: 
+        mem=download_memory
+    threads: 
+        download_threads
+    log:
+        "{minto_dir}/logs/coverm_env.log"
+    conda:
+        config["minto_dir"]+"/envs/coverm.yaml"
+    shell:
+        """ 
+        time (
+        echo 'CoverM environment generated') &> {log}
+        """
 
+rule mags_gen_phylophlan3:
+    output: 
+        phylophlan3_env="{minto_dir}/logs/phylophlan3_env.log"
+    resources: 
+        mem=download_memory
+    threads: 
+        download_threads
+    log:
+        "{minto_dir}/logs/phylophlan3_env.log"
+    conda:
+        config["minto_dir"]+"/envs/phylophlan3.yaml"
+    shell:
+        """ 
+        time (
+        echo 'PhyloPhlAn3 environment generated') &> {log}
+        """
 
+rule mags_gen_prokka:
+    output: 
+        prokka_env="{minto_dir}/logs/prokka_env.log"
+    resources: 
+        mem=download_memory
+    threads: 
+        download_threads
+    log:
+        "{minto_dir}/logs/prokka_env.log"
+    conda:
+        config["minto_dir"]+"/envs/prokka.yaml"
+    shell:
+        """ 
+        time (
+        echo 'Prokka environment generated') &> {log}
+        """
+
+rule mags_gen_py36:
+    output: 
+        py36_env="{minto_dir}/logs/py36_env.log"
+    resources: 
+        mem=download_memory
+    threads: 
+        download_threads
+    log:
+        "{minto_dir}/logs/py36_env.log"
+    conda:
+        config["minto_dir"]+"/envs/py36_env.yml"
+    shell:
+        """ 
+        time (
+        echo 'Python 3.6 environment generated') &> {log}
+        """
 
