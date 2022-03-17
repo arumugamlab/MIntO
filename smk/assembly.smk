@@ -10,6 +10,7 @@ include: '../scripts/07-common-rules.smk'
 
 localrules: mark_circular_metaspades_contigs, mark_circular_flye_contigs, rename_megahit_contigs
 
+#
 # configuration yaml file
 # import sys
 import os.path

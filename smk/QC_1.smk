@@ -6,6 +6,7 @@ Pre-processing of metaG and metaT data step - quality reads filtering
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
+#
 # configuration yaml file
 # import sys
 import os.path
