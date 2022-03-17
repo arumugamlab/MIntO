@@ -36,4 +36,4 @@ dependencies:
   - pip:
     - natsort==7.1.1
     - run-dbcan==2.0.11
-prefix: /home/rzv923/anaconda3/envs/dbcan_ironmenv
+prefix: dbcan_ironmenv

@@ -23,4 +23,4 @@ dependencies:
   - ruby=2.6.6=hebe951e_0
   - yaml=0.2.5=h516909a_0
   - zlib=1.2.11=h516909a_1006
-prefix: /home/rzv923/anaconda3/envs/kofamscan_ironmenv
+prefix: kofamscan_ironmenv

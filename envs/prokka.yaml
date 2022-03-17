@@ -1,4 +1,4 @@
-name: prokka_try_MIntO_3
+name: prokka
 channels:
  - conda-forge
  - bioconda

@@ -54,4 +54,4 @@ dependencies:
   - wheel=0.37.0=pyhd8ed1ab_1
   - xz=5.2.5=h516909a_1
   - zlib=1.2.11=h36c2ea0_1013
-prefix: /home/rzv923/anaconda3/envs/motus_2.1.1
+prefix: motus_2.1.1
