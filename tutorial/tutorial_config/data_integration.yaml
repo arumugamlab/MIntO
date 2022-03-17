@@ -1,0 +1,30 @@
+######################
+# General settings
+######################
+PROJECT: MIntO_tutorial
+working_dir: /mypath/MIntO_tutorial_output
+omics: metaG_metaT
+local_dir: /mypath/tmp/MIntO_tutorial_integration
+minto_dir: /mypath/MIntO
+METADATA: /mypath/metadata/tutorial_metadata.txt
+
+######################
+# Program settings
+######################
+alignment_identity: 95
+abundance_normalization: TPM
+map_reference: MAG
+
+MERGE_threads: 4
+MERGE_memory: 5
+
+ANNOTATION_file:
+ANNOTATION_ids:
+ - eggNOG_OGs
+ - KEGG_Pathway
+ - KEGG_Module
+ - KEGG_KO
+ - PFAMs
+ - dbCAN.mod
+ - dbCAN.enzclass
+

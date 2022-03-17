@@ -1,0 +1,69 @@
+######################
+# General settings
+######################
+PROJECT: MIntO_tutorial
+working_dir: /mypath/MIntO_tutorial_output
+omics: metaG
+local_dir: /mypath/tmp/MIntO_tutorial_metaG
+minto_dir: /mypath/MIntO
+METADATA: /mypath/metadata/tutorial_metadata.txt
+
+######################
+# Program settings
+######################
+# COMMON PARAMETERS
+#
+MIN_FASTA_LENGTH: 500000
+
+# VAMB settings
+#
+BINNERS:
+- vamb_256
+- vamb_384
+- vamb_512
+- vamb_768
+
+VAMB_THREADS: 8
+VAMB_memory: 1
+
+# Use GPU in VAMB:
+# could be yes or not
+VAMB_GPU: no
+
+
+# CHECKM settings
+#
+CHECKM_THREADS: 8
+CHECKM_memory: 5
+
+# checkm threshold
+CHECKM_COMPLETENESS: 90  #higher than this
+CHECKM_CONTAMINATION: 5  # lower than this
+
+# Clean up checkm files?
+CLEAN_CHECKM: yes # can be yes or not
+
+# COVERM settings
+#
+COVERM_THREADS: 8
+COVERM_memory: 5
+
+# SCORING THE BEST GENOMES settings
+#
+# this could be checkm or genome
+SCORE_METHOD: checkm 
+
+
+# PROKKA settings
+#
+RUN_PROKKA: yes
+PROKKA_CPUS: 8
+PROKKA_memory: 5
+
+# PHYLOPHLAN METAGENOMICS settings
+#
+RUN_TAXONOMY: yes
+TAXONOMY_DATABASE: SGB.Jan20 #SGB.Dec20
+TAXONOMY_CPUS: 8
+TAXONOMY_memory: 5 
+DATABASE_FOLDER: /mypath/MIntO/data
