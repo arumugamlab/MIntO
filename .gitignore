@@ -5,6 +5,7 @@ data/eggnog_data/
 data/metaphlan/
 data/rRNA_databases/
 tmp/
+logs/
 envs/prokka_try_MIntO_4.yaml
 envs/vamb_2021.yaml
 ._.DS_Store

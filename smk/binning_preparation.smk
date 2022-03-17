@@ -13,6 +13,7 @@ include: '../scripts/08-common-rules.smk'
 
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, link_bam, combine_fasta, check_depths, combine_depth
 
+#
 # configuration yaml file
 # import sys
 import os.path
