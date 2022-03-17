@@ -1,0 +1,69 @@
+######################
+# General settings
+######################
+PROJECT: 
+working_dir: 
+omics: 
+local_dir: 
+minto_dir: 
+METADATA: 
+
+######################
+# Program settings
+######################
+# COMMON PARAMETERS
+#
+MIN_FASTA_LENGTH: 500000
+
+# VAMB settings
+#
+BINNERS:
+- vamb_256
+- vamb_384
+- vamb_512
+- vamb_768
+
+VAMB_THREADS:
+VAMB_memory:
+
+# Use GPU in VAMB:
+# could be yes or not
+VAMB_GPU: 
+
+
+# CHECKM settings
+#
+CHECKM_THREADS: 
+CHECKM_memory: 
+
+# checkm threshold
+CHECKM_COMPLETENESS: 90  #higher than this
+CHECKM_CONTAMINATION: 5  # lower than this
+
+# Clean up checkm files?
+CLEAN_CHECKM:  # can be yes or not
+
+# COVERM settings
+#
+COVERM_THREADS: 
+COVERM_memory: 
+
+# SCORING THE BEST GENOMES settings
+#
+# this could be checkm or genome
+SCORE_METHOD: checkm 
+
+
+# PROKKA settings
+#
+RUN_PROKKA: 
+PROKKA_CPUS: 
+PROKKA_memory: 
+
+# PHYLOPHLAN METAGENOMICS settings
+#
+RUN_TAXONOMY: 
+TAXONOMY_DATABASE: 
+TAXONOMY_CPUS: 
+TAXONOMY_memory: 
+DATABASE_FOLDER:

@@ -1,4 +1,6 @@
-# General parameters
+######################
+# General settings
+######################
 PROJECT: 
 working_dir: 
 omics: 
@@ -7,6 +9,9 @@ minto_dir:
 METADATA: 
 raw_reads_dir: 
 
+######################
+# Program settings
+######################
 # Pre-processing - quality reads filtering
 trimmomatic_adaptors: 
 perc_remaining_reads:  
@@ -16,7 +21,7 @@ TRIMMOMATIC_memory:
 # Input data
 # ILLUMINA section:
 # -----------------
-# List of illumina samples that will be assembled individually using MetaSPAdes.
+# List of illumina samples that will be filtered by quality.
 # - SRR7947178
 # - SRR7947179
 #

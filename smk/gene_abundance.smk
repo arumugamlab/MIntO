@@ -769,8 +769,16 @@ MERGE_threads:
 MERGE_memory:
 
 ANNOTATION_file:
+
+# List annotation IDs matching to generate function profiles. 
+# If map_reference= 'MAG' or 'reference_genome', this list correspond to:
+# 'eggNOG_OGs','KEGG_Pathway','KEGG_Module','merged_KO','PFAMs','dbCAN.mod' and 'dbCAN.enzclass. 
+# The names should match the ANNOTATION_file column names.
+#   E.g.:
+# - eggNOG_OGs
+# - KEGG_Pathway
 ANNOTATION_ids:
-# - eggNOG_OGs" > {params.tmp_integration_yaml}data_integration.yaml
+" > {params.tmp_integration_yaml}data_integration.yaml
 
 rsync {params.tmp_integration_yaml}data_integration.yaml {output.config_file}) >& {log}
 rm -rf {params.tmp_integration_yaml}
