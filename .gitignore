@@ -1,4 +1,4 @@
-#.gitignore
+.gitignore
 data/dbCAN_db/
 data/kofam_db/
 data/eggnog_data/
