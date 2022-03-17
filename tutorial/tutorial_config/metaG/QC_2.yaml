@@ -34,6 +34,10 @@ taxa_profile: motus_rel
 # -----------------
 # List of illumina samples that will be filtered by read length.
 #
+# E.g.:
+# - I1
+# - I2
+#
 ILLUMINA:
 - CD136
 - CD138

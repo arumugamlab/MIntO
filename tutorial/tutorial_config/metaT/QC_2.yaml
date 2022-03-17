@@ -35,6 +35,10 @@ sortmeRNA_db_idx: /mypath/MIntO/data/rRNA_databases/idx
 # -----------------
 # List of illumina samples that will be filtered by read length.
 #
+# E.g.:
+# - I1
+# - I2
+#
 ILLUMINA:
 - CD136
 - CD138

@@ -38,7 +38,11 @@ MIN_mapped_reads: 2
 
 # ILLUMINA section:
 # -----------------
-# List of illumina samples that will be assembled individually using MetaSPAdes.
+# List of illumina samples.
+#
+# E.g.:
+# - I1
+# - I2
 #
 ILLUMINA:
 - CD136

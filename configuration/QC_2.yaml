@@ -33,7 +33,9 @@ taxa_profile:
 # ILLUMINA section:
 # -----------------
 # List of illumina samples that will be filtered by read length.
-# - SRR7947178
-# - SRR7947179
+#
+# E.g.:
+# - I1
+# - I2
 #
 ILLUMINA:

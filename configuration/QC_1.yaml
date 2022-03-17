@@ -22,7 +22,9 @@ TRIMMOMATIC_memory:
 # ILLUMINA section:
 # -----------------
 # List of illumina samples that will be filtered by quality.
-# - SRR7947178
-# - SRR7947179
+#
+# E.g.:
+# - I1
+# - I2
 #
 ILLUMINA:
