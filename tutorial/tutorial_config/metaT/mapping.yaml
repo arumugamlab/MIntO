@@ -1,0 +1,53 @@
+######################
+# General settings
+######################
+PROJECT: MIntO_tutorial
+working_dir: /mypath/MIntO_tutorial_output
+omics: metaT
+local_dir: /mypath/tmp/MIntO_tutorial_metaT
+minto_dir: /mypath/MIntO
+METADATA: /mypath/metadata/tutorial_metadata.txt
+
+######################
+# Program settings
+######################
+# BWA Alignment 
+msamtools_filter_length: 50
+alignment_identity: 95
+
+# Normalization approach
+abundance_normalization: TPM
+fetchMGs_dir:
+
+# Map reads to reference
+map_reference: MAG
+ANNOTATION:
+- dbCAN
+- eggNOG
+#- KEGG
+PATH_reference: # path to gene catalog fasta file 
+NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+
+BWAindex_threads: 4
+BWAindex_memory: 10
+BWA_threads: 4
+BWA_memory: 5
+MIN_mapped_reads: 2
+
+# Input data
+
+# ILLUMINA section:
+# -----------------
+# List of illumina samples that will be assembled individually using MetaSPAdes.
+#
+ILLUMINA:
+- CD136
+- CD138
+- CD140
+- CD142
+- CD146
+- CD237
+- CD238
+- CD240
+- CD242
+- CD244

@@ -1,0 +1,47 @@
+######################
+# General settings
+######################
+PROJECT: MIntO_tutorial
+working_dir: /mypath/MIntO_tutorial_output
+omics: metaG
+local_dir: /mypath/tmp/MIntO_tutorial_metaG
+minto_dir: /mypath/MIntO
+METADATA: /mypath/metadata/tutorial_metadata.txt
+
+######################
+# Program settings
+######################
+# Pre-processing - length reads filtering
+TRIMMOMATIC_threads: 5
+TRIMMOMATIC_memory: 4
+TRIMMOMATIC_minlen: 134
+
+# Pre-processing - host genome filtering
+PATH_host_genome: /mypath/human_genome
+NAME_host_genome: GCF_000001405.39_GRCh38.p13_genomic.fna
+BWA_index_host_threads: 10
+BWA_index_host_memory: 5
+BWA_host_threads: 4
+BWA_host_memory: 5
+
+# Assembly-free taxonomy profiling
+TAXA_threads: 4
+TAXA_memory: 5
+taxa_profile: motus_rel
+
+# Input data
+# ILLUMINA section:
+# -----------------
+# List of illumina samples that will be filtered by read length.
+#
+ILLUMINA:
+- CD136
+- CD138
+- CD140
+- CD142
+- CD146
+- CD237
+- CD238
+- CD240
+- CD242
+- CD244
