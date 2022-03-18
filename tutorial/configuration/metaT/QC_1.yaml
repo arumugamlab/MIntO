@@ -2,12 +2,12 @@
 # General settings
 ######################
 PROJECT: MIntO_tutorial
-working_dir: /mypath/MIntO_tutorial_output
+working_dir: /mypath/IBD_tutorial_output
 omics: metaT
-local_dir: /mypath/tmp/MIntO_tutorial_metaT
+local_dir: /mypath/tmp/IBD_tutorial_metaT
 minto_dir: /mypath/MIntO
 METADATA: /mypath/metadata/tutorial_metadata.txt
-raw_reads_dir: /mypath/tutorial_raw/metaT
+raw_reads_dir: /mypath/IBD_tutorial_raw/metaT
 
 ######################
 # Program settings
