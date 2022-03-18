@@ -1,7 +1,7 @@
 ######################
 # General settings
 ######################
-PROJECT: MIntO_tutorial
+PROJECT: IBD_tutorial
 working_dir: /mypath/IBD_tutorial_output
 omics: metaT
 local_dir: /mypath/tmp/IBD_tutorial_metaT
