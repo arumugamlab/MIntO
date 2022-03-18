@@ -17,8 +17,8 @@ TRIMMOMATIC_memory: 4
 TRIMMOMATIC_minlen: 134
 
 # Pre-processing - host genome filtering
-PATH_host_genome: 
-NAME_host_genome: 
+PATH_host_genome: /mypath/MIntO/tutorial
+NAME_host_genome: build_hg18_subset.fna
 BWA_index_host_threads: 10
 BWA_index_host_memory: 5
 BWA_host_threads: 4
