@@ -61,13 +61,13 @@ if ('eggnog' and 'kofam' in locals()):
     del KOdf['kofam_KO']
     df = KOdf   
 # eggnog and dbcan, no kofam
-elif ('eggnog' and 'dbcan' in locals()) and not ('kofam' in locals()):
+elif (('eggnog' in locals()) and ('dbcan' in locals()) and not ('kofam' in locals())):
     del df
     eggnog["KEGG_KO"] = eggnog['KEGG_ko']
     del eggnog['KEGG_ko']
     df = pd.merge(eggnog,dbcan, on="ID", how="outer").fillna("-")
 # kofam and dbcan, no eggnog
-elif ('kofam' and 'dbcan' in locals()) and not ('eggnog' in locals()):
+elif (('kofam' in locals()) and ('dbcan' in locals()) and not ('eggnog' in locals())):
     del df
     kofam["KEGG_KO"] = kofam['kofam_KO']
     del kofam['kofam_KO']
