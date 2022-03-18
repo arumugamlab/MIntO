@@ -17,3 +17,4 @@ envs/._prokka.yaml
 smk/._binning_preparation.smk
 smk/._data_integration.smk
 smk/._dependencies.smk
+tutorial/BWA_index
