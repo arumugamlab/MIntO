@@ -32,18 +32,20 @@ MEGAHIT_presets:
 # MetaFlye settings
 #
 # MetaFlye will be run for each parameter preset listed here.
-# By default Flye will be run with these parameters:
-#    --meta --genome-size 3.0m
+# By default Flye will be run with these parameters (default MetaFlye):
+#    --meta
 # If you need to add more options, define them here and name them for future reference.
 # Notes:
 # ------
-# 1. Each preset parameter will be applied to each sample. If you only
+# 1. Each preset parameter listed below will be applied to each sample. If you only
 #    want one parameter to be used, please comment everything else.
 # 2. If nothing is listed here, then MetaFlye won't be run.
-#    If you just want our default parameters above, then here is a possible option:
+#    If you just want default MetaFlye above, then here is a possible option:
 #      metaflye-default: 
-# 3. 'tres-o3000-3x' is valid for flye 2.8.3. From 2.9.x, --plasmids and --trestle are
-#    not valid. So please use valid options if you are using newer versions of flye.
+# 3. 'tres-o3000-3x' is our default setting, which works well for Flye v2.9 in our hands. 
+#    We provide here for convenience. If needed, use it as a starting point,
+#    customize these options, and rename it for traceability.
+#
 METAFLYE_presets:
   tres-o3000-3x: --min-overlap 3000 --iterations 3
   #metaflye-default: 
