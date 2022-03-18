@@ -21,7 +21,7 @@ METASPADES_illumina_max_k:
 
 # MEGAHIT settings
 #
-# Memory is not given here but calculated to be 10G per sample in the coassembly.
+# Total used memory is not given here but calculated to be 10G per sample in the coassembly.
 # Please make sure that there is enough RAM on the server.
 MEGAHIT_threads: 
 MEGAHIT_memory: 
