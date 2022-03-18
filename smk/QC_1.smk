@@ -29,7 +29,8 @@ else:
 if config['working_dir'] is None:
     print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
 elif path.exists(config['working_dir']) is False:
-    print('ERROR in ', config_path, ': working_dir variable path does not exit. Please, complete ', config_path)
+    print('WARNING in ', config_path, ': working_dir path does not exit. The directory will be created by MIntO')
+    working_dir = config['working_dir']
 else:
     working_dir = config['working_dir']
 
