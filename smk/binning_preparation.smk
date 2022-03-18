@@ -489,7 +489,7 @@ VAMB_memory:
 
 # Use GPU in VAMB:
 # could be "yes" or "not"
-VAMB_GPU: yes
+VAMB_GPU: no
 
 
 # CHECKM settings
