@@ -233,7 +233,7 @@ def filter_host_genome_output():
     return(result)
 
 def filter_config_yml_output():
-    result = expand("{wd}/{omics}/assemblies.yaml", 
+    result = expand("{wd}/{omics}/assembly.yaml", 
                     wd = working_dir,
                     omics = omics)
     return(result)
@@ -263,7 +263,7 @@ if omics == 'metaG':
                         taxa_motus = taxa_motus)
             return(result)
         def filter_config_yml_output():
-            result = expand("{wd}/{omics}/assemblies.yaml", 
+            result = expand("{wd}/{omics}/assembly.yaml", 
                         wd = working_dir,
                         omics = omics),\
             expand("{wd}/{omics}/mapping.yaml", 
@@ -289,7 +289,7 @@ if omics == 'metaG':
                         #taxa = 'metaphlan')
             return(result)
         def filter_config_yml_output():
-            result = expand("{wd}/{omics}/assemblies.yaml", 
+            result = expand("{wd}/{omics}/assembly.yaml", 
                         wd = working_dir,
                         omics = omics),\
             expand("{wd}/{omics}/mapping.yaml", 
@@ -629,7 +629,7 @@ rule qc2_filter_config_yml_assembly:
     input: 
         host_free_fw=expand("{{wd}}/{{omics}}/4-hostfree/{sample}/{sample}.1.fq.gz", sample=ilmn_samples),
     output: 
-        config_file="{wd}/{omics}/assemblies.yaml"
+        config_file="{wd}/{omics}/assembly.yaml"
     params: 
         tmp_assembly_yaml=lambda wildcards: "{local_dir}/{omics}_filter_config_yml_assembly/".format(local_dir=local_dir, omics = omics),
         #sample_names=lambda wildcards, input: "\\n-".join(input.host_free_fw),
