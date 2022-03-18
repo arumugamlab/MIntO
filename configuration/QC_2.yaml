@@ -24,10 +24,17 @@ BWA_index_host_memory:
 BWA_host_threads: 
 BWA_host_memory: 
 
-# Assembly-free taxonomy profiling
+# Assembly-free taxonomy profiling - ONLY metaG
 TAXA_threads: 
 TAXA_memory: 
 taxa_profile: 
+
+
+# Assembly-free taxonomy profiling - ONLY metaT
+sortmeRNA_threads: 
+sortmeRNA_memory: 
+sortmeRNA_db: 
+sortmeRNA_db_idx: 
 
 # Input data
 # ILLUMINA section:
