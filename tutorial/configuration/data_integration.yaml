@@ -29,11 +29,6 @@ ANNOTATION_file:
 # - eggNOG_OGs
 # - KEGG_Pathway
 ANNOTATION_ids:
- - eggNOG_OGs
- - KEGG_Pathway
- - KEGG_Module
- - KEGG_KO
- - PFAMs
  - dbCAN.mod
  - dbCAN.enzclass
 
