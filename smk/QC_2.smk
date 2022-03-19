@@ -808,6 +808,8 @@ fetchMGs_dir:
 map_reference: MAG
 PATH_reference: # path to gene catalog fasta file 
 NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+
+
 # List of databases used to performe the genome annotation:
 # - dbCAN
 # - KEGG
