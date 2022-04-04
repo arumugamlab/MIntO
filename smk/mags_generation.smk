@@ -274,7 +274,8 @@ rule run_vamb:
 	
 	#singularity: "docker://quay.io/biocontainers/vamb:3.0.2--py36hc5360cc_1"
 	conda:
-		"/emc/cbmr/users/rzv923/vamb_nogpu.yaml"
+		"/emc/cbmr/users/wdm117/tools/MIntO/envs/vamb_without_gpu.yaml"
+		#"/emc/cbmr/users/rzv923/vamb_nogpu_v2.yaml"
 		#config["minto_dir"]+"/envs/vamb.yaml" 
         #"vamb_2022_v1.yml" #
         #"vamb_orig.yaml" #f68d45ef

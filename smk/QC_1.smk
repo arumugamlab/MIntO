@@ -64,10 +64,11 @@ if config['METADATA'] is None:
 elif config['METADATA'] == "None":
     print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
     metadata=config["METADATA"]
-elif path.exists(config['METADATA']) is False:
-    print('ERROR in ', config_path, ': METADATA variable path does not exit. Please, complete ', config_path)
-else:
-    metadata=config["METADATA"]
+if config['METADATA'] is not None:
+    if path.exists(config['METADATA']) is False:
+        print('ERROR in ', config_path, ': METADATA variable path does not exit. Please, complete ', config_path)
+    else:
+        metadata=config["METADATA"]
 
 # Make list of illumina samples, if ILLUMINA in config
 if 'ILLUMINA' in config:
