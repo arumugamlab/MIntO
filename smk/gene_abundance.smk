@@ -504,7 +504,8 @@ rule gene_abund_bwa_tpm:
         length=config["msamtools_filter_length"],
         prefix="{sample}.p{identity}.filtered",
         memory=lambda wildcards, resources: resources.mem - 1,
-        bwaindex="{gene_catalog_path}/BWA_index/{gene_catalog_name}".format(gene_catalog_path=gene_catalog_db, gene_catalog_name=gene_catalog_name)
+        bwaindex="{gene_catalog_path}/BWA_index/{gene_catalog_name}".format(gene_catalog_path=gene_catalog_db, gene_catalog_name=gene_catalog_name),
+        mapped_reads_threashold=config["MIN_mapped_reads"]
     log:
         "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-db_genes/{sample}.p{identity}_bwa.log"#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity, post_analysis_out=post_analysis_out),
     threads: config["BWA_threads"]
@@ -520,10 +521,8 @@ rule gene_abund_bwa_tpm:
 msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > {params.tmp_bwa}{params.prefix}.bam) >& {params.tmp_bwa}{params.prefix}.log
         total_reads="$(grep Processed {params.tmp_bwa}{params.prefix}.log | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         echo $total_reads
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile_TPM.txt.gz \
---total $total_reads --multi prop --unit tpm
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz \
---total $total_reads --multi all --unit abund --nolen
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile_TPM.txt.gz --total $total_reads --mincount {params.mapped_reads_threashold} --multi prop --unit tpm
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz --total $total_reads --mincount {params.mapped_reads_threashold} --multi all --unit abund --nolen
         rsync {params.tmp_bwa}* ${{remote_dir}} ) >& {log}
         rm -rf {params.tmp_bwa}"""
 
@@ -614,7 +613,7 @@ rule gene_abund_normalization_MG:
     output:
         norm_counts="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.MG.csv"#.format(wd = working_dir, omics = omics, post_analysis_out=post_analysis_out, identity = identity), 
     params:
-        mapped_reads_threashol=config["MIN_mapped_reads"]
+        mapped_reads_threashold=config["MIN_mapped_reads"]
     #    tmp_MG="{local_dir}/{post_analysis_out}.MG_marker_genes/"#.format(local_dir=local_dir, post_analysis_out=post_analysis_out),
     log:
         "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.MG.log"#.format(wd = working_dir, omics = omics, post_analysis_out=post_analysis_out, identity = identity)
@@ -625,7 +624,7 @@ rule gene_abund_normalization_MG:
         config["minto_dir"]+"/envs/taxa_env.yml"
     shell: 
         """
-        time (Rscript {script_dir}/profile_MG.R {threads} {resources.mem} {input.absolute_counts} {input.genomes_marker_genes} {output.norm_counts} {omics} {params.mapped_reads_threashol}) &> {log}
+        time (Rscript {script_dir}/profile_MG.R {threads} {resources.mem} {input.absolute_counts} {input.genomes_marker_genes} {output.norm_counts} {omics} {params.mapped_reads_threashold}) &> {log}
         """
 
 ###############################################################################################
@@ -639,7 +638,7 @@ rule gene_abund_normalization_TPM:
     output:
         norm_counts="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.TPM.csv",
     params:
-        mapped_reads_threashol=config["MIN_mapped_reads"]
+        mapped_reads_threashold=config["MIN_mapped_reads"]
     #    tmp_norm=lambda wildcards: "{local_dir}/{omics}_{norm}_genes_abundances_normalization/".format(local_dir=local_dir, omics=omics, norm=wildcards.norm),
     log:
         "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.TPM.log"
@@ -650,7 +649,7 @@ rule gene_abund_normalization_TPM:
         config["minto_dir"]+"/envs/taxa_env.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/profile_TPM.R {input.absolute_counts} {output.norm_counts} {wildcards.omics} {params.mapped_reads_threashol}) &> {log}
+        time (Rscript {script_dir}/profile_TPM.R {input.absolute_counts} {output.norm_counts} {wildcards.omics} {params.mapped_reads_threashold}) &> {log}
         """
 
 ###############################################################################################
@@ -664,10 +663,9 @@ rule gene_abund_tpm_merge:
     params:
         #profile_abund_all="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.abund.csv",
         tmp_tpm_merge=lambda wildcards: "{local_dir}/{omics}_{identity}.gene_abund_tpm_merge/".format(local_dir=local_dir, omics=omics, identity=identity),
-        profile_tpm_list=lambda wildcards, input: ",".join(input.profile_tpm),
-        mapped_reads_threashold=config["MIN_mapped_reads"],
+        profile_tpm_list=lambda wildcards, input: ",".join(input.profile_tpm)
         #prefix_db="{gene_catalog_path}/{gene_catalog_name}",
-        #mapped_reads_threashol=config["MIN_mapped_reads"]
+        #mapped_reads_threashold=config["MIN_mapped_reads"]
     log:
         "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/gene_abund_merge.p{identity}.TPM_log"
     threads: config["BWA_threads"]
@@ -687,7 +685,7 @@ rule gene_abund_tpm_merge:
         # prefix_tpm=$(basename {output.profile_tpm_all})
         # time (sh {script_dir}/msamtools_merge_profiles.sh {input.profile_abund[0]} '{params.profile_tpm_list}' db_genes {params.tmp_tpm_merge} ${{prefix}}
         # sh {script_dir}/read_length_count_fasta.sh {params.prefix_db} {params.tmp_tpm_merge}/read_length_count_fasta.txt
-        # Rscript {script_dir}/profile_TPM_db_genes.R {params.tmp_tpm_merge}${{prefix}} {params.tmp_tpm_merge}${{prefix_tpm}} {wildcards.omics} {params.mapped_reads_threashol} {params.tmp_tpm_merge}/read_length_count_fasta.txt
+        # Rscript {script_dir}/profile_TPM_db_genes.R {params.tmp_tpm_merge}${{prefix}} {params.tmp_tpm_merge}${{prefix_tpm}} {wildcards.omics} {params.mapped_reads_threashold} {params.tmp_tpm_merge}/read_length_count_fasta.txt
         # rsync {params.tmp_tpm_merge}${{prefix}} {output.profile_abund_all}
         # rsync {params.tmp_tpm_merge}${{prefix_tpm}} {output.profile_tpm_all}) &> {log}
         # rm -rf {params.tmp_tpm_merge}"""

@@ -272,14 +272,16 @@ rule run_vamb:
 	threads: 
 		config["VAMB_THREADS"]
 	
+	#singularity: "docker://quay.io/biocontainers/vamb:3.0.2--py36hc5360cc_1"
 	conda:
-		config["minto_dir"]+"/envs/vamb.yaml" 
+		"/emc/cbmr/users/rzv923/vamb_nogpu.yaml"
+		#config["minto_dir"]+"/envs/vamb.yaml" 
         #"vamb_2022_v1.yml" #
         #"vamb_orig.yaml" #f68d45ef
 		#"vamb_orig.yaml" 90d82712
 	
 	shell:
-		""" time (sh {script_dir}/run_vamb.sh {params.gpu} {wildcards.binner} {input.contigs_file} {input.depth_file} {threads} {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}
+		""" time (sh {script_dir}run_vamb.sh {params.gpu} {wildcards.binner} {input.contigs_file} {input.depth_file} {threads} {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}
 		rsync {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}/tmp/*  {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}
 		rm -rf {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}/tmp) &> {log}"""
 
