@@ -6,7 +6,7 @@ working_dir: /mypath/IBD_tutorial_output
 omics: metaT
 local_dir: /mypath/tmp/IBD_tutorial_metaT
 minto_dir: /mypath/MIntO
-METADATA: /mypath/metadata/tutorial_metadata.txt
+METADATA: /mypath/MIntO/tutorial/metadata/tutorial_metadata.txt
 
 ######################
 # Program settings
