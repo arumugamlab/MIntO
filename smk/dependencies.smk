@@ -258,15 +258,14 @@ rule eggnog_db:
         time (cd {minto_dir}/data/eggnog_data/
         wget https://raw.githubusercontent.com/eggnogdb/eggnog-mapper/master/download_eggnog_data.py
         printf "y\\ny\\ny\\ny\\ny\\n" |python3 {minto_dir}/data/eggnog_data/download_eggnog_data.py --data_dir {minto_dir}/data/eggnog_data/data -P -M -f
-        cd {params.eggnog_db}
-        [[ -d /dev/shm/eggnog_data ]] || mkdir /dev/shm/eggnog_data
-        eggnogdata=(eggnog.db eggnog_proteins.dmnd eggnog.taxa.db eggnog.taxa.db.traverse.pkl)
-        for e in "${{eggnogdata[@]}}"
-            do [[ -f /dev/shm/eggnog_data/$e ]] || cp data/$e /dev/shm/eggnog_data/
-        done
         echo 'eggNOG database downloaded') &> {log}
         """ 
-
+        #cd {params.eggnog_db}
+        #[[ -d /dev/shm/eggnog_data ]] || mkdir /dev/shm/eggnog_data
+        #eggnogdata=(eggnog.db eggnog_proteins.dmnd eggnog.taxa.db eggnog.taxa.db.traverse.pkl)
+        #for e in "${{eggnogdata[@]}}"
+        #    do [[ -f /dev/shm/eggnog_data/$e ]] || cp data/$e /dev/shm/eggnog_data/
+        #done
 ###############################################################################################
 # Download KEGG database - KOfamScan
 ###############################################################################################
