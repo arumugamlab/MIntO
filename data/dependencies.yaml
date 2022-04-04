@@ -1,8 +1,8 @@
 ######################
 # General settings
 ######################
-local_dir: /data/rzv923/ibd-test_metaG
-minto_dir: /emc/cbmr/users/rzv923/MIntO
+local_dir: /mypath/tmp/ibd-test_metaG
+minto_dir: /mypath/MIntO
 
 download_memory: 5
 download_threads: 2
