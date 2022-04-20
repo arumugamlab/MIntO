@@ -52,7 +52,7 @@ rm(gene_rpk_samples_u_df)
 gene_abund_samples_u_df_filt <- gene_abund_samples_u_df[,!colnames(gene_abund_samples_u_df) 
                                                         %in% gene_info][gene_abund_samples_u_df[,!colnames(gene_abund_samples_u_df)
                                                                                                 %in% gene_info] <=read_n] <- 0
-gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_lenght
+gene_rpk_samples_u_df <- gene_abund_samples_u_df_filt[1:ncol(gene_abund_samples_u_df_filt)-1]/gene_abund_samples_u_df_filt$gene_lenght
 ### Traslocate df to merge it later with total_reads_df
 gene_rpk_samples_u_t_df <- as.data.frame(t(gene_rpk_samples_u_df))
 

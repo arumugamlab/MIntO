@@ -19,7 +19,7 @@ gene_info <- c('Genes','gene_lenght')
 gene_abund_txt_df <- as.data.frame(fread(gene_abund_txt, header=T), stringsAsFactors = F)
 ## Filter number of mapped reads bellow the threashold
 gene_abund_txt_coord_df <- gene_abund_txt_df
-gene_abund_txt_coord_df[,2:ncol(gene_abund_txt_coord_df)][gene_abund_txt_coord_df[,2:ncol(gene_abund_txt_coord_df)] <=read_n] <- 0
+#gene_abund_txt_coord_df[,2:ncol(gene_abund_txt_coord_df)][gene_abund_txt_coord_df[,2:ncol(gene_abund_txt_coord_df)] <=read_n] <- 0
 
 #gene_abund_txt<- "/emc/cbmr/users/rzv923/ibdmdb_test/metaG/6-mapping-profiles/BWA_reads-db_genes/genes_abundances.p95.TPM.csv"
 #read_length_out <- "/emc/cbmr/users/rzv923/Databases/IGC/output_count_fasta_v2.txt"

@@ -41,6 +41,7 @@ if map_reference == 'db_genes':
     metaG_file_sub = metaG_file.loc[~(metaG_file.iloc[:, 1:]==0).all(axis=1)]
     metaT_file_sub = metaT_file.loc[~(metaT_file.iloc[:, 1:]==0).all(axis=1)]
     tpm_profile_all = pd.merge(metaG_file_sub, metaT_file_sub, on='Genes', how = 'inner')
+    #tpm_profile_all_last=tpm_profile_all.fillna(0)
     #tpm_profile_all = pd.merge(metaG_file, metaT_file, on='Genes', how = 'inner')
     #tpm_profile_all_sub = tpm_profile_all.loc[~(tpm_profile_all.iloc[:, 1:]==0).all(axis=1)]
 
@@ -48,7 +49,7 @@ elif map_reference == 'MAGs_genes' or map_reference == 'reference_genes':
     metaG_file_sub = metaG_file.loc[~(metaG_file.iloc[:, 12:]==0).all(axis=1)]
     metaT_file_sub = metaT_file.loc[~(metaT_file.iloc[:, 12:]==0).all(axis=1)]
     tpm_profile_all = pd.merge(metaG_file_sub, metaT_file_sub, on=['coord','chr','start','stop','name','score','strand','source','feature','frame','info','gene_lenght'], how = 'outer')
-
+    #tpm_profile_all_last=tpm_profile_all.fillna(0)
     #tpm_profile_all = pd.merge(metaG_file, metaT_file, on=['coord','chr','start','stop','name','score','strand','source','feature','frame','info','gene_lenght'], how = 'outer')
     #tpm_profile_all_sub = tpm_profile_all.loc[~(tpm_profile_all.iloc[:, 12:]==0).all(axis=1)]
 
