@@ -12,20 +12,23 @@ MIntO can be downloaded here:  https://github.com/arumugamlab/MIntO
 
 ## What should I know about MIntO?
 There is a lot of code behind MIntO (it really does a lot of stuff!), but do not be scared about it... everyone can use it! 
-We provide all the key steps and necessary explanations in the wiki section. 
-We suggest to read the **[MIntO in a nutshell](https://github.com/arumugamlab/MIntO/wiki)** section first, just to have an idea on how MIntO works. 
-Then move to the **[Installation&Dependencies](https://github.com/arumugamlab/MIntO/wiki)** and then you are set to discover each step! 
-
-Also you can have a look to the **tutorial** [here](https://github.com/arumugamlab/MIntO/wiki)! :)
+We provide all the key steps and necessary explanations in the wiki section(https://github.com/arumugamlab/MIntO/wiki/). 
+We suggest to read the **[MIntO in a nutshell](https://github.com/arumugamlab/MIntO/wiki/MIntO-in-a-nutshell)** section first, just to have an idea on how MIntO works. 
+Then move to the **[Installation&Dependencies](https://github.com/arumugamlab/MIntO/wiki/Installation&Dependencies)** and then you are set to discover each step! 
+Also you can have a look to the **tutorial** [here](https://github.com/arumugamlab/MIntO/wiki/MIntO-tutorial)! :)
 
 
 ## Publication
 
-At the moment, please cite MIntO if you use it during your analysis by linking to this github page. 
+If you have used MIntO during your analysis, please cite:
 
-Carmen Saenz, Eleonora Nigro, Vithiagaran Gunalan, Manimozhiyan Arumugam*
+**MIntO: a Modular and Scalable Pipeline for Microbiome Meta-omics Data Integration**
+Carmen Saenz, Eleonora Nigro, Vithiagaran Gunalan, & Manimozhiyan Arumugam
+_Frontiers in Bioinformatics_ (2022): doi: 10.1093/nar/gkab335.
 
-Novo Nordisk Foundation Center for Basic Metabolic Research, Faculty of Health and Medical Sciences, University of Copenhagen, Copenhagen, Denmark
+antiSMASH 6.0: improving cluster detection and comparison capabilities
+Kai Blin, Simon Shaw, Alexander M Kloosterman, Zach Charlop-Powers, Gilles P van Weezel, Marnix H Medema, & Tilmann Weber
+Nucleic Acids Research (2021) doi: 10.3389/fbinf.2022.846922(https://doi.org/10.3389/fbinf.2022.846922).
 
 *Correspondence: arumugam@sund.ku.dk
 
