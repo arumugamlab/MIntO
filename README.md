@@ -24,7 +24,7 @@ If you have used MIntO during your analysis, please cite:
 
  **MIntO: a Modular and Scalable Pipeline for Microbiome Meta-omics Data Integration**  
 Carmen Saenz, Eleonora Nigro, Vithiagaran Gunalan, & Manimozhiyan Arumugam  
-_Frontiers in Bioinformatics_ (2022): doi: [10.3389/fbinf.2022.846922](https://doi.org/10.3389/fbinf.2022.846922). 
+_Frontiers in Bioinformatics_ (2022). doi: [10.3389/fbinf.2022.846922](https://doi.org/10.3389/fbinf.2022.846922). 
 
 
 ## Contacts
