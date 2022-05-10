@@ -12,7 +12,7 @@ MIntO can be downloaded here:  https://github.com/arumugamlab/MIntO
 
 ## What should I know about MIntO?
 There is a lot of code behind MIntO (it really does a lot of stuff!), but do not be scared about it... everyone can use it! 
-We provide all the key steps and necessary explanations in the wiki section(https://github.com/arumugamlab/MIntO/wiki/). 
+We provide all the key steps and necessary explanations in the [wiki section](https://github.com/arumugamlab/MIntO/wiki/). 
 We suggest to read the **[MIntO in a nutshell](https://github.com/arumugamlab/MIntO/wiki/MIntO-in-a-nutshell)** section first, just to have an idea on how MIntO works. 
 Then move to the **[Installation&Dependencies](https://github.com/arumugamlab/MIntO/wiki/Installation&Dependencies)** and then you are set to discover each step! 
 Also you can have a look to the **tutorial** [here](https://github.com/arumugamlab/MIntO/wiki/MIntO-tutorial)! :)
@@ -26,7 +26,7 @@ If you have used MIntO during your analysis, please cite:
 
 Carmen Saenz, Eleonora Nigro, Vithiagaran Gunalan, & Manimozhiyan Arumugam
 
-_Frontiers in Bioinformatics_ (2022): doi: 10.1093/nar/gkab335.
+_Frontiers in Bioinformatics_ (2022): doi: [10.3389/fbinf.2022.846922](https://doi.org/10.3389/fbinf.2022.846922).
 
 *Correspondence: arumugam@sund.ku.dk
 
