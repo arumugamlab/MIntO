@@ -26,10 +26,6 @@ If you have used MIntO during your analysis, please cite:
 Carmen Saenz, Eleonora Nigro, Vithiagaran Gunalan, & Manimozhiyan Arumugam
 _Frontiers in Bioinformatics_ (2022): doi: 10.1093/nar/gkab335.
 
-antiSMASH 6.0: improving cluster detection and comparison capabilities
-Kai Blin, Simon Shaw, Alexander M Kloosterman, Zach Charlop-Powers, Gilles P van Weezel, Marnix H Medema, & Tilmann Weber
-Nucleic Acids Research (2021) doi: 10.3389/fbinf.2022.846922(https://doi.org/10.3389/fbinf.2022.846922).
-
 *Correspondence: arumugam@sund.ku.dk
 
 
