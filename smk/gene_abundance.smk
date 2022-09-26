@@ -194,6 +194,9 @@ if map_reference == 'MAG':
                     post_analysis_out = "MAGs_genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity,),\
+        expand("{wd}/DB/{post_analysis_dir}/genome.def",
+                    wd = working_dir,
+                    post_analysis_dir = "9-MAGs-prokka-post-analysis"),\
         expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam", 
                     wd = working_dir,
                     omics = omics,
@@ -216,6 +219,18 @@ if map_reference == 'MAG':
                     wd = working_dir,
                     omics = omics,
                     post_analysis_out = "MAGs_genes",
+                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
+                    identity = identity),\
+        expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz", 
+                    wd = working_dir,
+                    omics = omics,
+                    post_analysis_out = "reference_genes",
+                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
+                    identity = identity),\
+        expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz", 
+                    wd = working_dir,
+                    omics = omics,
+                    post_analysis_out = "reference_genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity)
         return(result)
@@ -241,6 +256,9 @@ if map_reference == 'reference_genome':
                     post_analysis_out = "reference_genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity,),\
+        expand("{wd}/DB/{post_analysis_dir}/genome.def",
+                    wd = working_dir,
+                    post_analysis_dir = "9-reference-genes-post-analysis"),\
         expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam", 
                     wd = working_dir,
                     omics = omics,
@@ -264,8 +282,19 @@ if map_reference == 'reference_genome':
                     omics = omics,
                     post_analysis_out = "reference_genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
+                    identity = identity),\
+        expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz", 
+                    wd = working_dir,
+                    omics = omics,
+                    post_analysis_out = "reference_genes",
+                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
+                    identity = identity),\
+        expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz", 
+                    wd = working_dir,
+                    omics = omics,
+                    post_analysis_out = "reference_genes",
+                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity)
-
         return(result)
 
 if normalization == 'MG': 
@@ -374,7 +403,8 @@ rule gene_abund_bwaindex:
         in_dir="{input_dir}/".format(input_dir=reference_dir),
     output: 
         fasta_genomes_merge="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.fna", 
-        bwaindex="{wd}/DB/{post_analysis_dir}/BWA_index/{post_analysis_out}.pac"
+        bwaindex="{wd}/DB/{post_analysis_dir}/BWA_index/{post_analysis_out}.pac",
+        genomes_definition= "{wd}/DB/{post_analysis_dir}/genome.def"
     params:
         tmp_bwaindex=lambda wildcards: "{local_dir}/{post_analysis_out}_bwaindex/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
         indexprefix="{post_analysis_out}",
@@ -411,6 +441,8 @@ rule gene_abund_bwaindex:
             do cat {params.tmp_bwaindex}fasta/${{g}}.fna >> {params.tmp_bwaindex}{params.indexprefix}.fna
         done
         bwa-mem2 index {params.tmp_bwaindex}{params.indexprefix}.fna -p {params.tmp_bwaindex}BWA_index/{params.indexprefix}
+        cd {wd}/DB/{post_analysis_dir}/fasta
+        grep '>' * | tr ':>' '\t' >> {output.genomes_definition}
         rsync {params.tmp_bwaindex}BWA_index/* {wildcards.wd}/DB/{post_analysis_dir}/BWA_index/
         rsync {params.tmp_bwaindex}fasta/* {wildcards.wd}/DB/{post_analysis_dir}/fasta/
         rsync {params.tmp_bwaindex}{params.indexprefix}.fna {output.fasta_genomes_merge}
@@ -421,6 +453,7 @@ rule gene_abund_bwa_raw:
         bwaindex="{wd}/DB/{post_analysis_dir}/BWA_index/{post_analysis_out}.pac".format(wd = working_dir, post_analysis_dir = post_analysis_dir, post_analysis_out = post_analysis_out), 
         hq_reads_fw=lambda wildcards: '{wd}/{omics}/{hq_dir}/{sample}/{sample}.1.fq.gz'.format(wd = working_dir,omics=omics, hq_dir=hq_dir, sample=wildcards.sample),
         hq_reads_rv=lambda wildcards: '{wd}/{omics}/{hq_dir}/{sample}/{sample}.2.fq.gz'.format(wd = working_dir,omics=omics, hq_dir=hq_dir, sample=wildcards.sample),
+        genomes_definition= "{wd}/DB/{post_analysis_dir}/genome.def"
 
     output:
         filter="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.bam",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
@@ -428,13 +461,16 @@ rule gene_abund_bwa_raw:
         index="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
         bwa_log="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.log",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
         profile_raw="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
-        map_profile="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz"
+        map_profile="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
+        map_mag_profile="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz",
+        map_mag_profile_rel="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz",
     params:
         #extra_params=config["BWAalignm_parameters"],
         tmp_bwa=lambda wildcards: "{local_dir}/{omics}_{sample}_{post_analysis_out}_bwa_raw/".format(local_dir=local_dir, omics=omics, sample=wildcards.sample, post_analysis_out=post_analysis_out),
         length=config["msamtools_filter_length"],
         prefix="{sample}.p{identity}.filtered",
         memory=lambda wildcards, resources: resources.mem - 1,
+        mapped_reads_threashold=config["MIN_mapped_reads"]
     log:
         "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}.p{identity}_bwa.log" #.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity, post_analysis_out=post_analysis_out),
     threads: config["BWA_threads"]
@@ -456,6 +492,11 @@ msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > {par
 --total $total_reads --multi prop --unit abund --nolen
         msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz \
 --total $total_reads --multi all --unit abund --nolen
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.relabund.prop.genome.txt.gz \ 
+--total $total_reads --multi prop --unit rel --genome {input.genomes_definition}
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.genome.txt.gz \
+--total $total_reads --mincount {params.mapped_reads_threashold} --multi prop --unit abund --nolen --genome {input.genomes_definition}
+        
         rsync {params.tmp_bwa}* ${{remote_dir}}
         rm -rf {params.tmp_bwa}) >& {log}"""
 
@@ -653,7 +694,7 @@ rule gene_abund_normalization_TPM:
         """
 
 ###############################################################################################
-# Merge normalized gene abundance or transcript profiles
+# Merge normalized gene abundance or transcript profiles (TPM normalization)
 ###############################################################################################
 rule gene_abund_tpm_merge:
     input:
@@ -738,6 +779,7 @@ rule config_yml_integration:
         config_file="{wd}/data_integration.yaml"
     params: 
         tmp_integration_yaml=lambda wildcards: "{local_dir}{omics}_config_yml_integration/".format(local_dir=local_dir, omics = omics),
+        mapped_reads_threashold=config["MIN_mapped_reads"],
     resources:
         mem=2
     threads: 2
@@ -762,6 +804,7 @@ METADATA: {metadata}
 alignment_identity: {identity}
 abundance_normalization: {normalization}
 map_reference: {map_reference}
+MIN_mapped_reads: {params.mapped_reads_threashold}
 
 MERGE_threads:
 MERGE_memory:

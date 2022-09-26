@@ -121,9 +121,9 @@ gene_rpk_bed_fetchMG_percell_norm <- as.data.frame(gene_rpk_bed_fetchMG_percell_
 gene_info_bed_df <- gene_rpk_bed_df[colnames(gene_rpk_bed_df) %in% c('header','coord', gene_info, 'gene_lenght')]
 gene_rpk_bed_df <- merge(gene_info_bed_df, gene_rpk_bed_fetchMG_percell_norm, by='header')
 gene_rpk_bed_df$header <- NULL
-# print(dim(gene_info_bed_df))
-# print(dim(gene_rpk_bed_fetchMG_percell_norm))
-# print(dim(gene_rpk_bed_df))
+print(dim(gene_info_bed_df))
+print(dim(gene_rpk_bed_fetchMG_percell_norm))
+print(dim(gene_rpk_bed_df))
 
 write.table(gene_rpk_bed_df, gene_MG_csv, row.names = F, col.names = T, sep = "\t", quote = F)
 

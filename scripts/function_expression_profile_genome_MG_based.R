@@ -24,6 +24,8 @@ minto_dir <- args[10]
 annot_arg  <- args[11]
 annot_names <- unlist(strsplit(annot_arg, split = "\\,")[[1]])
 print(annot_names)
+read_n <- args[12]
+read_n <- as.numeric(read_n)
 
 dir_DB <- paste0(wd, "/output/data_integration/", map_reference)
 input_file <- paste0(dir_DB, "/",omics,".genes_abundances.p", identity,".bed")
@@ -42,24 +44,66 @@ library(PFAM.db)
 setDTthreads(threads = as.numeric(threads_n))
 set.seed(1234)
 ##########################  ** Load functions **  ########################## 
-plot_PCoA <- function(distance_lab, data_phyloseq, color, label){ #out_name,title_name,
-  label2 <- noquote(label)
-  #### PCoA
-  ord<- ordinate(data_phyloseq, method = "PCoA", distance = distance_lab)
-  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape=NULL, label=label) #type = type,
-  PcoA_Sample_site_abundance <- PcoA_Sample_site_abundance +
-    ggtitle(title_name, distance_lab)  +
-    geom_point(size = 2.5) +
-    theme_bw() +
-    theme(legend.position = "top")
-  PcoA_Sample_site_abundance$layers[[1]] <- NULL
-  PcoA_Sample_site_abundance$layers[[2]] <- NULL
-  PcoA_Sample_site_abundance$layers[[3]] <- NULL
-  PcoA_Sample_site_abundance_2<- PcoA_Sample_site_abundance +
-    geom_text_repel(aes(label = sample_alias), size = 3.0, segment.alpha = 0.5, max.overlaps = getOption("ggrepel.max.overlaps", default = 20)) +
-    geom_point(size = 2, shape = 16)
-  PcoA_Sample_site_abundance_2$layers[[1]] <- NULL
-  return(PcoA_Sample_site_abundance_2)
+# plot_PCoA <- function(distance_lab, data_phyloseq, color, label){ #out_name,title_name,
+#   label2 <- noquote(label)
+#   #### PCoA
+#   ord<- ordinate(data_phyloseq, method = "PCoA", distance = distance_lab)
+#   PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape=NULL, label=label) #type = type,
+#   PcoA_Sample_site_abundance <- PcoA_Sample_site_abundance +
+#     ggtitle(title_name, distance_lab)  +
+#     geom_point(size = 2.5) +
+#     theme_bw() +
+#     theme(legend.position = "top")
+#   PcoA_Sample_site_abundance$layers[[1]] <- NULL
+#   PcoA_Sample_site_abundance$layers[[2]] <- NULL
+#   PcoA_Sample_site_abundance$layers[[3]] <- NULL
+#   PcoA_Sample_site_abundance_2<- PcoA_Sample_site_abundance +
+#     geom_text_repel(aes(label = sample_alias), size = 3.0, segment.alpha = 0.5, max.overlaps = getOption("ggrepel.max.overlaps", default = 20)) +
+#     geom_point(size = 2, shape = 16)
+#   PcoA_Sample_site_abundance_2$layers[[1]] <- NULL
+#   return(PcoA_Sample_site_abundance_2)
+# }
+
+plot_PCA <- function(data_phyloseq, color, label){ 
+  ##### metadata:
+  sample_data_df <- data.frame(sample_data(data_phyloseq), stringsAsFactors = F)
+  ### Counts
+  otu_table_df <-  as.data.frame(unclass(otu_table(data_phyloseq)), stringsAsFactors = F)
+  ### Counts - Log transformed
+  otu_table_df_rowsum_0 = c(which(rowSums(otu_table_df)==0))
+  otu_table_df_rowsum_0_list <- rownames(otu_table_df[otu_table_df_rowsum_0,])
+  otu_table_df_rowsum_not_0 <- otu_table_df[! rownames(otu_table_df) %in% otu_table_df_rowsum_0_list,]
+  otu_table_df_log <- log(otu_table_df_rowsum_not_0)
+  otu_table_df_log$ID <- rownames(otu_table_df_log)
+  
+  ##### Replace infinite values by log2(min value * 1e-2) for the PCA
+  replace_val <- log((min(otu_table_df[otu_table_df >0 & !is.na(otu_table_df)]))*1e-2)
+  otu_table_df_log_noinf2 <- otu_table_df_log %>% dplyr::mutate_all(function(x) ifelse(is.infinite(x), replace_val, x))
+  rownames(otu_table_df_log_noinf2) <- otu_table_df_log_noinf2$ID
+  otu_table_df_log_noinf2$ID <- NULL
+  
+  min(otu_table_df_log_noinf2[!is.na(otu_table_df_log_noinf2)])
+  
+  #Plotting scores of PC1 and PC2 with log transformation
+  gene_expression_pca <- prcomp(t(otu_table_df_log_noinf2), center = T, sca=T)
+  
+  # ***************** ggplot way - w coloring *****************
+  #library(ggplot2)
+  dtp <- data.frame('sample_alias' = sample_data_df$sample_alias, 
+                    'condition' = sample_data_df$condition, 
+                    gene_expression_pca$x[,1:2]) # the first two componets are selected (NB: you can also select 3 for 3D plottings or 3+)
+  df_out <- as.data.frame(gene_expression_pca$x)
+  percentage <- round(gene_expression_pca$sdev / sum(gene_expression_pca$sdev) * 100, 2)
+  percentage <- paste0( colnames(df_out), " (", paste0(as.character(percentage), "%", ")"))
+  
+  PCA_Sample_site_abundance <- (ggplot(data = dtp, aes(x = PC1, y = PC2, color = condition)) +
+                                  geom_text_repel(aes(label = sample_alias),nudge_x = 0.04, size = 3.5, segment.alpha = 0.5) +
+                                  geom_point(size = 2, shape = 16)+
+                                  xlab(percentage[1]) + ylab(percentage[2]) +
+                                  #labs(title = title) +
+                                  theme_bw()+
+                                  theme(plot.title = element_text(size=10), legend.position="bottom"))#+ stat_ellipse(type = "norm", linetype = 2))
+  return(PCA_Sample_site_abundance)
 }
 
 # # *******************************************************************************************
@@ -157,7 +201,7 @@ if (omics == 'metaG_metaT'){
   profiles_annot_norm_df_sub <- as.data.frame(profiles_annot_norm_df_sub %>%
                                                 dplyr::select(coord, ID_gene, name, everything()))
   
-  profiles_annot_norm_df_sub <- profiles_annot_norm_df_sub[!colnames(profiles_annot_norm_df_sub) %in% c("KEGG_ko", "kofam_KO")]
+  #profiles_annot_norm_df_sub <- profiles_annot_norm_df_sub[!colnames(profiles_annot_norm_df_sub) %in% c("KEGG_ko", "kofam_KO")]
   profiles_annot_norm_df_sub <- profiles_annot_norm_df_sub[profiles_annot_norm_df_sub$coord %in% metaG_norm_profile_rowsum_not_0$coord,]
   mappings_ncol <- ncol(profiles_annot_norm_df_sub)
   for(db in colnames(profiles_annot_norm_df_sub)[4:mappings_ncol]){#change it deppending on the number of selectedMappings columns
@@ -304,6 +348,7 @@ if (omics == 'metaG_metaT'){
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
+      annot_df$Description <- gsub(",", ";", annot_df$Description)
       
       #### metaG ####
       metaG_norm_profile_rowsum_not_0_annot <- merge(keyMap_u, metaG_norm_profile_rowsum_not_0, by='coord', all=T)
@@ -435,9 +480,9 @@ if (omics == 'metaG_metaT'){
       # Delete data
       rm(metaG_function_expression_phyloseq, metaT_function_expression_phyloseq, function_expression_phyloseq)
       
-      print('#################################### PCoA  ####################################')#####
-      distance_lab='bray'
-      # PCoA - metaG ####
+      print('#################################### PCA  ####################################')#####
+      #distance_lab='bray'
+      # PCA - metaG ####
       ## Prepare data - replace NA values by 0
       metaG_function_expression_noinf <- as.data.frame(metaG_funct_profile_rowsum_not_0_annot_dplyr %>%
                                                          tibble::rownames_to_column('rownames') %>%
@@ -450,18 +495,33 @@ if (omics == 'metaG_metaT'){
       
       metaG_function_expression_noinf_plot <- phyloseq(otu_table(as.matrix(metaG_function_expression_noinf), taxa_are_rows = T), tax_table(as.matrix(metaG_annot_desc)), samp)
       
-      title_name <- paste0('PCoA - function abundance - ', db_name)
-      out_name <- paste0(visual_dir, 'FA.', db_name ,'.PCoA-',distance_lab,'.pdf')
-      plot_PCoA_out <- plot_PCoA(distance_lab, metaG_function_expression_noinf_plot, "condition", "sample_alias")
+      # title_name <- paste0('PCoA - function abundance - ', db_name)
+      # out_name <- paste0(visual_dir, 'FA.', db_name ,'.PCoA-',distance_lab,'.pdf')
+      # plot_PCoA_out <- plot_PCoA(distance_lab, metaG_function_expression_noinf_plot, "condition", "sample_alias")
+      # pdf(out_name,width=8,height=8,paper="special" )
+      # print(plot_PCoA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
+      #         coord_fixed() +theme(legend.position="bottom")+ggtitle(title_name, 'Bray Curtis'))
+      # print(plot_PCoA_out  + 
+      #         facet_wrap(.~condition)+
+      #         scale_color_manual(values=manual_plot_colors, name='Condition') +
+      #         coord_fixed() +
+      #         theme(legend.position="bottom")+
+      #         ggtitle(title_name, 'Bray Curtis'))
+      # dev.off()
+      
+      title_name <- paste0('PCA - function abundance - ', db_name)
+      out_name <- paste0(visual_dir, 'FA.', db_name ,'.PCA.pdf')
+      plot_PCA_out <- plot_PCA(metaG_function_expression_noinf_plot, "condition", "sample_alias")
       pdf(out_name,width=8,height=8,paper="special" )
-      print(plot_PCoA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
-              coord_fixed() +theme(legend.position="bottom")+ggtitle(title_name, 'Bray Curtis'))
-      print(plot_PCoA_out  + 
+      print(plot_PCA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
+              #coord_fixed() +
+              theme(legend.position="bottom")+ggtitle(title_name))
+      print(plot_PCA_out  + 
               facet_wrap(.~condition)+
               scale_color_manual(values=manual_plot_colors, name='Condition') +
-              coord_fixed() +
+              #coord_fixed() +
               theme(legend.position="bottom")+
-              ggtitle(title_name, 'Bray Curtis'))
+              ggtitle(title_name))
       dev.off()
       
       # Delete data
@@ -480,18 +540,33 @@ if (omics == 'metaG_metaT'){
       
       metaT_function_expression_noinf_plot <- phyloseq(otu_table(as.matrix(metaT_function_expression_noinf), taxa_are_rows = T), tax_table(as.matrix(metaT_annot_desc)), samp)
       
-      title_name <- paste0('PCoA - function transcript - ', db_name)
-      out_name <- paste0(visual_dir, 'FT.', db_name ,'.PCoA-',distance_lab,'.pdf')
-      plot_PCoA_out <- plot_PCoA(distance_lab, metaT_function_expression_noinf_plot, "condition", "sample_alias")
+      # title_name <- paste0('PCoA - function transcript - ', db_name)
+      # out_name <- paste0(visual_dir, 'FT.', db_name ,'.PCoA-',distance_lab,'.pdf')
+      # plot_PCoA_out <- plot_PCoA(distance_lab, metaT_function_expression_noinf_plot, "condition", "sample_alias")
+      # pdf(out_name,width=8,height=8,paper="special" )
+      # print(plot_PCoA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
+      #         coord_fixed() +theme(legend.position="bottom")+ggtitle(title_name, 'Bray Curtis'))
+      # print(plot_PCoA_out  + 
+      #         facet_wrap(.~condition)+
+      #         scale_color_manual(values=manual_plot_colors, name='Condition') +
+      #         coord_fixed() +
+      #         theme(legend.position="bottom")+
+      #         ggtitle(title_name, 'Bray Curtis'))
+      # dev.off()
+      
+      title_name <- paste0('PCA - function transcript - ', db_name)
+      out_name <- paste0(visual_dir, 'FT.', db_name ,'.PCA.pdf')
+      plot_PCA_out <- plot_PCA(metaT_function_expression_noinf_plot, "condition", "sample_alias")
       pdf(out_name,width=8,height=8,paper="special" )
-      print(plot_PCoA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
-              coord_fixed() +theme(legend.position="bottom")+ggtitle(title_name, 'Bray Curtis'))
-      print(plot_PCoA_out  + 
+      print(plot_PCA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
+              #coord_fixed() +
+              theme(legend.position="bottom")+ggtitle(title_name))
+      print(plot_PCA_out  + 
               facet_wrap(.~condition)+
               scale_color_manual(values=manual_plot_colors, name='Condition') +
-              coord_fixed() +
+              #coord_fixed() +
               theme(legend.position="bottom")+
-              ggtitle(title_name, 'Bray Curtis'))
+              ggtitle(title_name))
       dev.off()
       
       # Delete data
@@ -509,18 +584,33 @@ if (omics == 'metaG_metaT'){
                                                    tibble::column_to_rownames('rownames'))
       
       function_expression_noinf_plot <- phyloseq(otu_table(as.matrix(function_expression_noinf), taxa_are_rows = T), tax_table(as.matrix(FE_annot_desc)), samp)
-      title_name <- paste0('PCoA - function expression - ', db_name)
-      out_name <- paste0(visual_dir, 'FE.', db_name ,'.PCoA-',distance_lab,'.pdf')
-      plot_PCoA_out <- plot_PCoA(distance_lab, function_expression_noinf_plot, "condition", "sample_alias")
+      # title_name <- paste0('PCoA - function expression - ', db_name)
+      # out_name <- paste0(visual_dir, 'FE.', db_name ,'.PCoA-',distance_lab,'.pdf')
+      # plot_PCoA_out <- plot_PCoA(distance_lab, function_expression_noinf_plot, "condition", "sample_alias")
+      # pdf(out_name,width=8,height=8,paper="special" )
+      # print(plot_PCoA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
+      #         coord_fixed() +theme(legend.position="bottom")+ggtitle(title_name, 'Bray Curtis'))
+      # print(plot_PCoA_out  + 
+      #         facet_wrap(.~condition)+
+      #         scale_color_manual(values=manual_plot_colors, name='Condition') +
+      #         coord_fixed() +
+      #         theme(legend.position="bottom")+
+      #         ggtitle(title_name, 'Bray Curtis'))
+      # dev.off()
+      
+      title_name <- paste0('PCA - function expression - ', db_name)
+      out_name <- paste0(visual_dir, 'FE.', db_name ,'.PCA.pdf')
+      plot_PCA_out <- plot_PCA(function_expression_noinf_plot, "condition", "sample_alias")
       pdf(out_name,width=8,height=8,paper="special" )
-      print(plot_PCoA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
-              coord_fixed() +theme(legend.position="bottom")+ggtitle(title_name, 'Bray Curtis'))
-      print(plot_PCoA_out  + 
+      print(plot_PCA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
+              #coord_fixed() +
+              theme(legend.position="bottom")+ggtitle(title_name))
+      print(plot_PCA_out  + 
               facet_wrap(.~condition)+
               scale_color_manual(values=manual_plot_colors, name='Condition') +
-              coord_fixed() +
+              #coord_fixed() +
               theme(legend.position="bottom")+
-              ggtitle(title_name, 'Bray Curtis'))
+              ggtitle(title_name))
       dev.off()
       
       # Delete data
@@ -534,9 +624,9 @@ if (omics == 'metaG_metaT'){
       file.create(paste0(phyloseq_dir, 'FA.', db_name ,'.rds'))
       file.create(paste0(phyloseq_dir, 'FT.', db_name ,'.rds'))
       file.create(paste0(phyloseq_dir, 'FE.', db_name ,'.rds'))
-      file.create(paste0(visual_dir, 'FA.', db_name ,'.PCoA-',distance_lab,'.pdf'))
-      file.create(paste0(visual_dir, 'FT.', db_name ,'.PCoA-',distance_lab,'.pdf'))
-      file.create(paste0(visual_dir, 'FE.', db_name ,'.PCoA-',distance_lab,'.pdf'))
+      file.create(paste0(visual_dir, 'FA.', db_name ,'.PCA.pdf'))
+      file.create(paste0(visual_dir, 'FT.', db_name ,'.PCA.pdf'))
+      file.create(paste0(visual_dir, 'FE.', db_name ,'.PCA.pdf'))
       ge_fe_df <- rbind(ge_fe_df, c(db_name, 0, 'Functions'))
     }
   }
@@ -756,6 +846,7 @@ if (omics == 'metaG_metaT'){
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
+      annot_df$Description <- gsub(",", ";", annot_df$Description)
       
       #### omics ####
       omics_norm_profile_rowsum_not_0_annot <- merge(keyMap_u, omics_norm_profile_rowsum_not_0, by='coord', all=T)
@@ -798,9 +889,9 @@ if (omics == 'metaG_metaT'){
       # Delete data
       rm(omics_function_expression_phyloseq)
       
-      print('#################################### PCoA  ####################################')#####
-      distance_lab='bray'
-      # PCoA - metaG ####
+      print('#################################### PCA  ####################################')#####
+      #distance_lab='bray'
+      # PCA - omics ####
       ## Prepare data - replace NA values by 0
       omics_function_expression_noinf <- as.data.frame(omics_norm_profile_rowsum_not_0_annot_dplyr %>%
                                                          tibble::rownames_to_column('rownames') %>%
@@ -814,19 +905,34 @@ if (omics == 'metaG_metaT'){
       omics_function_expression_noinf_plot <- phyloseq(otu_table(as.matrix(omics_function_expression_noinf), taxa_are_rows = T), 
                                                        tax_table(as.matrix(omics_annot_desc)), samp)
       
-      title_name <- paste0('PCoA - ', omics_label_plot, ' - ', db_name)
-      out_name <- paste0(visual_dir, omics_label, '.', db_name ,'.PCoA-',distance_lab,'.pdf')
-      plot_PCoA_out <- plot_PCoA(distance_lab, omics_function_expression_noinf_plot, "condition", "sample_alias")
+      # title_name <- paste0('PCoA - ', omics_label_plot, ' - ', db_name)
+      # out_name <- paste0(visual_dir, omics_label, '.', db_name ,'.PCoA-',distance_lab,'.pdf')
+      # plot_PCoA_out <- plot_PCoA(distance_lab, omics_function_expression_noinf_plot, "condition", "sample_alias")
+      # pdf(out_name,width=8,height=8,paper="special" )
+      # print(plot_PCoA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
+      #         #coord_fixed() +
+      #         theme(legend.position="bottom")+ggtitle(title_name, 'Bray Curtis'))
+      # print(plot_PCoA_out  + 
+      #         facet_wrap(.~condition)+
+      #         scale_color_manual(values=manual_plot_colors, name='Condition') +
+      #         #coord_fixed() +
+      #         theme(legend.position="bottom")+
+      #         ggtitle(title_name, 'Bray Curtis'))
+      # dev.off()
+      
+      title_name <- paste0('PCA - ', omics_label_plot, ' - ', db_name)
+      out_name <- paste0(visual_dir, omics_label, '.', db_name ,'.PCA.pdf')
+      plot_PCA_out <- plot_PCA(omics_function_expression_noinf_plot, "condition", "sample_alias")
       pdf(out_name,width=8,height=8,paper="special" )
-      print(plot_PCoA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
+      print(plot_PCA_out  + scale_color_manual(values=manual_plot_colors, name='Condition') +
               #coord_fixed() +
-              theme(legend.position="bottom")+ggtitle(title_name, 'Bray Curtis'))
-      print(plot_PCoA_out  + 
+              theme(legend.position="bottom")+ggtitle(title_name))
+      print(plot_PCA_out  + 
               facet_wrap(.~condition)+
               scale_color_manual(values=manual_plot_colors, name='Condition') +
               #coord_fixed() +
               theme(legend.position="bottom")+
-              ggtitle(title_name, 'Bray Curtis'))
+              ggtitle(title_name))
       dev.off()
       
       # Delete data
@@ -840,9 +946,9 @@ if (omics == 'metaG_metaT'){
       file.create(paste0(phyloseq_dir, 'FA.', db_name ,'.rds'))
       file.create(paste0(phyloseq_dir, 'FT.', db_name ,'.rds'))
       file.create(paste0(phyloseq_dir, 'FE.', db_name ,'.rds'))
-      file.create(paste0(visual_dir, 'FA.', db_name ,'.PCoA-',distance_lab,'.pdf'))
-      file.create(paste0(visual_dir, 'FT.', db_name ,'.PCoA-',distance_lab,'.pdf'))
-      file.create(paste0(visual_dir, 'FE.', db_name ,'.PCoA-',distance_lab,'.pdf'))
+      file.create(paste0(visual_dir, 'FA.', db_name ,'.PCA.pdf'))
+      file.create(paste0(visual_dir, 'FT.', db_name ,'.PCA.pdf'))
+      file.create(paste0(visual_dir, 'FE.', db_name ,'.PCA.pdf'))
       ge_fe_df <- rbind(ge_fe_df, c(db_name, 0, 'Functions'))
     }
   }

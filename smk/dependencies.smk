@@ -10,6 +10,7 @@ Authors: Carmen Saenz
 #import sys
 import os.path
 from os import path
+import glob
 
 #args = sys.argv
 #print(args)
@@ -132,7 +133,7 @@ def dbCAN_db_out():
     return(result)
 
 def metaphlan_db_out():
-    result=expand("{minto_dir}/data/metaphlan/mpa_v30_CHOCOPhlAn_201901.fna.bz2",
+    result=expand("{minto_dir}/logs/metaphlan_download_db_checkpoint.log",
         minto_dir=minto_dir)
     return(result)
 
@@ -154,12 +155,16 @@ def conda_env_out():
 # Define all the outputs needed by target 'all'
 rule all:
     input: 
-        rRNA_db_out(),
+        metaphlan_db_out(),
         eggnog_db_out(),
         Kofam_db_out(),
-        dbCAN_db_out(),
-        metaphlan_db_out(),
-        conda_env_out()
+
+        # rRNA_db_out(),
+        # eggnog_db_out(),
+        # Kofam_db_out(),
+        # dbCAN_db_out(),
+        # metaphlan_db_out(),
+        # conda_env_out()
 
 ###############################################################################################
 # Download and index rRNA database - SortMeRNA
@@ -213,7 +218,7 @@ rule rRNA_db_index:
     resources: mem=index_memory
     threads: index_threads
     log:
-       "{minto_dir}/logs/rRNA_db_dindex.log"#.format(minto_dir = config["minto_dir"]),
+       "{minto_dir}/logs/rRNA_db_index.log"#.format(minto_dir = config["minto_dir"]),
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell: 
@@ -371,7 +376,7 @@ rule dbCAN_db:
 
 rule metaphlan_db:
     output: 
-        metaphlan_db="{minto_dir}/data/metaphlan/mpa_v30_CHOCOPhlAn_201901.fna.bz2"
+        metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log", #glob.glob("{minto_dir}/data/metaphlan/*.fna")#"{minto_dir}/data/metaphlan/mpa_v30_CHOCOPhlAn_201901.fna"
     resources: 
         mem=download_memory
     threads: 
@@ -385,9 +390,13 @@ rule metaphlan_db:
         mkdir -p {minto_dir}/data/metaphlan/
         time (metaphlan --version
         metaphlan --install --bowtie2db {minto_dir}/data/metaphlan/
-        echo 'MetaPhlAn database downloaded') &> {log}
+        echo 'MetaPhlAn database downloaded'
+        if [ $? -eq 0 ]; then
+        echo OK > {minto_dir}/logs/metaphlan_download_db_checkpoint.log
+        else
+        echo FAIL
+        fi) &> {log}
         """
-
 
 ###############################################################################################
 # Generate conda environments

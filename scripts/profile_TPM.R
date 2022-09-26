@@ -7,7 +7,6 @@ if("data.table" %in% rownames(installed.packages()) == FALSE) {install.packages(
 library(data.table)
 
 gene_abund_bed <- args[1]
-#"/emc/cbmr/users/rzv923/ibdmdb/paper/ART_illumina_v1/metaG/6-mapping-profiles/BWA_reads-MAGs_genes/genes_abundances.p95.bed"
 gene_tpm_csv <- args[2]
 omics <- args[3]
 read_n <- args[4]
@@ -49,10 +48,9 @@ names(rpk_sum) <- 'total_sum'
 rm(gene_rpk_samples_u_df)
 
 ## Filter number of mapped reads bellow the threashold
-gene_abund_samples_u_df_filt <- gene_abund_samples_u_df[,!colnames(gene_abund_samples_u_df) 
-                                                        %in% gene_info][gene_abund_samples_u_df[,!colnames(gene_abund_samples_u_df)
-                                                                                                %in% gene_info] <=read_n] <- 0
-gene_rpk_samples_u_df <- gene_abund_samples_u_df_filt[1:ncol(gene_abund_samples_u_df_filt)-1]/gene_abund_samples_u_df_filt$gene_lenght
+gene_abund_samples_u_df[gene_abund_samples_u_df[,!colnames(gene_abund_samples_u_df) %in% gene_info] <=read_n] <- 0
+
+gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_lenght
 ### Traslocate df to merge it later with total_reads_df
 gene_rpk_samples_u_t_df <- as.data.frame(t(gene_rpk_samples_u_df))
 
