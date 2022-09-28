@@ -155,16 +155,12 @@ def conda_env_out():
 # Define all the outputs needed by target 'all'
 rule all:
     input: 
-        metaphlan_db_out(),
+        rRNA_db_out(),
         eggnog_db_out(),
         Kofam_db_out(),
-
-        # rRNA_db_out(),
-        # eggnog_db_out(),
-        # Kofam_db_out(),
-        # dbCAN_db_out(),
-        # metaphlan_db_out(),
-        # conda_env_out()
+        dbCAN_db_out(),
+        metaphlan_db_out(),
+        conda_env_out()
 
 ###############################################################################################
 # Download and index rRNA database - SortMeRNA
