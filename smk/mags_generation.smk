@@ -493,8 +493,6 @@ rule run_coverm:
 	shell:
 		""" time (coverm cluster --genome-fasta-directory {params.HQ_folder} -x fna --ani 99  --output-cluster-definition {output.coverm_output} --threads {threads} --precluster-method finch) &> {log} """
 
-#################### TESTED TILL HERE #############
-
 ## Run retrieving scored 
 rule calculate_score_genomes:
 	input:
