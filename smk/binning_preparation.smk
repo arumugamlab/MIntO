@@ -529,6 +529,6 @@ TAXONOMY_CPUS:
 TAXONOMY_memory: 
 DATABASE_FOLDER:" > {params.tmp_binning_yaml}mags_generation.yaml
 
-rsync {params.tmp_binning_yaml}mag_generation.yaml {output.config_file}) >& {log}
+rsync {params.tmp_binning_yaml}mags_generation.yaml {output.config_file}) >& {log}
 rm -rf {params.tmp_binning_yaml}
         """
