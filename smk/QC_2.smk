@@ -436,7 +436,7 @@ msamtools filter -S -l 30 - | cut -f1 > {params.tmp_bwa}{wildcards.sample}.host.
 ###############################################################################################
 rule taxonomic_profile_metaphlan_download_db:
     output: 
-        metaphlan_db="{minto_dir}/data/metaphlan/mpa_v30_CHOCOPhlAn_201901.fna.bz2".format(minto_dir=minto_dir)
+        metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir)
     resources:
         mem=TAXA_memory #lambda wildcards, input: len(input.host_free_fw) + 2
     threads:
@@ -448,16 +448,21 @@ rule taxonomic_profile_metaphlan_download_db:
     shell:
         """ 
         time (metaphlan --version
-        metaphlan --install --bowtie2db {minto_dir}/data/metaphlan/) >& {log}
+        metaphlan --install --bowtie2db {minto_dir}/data/metaphlan/
+        echo 'MetaPhlAn database downloaded'
+        if [ $? -eq 0 ]; then
+        echo OK > {minto_dir}/logs/metaphlan_download_db_checkpoint.log
+        else
+        echo FAIL
+        fi) >& {log}
         """
 
 rule taxonomic_profile_metaphlan:
     input:
-        #metaphlan_db="{minto_dir}/data/metaphlan/mpa_v30_CHOCOPhlAn_201901.fna.bz2".format(minto_dir=minto_dir), 
+        metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir), 
         host_free_fw= lambda wildcards: "{wd}/{omics}/4-hostfree/{sample}/{sample}.1.fq.gz",
         host_free_rv= lambda wildcards: "{wd}/{omics}/4-hostfree/{sample}/{sample}.2.fq.gz"
     output:
-        metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log", 
         ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan",
         ra_stats="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan.read_stats"
     params:
@@ -473,14 +478,7 @@ rule taxonomic_profile_metaphlan:
     shell:
         """ mkdir -p {params.tmp_taxa_prof}
         remote_dir=$(dirname {output.ra})
-        time (metaphlan --install --bowtie2db {minto_dir}/data/metaphlan/
-        echo 'MetaPhlAn database downloaded'
-        if [ $? -eq 0 ]; then
-        echo OK > {minto_dir}/logs/metaphlan_download_db_checkpoint.log
-        else
-        echo FAIL
-        fi
-        metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.host_free_fw},{input.host_free_rv} --input_type fastq --bowtie2out {params.tmp_taxa_prof}{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}{wildcards.sample}.metaphlan -t rel_ab_w_read_stats
+        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.host_free_fw},{input.host_free_rv} --input_type fastq --bowtie2out {params.tmp_taxa_prof}{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}{wildcards.sample}.metaphlan -t rel_ab_w_read_stats
         metaphlan {params.tmp_taxa_prof}{wildcards.sample}.bowtie2.bz2 --input_type bowtie2out --nproc {threads} -o {params.tmp_taxa_prof}{wildcards.sample}.metaphlan.read_stats -t rel_ab_w_read_stats
         rsync {params.tmp_taxa_prof}* $remote_dir) >& {log}
         rm -rf {params.tmp_taxa_prof}
