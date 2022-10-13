@@ -309,6 +309,9 @@ rule take_all_genomes_for_each_run:
 	threads: 
 		8 # Decide number of threads
 	
+	conda:
+		config["minto_dir"]+"/envs/taxa_env.yml"
+		
 	shell:
 		""" time (python {script_dir}/take_all_genomes.py --vamb_cluster_tsv {input.vamb_cluster} --contigs_file {input.contigs_file} --assembly_method_name {wildcards.binner} \
 --min_fasta_length {params.min_fasta_length} --output_folder {params.tmp_folder} --discarded_genomes_info {output.discarded_genomes}) &> {log} """
@@ -516,8 +519,8 @@ rule calculate_score_genomes:
 	threads: 
 		8 # Decide number of threads
 
-	#conda:
-	#	config["minto_dir"]+"/envs/phylophlan3.yaml"
+	conda:
+		config["minto_dir"]+"/envs/taxa_env.yml"
 
 	shell:
 		""" time (python {script_dir}calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}) &> {log} """
