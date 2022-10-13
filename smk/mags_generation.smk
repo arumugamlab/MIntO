@@ -274,7 +274,7 @@ rule run_vamb:
 	
 	#singularity: "docker://quay.io/biocontainers/vamb:3.0.2--py36hc5360cc_1"
 	conda:
-		#config["minto_dir"]+"/envs/vamb.yaml" 
+		config["minto_dir"]+"/envs/vamb.yaml" 
 	
 	shell:
 		""" time (sh {script_dir}run_vamb.sh {params.gpu} {wildcards.binner} {input.contigs_file} {input.depth_file} {threads} {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}
