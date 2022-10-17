@@ -224,13 +224,13 @@ if map_reference == 'MAG':
         expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz", 
                     wd = working_dir,
                     omics = omics,
-                    post_analysis_out = "reference_genes",
+                    post_analysis_out = "MAGs_genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity),\
         expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz", 
                     wd = working_dir,
                     omics = omics,
-                    post_analysis_out = "reference_genes",
+                    post_analysis_out = "MAGs_genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity)
         return(result)
@@ -399,17 +399,17 @@ rule all:
 ###############################################################################################
 rule gene_abund_bwaindex:
     input: 
-        genomes_list="{wd}/DB/{post_analysis_dir}/genomes_list.txt",
+        genomes_list="{wd}/DB/{post_analysis_dir}/genomes_list.txt".format(wd = working_dir, post_analysis_dir = post_analysis_dir),
         in_dir="{input_dir}/".format(input_dir=reference_dir),
     output: 
-        fasta_genomes_merge="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.fna", 
-        bwaindex="{wd}/DB/{post_analysis_dir}/BWA_index/{post_analysis_out}.pac",
-        genomes_definition= "{wd}/DB/{post_analysis_dir}/genome.def"
+        fasta_genomes_merge="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.fna".format(wd = working_dir, post_analysis_dir = post_analysis_dir, post_analysis_out=post_analysis_out), 
+        bwaindex="{wd}/DB/{post_analysis_dir}/BWA_index/{post_analysis_out}.pac".format(wd = working_dir, post_analysis_dir = post_analysis_dir, post_analysis_out=post_analysis_out),
+        genomes_definition= "{wd}/DB/{post_analysis_dir}/genome.def".format(wd = working_dir, post_analysis_dir = post_analysis_dir), 
     params:
         tmp_bwaindex=lambda wildcards: "{local_dir}/{post_analysis_out}_bwaindex/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
-        indexprefix="{post_analysis_out}",
+        indexprefix="{post_analysis_out}".format(post_analysis_out=post_analysis_out),
     log:
-        "{{wd}}/logs/{omics}/{{post_analysis_dir}}/{{post_analysis_out}}_bwaindex.log".format(omics = omics)
+        "{wd}/logs/{omics}/{post_analysis_dir}/{post_analysis_out}_bwaindex.log".format(wd = working_dir, omics = omics, post_analysis_dir = post_analysis_dir, post_analysis_out=post_analysis_out) #"{{wd}}/logs/{omics}/{{post_analysis_dir}}/{{post_analysis_out}}_bwaindex.log".format(omics = omics)
     threads: config["BWAindex_threads"]
     resources:
         mem=config["BWAindex_memory"]
@@ -417,9 +417,11 @@ rule gene_abund_bwaindex:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"]
     shell:
         """
-        mkdir -p {wildcards.wd}/DB/{post_analysis_dir}/fasta/
+        fasta_dir=$(dirname {input.genomes_list})
+        rm -rf {params.tmp_bwaindex}
+        mkdir -p ${{fasta_dir}}/fasta/
         mkdir -p {params.tmp_bwaindex}BWA_index/; mkdir -p {params.tmp_bwaindex}fasta
-        time (cd {reference_dir}
+        time (cd {input.in_dir}
         if [ {map_reference} == 'MAG' ]
             then echo {map_reference}
             for file in */*.fna
@@ -441,11 +443,11 @@ rule gene_abund_bwaindex:
             do cat {params.tmp_bwaindex}fasta/${{g}}.fna >> {params.tmp_bwaindex}{params.indexprefix}.fna
         done
         bwa-mem2 index {params.tmp_bwaindex}{params.indexprefix}.fna -p {params.tmp_bwaindex}BWA_index/{params.indexprefix}
-        cd {wd}/DB/{post_analysis_dir}/fasta
-        grep '>' * | tr ':>' '\t' >> {output.genomes_definition}
-        rsync {params.tmp_bwaindex}BWA_index/* {wildcards.wd}/DB/{post_analysis_dir}/BWA_index/
-        rsync {params.tmp_bwaindex}fasta/* {wildcards.wd}/DB/{post_analysis_dir}/fasta/
+        rsync {params.tmp_bwaindex}BWA_index/* ${{fasta_dir}}/BWA_index/
+        rsync {params.tmp_bwaindex}fasta/* ${{fasta_dir}}/fasta/
         rsync {params.tmp_bwaindex}{params.indexprefix}.fna {output.fasta_genomes_merge}
+        cd ${{fasta_dir}}/fasta
+        grep '>' * | tr ':>' '\t' >> {output.genomes_definition}
         rm -rf {params.tmp_bwaindex}) &> {log} """
 
 rule gene_abund_bwa_raw:
@@ -453,7 +455,7 @@ rule gene_abund_bwa_raw:
         bwaindex="{wd}/DB/{post_analysis_dir}/BWA_index/{post_analysis_out}.pac".format(wd = working_dir, post_analysis_dir = post_analysis_dir, post_analysis_out = post_analysis_out), 
         hq_reads_fw=lambda wildcards: '{wd}/{omics}/{hq_dir}/{sample}/{sample}.1.fq.gz'.format(wd = working_dir,omics=omics, hq_dir=hq_dir, sample=wildcards.sample),
         hq_reads_rv=lambda wildcards: '{wd}/{omics}/{hq_dir}/{sample}/{sample}.2.fq.gz'.format(wd = working_dir,omics=omics, hq_dir=hq_dir, sample=wildcards.sample),
-        genomes_definition= "{wd}/DB/{post_analysis_dir}/genome.def"
+        genomes_definition= "{wd}/DB/{post_analysis_dir}/genome.def".format(wd = working_dir, post_analysis_dir = post_analysis_dir), 
 
     output:
         filter="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.bam",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
@@ -479,7 +481,8 @@ rule gene_abund_bwa_raw:
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"] #BWA + samtools
     shell:
-        """mkdir -p {params.tmp_bwa}
+        """ rm -rf {params.tmp_bwa}
+        mkdir -p {params.tmp_bwa}
         bwaindex_dir=$(dirname {input.bwaindex})
         remote_dir=$(dirname {output.filter})
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_dir}}/{post_analysis_out} {input.hq_reads_fw} {input.hq_reads_rv}| \
@@ -488,14 +491,10 @@ msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > {par
         samtools index {params.tmp_bwa}{params.prefix}.sorted.bam {params.tmp_bwa}{params.prefix}.sorted.bam.bai -@ {threads}
         total_reads="$(grep Processed {params.tmp_bwa}{params.prefix}.log | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         echo $total_reads
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.txt.gz \
---total $total_reads --multi prop --unit abund --nolen
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz \
---total $total_reads --multi all --unit abund --nolen
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.relabund.prop.genome.txt.gz \ 
---total $total_reads --multi prop --unit rel --genome {input.genomes_definition}
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.genome.txt.gz \
---total $total_reads --mincount {params.mapped_reads_threashold} --multi prop --unit abund --nolen --genome {input.genomes_definition}
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.txt.gz --total $total_reads --multi prop --unit abund --nolen
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz --total $total_reads --multi all --unit abund --nolen
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label={omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.relabund.prop.genome.txt.gz --multi=proportional --unit=rel --genome {input.genomes_definition}
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.genome.txt.gz --mincount={params.mapped_reads_threashold} --multi=proportional --unit=abund --nolen --genome {input.genomes_definition}
         
         rsync {params.tmp_bwa}* ${{remote_dir}}
         rm -rf {params.tmp_bwa}) >& {log}"""
@@ -522,7 +521,7 @@ rule gene_abund_bwaindex_gene_catalog:
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"]
     shell:
-        """
+        """ rm -rf {params.tmp_bwaindex}
         mkdir -p {working_dir}/DB/{post_analysis_dir}/fasta/
         mkdir -p {params.tmp_bwaindex}
         time (bwa-mem2 index {gene_catalog_db}/{gene_catalog_name} -p {params.tmp_bwaindex}{gene_catalog_name}
@@ -555,7 +554,8 @@ rule gene_abund_bwa_tpm:
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"] #BWA + samtools
     shell:
-        """mkdir -p {params.tmp_bwa}
+        """ rm -rf {params.tmp_bwa}
+        mkdir -p {params.tmp_bwa}
         bwaindex_dir=$(dirname {input.bwaindex})
         remote_dir=$(dirname {output.filter})
         (time (bwa-mem2 mem -a -t {threads} -v 3 {params.bwaindex} {input.hq_reads_fw} {input.hq_reads_rv}| \
@@ -589,7 +589,8 @@ rule gene_abund_compute:
     conda: 
         config["minto_dir"]+"/envs/MIntO_base.yml" #bedtools
     shell:
-        """ mkdir -p {params.tmp_bwa}
+        """ rm -rf {params.tmp_bwa}
+        mkdir -p {params.tmp_bwa}
         time (files='{ilmn_samples}'; echo ${{files}} | tr ' ' '\\t' > {params.tmp_bwa}filename_list
         echo -e 'chr\\tstart\\tstop\\tname\\tscore\\tstrand\\tsource\\tfeature\\tframe\\tinfo' > {params.tmp_bwa}column_names
         cat {params.tmp_bwa}filename_list >> {params.tmp_bwa}column_names; cat {params.tmp_bwa}column_names| tr '\\n' '\\t' > {params.tmp_bwa}column_names2
@@ -624,7 +625,7 @@ rule gene_abund_marker_genes:
     conda:
         config["minto_dir"]+"/envs/taxa_env.yml"
     shell: 
-        """
+        """ rm -rf {params.tmp_MG}
         mkdir -p {params.tmp_MG}/
         remote_dir=$(dirname {output.genomes_marker_genes})
         time (Rscript {script_dir}/fetchMGs_fasta_files.R {threads} ${{remote_dir}}/ {post_analysis_out} {normalization} 
@@ -715,7 +716,8 @@ rule gene_abund_tpm_merge:
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env_yml"] # base env
     shell:
-        """ mkdir -p {params.tmp_tpm_merge}
+        """ rm -rf {params.tmp_tpm_merge}
+        mkdir -p {params.tmp_tpm_merge}
         prefix=$(basename {output.profile_tpm_all})
         time (sh {script_dir}/msamtools_merge_profiles.sh {input.profile_tpm[0]} '{params.profile_tpm_list}' db_genes {params.tmp_tpm_merge} ${{prefix}}
         rsync {params.tmp_tpm_merge}${{prefix}} {output.profile_tpm_all}) &> {log}
@@ -757,7 +759,8 @@ rule gene_abund_profiling_merge:
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
-        """ mkdir -p {params.tmp_prof_merge}
+        """ rm -rf {params.tmp_prof_merge}
+        mkdir -p {params.tmp_prof_merge}
         time (sh {script_dir}/msamtools_merge_profiles.sh {input.map_profile[0]} '{params.map_profile_list}' genome_abund {params.tmp_prof_merge} {params.prefix}.txt
         sh {script_dir}/msamtools_stats.sh '{params.map_profile_list}' {identity} {params.prefix} {params.tmp_prof_merge}
         rsync {params.tmp_prof_merge}{params.prefix}.maprate.txt {output.maprate}
@@ -786,7 +789,7 @@ rule config_yml_integration:
     log: 
         "{wd}/logs/config_yml_integration.log"
     shell: 
-        """
+        """ rm -rf {params.tmp_integration_yaml}
         mkdir -p {params.tmp_integration_yaml}
         time (echo "######################
 # General settings

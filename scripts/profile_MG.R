@@ -46,6 +46,8 @@ gene_abund_bed_coord_df$coord <- paste0(gene_abund_bed_coord_df$chr, '_',gene_ab
 gene_abund_bed_coord_df$coord <- gsub('\\-', '\\_', gene_abund_bed_coord_df$coord)
 
 ### Calculate gene length
+gene_abund_bed_coord_df$start <- as.numeric(gene_abund_bed_coord_df$start)
+gene_abund_bed_coord_df$stop <- as.numeric(gene_abund_bed_coord_df$stop)
 gene_abund_bed_coord_df$gene_lenght <- abs(gene_abund_bed_coord_df$stop- gene_abund_bed_coord_df$start) +1
 ### Subset df by colname
 ### Gene abundances
