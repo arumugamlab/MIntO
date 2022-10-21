@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .gitignore
 data/dbCAN_db/
 data/kofam_db/
@@ -18,3 +19,4 @@ smk/._binning_preparation.smk
 smk/._data_integration.smk
 smk/._dependencies.smk
 tutorial/BWA_index
+>>>>>>> 5b2abe972e78be5d0741d85ccc2dbeb8133ebf07

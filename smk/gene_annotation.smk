@@ -413,7 +413,7 @@ rule predicted_gene_annotation_collate:
         mem=10
     threads: 9
     conda:
-        config["minto_dir"]+"/envs/py36_env.yml" #config["py36_ironmenv"]
+        config["minto_dir"]+"/envs/MIntO_base.yml" #config["py36_ironmenv"]
     shell:
         """
         time (python3 {script_dir}/collate.py {wildcards.wd}/DB/{post_analysis_dir}/annot/ {params.prefix})&> {log}

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <h1 align="center"> MIntO </h1>
 <h1 align="center"> A Modular and Scalable Pipeline for Microbiome Metagenomics and Metatranscriptomics Data Integration </h1>
 
@@ -29,3 +30,5 @@ _Frontiers in Bioinformatics_ (2022). doi: [10.3389/fbinf.2022.846922](https://d
 
 ## Contacts
 Feel free to get in touch with the authors for any question! :) 
+=======
+>>>>>>> 5b2abe972e78be5d0741d85ccc2dbeb8133ebf07
