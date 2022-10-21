@@ -1,0 +1,213 @@
+---
+title: "Clostridium scindens secretome suppresses virulence gene expression of Clostridioides difficile in a bile-acid-independent manner."
+author: "Carmen Saenz"
+output: html_document
+---
+
+REPLACE /emc/cbmr/data/microbiome/processed/SHIME/Cdiff_sterile1/16SrRNA/ IN SCRIPTS
+setwd("/emc/cbmr/users/rzv923/scripts/Cdiff_Qing/Cdiff_toxins_github/")
+
+FIG 1: 16S_profile_plots
+
+# In vitro experiment in continuous culture setup.
+## **************************** CFU count ****************************
+### Figure S3. Quantification of C. difficile colony forming units (CFU).
+#### Complete code /emc/cbmr/users/rzv923/SHIME_Cdiff/scripts/rawdata_analysis.Rmd
+#### Subset data script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/continuous_culture_Cdiff_CFU_count_subset_data.Rmd
+#### input: data/continuous_culture/FigureS3_CFU_continuous_culture.csv
+```{bash}
+Rscript continuous_culture_CFU_count.Rmd
+```
+
+## **************************** Metadata ****************************
+### Subset data script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/continuous_culture-SHIME_Cdiff_sterile1_subset_metadata.Rmd
+### input: data/metadta_continuous_culture.csv
+
+## **************************** 16SrRNA data ****************************
+### Raw data
+#### Location:
+#### /emc/cbmr/users/rzv923/shime/16S_analysis/20190401/F19FTSEUHT0126_MOUphaM: S1-S31
+#### /emc/cbmr/users/rzv923/shime/16S_analysis/20190401/F19FTSEUET0057_MOUqmqM: S32-S36
+#### All data pre-processed: "/emc/cbmr/data/microbiome/processed/SHIME/Cdiff_sterile1/16SrRNA/Clean_Data"
+#### Subset data for paper: "/emc/cbmr/data/microbiome/processed/SHIME/Cdiff_sterile1/16SrRNA/Clean_Data_SUBSET/"
+
+### Pre-process - Dada2 pipeline
+#### Quality check
+```{bash}
+# working_dir <- "/emc/cbmr/data/microbiome/processed/SHIME/Cdiff_sterile1/16SrRNA/"
+# setwd("/emc/cbmr/users/rzv923/scripts/Cdiff_Qing/Cdiff_toxins_github")
+# path_funct <- paste0(working_dir,"Clean_Data_SUBSET/")
+# path2_funct <- paste0(working_dir,"QualityCheck_SUBSET/")
+
+Rscript Dada_QualityCheck.R
+# Check plots: <working_dir>/QualityCheck/Dada_Plots
+```
+
+#### Filter data - Remove only first 10 nt from the beginning of the sequences
+```{bash}
+# working_dir <- "/emc/cbmr/data/microbiome/processed/SHIME/Cdiff_sterile1/16SrRNA/"
+
+Rscript DadaWrapper.R
+
+#  Check plots: <working_dir>/Clean_Data/Dada_Plots
+#  Filtered data: <working_dir>/Clean_Data/Dada_FilteredFastqs
+
+```
+
+#### Assign taxonomy - and check for contaminants
+##### 16SrRNA database
+##### Dada2 tutorial: https://benjjneb.github.io/dada2/tutorial.html => Assign taxonomy
+• The assignTaxonomy function takes as input a set of sequences to be classified and a training set of reference sequences with known taxonomy, 
+and outputs taxonomic assignments with at least minBoot bootstrap confidence.
+• We maintain formatted training fastas for the RDP training set, GreenGenes clustered at 97% identity, and the Silva reference database 
+(https://benjjneb.github.io/dada2/training.html) => Taxonomic reference data
+• The assignTaxonomy and assignSpecies functions require appropriately formatted fasta files describing the set of taxonomically assigned sequences 
+to use as a training dataset. We provide appropriately formatted versions of several popular taxonomic databases, and describe the dada2-specific 
+format for those who wish to use a custom database.
+		‣ SILVA: https://zenodo.org/record/4587955#.YTh5bNMzYsk
+			• silva_nr99_v138.1_wSpecies_train_set.fa.gz
+			• silva_nr99_v138.1_train_set.fa.gz
+			• silva_species_assignment_v138.1.fa.gz
+			# database already available at Silva_DB/
+
+		‣ RDP: https://zenodo.org/record/4310151#.YTh3GtMzYsk
+			• rdp_species_assignment_18.fa.gz
+			• rdp_train_set_18.fa.gz
+			# database already available at Dada_RDP_80/
+```{bash}
+#
+# cp -r /emc/cbmr/data/microbiome/processed/SHIME/Cdiff_sterile1/16SrRNA/Clean_Data_SUBSET/Dada_Data/* /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/Cdiff_toxins_github/
+Rscript Dada_WrapperAssignTaxonomyAddSpecies.R
+```
+
+#### Downstream analysis - Generate plots
+##### Figure 1. C. scindens-mediated C. difficile growth reduction in an in vitro fermentor with two different culture setups. 
+##### B
+##### Figure S2. Taxonomic profiles. 
+##### A & B
+```{bash}
+# Check quality of the reads and number of reads that survived the different dada2 steps
+01_Load_data_16S-QualityCheck.Rmd
+# Filter ASVs by prevalence
+02_Filter_prevalence.Rmd
+# Beta diversity - Figure 1B
+03_16S_PCoA_RA_plots.Rmd
+```
+
+## **************************** metaT data ****************************
+### Raw data
+#### Location:
+#### /emc/cbmr/users/rzv923/shime/RNA-seq/pilot_study_20190417/F19FTSEUET0057-01_BAClkwP/Clean/
+#### /emc/cbmr/users/rzv923/shime/RNA-seq/pilot_study_20190417/F19FTSEUET0057-01_BACoutP/Clean/
+
+### Pre-process - MIntO (https://github.com/arumugamlab/MIntO)
+#### Run MIntO - mode map_reference = reference_genome
+
+#### All data pre-processed: "/emc/cbmr/data/microbiome/processed/SHIME/Cdiff_sterile1/metaT/5-1-sortmerna"
+### Copy data script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/continuous_culture_fetchM-RPK_metaTprofile.Rmd
+##### annotation file: data/continuous_culture/Cdiff_4str_genes-PBGC-SBGC-smORFs.annotations.tsv
+##### fetchM output: data/continuous_culture/Cdiff_continuous_culture.all.marker_genes_scores.table
+##### mapping to reference genomes output: data/continuous_culture/metaT_genes_abundances.p95.bed
+
+### Downstream analysis - Integration 16S rRNA (filtered by prevalence & normalized by gene copy number) & metaT (RPK normalized)
+#### Figure 2. C. scindens-mediated biotransformation of primary BAs and downregulation of C. difficile toxin tcdA expression. 
+#### A & D
+#### # Figure S5. Comparison of gene expression levels from control and treatment conditions by the projection of the first two components of a principal component analysis (PCA)
+#### A
+```{r}
+04_metaT-16S_PCoA_genes_expr_plots.Rmd
+```
+
+## **************************** metaB data ****************************
+### Subset data for paper: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/continuous_culture_targeted_metaB_BAs_subset.R
+### data: data/continuous_culture/TableS4_metaB_target_bile_acids.csv
+#### Figure 2. C. scindens-mediated biotransformation of primary BAs and downregulation of C. difficile toxin tcdA expression. 
+#### C
+```{r}
+05_targeted_metaB_BAs.Rmd
+```
+
+## **************************** Methods ****************************
+### Calculate insert counts script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/continuous_culture-insertcounts.Rmd
+
+
+
+# In vitro experiments in batch culture setup.
+## **************************** qPCR ****************************
+### Figure S4. Quantification of C. difficile total number of cells via qPCR detection.
+#### Complete code /emc/cbmr/users/rzv923/SHIME_Cdiff/scripts/rawdata_analysis.Rmd
+#### Subset data script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/batch_culture_Cdiff_qPCR_subset_data.Rmd
+#### input: data/continuous_culture/FigureS3_CFU_continuous_culture.csv
+```{bash}
+Rscript batch_culture_CFU_count.Rmd
+```
+
+## **************************** Metadata ****************************
+### Subset data script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/batch_culture-BATCH_Cdiff1_subset_metadata.Rmd
+### input: data/batch_culture/metadta_batch_culture.csv
+
+
+## **************************** metaG data ****************************
+### Raw data
+#### Location:
+#### /emc/cbmr/users/rzv923/shime/DNA-seq/F19FTSEUET0024/BACplcR/B13-B40 or /emc/cbmr/data/microbiome/processed/BATCH/Cdiff1/metaG/0-raw/
+
+### Pre-process - MIntO (https://github.com/arumugamlab/MIntO)
+#### Run MIntO - mode map_reference = MAG (recover MAGs)
+#### All data pre-processed: "/emc/cbmr/data/microbiome/processed/BATCH/Cdiff1/metaG/4-hostfree"
+
+#### MetaPhlAn output - taxa profile:
+##### Convert MetaPhlAn output into phyloseq object: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/batch_culture-metaphlan_to_phyloseq.Rmd
+##### phyloseq object: data/batch_culture/metaphlan_phyloseq.rds
+
+##### Figure 1. C. scindens-mediated C. difficile growth reduction in an in vitro fermentor with two different culture setups. 
+##### C
+##### Figure S2. Taxonomic profiles. 
+##### C & D
+```{r}
+# Generate plots
+01_metaG_PCoA_RA_plots.Rmd
+```
+
+## **************************** metaT data ****************************
+### Raw data
+#### Location:
+#### /emc/cbmr/users/rzv923/shime/RNA-seq/pilot_study_20190417/F19FTSEUET0057-01_BAClkwP/Clean/B16-B40
+#### /emc/cbmr/users/rzv923/shime/RNA-seq/pilot_study_20190417/F19FTSEUET0057-01_BACoutP/Clean/B13-B15
+
+### Pre-process - MIntO (https://github.com/arumugamlab/MIntO)
+#### Run MIntO - mode map_reference = MAG (recover MAGs)
+#### All data pre-processed: "/emc/cbmr/data/microbiome/processed/BATCH/Cdiff1/metaT/5-1-sortmerna/"
+
+## **************************** Integration ****************************
+### metaG and metaT integration => output by MIntO
+#### Subset data script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/batch_culture-subset_GE_MIntO.Rmd
+
+### Gene expression
+#### Figure 2. C. scindens-mediated biotransformation of primary BAs and downregulation of C. difficile toxin tcdA expression. 
+#### B & E
+#### # Figure S5. Comparison of gene expression levels from control and treatment conditions by the projection of the first two components of a principal component analysis (PCA)
+#### B
+```{r}
+02_GE_PCoA_genes_expr_plots.Rmd
+```
+
+## **************************** Methods ****************************
+### Calculate insert counts script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/batch_culture-insertcounts.Rmd
+
+
+# In vitro validation
+## Subset data script: /emc/cbmr/users/rzv923/scripts/Cdiff_Qing/validadtion_CsOSM_filter_datasets_paper.Rmd
+
+## Analyse different omics data: proteomics, metabolomics, microscopy images, ...
+#### # Figure 3. Bile acid-independent effect of C. scindens overnight spent medium (CsOSM) in TcdA/TcdB toxin expression and growth of C. difficile. 
+#### A & B
+#### # Figure S6. Proteomics-based quantification of TcdA and TcdB toxin abundance in C. difficile cultured in two different media using culture flasks: (i) Standard nutritional medium feed (SF) with pancreatic/bile juice (PJ) and (ii) Brain heart infusion (BHI) medium. Matching control media without C. difficile cells are also shown.
+#### Figure S7. 
+#### A & B
+#### Figure S8. TEM images of C. difficile mono-culture and C. difficile mono-culture treated with CsOSM. 
+#### B
+```{r}
+01_validadtion_CsOSM.Rmd
+```
+

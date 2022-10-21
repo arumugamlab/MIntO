@@ -1,0 +1,264 @@
+---
+title: "PCoA_RA_plots"
+author: "Carmen Saenz"
+date: "5/16/2019"
+output: html_document
+---
+<!-- Load required packages -->
+```{r}
+if("data.table" %in% rownames(installed.packages()) == FALSE) {install.packages("data.table")}
+library(data.table)
+if("tidyverse" %in% rownames(installed.packages()) == FALSE) {install.packages("tidyverse")}
+library(tidyverse)
+if("ggplot2" %in% rownames(installed.packages()) == FALSE) {install.packages("ggplot2")}
+library(ggplot2)
+if("ggrepel" %in% rownames(installed.packages()) == FALSE) {install.packages("ggrepel")}
+library(ggrepel)
+if("phyloseq" %in% rownames(installed.packages()) == FALSE) {install.packages("phyloseq")}
+library(phyloseq)
+if("reshape2" %in% rownames(installed.packages()) == FALSE) {install.packages("reshape2")}
+library(reshape2)
+library(tidyr)
+library(vegan)
+library(gtools)
+
+set.seed(1234)
+```
+
+<!-- Set directories -->
+```{r}
+datapath <- "data/batch_culture/"
+profile_param <- 'metaphlan' #'motus_rel' # 'metaphlan'
+out_phyloseq = paste0(datapath, profile_param,'_phyloseq.rds')
+
+```
+
+<!-- function: PCoA plot -->
+```{r}
+plot_PCoA <- function(distance_lab, data_phyloseq, color, label){ #out_name,title_name,
+  label2 <- noquote(label)
+  #### PCoA
+  ord<- ordinate(data_phyloseq, method = "PCoA", distance = distance_lab)
+  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape=NULL, label=label) #type = type,
+  PcoA_Sample_site_abundance <- PcoA_Sample_site_abundance +
+    ggtitle(title_name, distance_lab)  +
+    geom_point(size = 2.5) +
+    theme_bw() +
+    theme(legend.position = "top")
+  PcoA_Sample_site_abundance$layers[[1]] <- NULL
+  PcoA_Sample_site_abundance$layers[[2]] <- NULL
+  PcoA_Sample_site_abundance$layers[[3]] <- NULL
+  PcoA_Sample_site_abundance_2<- PcoA_Sample_site_abundance +
+    geom_text_repel(aes(label = time), size = 3.0, segment.alpha = 0.5, max.overlaps = getOption("ggrepel.max.overlaps", default = 20)) +
+    #geom_point(aes(fill=participant_ID2), colour="black", size = 2.5, shape = 21, alpha=0.7)
+    geom_point(size = 2.1, shape = 16, alpha=1)
+  PcoA_Sample_site_abundance_2$layers[[1]] <- NULL
+  return(PcoA_Sample_site_abundance_2)
+}
+
+```
+<!-- Load Phyloseq obj -->
+```{r}
+# Phyloseq object
+if (profile_param %like% 'motus_rel') {
+  profile_phyloseq_ra <- readRDS(out_phyloseq)
+} else{
+  profile_phyloseq <- readRDS(out_phyloseq)
+  #### Transform counts to Relative Abundance
+  profile_phyloseq_ra<-transform_sample_counts(profile_phyloseq, function(x){x/sum(x)})
+} 
+```
+
+<!-- Phyloseq obj: metadata, count and taxa tables -->
+```{r}
+##### metadata:
+sample_data_df <- data.frame(sample_data(profile_phyloseq_ra), stringsAsFactors = F)
+
+### OTUs - db
+taxa_table_df <- as.data.frame(unclass(tax_table(profile_phyloseq_ra)), stringsAsFactors = F)
+taxa_table_df$taxa_ID <- rownames(taxa_table_df)
+rownames(taxa_table_df) <- NULL
+
+### Counts
+otu_table_df <-  as.data.frame(unclass(otu_table(profile_phyloseq_ra)), stringsAsFactors = F)
+otu_table_df$taxa_ID <- rownames(otu_table_df)
+rownames(otu_table_df) <- NULL
+
+otu_taxa_merge <- merge(otu_table_df, taxa_table_df, by = 'taxa_ID' , all.x = T)
+
+# Filter by mOTUs present in the data
+otu_taxa_filt_df = otu_taxa_merge[rowSums(otu_taxa_merge[, 2:ncol(otu_table_df)])>0,]
+otu_taxa_filt_df = otu_taxa_filt_df %>% dplyr::select(1:ncol(otu_table_df))
+
+otu_taxa_melt <- melt(otu_taxa_filt_df, id.vars=c("taxa_ID"))
+otu_taxa_melt <- merge(taxa_table_df, otu_taxa_melt, by="taxa_ID")
+
+otu_taxa_metadata =  merge(sample_data_df,otu_taxa_melt,  by.x = 'sample', by.y = 'variable')
+
+otu_taxa_metadata$value <- as.numeric(otu_taxa_metadata$value)
+```
+
+# stats - C. difficile and C. scindens 
+```{r}
+# Cdiff and Cscind
+summary(otu_taxa_metadata$value[which(otu_taxa_metadata$species == 'Clostridioides_difficile' & otu_taxa_metadata$condition == 'Cdiff')])
+summary(otu_taxa_metadata$value[which(otu_taxa_metadata$species == 'Clostridioides_difficile' & otu_taxa_metadata$condition == 'Cdiff_Csind')])
+summary(otu_taxa_metadata$value[which(otu_taxa_metadata$species == 'Clostridium_scindens' & otu_taxa_metadata$condition == 'Cdiff')])
+summary(otu_taxa_metadata$value[which(otu_taxa_metadata$species == 'Clostridium_scindens' & otu_taxa_metadata$condition == 'Cdiff_Csind')])
+
+summary(otu_taxa_metadata$value[which(otu_taxa_metadata$genus == 'Clostridium_scindens' & otu_taxa_metadata$condition == 'Cdiff')])
+summary(otu_taxa_metadata$value[which(otu_taxa_metadata$genus == 'Clostridium_scindens' & otu_taxa_metadata$condition == 'Cdiff_Csind')])
+
+otu_taxa_metadata_top15_cond_df <- data.frame(otu_taxa_metadata %>% 
+                                           dplyr::group_by(genus, condition) %>% 
+                                           dplyr::summarise(RA_count = sum(value)) %>% 
+                                           dplyr::arrange(desc(RA_count))) 
+summary(otu_taxa_metadata$value[which(otu_taxa_metadata$genus == 'Eisenbergiella' & otu_taxa_metadata$condition == 'Cdiff')])
+summary(otu_taxa_metadata$value[which(otu_taxa_metadata$genus == 'Eisenbergiella' & otu_taxa_metadata$condition == 'Cdiff_Csind')])
+
+```
+
+# Plots
+## Figure 1. C. scindens-mediated C. difficile growth reduction in an in vitro fermentor with two different culture setups. 
+### C) Relative abundance of C. difficile and C. scindens when adding C. difficile alone (control) and C. difficile + C. scindens (treatment) to an existing fecal microbiota community during the treatment period of 42 hours in batch culture setup.
+<!--Individual plots  -->
+```{r}
+# Prepare data
+otu_taxa_metadata_top15 <- otu_taxa_metadata
+otu_taxa_metadata_top15_sub <- otu_taxa_metadata_top15[otu_taxa_metadata_top15$species %in% c('Clostridioides_difficile', 'Clostridium_scindens'),]
+unique(otu_taxa_metadata_top15_sub$species)
+
+otu_taxa_metadata_top15_sub$species<- factor(otu_taxa_metadata_top15_sub$species, levels = c("Clostridioides_difficile", "Clostridium_scindens"))
+otu_taxa_metadata_top15_sub$condition <- factor(otu_taxa_metadata_top15_sub$condition, levels = c('Cdiff', 'Cdiff_Csind'))
+
+otu_taxa_metadata_top15_sub_plot <- otu_taxa_metadata_top15_sub
+otu_taxa_metadata_top15_sub_plot$value[otu_taxa_metadata_top15_sub_plot$value == 0] <- NA
+otu_taxa_metadata_top15_sub_plot <- otu_taxa_metadata_top15_sub_plot[!(otu_taxa_metadata_top15_sub_plot$condition=='Cdiff' & otu_taxa_metadata_top15_sub_plot$species=='Clostridium_scindens'),]
+
+# Generate plot
+colors_kit =c("Cdiff" = "#92392F", "Cdiff_Csind" = "#11698E") 
+
+test_plot <- ggplot(data=otu_taxa_metadata_top15_sub_plot, aes(x=time, y=value, group = condition, color = condition)) +
+  geom_point(alpha=0.5) + 
+  #geom_bar(aes(y=RA_sum, fill = taxa_ID),stat="identity", alpha=.7) +
+  theme_bw() + 
+  theme(axis.text = element_text(size = 10),
+        axis.text.x = element_text(color = "grey20", size = 10,angle = 60, face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), legend.position="bottom") + 
+  guides(color=guide_legend(nrow= 1))+ 
+  xlab(NULL)+ylab("Relative abundance")+
+  facet_grid(.~species)+
+  scale_color_manual(values = colors_kit, name="Conditions")
+
+print(test_plot +geom_smooth(method="loess",se=F, fill=NA)) 
+
+
+```
+
+<!-- Calculate fold change  -->
+```{r}
+## Cdiff
+otu_taxa_metadata_top15_sub$value[(otu_taxa_metadata_top15_sub$condition=='Cdiff' & otu_taxa_metadata_top15_sub$time=='16'& otu_taxa_metadata_top15_sub$species=='Clostridioides_difficile')]/otu_taxa_metadata_top15_sub$value[(otu_taxa_metadata_top15_sub$condition=='Cdiff' & otu_taxa_metadata_top15_sub$time=='42'& otu_taxa_metadata_top15_sub$species=='Clostridioides_difficile')] #  0.4944606
+## Cdiff_Csind
+otu_taxa_metadata_top15_sub$value[(otu_taxa_metadata_top15_sub$condition=='Cdiff_Csind' & otu_taxa_metadata_top15_sub$time=='16'& otu_taxa_metadata_top15_sub$species=='Clostridioides_difficile')]/otu_taxa_metadata_top15_sub$value[(otu_taxa_metadata_top15_sub$condition=='Cdiff_Csind' & otu_taxa_metadata_top15_sub$time=='42'& otu_taxa_metadata_top15_sub$species=='Clostridioides_difficile')] # 3.645452
+
+otu_taxa_metadata_top15_sub$value[(otu_taxa_metadata_top15_sub$condition=='Cdiff_Csind' & otu_taxa_metadata_top15_sub$time=='16'& otu_taxa_metadata_top15_sub$species=='Clostridium_scindens')]/otu_taxa_metadata_top15_sub$value[(otu_taxa_metadata_top15_sub$condition=='Cdiff_Csind' & otu_taxa_metadata_top15_sub$time=='42'& otu_taxa_metadata_top15_sub$species=='Clostridium_scindens')] # 2.808493
+
+```
+
+# Figure S2. Taxonomic profiles. 
+## C) Relative abundance for the 15 most abundant genera across the samples in the batch culture setup using MetaPhlAn3 (Beghini et al., 2021).
+<!-- Identified ASVs --> 
+```{r}
+# Prepare data
+otu_taxa_metadata_top15_df <- data.frame(otu_taxa_metadata %>% 
+                                           dplyr::group_by(genus) %>% 
+                                           dplyr::summarise(RA_count = sum(value)) %>% 
+                                           dplyr::arrange(desc(RA_count))) 
+
+otu_taxa_metadata_top15_list = otu_taxa_metadata_top15_df$genus[1:15]
+otu_taxa_metadata_top15_list <- otu_taxa_metadata_top15_list[otu_taxa_metadata_top15_list != "Unknown"][1:13]
+otu_taxa_metadata_top15_list <- c(otu_taxa_metadata_top15_list, 'Clostridium_scindens', 'Clostridioides_difficile')
+
+otu_taxa_metadata_top15 <- otu_taxa_metadata
+otu_taxa_metadata_top15$genus[otu_taxa_metadata_top15$species=='Clostridioides_difficile'] <- 'Clostridioides_difficile'
+otu_taxa_metadata_top15$genus[otu_taxa_metadata_top15$species=='Clostridium_scindens'] <- 'Clostridium_scindens'
+otu_taxa_metadata_top15$genus[!otu_taxa_metadata_top15$genus %in% c(otu_taxa_metadata_top15_list, "Unknown")] <- 'Other'
+otu_taxa_metadata_top15$genus[is.na(otu_taxa_metadata_top15$genus)] <- 'Other'
+
+# Generate plot 
+otu_taxa_metadata_top15_sum <- data.frame(otu_taxa_metadata_top15 %>% 
+                                            dplyr::group_by(sample, condition, time, genus) %>% 
+                                            dplyr::summarise(RA_count = sum(value)))
+
+otu_taxa_metadata_top15_sum$genus<- factor(otu_taxa_metadata_top15_sum$genus, levels = rev(c(otu_taxa_metadata_top15_list, 'Other', 'Unknown')))
+
+otu_taxa_metadata_top15_sum$condition <- factor(otu_taxa_metadata_top15_sum$condition, levels = c('Cdiff', 'Cdiff_Csind'))
+
+otu_taxa_metadata_top15_sum$time <- as.character(otu_taxa_metadata_top15_sum$time)
+day_order <- unique(otu_taxa_metadata_top15_sum$time)[order(as.numeric(unique(otu_taxa_metadata_top15_sum$time)))]
+otu_taxa_metadata_top15_sum$time <- factor(otu_taxa_metadata_top15_sum$time, levels = day_order, ordered = TRUE)
+
+colors_kit<-c('#D8DCDE', "#1C897E", "#CA5C2D", 
+              '#B6D0E0',
+              '#9D0208','#FFC87E','#F4A261','#E9C46A',
+              '#A786C9','#D4C0E2','#975773','#6699FF','#000066',
+              '#7AAFCA','#006699','#A9D181','#2F8475','#264445')
+
+print(ggplot(data=otu_taxa_metadata_top15_sum, aes(x=time, group = genus)) +
+        geom_bar(aes(y=RA_count, fill = genus),stat="identity", alpha=.9) +
+        theme_minimal() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "Time (h)", y = "Relative abundance") +
+        theme(title = element_text(size = 10),
+              axis.text.x = element_text(color = "grey20", size = 10,angle = 0, face = "plain"),
+              axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+              axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+              axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+              panel.grid.major.x = element_blank(), panel.grid.minor = element_blank())+
+        guides(fill=guide_legend(ncol= 1))+ 
+        facet_grid(~condition, scales = "free_x")+
+        scale_fill_manual(values = colors_kit, name="Genera"))
+
+```
+
+## D) Projection of the first two principal coordinates (explaining 66.4% and 28.3% of the total dissimilarity, respectively) based on Bray–Curtis dissimilarity between the microbiome composition in the control and treatment conditions of the batch culture setup.
+<!--PCoA - Bray-Curtis -->
+```{r}
+# PCoA - Bray-Curtis
+distance_lab = 'bray'
+title_name <- c(paste0("PCoA - metaG"), "Bray-Curtis")
+title_name_pval <- paste0("Bray-Curtis")
+metadata_df <- as(sample_data(profile_phyloseq_ra), "data.frame")
+if(length(unique(metadata_df$condition))>1){
+  #**adonis/adonis2, Permutational Multivariate Analysis of Variance Using Distance Matrix**: ####
+  library(vegan)
+  otu_table_sort <- as.data.frame(unclass(t(otu_table(profile_phyloseq_ra))), stringsAsFactors = F)
+  metadata_df <- data.frame(sample_data(profile_phyloseq_ra), stringsAsFactors = F)
+  rownames(metadata_df) <- metadata_df$sample
+  metadata <-metadata_df[match(rownames(otu_table_sort), rownames(metadata_df)),]
+  adonis_bray_Status2<-adonis2(as.dist(vegdist(otu_table_sort, method="bray", na.rm = T)) ~ condition, data = metadata)
+  r2_value <- format(round(adonis_bray_Status2$R2[1],3), nsmall = 3)
+  p_value <- adonis_bray_Status2$`Pr(>F)`[1]
+  
+  title_name_pval <- paste0("Bray-Curtis; R2=",r2_value,"; pval=",p_value)
+}
+
+plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, "condition", "time")
+
+manual_plot_colors =c("Cdiff" = "#92392F", "Cdiff_Csind" = "#11698E") 
+
+print(plot_PCoA_out  + 
+        scale_color_manual(values=manual_plot_colors, name='Condition') +
+        #coord_fixed() +
+        theme(legend.position="bottom")+
+        ggtitle(title_name, title_name_pval))
+# print(plot_PCoA_out  + 
+#         facet_wrap(.~condition)+
+#         scale_color_manual(values=manual_plot_colors, name='Condition') +
+#         #coord_fixed() +
+#         theme(legend.position="bottom")+
+#         ggtitle(title_name, title_name_pval))
+```
+

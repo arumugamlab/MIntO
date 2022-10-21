@@ -1,0 +1,52 @@
+---
+title: "Quantification of C. difficile colony forming units (CFU) - Continuous culture (sterile)"
+author: "Carmen Saenz"
+date: "23/01/2019"
+output: html_document
+---
+
+<!-- Load required packages -->
+```{r}
+library(data.table)
+library(ggplot2)
+```
+
+<!-- Define paths -->
+```{r}
+datapath <- "data/continuous_culture/"
+```
+
+<!-- Load data -->
+```{r}
+continuous_CFU <- as.data.frame(fread(paste0(datapath, 'FigureS3_CFU_continuous_culture.csv'),  header = T), stringsAsFactors = F) 
+continuous_CFU_sub_melt <- reshape2::melt(continuous_CFU, id.vars = c("Time_Cdiff_d", "time"))
+continuous_CFU_sub_melt$value <- as.numeric(continuous_CFU_sub_melt$value)
+continuous_CFU_sub_melt$condition <- unlist(lapply(stringr::str_split(pattern = '\\_', string = continuous_CFU_sub_melt$variable), `[`, 1))
+continuous_CFU_sub_melt$condition[continuous_CFU_sub_melt$variable %like% 'Cdiff_Cscind'] <- 'Cdiff_Cscind'
+```
+
+<!-- Generate plot -->
+### Figure S3. Quantification of C. difficile colony forming units (CFU).
+```{r}
+manual_plot_colors =c("Cdiff" = "#D46C4E", "Cdiff_Cscind" = "#87ABC3")
+
+continuous_CFU_sub_melt$value_10 <- continuous_CFU_sub_melt$value/1e7
+
+continuous_CFU_sub_melt$log.value <- log10(continuous_CFU_sub_melt$value)
+
+sterile_cfu_log_plot <- ggplot(data =subset(continuous_CFU_sub_melt, !is.na(log.value)), aes(time, log.value, col=condition, group=condition)) + 
+  geom_point() + geom_line()+
+  theme_bw() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "Time (hours)", y = "C. difficile CFUs / mL - Log10") +
+    theme(title = element_text(size = 10),
+        axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =0.5,face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), 
+        legend.text=element_text(size=8), legend.position = "bottom")+ 
+  guides(fill=guide_legend(nrow= 1))+ 
+  #facet_wrap(media~.)+
+  #labs(title = title) +
+  scale_color_manual(values = manual_plot_colors, name="Condition")
+```
+

@@ -1,0 +1,213 @@
+---
+title: "Load_data_16S"
+author: "Carmen Saenz and Camila Alvarez-Silva"
+date: "5/16/2019"
+output: html_document
+---
+
+<!-- setup -->
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#set work directory
+setwd("")
+set.seed(2)
+```
+<!-- Load required packages -->
+```{r packages, echo = FALSE, message=FALSE, warning = FALSE, include = FALSE}
+
+library(vegan); packageVersion("vegan")
+library(phyloseq); packageVersion("phyloseq")
+library(ggplot2); packageVersion("ggplot2")
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("dada2")
+library(dada2); packageVersion("dada2")
+library(dplyr); packageVersion("dplyr")
+library(tidyr); packageVersion("tidyr")
+library(gridExtra); packageVersion("gridExtra")
+library(xtable); packageVersion("xtable")
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("mixOmics")
+#install.packages("RVAideMemoire")
+library(RVAideMemoire); packageVersion("RVAideMemoire")
+#install.packages("viridis")
+library(viridis); packageVersion("viridis")
+library(scales); packageVersion("scales") 
+library(ggthemes); packageVersion("ggthemes")
+#install.packages("devtools")
+library(devtools); packageVersion("devtools")
+#install.packages("ggfortify")
+library(ggfortify); packageVersion("ggfortify")
+#install.packages("reshape")
+library(reshape); packageVersion("reshape")
+library(RColorBrewer);packageVersion("RColorBrewer")
+```
+
+<!-- Load required Functions -->
+```{r, echo = FALSE, message=FALSE, warning = FALSE}
+functionpath <- "Functions/"
+source(file.path(functionpath, "_n_000_helper_functions.R"))
+source(file.path(functionpath, "_n_010_explore_ps_functions.R"))
+source(file.path(functionpath, "_n_020_alpha_diversity_functions.R"))
+source(file.path(functionpath, "_n_030_preprocess_filtering_functions.R"))
+source(file.path(functionpath, "_n_040_beta_diversity_functions.R"))
+source(file.path(functionpath, "_n_050_diff_abundance_functions.R"))
+source(file.path(functionpath, "_n_060_phylum_analysis_functions.R"))
+source(file.path(functionpath, "_n_070_Database_Comparasion_Function.R"))
+source(file.path(functionpath, "Dada_TaxonomyFunctions.R"))
+source(file.path(functionpath, "Dada_PlotFunctions.R"))
+
+```
+
+<!-- set parameters-->
+```{r, echo = FALSE, message=FALSE}
+######- filtering inputs -######- 
+prevalence <- 25 # in percent
+min_obs <- 0L # a taxon will be considered present (for prevalence) if count > min_obs
+taxa_sums_quantile <- 90 # in percent, taxa whose taxa_sums are above this threshold will be kept even if they do not pass prevalence
+extra_level="Genus"
+######- rarefaction inputs -######
+step_size <- 200 # for rarefaction curves
+rare_level <- NULL # if NULL, min(sample_sums(ps)) is used!
+rare_type <- "vegan" # either "sample" or "vegan"
+rare_max_total <- NULL # maximal total amplicons value to which rarefaction curves are calculated, if NULL: quantile(sample_sums(ps), probs = .25) is used
+
+######- alpha diversity -######
+alpha_div_measures <- c("Observed", "Shannon") # not to change currently
+alpha_at_genus <- TRUE
+
+######- beta diversity -######
+dist_methods <- c("bray") # options: see unlist(distanceMethodList)
+######-  plot/statistics inputs ######
+taxa_are_rows = FALSE 
+group_var <- "Condition" # tha variable based on which samples will be grouped 
+group_var_levels <- c("Cdiff","Cdiff_Csind") # the factor levels of the group_var in the order you want them in your plots (set to NULL if you do not care)
+shape="time" #Additio0nal group_var to take into account
+
+#----- Color palets
+color_levels<- c("#D46C4E", "#264D59")
+names(color_levels) <- group_var_levels
+
+```
+
+<!-- Set directories -->
+```{r}
+datapath <- "data/continuous_culture/"
+```
+
+<!-- Load metadata, Taxonomy and otu table -->
+```{r load data, echo = FALSE, message=FALSE, warning = FALSE}
+#Metadata
+samdf<-read.csv(file.path(datapath,"metadta_continuous_culture.csv"), header = TRUE, sep = "\t")
+row.names(samdf)<-samdf$Sample
+samdf$group<-factor(samdf$Condition, levels = c("Cdiff","Cdiff_Csind"))
+samdf = samdf[order(rownames(samdf)),]
+samdf$time<-as.factor(samdf$time)
+
+#seqtab.noquim
+load(file.path(datapath,"Dada_Data/DenoisedData.RData"))
+seqtab.nochim<-subset(seqtab.nochim,row.names(seqtab.nochim)%in%row.names(samdf))
+seqtab.nochim = seqtab.nochim[order(rownames(seqtab.nochim)),]
+seqtab.nochim_t<-as.data.frame(t(seqtab.nochim))
+sample.names <- rownames(seqtab.nochim)
+
+# load QualityStats
+load(file.path(datapath,"Dada_Data/QualityStats.RData" ))
+
+```
+
+<!--ASVs taxonomy--->
+```{r}
+## Load taxonomy data from Dada_WrapperAssignTaxonomyAddSpecies.R
+# Silva
+load(paste0(datapath,"Dada_Silva_80/Taxonomy.RData"))
+taxa.species_silva_df <- as.data.frame(taxa.species)
+taxa.species_silva_difficile <- rownames(taxa.species_silva_df[which(taxa.species_silva_df$Species == 'difficile'),])
+
+# RDP
+load(paste0(datapath,"Dada_RDP_80/Taxonomy.RData"))
+taxa.species_rdp_df <- as.data.frame(taxa.species)
+taxa.species_rdp_scindens <- rownames(taxa.species_rdp_df[which(taxa.species_rdp_df$Species == 'scindens'),])
+
+## !!!!!!!!!!!!!!!!  SELECT ONE !!!!!!!!!!!!!!!!!
+# Silva - Add C. scindens annotation
+taxa.species_silva_df$Species[which(rownames(taxa.species_silva_df) == taxa.species_rdp_scindens)] <- 'scindens'
+taxa.species <- as.matrix(taxa.species_silva_df)
+
+# # RDP - Add C. difficile annotation
+# taxa.species_rdp_df$Species[which(rownames(taxa.species_rdp_df) == taxa.species_silva_difficile)] <- 'difficile'
+# taxa.species <- as.matrix(taxa.species_rdp_df)
+
+rm(taxa.species_silva_df)
+rm(taxa.species_rdp_df)
+rm(taxa.species_silva_difficile)
+rm(taxa.species_rdp_scindens)
+
+```
+
+<!--Phyloseq  Objects--->
+```{r Phyloseq  Objects-, echo = FALSE, message=FALSE}
+
+# Create a Phyloseq object
+ps<- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+               sample_data(samdf), 
+               tax_table(taxa.species))
+
+## get ASVs names
+namesASV<-as.character(get_taxon_names(as.data.frame(unclass(tax_table(ps)))))
+
+seqtab.nochim_names<-seqtab.nochim
+colnames(seqtab.nochim_names)<-namesASV
+
+## Filter Phyloseq object
+ps<- subset_taxa(ps, !is.na(Phylum))
+
+## Taxa names from Phyloseq object 
+taxa_names(ps)<-paste(get_taxon_names(as.data.frame(unclass(tax_table(ps)))),1:ntaxa(ps), sep="_")
+
+```
+
+<!-- Quality plots  -->
+```{r Quality, echo = FALSE, message=FALSE}
+#read cycle quality
+Tr <- QS_Median_OverviewPlot(QStatsList = F_QualityStats, SampleNames = sample.names,xlim_high = 255)
+Tr <- Tr + 
+        geom_vline(xintercept = Input$trimLeft[1], color = 'darkred', linetype = "dashed", size = .5) +
+        geom_vline(xintercept = Input$truncLen[1], color = 'darkred', linetype = "dashed", size = .5) +
+        ggtitle(paste("Median quality scores: FW reads. No Samples: ", length(sample.names), "; trimLeft: ", Input$trimLeft[1],
+                "; truncLen: ", Input$truncLen[1], sep = ""))
+
+TrR <- QS_Median_OverviewPlot(QStatsList = R_QualityStats, SampleNames = sample.names,xlim_high = 255)
+TrR <- TrR + 
+        geom_vline(xintercept = Input$trimLeft[2], color = 'darkred', linetype = "dashed", size = .5) +
+        geom_vline(xintercept = Input$truncLen[2], color = 'darkred', linetype = "dashed", size = .5) +
+        ggtitle(paste("Median quality scores: RV reads. No Samples: ", length(sample.names), "; trimLeft: ", Input$trimLeft[1],
+                "; truncLen: ", Input$truncLen[2], sep = ""))
+```
+
+<!-- number of reads that survived the different dada2 steps -->
+```{r , echo = FALSE, message=FALSE}
+Tr <- NoReads_StepsSimple(ReadSummary = ReadSummary, SampleNames = sample.names, sort = TRUE)
+Tr <- Tr + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 10),
+                 text = element_text(size=14))
+```
+
+<!-- Prevelence and sparsity-->
+```{r Prevelence and sparsity, echo = FALSE, message=FALSE}
+
+df_ab_prev <- data.frame(ASV_ID = 1:ntaxa(ps), 
+                         total_counts_of_ASV = taxa_sums(ps),
+                         prevalence = colSums(as(otu_table(ps), "matrix") != 0),
+                         sparsity = colSums(as(otu_table(ps), "matrix") == 0), 
+                         mean_count_nonzero = apply(as(otu_table(ps), "matrix"), 2, function(x){mean(x[x > 0])}),
+                         median_count_nonzero = apply(as(otu_table(ps), "matrix"), 2, function(x){median(x[x > 0])}))
+df_ab_prev <- cbind(df_ab_prev, tax_table(ps))
+#TrrList <- plot_correlations_abundance_prev_sparsity(df_ab_prev_BA, col = "Phylum")
+TrList <- plotSVdistributions(seqtab = as(otu_table(ps), "matrix"), prevalence = prevalence)
+```
+
+<!-- Delete data -->
+```{r save, echo = FALSE}
+rm(err_F, err_R, errorsFW, errorsRV, F_QualityStats, mergers, PackageVersions, R_QualityStats, ReadSummary, return.list, seqtab, seqtab.nochim_t, Tr, TrList, TrR, seqtab.nochim_names)
+```

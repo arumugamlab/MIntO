@@ -1,0 +1,71 @@
+---
+title: "Quantification of C. difficile total number of cells via qPCR detection - BATCH culture"
+author: "Carmen Saenz"
+date: "23/01/2019"
+output: html_document
+---
+
+<!-- Load required packages -->
+```{r}
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(plyr)
+```
+
+<!-- Define paths -->
+```{r}
+datapath <- "data/batch_culture/"
+```
+
+<!-- Load data -->
+```{r}
+batch_qPCR <- as.data.frame(fread(paste0(datapath, 'FigureS4_qPCR_batch_culture.csv'),  header = T), stringsAsFactors = F) 
+batch_qPCR_melt <- reshape2::melt(batch_qPCR, id.vars = c("Time_Cdiff_d", "time"))
+batch_qPCR_melt$value <- as.numeric(batch_qPCR_melt$value)
+batch_qPCR_melt$condition <- unlist(lapply(stringr::str_split(pattern = '\\_', string = batch_qPCR_melt$variable), `[`, 1))
+batch_qPCR_melt$condition[batch_qPCR_melt$variable %like% 'Cdiff_Cscind'] <- 'Cdiff_Cscind'
+batch_qPCR_melt$rep <- unlist(lapply(stringr::str_split(pattern = '\\_', string = batch_qPCR_melt$variable), `[`, 2))
+batch_qPCR_melt$rep[batch_qPCR_melt$variable %like% 'Cdiff_Cscind'] <- unlist(lapply(stringr::str_split(pattern = '\\_', string = batch_qPCR_melt$variable[batch_qPCR_melt$variable %like% 'Cdiff_Cscind']), `[`, 3))
+```
+
+<!-- Generate plot -->
+# Figure S4. Quantification of C. difficile total number of cells via qPCR detection.
+```{r}
+manual_plot_colors =c("Cdiff" = "#D46C4E", "Cdiff_Cscind" = "#87ABC3")
+
+ggplot(data =subset(batch_qPCR_melt, !is.na(value)), aes(time, value, col=condition, group=condition)) + 
+  geom_point()
+
+batch_qPCR_melt <- batch_qPCR_melt[!is.na(batch_qPCR_melt$value),] 
+batch_qPCR_melt_mean <- batch_qPCR_melt %>% 
+  dplyr::group_by(time, condition) %>% 
+  dplyr::summarise(mean.val=mean(value))
+
+batch_qPCR_melt$log.value <- log10(batch_qPCR_melt$value)
+
+batch_qPCR_melt_log_mean <- ddply(batch_qPCR_melt,~time+condition,summarise,mean=mean(log.value),sd=sd(log.value))
+
+batch_qpcr_log_plot <- ggplot(data = batch_qPCR_melt) + 
+    geom_point(mapping = aes(x = time, y = log.value, col=condition, group=condition)) + 
+    geom_point(data=batch_qPCR_melt_log_mean,  mapping=aes(x = time, y = mean, col=condition)) +
+  geom_errorbar(data=batch_qPCR_melt_log_mean, aes(x = time, y = mean,ymin=mean-sd, ymax=mean+sd), width=.2)+
+  geom_line(data=batch_qPCR_melt_log_mean,  mapping=aes(x = time, y = mean, col=condition))+
+  theme_bw() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "Time (hours)", y = "C. difficile copies / mL - Log10") +
+    theme(title = element_text(size = 10),
+        axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =0.5,face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), 
+        legend.text=element_text(size=8), legend.position = "bottom")+ 
+  guides(fill=guide_legend(nrow= 1))+ 
+  #facet_wrap(media~.)+
+  #labs(title = title) +
+  scale_color_manual(values = manual_plot_colors, name="Condition")
+
+print(batch_qpcr_log_plot)
+
+```
+

@@ -1,0 +1,422 @@
+---
+title: "16SrRNA & metaT integration - gene expression"
+author: "Carmen Saenz"
+output: html_document
+---
+
+<!-- Load required packages -->
+```{r}
+if("dplyr" %in% rownames(installed.packages()) == FALSE) {install.packages("dplyr")}
+library(dplyr)
+
+if("data.table" %in% rownames(installed.packages()) == FALSE) {install.packages("data.table")}
+library(data.table)
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+if("phyloseq" %in% rownames(installed.packages()) == FALSE) {BiocManager::install("phyloseq")}
+library(phyloseq)
+
+if("ggrepel" %in% rownames(installed.packages()) == FALSE) {install.packages("ggrepel")}
+library(ggrepel)
+if("ggplot2" %in% rownames(installed.packages()) == FALSE) {install.packages("ggplot2")}
+library(ggplot2)
+```
+
+<!-- Set directories -->
+```{r}
+datapath <- "data/continuous_culture/"
+
+```
+
+<!-- Load data - metadata and genes annotation -->
+```{r}
+# Metadata
+file_output_metadata <- paste0(datapath,"metadta_continuous_culture.csv") #"metadata/RNA_samples_ALL_short.txt")
+
+metadata_df <- as.data.frame(fread(file_output_metadata,  header = T), stringsAsFactors = F)
+metadata_df$time <- as.numeric(metadata_df$time)
+metadata_df = subset(metadata_df, select=c('Sample', 'Condition', 'time'))
+head(metadata_df)
+
+# Annotations
+profiles_annot_aa_bed_df <- as.data.frame(fread(paste0(datapath, '/Cdiff_4str_genes-PBGC-SBGC-smORFs.annotations.tsv'), header=T), stringsAsFactors = F, row.names = T)
+profiles_annot_aa_bed_df$ID_gene <- profiles_annot_aa_bed_df$ID
+profiles_annot_aa_bed_df$ID <- NULL
+
+```
+
+<!-- Calculate RPK from transcript profile (metaT)  -->
+```{r}
+# Load data - fetchMG output
+fetchMG_table <- paste0(datapath,"Cdiff_continuous_culture.all.marker_genes_scores.table")
+fetchMG_df <- as.data.frame(fread(fetchMG_table, header=T), stringsAsFactors = F)
+names(fetchMG_df) <- c('ID', 'HMM_score', 'COG', 'taxid.projectid')
+
+# replace '-' by '.'
+fetchMG_df$ID <- gsub('\\-','\\.', fetchMG_df$ID)
+fetchMG_df$genome <-  unlist(lapply(stringr::str_split(pattern = '\\|', string = fetchMG_df$ID), `[`, 1))
+fetchMG_df$name <- unlist(lapply(stringr::str_split(pattern = '\\|', string = fetchMG_df$ID), `[`, 3))
+fetchMG_df$name[is.na(fetchMG_df$ID_gene)] <- unlist(lapply(stringr::str_split(pattern = '\\|', string = fetchMG_df$ID[is.na(fetchMG_df$name)]), `[`, 2))
+
+fetchMG_sub_df <- subset(fetchMG_df, select=c('ID', 'genome', 'name', 'COG'))
+# Subset COGs
+fetchMG_sub_df <- fetchMG_sub_df[fetchMG_sub_df$COG %in% c('COG0012', 'COG0016', 'COG0018', 'COG0172', 'COG0215', 
+                                                           'COG0495','COG0525', 'COG0533', 'COG0541', 'COG0552'),]
+
+# Load data - metaT raw - mapped reads to reference genomes
+## GENE ABUNDANCES per SAMPLE
+gene_abund_bed_df <- as.data.frame(fread(paste0(datapath,'metaT_genes_abundances.p95.bed'), header=T), stringsAsFactors = F)
+gene_abund_bed_coord_df <- gene_abund_bed_df
+gene_abund_bed_coord_df$coord <- paste0(gene_abund_bed_coord_df$chr, '_',gene_abund_bed_coord_df$start, '_', gene_abund_bed_coord_df$stop)
+gene_abund_bed_coord_df$coord <- gsub('-', '_', gene_abund_bed_coord_df$coord)
+gene_abund_bed_coord_df$source2 <- unlist(lapply(strsplit(as.character(gene_abund_bed_coord_df$source),'\\,'), `[`, 1))
+gene_abund_bed_coord_df$name2 <- unlist(lapply(strsplit(as.character(gene_abund_bed_coord_df$name),'\\;'), `[`, 1))
+gene_abund_bed_coord_df$name2[gene_abund_bed_coord_df$source2 == 'macrel']  <- unlist(lapply(strsplit(as.character(gene_abund_bed_coord_df$name2[gene_abund_bed_coord_df$source2 == 'macrel']),'\\_'), `[`, 2))
+gene_abund_bed_coord_df$genome <- unlist(lapply(strsplit(as.character(gene_abund_bed_coord_df$chr),'\\|'), `[`, 1))
+gene_abund_bed_coord_df$contig <- unlist(lapply(strsplit(as.character(gene_abund_bed_coord_df$chr),'\\|'), `[`, 2))
+
+gene_abund_bed_coord_df$ID_gene <- paste0(gene_abund_bed_coord_df$chr, '|',gene_abund_bed_coord_df$name2)
+gene_abund_bed_coord_df$ID_gene[gene_abund_bed_coord_df$source2 %in% c('macrel')] <- paste0(gene_abund_bed_coord_df$chr[gene_abund_bed_coord_df$source2 %in% c('macrel')], '_',gene_abund_bed_coord_df$name2[gene_abund_bed_coord_df$source2 %in% c('macrel')])
+gene_abund_bed_coord_df$ID_gene[gene_abund_bed_coord_df$name == '.'] <- paste0(gene_abund_bed_coord_df$chr[gene_abund_bed_coord_df$name == '.'], '|',gene_abund_bed_coord_df$start[gene_abund_bed_coord_df$name == '.'], '_',gene_abund_bed_coord_df$stop[gene_abund_bed_coord_df$name == '.'])
+gene_abund_bed_coord_df$name3 <- unlist(lapply(stringr::str_split(pattern = '\\|', string = gene_abund_bed_coord_df$ID_gene), `[`, 3))
+gene_abund_bed_coord_df$name3[is.na(gene_abund_bed_coord_df$name3)] <- unlist(lapply(stringr::str_split(pattern = '\\|', string = gene_abund_bed_coord_df$ID_gene[is.na(gene_abund_bed_coord_df$name3)]), `[`, 2))
+gene_abund_bed_coord_df$name <- gene_abund_bed_coord_df$name3
+
+### Calculate gene length
+gene_abund_bed_coord_df$gene_lenght <- abs(gene_abund_bed_coord_df$stop- gene_abund_bed_coord_df$start) +1
+### Subset df by colname
+gene_info <- c("chr","start","stop", "name","source","feature","ID_gene")
+### Gene abundances
+gene_abund_samples_df <- gene_abund_bed_coord_df[!colnames(gene_abund_bed_coord_df) %in% c(gene_info, 
+                                                                                           'score', 'strand', 'frame', 'info', 'source2', 'name2',
+                                                                                           'genome', 'contig', 'ID_gene', 'name3')]
+#### Filter gene abundances df by gene coordinates
+gene_abund_samples_u_df <- gene_abund_samples_df[!duplicated(gene_abund_samples_df[,'coord']),]
+rownames(gene_abund_samples_u_df) <- gene_abund_samples_u_df$coord
+gene_abund_samples_u_df$coord <- NULL
+
+## Calculate RPK from gene abundances (gene abundances normalized by gene length)
+gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_lenght
+gene_rpk_samples_u_df$coord <- rownames(gene_rpk_samples_u_df)
+### Gene info
+gene_info_bed_df <- gene_abund_bed_coord_df[colnames(gene_abund_bed_coord_df) %in% c(gene_info, "coord", "gene_lenght")]
+#colnames(gene_info_bed_df) <- c("chr","start","stop","name","source","feature","ID_gene", "coord", "gene_lenght")
+gene_rpk_bed_df <- merge(gene_info_bed_df, gene_rpk_samples_u_df, by='coord')
+dim(gene_rpk_bed_df)
+
+#gene_abund_bed_coord_df$genome <- unlist(lapply(strsplit(as.character(gene_abund_bed_coord_df$chr),'\\|'), `[`, 1))
+#gene_abund_bed_coord_df$contig <- unlist(lapply(strsplit(as.character(gene_abund_bed_coord_df$chr),'\\|'), `[`, 2))
+
+# Save ####
+gene_rpk_bed_df_sub <- subset(gene_rpk_bed_df, select =-c(ID_gene,gene_lenght, chr, start, stop, name, source, feature))
+gene_taxa_bed_df_sub <- subset(gene_rpk_bed_df, select =c(coord,ID_gene,gene_lenght, chr, start, stop, name, source, feature))
+rownames(gene_taxa_bed_df_sub) <- gene_taxa_bed_df_sub$coord
+#gene_rpk_bed <- paste0(datapath,"/metaT_genes_abundances.p95.RPK.bed")
+#write.table(gene_rpk_bed_df, gene_rpk_bed, row.names = F, col.names = T, sep = "\t", quote = F)
+
+#### phyloseq object
+rownames(gene_rpk_bed_df_sub) <- gene_rpk_bed_df_sub$coord# paste(gene_rpk_bed_df_sub$ID_MAG,gene_rpk_bed_df_sub$ID_gene, sep='|')
+gene_rpk_bed_df_sub$coord <- NULL
+samp <- sample_data(metadata_df)
+rownames(samp) <- samp$Sample
+gene_rpk_bed_fetchMG_phyloseq <- phyloseq(otu_table(as.matrix(gene_rpk_bed_df_sub), taxa_are_rows = T), tax_table(as.matrix(gene_taxa_bed_df_sub)), samp)
+head(taxa_names(gene_rpk_bed_fetchMG_phyloseq))
+saveRDS(gene_rpk_bed_fetchMG_phyloseq, file = paste0(datapath,"/metaT_genes_abundances.p95.RPK.rds"))
+
+```
+
+<!-- Load data - 16SrRNA (filtered by prevalence & normalized by gene copy number)-->
+# output from 02_Filter_prevalence.Rmd
+```{r}
+datapath <- "data/continuous_culture/"
+ASV16S_table <- paste0(datapath,"16SrRNA.ASVs.Silva.Prev_filter.16S_copy_numb.RA.rds")
+
+# # Expression
+# ## Phyloseq object
+ASV16S_phyloseq <- readRDS(ASV16S_table)
+
+# ## Metadata
+ASV16S_sam <- data.frame(sample_data(ASV16S_phyloseq), stringsAsFactors = F)
+ASV16S_sam$time <- as.numeric(ASV16S_sam$time)
+
+# ## OTUs(Expression)
+ASV16S_otu <- as.data.frame(unclass(t(otu_table(ASV16S_phyloseq))), stringsAsFactors = F)
+ASV16S_otu$ID_gene <- 'ASV'
+ASV16S_otu$ID_MAG <- rownames(ASV16S_otu)
+ASV16S_otu$ID_MAG <- unlist(lapply(strsplit(as.character(ASV16S_otu$ID_MAG),'(.*)\\_$'), `[`, 1))
+```
+
+<!-- Load data - metaT (RPK normalized)-->
+```{r}
+datapath <- "data/continuous_culture/"
+# ******* Load data - metaT - RPK genes ******* ####
+tpm_profile_funct <-paste0(datapath, "/metaT_genes_abundances.p95.RPK.rds")
+
+# # Expression
+# ## Phyloseq object
+gene_expression_phyloseq <- readRDS(tpm_profile_funct)
+
+# ## Metadata
+function_expression_sam <- data.frame(sample_data(gene_expression_phyloseq), stringsAsFactors = F)
+
+# ## OTUs(Expression)
+function_expression_otu <- as.data.frame(unclass(otu_table(gene_expression_phyloseq)), stringsAsFactors = F)
+function_expression_otu$ID_gene <- rownames(function_expression_otu)
+function_expression_otu$ID_MAG <-  unlist(lapply(stringr::str_split(pattern = '\\|', string = function_expression_otu$ID_gene), `[`, 1))
+function_expression_otu <- function_expression_otu
+
+
+# ******* change 16S ASV names to match MAG IDs ******* ####
+#unique(function_expression_otu$ID_MAG)
+#unique(ASV16S_otu$ID_MAG)
+ASV16S_otu$ID_MAG[ASV16S_otu$ID_MAG %like% 'Clostridioides difficile'] <- 'Clostridioides_difficile_ATCC_9689_DSM_1296_genomic'
+ASV16S_otu$ID_MAG[ASV16S_otu$ID_MAG %like% 'Lachnoclostridium scindens'] <- 'GCF_004295125.1_ASM429512v1_genomic'
+ASV16S_otu_sum <- as.data.frame(ASV16S_otu %>%
+                              dplyr::group_by(ID_gene, ID_MAG) %>%
+                              dplyr::summarise_each(funs(sum))) 
+names_list <- names(ASV16S_otu)
+colSums(as.matrix(ASV16S_otu_sum[3:(ncol(ASV16S_otu_sum))]))
+
+# ******* Integration: RPK genes & 16S ASV ******* ####
+# Merge ASV relative to 16S copy number - raw counts (normalized to copy number) and transcript RPK
+all(names(function_expression_otu) %in% names(ASV16S_otu_sum))
+function_expression_otu <- function_expression_otu[,names(function_expression_otu) %in% names(ASV16S_otu_sum)]
+all(names(function_expression_otu) %in% names(ASV16S_otu_sum))
+## [1] TRUE
+all(names(function_expression_otu) == names(ASV16S_otu_sum))
+## [1] FALSE
+function_expression_otu <- function_expression_otu[,names(ASV16S_otu_sum)]
+all(names(function_expression_otu) == names(ASV16S_otu_sum))
+
+gene_tpm_ASV16S <- rbind(ASV16S_otu_sum, function_expression_otu)
+# # Make it relative to 1e6
+# ASV16S_otu_1e6 <- as.data.frame(ASV16S_otu %>%
+#                                       dplyr::group_by(ID_gene, ID_MAG) %>%
+#                                       dplyr::mutate_at(vars(names_list[1]: rev(names_list)[3]), funs(.*1e6)))
+# ASV16S_otu_1e6_sum <- as.data.frame(ASV16S_otu_1e6 %>%
+#                                   dplyr::group_by(ID_gene, ID_MAG) %>%
+#                                   dplyr::summarise_each(funs(sum)))
+# colSums(as.matrix(ASV16S_otu_1e6_sum[3:(ncol(ASV16S_otu_1e6_sum))]))
+# 
+# Merge ASV relative to 16S copy number - RA and transcript TPM
+#gene_tpm_ASV16S <- rbind(ASV16S_otu_1e6_sum, function_expression_otu)
+
+names_list <- names(gene_tpm_ASV16S)
+gene_tpm_ASV16S_sub <- gene_tpm_ASV16S[gene_tpm_ASV16S$ID_MAG %in% c('Clostridioides_difficile_ATCC_9689_DSM_1296_genomic', 
+                                                                     'GCF_004295125.1_ASM429512v1_genomic'),]
+gene_tpm_ASV16S_per16S <- as.data.frame(gene_tpm_ASV16S_sub %>%
+                                                dplyr::group_by(ID_MAG) %>%
+                                                dplyr::mutate_at(vars(names_list[3]: rev(names_list)[1]), funs(./.[ID_gene == 'ASV']))) #https://stackoverflow.com/questions/49404461/dividing-columns-by-particular-values-using-dplyr
+# # Other possibilities that I tried: #https://stackoverflow.com/questions/60105032/iterative-dividing-by-specific-row-for-grouped-dplyr-data-in-r
+# dplyr::mutate_each(funs(ID_gene/ID_gene[level == 'MG'])))
+# tidyr::nest()
+# dplyr::mutate_each(funs(ID_gene/ID_gene[level == 'MG']), setdiff(names(.))))
+# dplyr::mutate_each(value = value/value[level == 'MG']))
+
+# Remove ASV rows
+gene_tpm_ASV16S_per16S <- gene_tpm_ASV16S_per16S[gene_tpm_ASV16S_per16S$ID_gene != 'ASV',] 
+# Replace NaN and infinite values by 0
+gene_tpm_ASV16S_per16S <- gene_tpm_ASV16S_per16S %>% dplyr::mutate_all(function(x) ifelse(is.infinite(x), 0, x)) 
+gene_tpm_ASV16S_per16S <- gene_tpm_ASV16S_per16S %>% dplyr::mutate_all(function(x) ifelse(is.nan(x), 0, x)) 
+colSums(as.matrix(gene_tpm_ASV16S_per16S[3:(ncol(gene_tpm_ASV16S_per16S))]))
+
+rownames(gene_tpm_ASV16S_per16S) <- gene_tpm_ASV16S_per16S$ID_gene
+gene_tpm_ASV16S_per16S$ID_MAG <- NULL
+gene_tpm_ASV16S_per16S$ID_gene <- NULL
+
+gene_tpm_ASV16S_per16S_norm <- gene_tpm_ASV16S_per16S
+
+
+# gene_norm_bed <- paste0(datapath,"/GT-RPK.16SrRNA.ASV.Silva.Relative_copy_number.csv")
+# write.table(gene_tpm_ASV16S_per16S_DC_norm, gene_norm_bed, row.names = FALSE, col.names = T, sep = "\t", quote = F)
+
+#### phyloseq object
+samp <- sample_data(function_expression_sam)
+rownames(samp) <- samp$Sample
+gene_tpm_ASV16S_per16S_phyloseq <- phyloseq(otu_table(as.matrix(gene_tpm_ASV16S_per16S_norm), taxa_are_rows = T), samp)
+head(taxa_names(gene_tpm_ASV16S_per16S_phyloseq))
+saveRDS(gene_tpm_ASV16S_per16S_phyloseq, file = paste0(datapath,'GT-RPK.16SrRNA.ASV.Silva.Relative_copy_number.rds'))
+
+```
+
+<!-- Gene expression profile -->
+```{r}
+tpm_profile_genes <-paste0(datapath, "GT-RPK.16SrRNA.ASV.Silva.Relative_copy_number.rds")
+
+# # Expression
+# ## Phyloseq object
+gene_expression_phyloseq <- readRDS(tpm_profile_genes)
+
+# ## Metadata
+gene_expression_sam <- data.frame(sample_data(gene_expression_phyloseq), stringsAsFactors = F)
+gene_expression_sam_sub <- subset(gene_expression_sam, select=c("Sample","Condition","time"))
+names(gene_expression_sam_sub) <- c("Sample","Condition","time")
+
+# ## OTUs(Expression)
+gene_expression_otu <- as.data.frame(unclass(otu_table(gene_expression_phyloseq)), stringsAsFactors = F)
+gene_expression_otu$ID_gene <- rownames(gene_expression_otu)
+```
+
+<!-- Expression bai genes  -->
+# Figure 2. C. scindens-mediated biotransformation of primary BAs and downregulation of C. difficile toxin tcdA expression. 
+## Gene expression of the bai operon in C. scindens in continuous culture. 
+```{r}
+## bai operon genes ####
+gene_expression_otu_cscind <- gene_expression_otu[gene_expression_otu$ID_gene %in%
+                                                    c("GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1411858_1413381",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1413429_1415348",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1415393_1415893",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1415926_1416675",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1416726_1418006",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1418011_1419444",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1421489_1422043"),]
+
+gene_expression_otu_cscind_t <- as.data.frame(t(gene_expression_otu_cscind), stringsAsFactors = F)
+gene_expression_otu_cscind_t$Sample <- rownames(gene_expression_otu_cscind_t)
+features_metadata_cscind <- merge(gene_expression_sam_sub,gene_expression_otu_cscind_t, by = 'Sample')
+features_metadata_cscind_melt <- reshape2::melt(features_metadata_cscind, id.vars = c("Sample","Condition","time"))
+colnames(features_metadata_cscind_melt) <- c("Sample","Condition","time", "ID_gene", "exp")
+features_metadata_cscind_melt$genome <- unlist(lapply(strsplit(as.character(features_metadata_cscind_melt$ID_gene),'\\|'), `[`, 1))
+features_metadata_cscind_melt$exp <- as.numeric(features_metadata_cscind_melt$exp)
+features_metadata_cscind_melt$log_exp <- log2(as.numeric(features_metadata_cscind_melt$exp))
+features_metadata_cscind_melt$log_exp[is.infinite(features_metadata_cscind_melt$log_exp)] <- NA
+
+title_name <- 'C. scindens bai operon - gene expression (continuous)'
+features_metadata_cscind_melt_plot <- features_metadata_cscind_melt
+features_metadata_cscind_melt_plot$exp[features_metadata_cscind_melt_plot$exp == 0] <- NA
+features_metadata_cscind_melt_plot <- features_metadata_cscind_melt_plot[!features_metadata_cscind_melt_plot$Condition == 'Cdiff',]
+colors_kit<-c('#131344', '#70d3e0', '#1B77A5', '#6699FF',
+              "#A46480",  
+              '#F4A261','#E34F33','#E7B800')
+cscind_plot <- print(ggplot(data = features_metadata_cscind_melt_plot, 
+                            aes(x=time, y=(exp), color = ID_gene)) + 
+                       geom_line(alpha = 0.8,size = 0.65) +  
+                       geom_point(alpha = 0.8, size = 1) +
+                       facet_grid(.~Condition) +
+                       theme_minimal() +
+                       theme_bw() + labs(title = title_name, y = 'Gene expression', x = 'Time (h)') + 
+                       theme(title = element_text(size = 10),
+                             axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =1,face = "plain"),
+                             axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+                             axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+                             axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+                             panel.grid.minor = element_blank(), legend.position="bottom")+ 
+                       guides(fill=guide_legend(nrow= 3))+ 
+                       facet_wrap(.~Condition, scales = "free_x")+
+                       scale_color_manual(values=colors_kit, name="Bai-operon"))
+
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1411858_1413381" <= baiB
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1413429_1415348" <= baiC
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1415393_1415893" <= baiE
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1415926_1416675" <= baiA2
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1416726_1418006" <= baiF
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1418011_1419444" <= baiG
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457" <= baiH
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1421489_1422043" <= baiI
+
+# fold change of baiH gene
+features_metadata_cscind_melt_plot$exp[which(features_metadata_cscind_melt_plot$ID_gene == 'GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457' & 
+                                                 features_metadata_cscind_melt_plot$time == 49 &
+                                                 features_metadata_cscind_melt_plot$Condition == 'Cdiff_Csind')]/
+  features_metadata_cscind_melt_plot$exp[which(features_metadata_cscind_melt_plot$ID_gene == 'GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457' & 
+                                                 features_metadata_cscind_melt_plot$time == 4 &
+                                                 features_metadata_cscind_melt_plot$Condition == 'Cdiff_Csind')]
+
+summary(features_metadata_cscind_melt_plot$exp[which(features_metadata_cscind_melt_plot$ID_gene == 'GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457' &
+                                                       features_metadata_cscind_melt_plot$Condition == 'Cdiff_Csind')])
+```
+
+<!-- Expression toxin A, B and CdtA genes  -->
+## Gene expression of the virulence genes tcdA, tcdB and cdtA in C. difficile in (D) continuous culture .
+```{r}
+# C. difficile genes #####
+### toxin A, B and CdtA ####
+gene_expression_otu_cdiff <- gene_expression_otu[gene_expression_otu$ID_gene %in%
+                                                   c('Clostridioides_difficile_ATCC_9689_DSM_1296_genomic|CP011968.1_795277_803409',
+                                                     'Clostridioides_difficile_ATCC_9689_DSM_1296_genomic|CP011968.1_786827_793927',
+                                                  'Clostridioides_difficile_ATCC_9689_DSM_1296_genomic|CP011968.1_2869254_2869436'),]
+
+
+gene_expression_otu_cdiff_t <- as.data.frame(t(gene_expression_otu_cdiff), stringsAsFactors = F)
+gene_expression_otu_cdiff_t$Sample <- rownames(gene_expression_otu_cdiff_t)
+features_metadata_cdiff <- merge(gene_expression_sam_sub,gene_expression_otu_cdiff_t, by = 'Sample')
+features_metadata_cdiff_melt <- reshape2::melt(features_metadata_cdiff, id.vars = c("Sample","Condition","time"))
+colnames(features_metadata_cdiff_melt) <- c("Sample","Condition","time", "ID_gene", "exp")
+features_metadata_cdiff_melt$genome <- unlist(lapply(strsplit(as.character(features_metadata_cdiff_melt$ID_gene),'\\|'), `[`, 1))
+features_metadata_cdiff_melt$exp <- as.numeric(features_metadata_cdiff_melt$exp)
+features_metadata_cdiff_melt$log_exp <- log2(as.numeric(features_metadata_cdiff_melt$exp))
+features_metadata_cdiff_melt$log_exp[is.infinite(features_metadata_cdiff_melt$log_exp)] <- NA
+
+title_name <- "C. difficile oxin A, B and CdtA - gene expression (continuous)"
+
+features_metadata_cdiff_melt_plot <- features_metadata_cdiff_melt
+features_metadata_cdiff_melt_plot$exp[features_metadata_cdiff_melt_plot$exp == 0] <- NA
+colors_kit<-c( '#40a191', '#a9d3da','#86c98e')
+cdiff_plot2 <- print(ggplot(data = features_metadata_cdiff_melt_plot[!is.na(features_metadata_cdiff_melt_plot$exp),], 
+                           aes(x=time, y=(exp), color = ID_gene)) + 
+                      geom_line(alpha = 0.8,size = 0.65) +  
+                      geom_point(alpha = 0.8, size = 1) +
+                      facet_grid(.~Condition) +
+                      theme_minimal() +
+                      theme_bw() + labs(title = title_name, y = 'Gene expression', x = 'Time (h)') + 
+                      theme(title = element_text(size = 10),
+                            axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =1,face = "plain"),
+                            axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+                            axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+                            axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+                            panel.grid.minor = element_blank(), legend.position="bottom") + 
+                      guides(fill=guide_legend(nrow= 1))+ 
+                      facet_wrap(.~Condition, scales = "free_x")+
+                      scale_color_manual(values=colors_kit, name="Virulence genes"))
+
+
+```
+
+<!--PCA -->
+# Figure S5. Comparison of gene expression levels from control and treatment conditions by the projection of the first two components of a principal component analysis (PCA) using the samples from 
+## A) continuous culture. Gene expression profiles were log-transformed, centered and scaled prior to PCA analysis.
+```{r}
+
+##### metadata:
+sample_data_df <- data.frame(sample_data(gene_expression_phyloseq), stringsAsFactors = F)
+
+### Counts
+otu_table_df <-  as.data.frame(unclass(otu_table(gene_expression_phyloseq)), stringsAsFactors = F)
+
+otu_table_df_rowsum_0 = c(which(rowSums(otu_table_df)==0))
+otu_table_df_rowsum_0_list <- rownames(otu_table_df[otu_table_df_rowsum_0,])
+otu_table_df_rowsum_not_0 <- otu_table_df[! rownames(otu_table_df) %in% otu_table_df_rowsum_0_list,]
+otu_table_df_log <- log(otu_table_df_rowsum_not_0)
+otu_table_df_log$ID <- rownames(otu_table_df_log)
+
+##### Replace infinite values by log2(min value * 1e-2) for the PCA
+replace_val <- log((min(otu_table_df[otu_table_df >0 & !is.na(otu_table_df)]))*1e-2)
+otu_table_df_log_noinf2 <- otu_table_df_log %>% dplyr::mutate_all(function(x) ifelse(is.infinite(x), replace_val, x))
+rownames(otu_table_df_log_noinf2) <- otu_table_df_log_noinf2$ID
+otu_table_df_log_noinf2$ID <- NULL
+
+min(otu_table_df_log_noinf2[!is.na(otu_table_df_log_noinf2)])
+
+#Plotting scores of PC1 and PC2 with log transformation
+gene_expression_pca <- prcomp(t(otu_table_df_log_noinf2), center = T, sca=T)
+
+# ***************** ggplot way - w coloring *****************
+#library(ggplot2)
+dtp <- data.frame('time' = sample_data_df$time, 'Condition' = sample_data_df$Condition, gene_expression_pca$x[,1:2]) # the first two componets are selected (NB: you can also select 3 for 3D plottings or 3+)
+df_out <- as.data.frame(gene_expression_pca$x)
+percentage <- round(gene_expression_pca$sdev / sum(gene_expression_pca$sdev) * 100, 2)
+percentage <- paste0( colnames(df_out), " (", paste0(as.character(percentage), "%", ")"))
+
+manual_plot_colors =c("Cdiff" = "#92392F", "Cdiff_Csind" = "#11698E") 
+print(ggplot(data = dtp, aes(x = PC1, y = PC2, color = Condition)) +
+        geom_text_repel(aes(label = time),nudge_x = 0.04, size = 3.5, segment.alpha = 0.5) +  geom_point(size = 2, shape = 16)+
+        xlab(percentage[1]) + ylab(percentage[2]) +
+        scale_color_manual(values = manual_plot_colors)+
+        #labs(title = title) +
+        theme_bw()+
+        theme(plot.title = element_text(size=10), legend.position="bottom"))#+ stat_ellipse(type = "norm", linetype = 2))
+
+```
+

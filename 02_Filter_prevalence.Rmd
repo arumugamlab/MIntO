@@ -1,0 +1,195 @@
+---
+title: "Prevalence_16S"
+author: "Carmen Saenz and Camila Alvarez-Silva"
+date: "5/16/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+<!-- Load required Functions -->
+```{r, echo = FALSE, message=FALSE, warning = FALSE}
+functionpath <- "Functions/"
+source(file.path(functionpath, "_n_000_helper_functions.R"))
+source(file.path(functionpath, "_n_010_explore_ps_functions.R"))
+source(file.path(functionpath, "_n_020_alpha_diversity_functions.R"))
+source(file.path(functionpath, "_n_030_preprocess_filtering_functions.R"))
+source(file.path(functionpath, "_n_040_beta_diversity_functions.R"))
+source(file.path(functionpath, "_n_050_diff_abundance_functions.R"))
+source(file.path(functionpath, "_n_060_phylum_analysis_functions.R"))
+source(file.path(functionpath, "_n_070_Database_Comparasion_Function.R"))
+source(file.path(functionpath, "Dada_TaxonomyFunctions.R"))
+source(file.path(functionpath, "Dada_PlotFunctions.R"))
+```
+
+<!-- Set directories -->
+```{r}
+datapath <- "data/continuous_culture/"
+```
+
+<!-- Load metadata, Taxonomy and otu table -->
+# Metadata and otu abundances 
+```{r load data, echo = FALSE, message=FALSE, warning = FALSE}
+#Metadata
+samdf<-read.csv(file.path(datapath, "metadta_continuous_culture.csv"), header = TRUE, sep = "\t")
+row.names(samdf)<-samdf$Sample
+samdf <- samdf[samdf$Condition %in% c("Cdiff","Cdiff_Csind"),]
+samdf$group<-factor(samdf$Condition, levels = c("Cdiff","Cdiff_Csind"))
+samdf = samdf[order(rownames(samdf)),]
+samdf$time<-as.factor(samdf$time)
+#seqtab.noquim
+load(file.path(datapath, "Dada_Data/DenoisedData.RData"))
+seqtab.nochim<-subset(seqtab.nochim,row.names(seqtab.nochim)%in%row.names(samdf))
+seqtab.nochim = seqtab.nochim[order(rownames(seqtab.nochim)),]
+seqtab.nochim_t<-as.data.frame(t(seqtab.nochim))
+sample.names <- rownames(seqtab.nochim)
+```
+<!-- Taxonomy table  -->
+```{r}
+## Load both
+# Silva
+load(paste0(datapath, "Dada_Silva_80/Taxonomy.RData"))
+taxa.species_silva_df <- as.data.frame(taxa.species)
+taxa.species_silva_difficile <- rownames(taxa.species_silva_df[which(taxa.species_silva_df$Species == 'difficile'),])
+
+# RDP
+load(paste0(datapath, "Dada_RDP_80/Taxonomy.RData"))
+taxa.species_rdp_df <- as.data.frame(taxa.species)
+taxa.species_rdp_scindens <- rownames(taxa.species_rdp_df[which(taxa.species_rdp_df$Species == 'scindens'),])
+
+# Silva - Add C. scindens annotation
+taxa.species_silva_df$Species[which(rownames(taxa.species_silva_df) == taxa.species_rdp_scindens)] <- 'scindens'
+taxa.species <- as.matrix(taxa.species_silva_df)
+
+rm(taxa.species_silva_df)
+rm(taxa.species_rdp_df)
+rm(taxa.species_silva_difficile)
+rm(taxa.species_rdp_scindens)
+
+```
+
+<!-- Raw counts - filter by prevalence -->
+```{r}
+seqtab.nochim_df <- as.data.frame(t(seqtab.nochim))
+# Filter by PREVALENCE
+prev_val =  3# Choose value ********************************************************************************
+if (prev_val>0){
+      print(paste('Prevalence value =', prev_val))
+      cond_list = list()
+      metadata_cond <- unique(samdf$Condition[samdf$Condition != 'F'])
+      for (c in (1:length(metadata_cond))){
+        cond = metadata_cond[c]
+        sam_cond <- samdf$Sample[samdf$Condition == cond]
+        # https://www.biostars.org/p/163820/
+        seqtab.nochim_cond <- seqtab.nochim_df[,names(seqtab.nochim_df) %in% sam_cond]
+        cntNonZero<- apply(seqtab.nochim_cond, 1, function(x) sum(x != 0))
+        feature_cond <- rownames(seqtab.nochim_cond[which(cntNonZero >=prev_val),]) # at least in X timepoints
+        seqtab.nochim_cond$coord <- rownames(seqtab.nochim_cond)
+        seqtab.nochim_cond_sub <- seqtab.nochim_cond[seqtab.nochim_cond$coord %in% feature_cond,] # filter by number of times is expressed
+        seqtab.nochim_cond_sub <- as.data.frame(seqtab.nochim_cond_sub %>%
+                                                              dplyr::select(coord, everything()))
+        #seqtab.nochim_cond_sub <- seqtab.nochim_cond_sub[rownames(seqtab.nochim_df) %in% genes_sub,] # filter by expression
+        cond_list[[c]]<-seqtab.nochim_cond_sub
+      }
+      #https://stackoverflow.com/questions/48699066/r-merge-list-of-three-dataframes-into-single-dataframe-with-id-in-first-column
+      #dplyr/purrr
+      seqtab.nochim_prev_df <- purrr::reduce(cond_list, full_join, by = "coord") %>% replace(., is.na(.), 0)
+      rownames(seqtab.nochim_prev_df) <- seqtab.nochim_prev_df$coord
+      seqtab.nochim_prev_df$coord <- NULL
+    } else{
+      seqtab.nochim_prev_df <- seqtab.nochim_df
+      print('No filtering by prevalence')
+      }
+print(dim(seqtab.nochim_df))
+print(dim(seqtab.nochim_prev_df))
+print(min(seqtab.nochim_prev_df[seqtab.nochim_prev_df >0 & !is.na(seqtab.nochim_prev_df)]))
+
+    
+```
+
+<!--Phyloseq  Objects - filtered by prevalence--->
+```{r Phyloseq  Objects-, echo = FALSE, message=FALSE}
+# Create a Phyloseq object
+seqtab.nochim_prev <- t(seqtab.nochim_prev_df)
+ps_prev<- phyloseq(otu_table(seqtab.nochim_prev, taxa_are_rows=FALSE), 
+               sample_data(samdf), 
+               tax_table(taxa.species))
+
+## get ASVs names
+namesASV<-as.character(get_taxon_names(as.data.frame(unclass(tax_table(ps_prev)))))
+
+seqtab.nochim_prev_names<-seqtab.nochim_prev
+colnames(seqtab.nochim_prev_names)<-namesASV
+
+## Filter Phyloseq object - Remove ASVs with no annotation at Phylum level
+ps_prev<- subset_taxa(ps_prev, !is.na(Phylum))
+extra_level="Genus"
+ps_prev_extra<-tax_glom(ps_prev, taxrank = extra_level, NArm = TRUE)
+
+## Phyloseq object including species
+ps_prev_Species<-tax_glom(ps_prev, taxrank = "Species", NArm = TRUE)
+
+## Genus names from Phyloseq object 
+names_genus<-as.character(get_taxon_names(as.data.frame(unclass(tax_table(ps_prev_extra)))))
+seq_genus_data = dplyr::data_frame(name = names_genus,
+                                seq = getSequences((unclass(otu_table(ps_prev_extra)))))
+
+## Taxa names from Phyloseq object 
+taxa_names(ps_prev)<-paste(get_taxon_names(as.data.frame(unclass(tax_table(ps_prev)))),1:ntaxa(ps_prev), sep="_")
+taxa_names(ps_prev_extra)<-get_taxon_names(as.data.frame(unclass(tax_table(ps_prev_extra))))
+taxa_names(ps_prev_Species)<-get_taxon_names(as.data.frame(unclass(tax_table(ps_prev_Species))))
+
+#saveRDS(ps_prev, file = paste0(datapath, '/16SrRNA.ASVs.Silva.Prev_filter.rds'))
+```
+
+<!--Phyloseq  Objects - Raw counts filtered by prevalence and relative to 16SrRNA copy number--->
+```{r Phyloseq  Objects-, echo = FALSE, message=FALSE}
+# Create a Phyloseq object
+## Copy number- 16S rRNA: RDPClassifier_16S_trainsetNo18_rawtrainingdata/rrnDB-5.6_copynumber_RDP_062020.txt
+
+ps_ASV<- ps_prev
+#View(as.data.frame(taxa_names(ps_ASV)))
+
+# Change names in the Phyloseq objects (from sequences to ASV_X)
+taxa_names(ps_ASV)<-paste("ASV_", 1:ntaxa(ps_ASV), sep = "")
+
+# Genus level - RDP DB rrnDB-5.6_copy.....tsv - median
+#ASV_1 == AB075770.1_Clostridioides_difficile
+otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_1")] <- (otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_1")])/12 # Clostridium XI
+#ASV_5 == AF262238.1_Clostridium_scindens
+otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_5")] <- (otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_5")])/4 # Clostridium XlVa
+# #ASV_4 == Staphylococcus argenteus/aureus/capitis/caprae/devriesei/epidermidis/equorum/haemolyticus/hominis/lugdunensis/pasteuri/petrasii/phage/saccharolyticus/saprophyticus/schweitzeri/simiae/warneri_4
+otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_2")] <- (otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_2")])/4 # Ralstonia
+otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_3")] <- (otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_3")])/4#Burkholderiales
+otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_4")] <- (otu_table(ps_ASV)[,which(colnames(otu_table(ps_ASV)) == "ASV_4")])/1 # Pseudolabrys
+
+## Filter Phyloseq object - Remove ASVs with no annotation at Phylum level
+ps_ASV<- subset_taxa(ps_ASV, !is.na(Phylum))
+ps_ASV_extra<-tax_glom(ps_ASV, taxrank = extra_level, NArm = TRUE)
+
+## Phyloseq object including species
+ps_ASV_Species<-tax_glom(ps_ASV, taxrank = "Species", NArm = TRUE)
+
+## Genus names from Phyloseq object 
+names_genus<-as.character(get_taxon_names(as.data.frame(unclass(tax_table(ps_ASV_extra)))))
+seq_genus_data = dplyr::data_frame(name = names_genus,
+                                seq =   getSequences((unclass(otu_table(ps_ASV_extra)))))
+
+## Taxa names from Phyloseq object 
+taxa_names(ps_ASV)<-paste(get_taxon_names(as.data.frame(unclass(tax_table(ps_ASV)))),1:ntaxa(ps_ASV), sep="_")
+taxa_names(ps_ASV_extra)<-get_taxon_names(as.data.frame(unclass(tax_table(ps_ASV_extra))))
+taxa_names(ps_ASV_Species)<-get_taxon_names(as.data.frame(unclass(tax_table(ps_ASV_Species))))
+
+saveRDS(ps_prev, file = paste0(datapath, '/16SrRNA.ASVs.Silva.Prev_filter.16S_copy_numb.rds'))
+```
+
+<!--phyloseq objects Raw counts filtered by prevalence and relative to 16SrRNA copy number - Relative abundance -->
+```{r load data}
+
+ps_ASV_ra<-transform_sample_counts(ps_ASV, function(x){x/sum(x)})
+saveRDS(ps_ASV_ra, file = paste0(datapath, '/16SrRNA.ASVs.Silva.Prev_filter.16S_copy_numb.RA.rds'))
+
+ps_ASV_extra_ra<-transform_sample_counts(ps_ASV_extra, function(x){x/sum(x)})
+```
+

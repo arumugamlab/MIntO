@@ -1,0 +1,415 @@
+---
+title: "Validation experiments - CsONS"
+output: html_document
+---
+
+#<!-- Load required packages -->
+```{r}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(data.table)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+```
+
+#<!-- Define paths -->
+```{r}
+datapath <- "data/CsOSM_culture/"
+```
+
+
+
+# Figure 3. Bile acid-independent effect of C. scindens overnight spent medium (CsOSM) in TcdA/TcdB toxin expression and growth of C. difficile. 
+## A) Concentration of TcdA/B measured from 16 to 168 hours using ELISA. n=3 independent experiments. 
+```{r}
+csosm_fig3a <- as.data.frame(fread(paste0(datapath, 'Figure3A_elisa_tdcA_B.csv'),  header = T), stringsAsFactors = F)
+
+#csosm_dna <- subset(csosm_fig3a, select=c("time","media", "condition", "DNA_1", "DNA_2", "DNA_3"))
+
+#csosm_elisa <- subset(csosm_fig3a, select=c("time","media", "condition", "Elisa_1_ng_1ml", "Elisa_2_ng_1ml", "Elisa_3_ng_1ml"))
+
+#### DNA ng - copy number Cdiff - median and sd computation #####
+csosm_dna_m <- subset(csosm_fig3a, select=c("time","media", "condition", "DNA_1", "DNA_2", "DNA_3"))
+medianWithoutNA<-function(x) {
+  median(x[which(!is.na(x))])
+}
+csosm_dna_m$DNA_median <- apply(csosm_dna_m[,4:6], 1,medianWithoutNA)
+stdWithoutNA<-function(x) {
+  sd(x[which(!is.na(x))])
+}
+seWithoutNA<-function(x) {
+  sd(x[which(!is.na(x))])/sqrt(length(x))
+}
+csosm_dna_m$DNA_std <- apply(csosm_dna_m[,4:6], 1,stdWithoutNA)
+csosm_dna_m$DNA_se <- apply(csosm_dna_m[,4:6], 1,seWithoutNA)
+
+#### Elisa - tcdA/B ng in 1 ml - median and sd computation #####
+csosm_elisa_m <- subset(csosm_fig3a, select=c("time","media", "condition", "Elisa_1_ng_1ml", "Elisa_2_ng_1ml", "Elisa_3_ng_1ml"))
+medianWithoutNA<-function(x) {
+  median(x[which(!is.na(x))])
+}
+csosm_elisa_m$Elisa_median <- apply(csosm_elisa_m[,4:6], 1,medianWithoutNA)
+stdWithoutNA<-function(x) {
+  sd(x[which(!is.na(x))])
+}
+seWithoutNA<-function(x) {
+  sd(x[which(!is.na(x))])/sqrt(length(x))
+}
+csosm_elisa_m$Elisa_sd <- apply(csosm_elisa_m[,4:6], 1,stdWithoutNA)
+csosm_elisa_m$Elisa_se <- apply(csosm_elisa_m[,4:6], 1,seWithoutNA)
+
+
+### tcdA/B ng in 1 ml relative to Cdiff cells ####
+# merge dna median and 3 replicates toxin
+csosm_data <- merge(csosm_dna_m, csosm_elisa_m, by=c('time',  'media', 'condition'))
+csosm_data$ratio_1 <- (csosm_data$Elisa_1_ng_1ml/csosm_data$DNA_1)*1e6
+csosm_data$ratio_2 <- (csosm_data$Elisa_2_ng_1ml/csosm_data$DNA_2)*1e6
+csosm_data$ratio_3 <- (csosm_data$Elisa_2_ng_1ml/csosm_data$DNA_3)*1e6
+medianWithoutNA<-function(x) {
+  median(x[which(!is.na(x))])
+}
+csosm_data$ratio_median <- apply(csosm_data[,16:18], 1,medianWithoutNA)
+stdWithoutNA<-function(x) {
+  sd(x[which(!is.na(x))])
+}
+seWithoutNA<-function(x) {
+  sd(x[which(!is.na(x))])/sqrt(length(x))
+}
+csosm_data$ratio_sd <- apply(csosm_data[,16:18], 1,stdWithoutNA)
+csosm_data$ratio_se <- apply(csosm_data[,16:18], 1,seWithoutNA)
+
+csosm_data$time <- as.numeric(as.character(csosm_data$time))
+# FILTER
+#csosm_data <- csosm_data[csosm_data$time > 24,]
+
+# Plot by media - MEDIAN - scale y axis to log 10 ####
+manual_plot_colors =c("Cdiff" = "#923b2f", "Cdiff_Csind_sup" = "#87ABC3")
+
+toxin_cell_plot <- ggplot(csosm_data, aes(x=time, y=(ratio_median), group = condition, color = condition))+
+  geom_point(alpha=0.5) + geom_line(size=1) +
+  geom_errorbar(aes(ymin=(ratio_median-ratio_se), ymax=(ratio_median+ratio_se)), width=.1)+
+  theme_bw() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "Time (hours)", y = "TcdA/TcdB ng per 1e6 cells") +
+  theme(title = element_text(size = 10),
+        axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =1,face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), 
+        legend.text=element_text(size=8), legend.position = "bottom")+ 
+  guides(color=guide_legend(nrow= 1))+ #facet_grid(media~., scales = 'free_y')+
+  #labs(title = title) +
+  scale_color_manual(values = manual_plot_colors, name="Conditions") + scale_y_continuous(trans = 'log10')
+
+##############################################
+# Calculate fold change
+# Melt df #####
+csosm_data_melt <- subset(csosm_data, select=c("time","media", "condition","ratio_1", "ratio_2", "ratio_3"))
+csosm_data_melt <- melt(csosm_data_melt, id.vars = c("time","media", "condition"))
+colnames(csosm_data_melt)[4] = "replicate"
+colnames(csosm_data_melt)[5] = "tcdA_tcdB_ng_cell_count"
+# TcdA/ tcdB per cell
+## Cdiff
+csosm_data_melt$tcdA_tcdB_ng_cell_count[(csosm_data_melt$condition=='Cdiff' & csosm_data_melt$time=='18')]/csosm_data_melt$tcdA_tcdB_ng_cell_count[(csosm_data_melt$condition=='Cdiff' & csosm_data_melt$time=='168')] # 1.473444
+## Cdiff_Csind
+csosm_data_melt$tcdA_tcdB_ng_cell_count[(csosm_data_melt$condition=='Cdiff_Csind_sup' & csosm_data_melt$time=='18')]/csosm_data_melt$tcdA_tcdB_ng_cell_count[(csosm_data_melt$condition=='Cdiff_Csind_sup' & csosm_data_melt$time=='168')] # 3.819289
+```
+
+## B) Cell counts from C. difficile batch cultures treated with different concentrations of freeze-dried CsOSM for 40 hours. Unpaired two-sided Student’s t-tests were performed to compare the C. difficile cell counts between each concentration of CsOSM and control group. *** adjusted P < 0.001 and **** adjusted P < 0.0001. n=3 independent experiments.
+
+```{r}
+csosm_cellcount <- as.data.frame(fread(paste0(datapath, 'Figure3B_cell_count_mg_ml.csv'),  header = T), stringsAsFactors = F)
+
+csosm_cellcount_melt <- reshape2::melt(csosm_cellcount, id.vars = c("Cell_count"))
+csosm_cellcount_melt$value_scient <- as.character(scales::scientific(csosm_cellcount_melt$value))
+csosm_cellcount_melt$value[csosm_cellcount_melt$value == 0] <- NA
+csosm_cellcount_melt$value_orig <- csosm_cellcount_melt$value
+csosm_cellcount_melt$value <- (csosm_cellcount_melt$value_orig/1e6)
+
+csosm_cellcount_melt2 <- plyr::ddply(csosm_cellcount_melt,~variable,summarise,median=median(value),sd=sd(value))
+csosm_cellcount_melt2$median_scient <- as.character(scales::scientific(csosm_cellcount_melt2$median))
+
+csosm_cellcount_melt2$Condition <- 'csosm_cellcount'
+csosm_cellcount_melt2$Condition[csosm_cellcount_melt2$variable != 'Control' ] <- 'csosm_cellcount_Cscind_sup'
+
+
+# Plot by Condition  ####
+manual_plot_colors =c("csosm_cellcount" = "#D46C4E", "csosm_cellcount_Cscind_sup" = "#87ABC3")
+
+cond_order <- c("Control", "1.25", "2.5", "5", "10", "20") 
+csosm_cellcount_melt2$variable <- factor(csosm_cellcount_melt2$variable, levels=cond_order)
+
+cell_count_plot <- ggplot(csosm_cellcount_melt2, aes(x=variable, y=(median), stat="identity", alpha=0.2))+
+  geom_bar(aes(y=(median), fill = Condition),stat="identity", alpha=1, position = "dodge") +
+  geom_errorbar( aes(x=variable, ymin=median-sd, ymax=median+sd), width=0.2, colour="black", alpha=0.9, size=0.5)+
+  #geom_text(aes(label=median_scient), position=position_dodge(width=0.9), vjust=-0.9, size=2.5)+ 
+  theme_bw() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "C. scindens overnight spent medium  concentration (mg/mL)", y = "Cell count (1e6/ mL)") +
+  theme(title = element_text(size = 10),
+        axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =0.5,face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), 
+        legend.text=element_text(size=8), legend.position = "bottom")+ 
+  guides(fill=guide_legend(nrow= 1))+ 
+  #facet_wrap(media~.)+
+  #labs(title = title) +
+  scale_fill_manual(values = manual_plot_colors, name="Condition")
+
+
+csosm_cellcount_melt3 <- csosm_cellcount_melt[,c("Cell_count", "variable", "value", "value_scient")]
+names(csosm_cellcount_melt3) <- c("Cell_count", "condition", "cell_numb", "value_scient")
+csosm_cellcount_melt3 %>%
+  group_by(condition) %>%
+  get_summary_stats(cell_numb, type = "mean_sd")
+
+
+
+cond_order <- c("Control", "1.25", "2.5", "5", "10", "20") 
+csosm_cellcount_melt3$condition <- factor(csosm_cellcount_melt3$condition, levels=cond_order)
+count_cell_order <- c("Total cell count1", "Total cell count2", "Total cell count3")
+csosm_cellcount_melt3$Cell_count <- factor(csosm_cellcount_melt3$Cell_count, levels=count_cell_order)
+
+stat.test <- csosm_cellcount_melt3 %>%
+  pairwise_t_test(
+    cell_numb~condition, paired = FALSE,
+    p.adjust.method = "fdr"
+  )
+stat.test
+
+# Create the plot
+myplot <- ggboxplot(csosm_cellcount_melt3, x = "condition", y = "cell_numb", add = "point")
+# Add statistical test p-values
+stat.test <- stat.test %>% add_xy_position(x = "condition")
+myplot + stat_pvalue_manual(stat.test, label = "p.adj.signif")
+
+t.test(csosm_cellcount_melt2$median, conf.level = 0.95)
+
+
+
+cell_count_plot <- ggplot(csosm_cellcount_melt2, aes(x=variable, y=(median), stat="identity", alpha=0.2))+
+  geom_bar(aes(y=(median), fill = Condition),stat="identity", alpha=1, position = "dodge") +
+  geom_errorbar( aes(x=variable, ymin=median-sd, ymax=median+sd), width=0.2, colour="black", alpha=0.9, size=0.5)+
+  #geom_text(aes(label=median_scient), position=position_dodge(width=0.9), vjust=-0.9, size=2.5)+ 
+  theme_bw() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "C. scindens overnight spent medium  concentration (mg/mL)", y = "Cell count (1e6/ mL)") +
+  theme(title = element_text(size = 10),
+        axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =0.5,face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), 
+        legend.text=element_text(size=8), legend.position = "bottom")+ 
+  guides(fill=guide_legend(nrow= 1))+ 
+  #facet_wrap(media~.)+
+  #labs(title = title) +
+  scale_fill_manual(values = manual_plot_colors, name="Condition")
+
+stat.test_sub <- stat.test[stat.test$group1 =='Control',]
+
+print(cell_count_plot + stat_pvalue_manual(stat.test_sub, label = "p.adj.signif"))
+```
+
+# Figure S6. Proteomics-based quantification of TcdA and TcdB toxin abundance in C. difficile cultured in two different media using culture flasks: (i) Standard nutritional medium feed (SF) with pancreatic/bile juice (PJ) and (ii) Brain heart infusion (BHI) medium. Matching control media without C. difficile cells are also shown.
+
+```{r}
+prot_media <- as.data.frame(fread(paste0(datapath, 'FigureS6_Proteomics_SF_BHI_media.csv'),  header = T), stringsAsFactors = F)
+
+prot_media_melt <- reshape2::melt(prot_media, id.vars = c("media","Condition"))
+prot_media_melt$value[prot_media_melt$value == 0] <- NA
+
+colors_kit<-c('tcdA' = '#40a191', 'tcdB' = '#86c98e', 'tcdC' = '#a9d3da')
+# Plot by Condition
+cond_order <- c("Negative control", "SF", "PJ", "SF + PJ", "C. difficile (SF+PJ)", "BHI media", "C. difficile (BHI)")
+media_order <- c("Control", "SHIME", "BHI")
+prot_media_melt$Condition <- factor(prot_media_melt$Condition, levels=cond_order)
+prot_media_melt$media <- factor(prot_media_melt$media, levels=media_order)
+
+prot_media_melt <- prot_media_melt[prot_media_melt$Condition %in% c("SF + PJ", "C. difficile (SF+PJ)", "BHI media", "C. difficile (BHI)"),]
+prot_media_melt <- prot_media_melt[prot_media_melt$variable %in% c("tcdA", "tcdB"),]
+
+ggplot(prot_media_melt, aes(x=Condition, y=value, group = variable))+
+  geom_bar(aes(y=value, fill = variable),stat="identity", alpha=1, position = "dodge") +
+  theme_bw() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "", y = "Intesity") +
+  theme(title = element_text(size = 10),
+        axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =0.5,face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), 
+        legend.text=element_text(size=8), legend.position = "bottom")+ 
+  guides(fill=guide_legend(nrow= 1))+ 
+  #facet_wrap(media~.)+
+  #labs(title = title) +
+  scale_fill_manual(values = colors_kit, name="Condition")
+
+```
+
+# Figure S7. 
+## A) Quantification of bile acids: CA, CDCA, DCA and LCA in Brain heart infusion (BHI) and CsOSM, using targeted metabolomics (n=3). 
+```{r}
+bhi_metab_df <- as.data.frame(fread(paste0(datapath, 'Figure7A_target_metaB_BAs_nM.csv'),  header = T), stringsAsFactors = F)
+bhi_metab_t_df <- data.frame(t(bhi_metab_df))
+names(bhi_metab_t_df) <- bhi_metab_t_df[1,]
+bhi_metab_t_df <- bhi_metab_t_df[-1,]
+bhi_metab_t_df$samples <- rownames(bhi_metab_t_df)
+
+bhi_metab_melt <- reshape2::melt(bhi_metab_t_df, id.vars = c("samples"))
+bhi_metab_melt$value_scient <- as.numeric(bhi_metab_melt$value)
+bhi_metab_melt$value_scient[bhi_metab_melt$value_scient == 0] <- NA
+bhi_metab_melt$samplesID <-  unlist(lapply(strsplit(as.character(bhi_metab_melt$samples),'\\.'), `[`, 1))
+bhi_metab_melt$samples_repl <-  unlist(lapply(strsplit(as.character(bhi_metab_melt$samples),'\\.'), `[`, 2))
+
+bhi_metab_melt2 <- plyr::ddply(bhi_metab_melt,~samplesID+variable,summarise,median=median(value_scient),sd=sd(value_scient))
+bhi_metab_melt2$median_scient <- as.character(scales::scientific(bhi_metab_melt2$median))
+
+# Significance
+bhi_metab_melt3 <- bhi_metab_melt[c("samples","samplesID", "samples_repl", "variable", "value_scient")]
+names(bhi_metab_melt3) <- c("samples","samplesID", "samples_repl", "BA", "value_scient")
+bhi_metab_melt3$BA <- as.character(bhi_metab_melt3$BA)
+#names(bhi_metab_melt3) <- c("Cell_count", "condition", "cell_numb", "value_scient")
+
+bhi_metab_melt3_noNA <- bhi_metab_melt3
+bhi_metab_melt3_noNA$value_scient[is.na(bhi_metab_melt3_noNA$value_scient)] <- 0
+bhi_metab_melt3_noNA %>%
+  dplyr::group_by(samplesID,BA) %>%
+  rstatix::get_summary_stats(value_scient, type = "mean_sd")
+
+bhi_metab_melt3_noNA$sample_BA <- paste(bhi_metab_melt3_noNA$samplesID,bhi_metab_melt3_noNA$BA, sep="_")
+
+samples_order <- c("BHI_CA", "BHI_CDCA", "BHI_DCA", "BHI_LCA",
+                   "CsOSM_CA", "CsOSM_CDCA", "CsOSM_DCA", "CsOSM_LCA")
+
+bhi_metab_melt3_BA <- bhi_metab_melt3[bhi_metab_melt3$BA %in% c('CA', 'CDCA','DCA', 'LCA'),]
+bhi_metab_melt3_BA$sample_BA <- paste(bhi_metab_melt3_noNA$samplesID,bhi_metab_melt3_noNA$BA, sep="_")
+bhi_metab_melt3_BA$sample_BA <- factor(bhi_metab_melt3_BA$sample_BA, levels=samples_order)
+BA_order <- c("CA", "CDCA", "DCA")#, "LCA")
+bhi_metab_melt3_BA$BA <- factor(bhi_metab_melt3_BA$BA, levels=BA_order)
+
+stat.test <- bhi_metab_melt3_noNA %>%
+  pairwise_t_test(
+    value_scient~sample_BA, paired = F,
+    p.adjust.method = "fdr"
+  )
+stat.test
+
+stat.test$group1_group1_cond <- paste(unlist(lapply(strsplit(as.character(stat.test$group1),'\\_'), `[`, 1)), unlist(lapply(strsplit(as.character(stat.test$group2),'\\_'), `[`, 1)), sep='_')
+stat.test$group1_group1_BA <- paste(unlist(lapply(strsplit(as.character(stat.test$group1),'\\_'), `[`, 2)), unlist(lapply(strsplit(as.character(stat.test$group2),'\\_'), `[`, 2)), sep='_')
+stat.test_filt <- stat.test[stat.test$group1_group1_cond =='BHI_CsOSM' & stat.test$group1_group1_BA %in% c('CA_CA', 'CDCA_CDCA', 'DCA_DCA', 'LCA_LCA'),]
+
+
+# Create the plot
+bhi_metab_melt3_BA <- bhi_metab_melt3[bhi_metab_melt3$BA %in% c('CA', 'CDCA','DCA', 'LCA'),]
+bhi_metab_melt3_BA %>%
+  dplyr::group_by(samplesID,BA) %>%
+  rstatix::get_summary_stats(value_scient, type = "mean_sd")
+
+
+#myplot <- ggboxplot(bhi_metab_melt3, x = "variable", y = "value_scient", add = "point")
+myplot <- ggboxplot(bhi_metab_melt3_BA, x="BA", y="value_scient", fill="samplesID", add = "point")
+
+manual_plot_colors =c("BHI" = "#CD7A3B", "CsOSM" = "#5E6BC4")
+
+bhi_metab_melt3_BA$value_scient_nm <- (bhi_metab_melt3_BA$value_scient)*1000000
+metaB_BAs_plot <-ggplot(bhi_metab_melt3_BA, aes(x=BA, y=value_scient_nm, fill=samplesID)) + 
+  geom_boxplot()+
+  geom_point(shape = 21, position = position_jitterdodge(jitter.width = 0)) +
+  labs(x = "Bile acids (BAs)", y = "Concentration (fM)") +
+  scale_x_discrete("Bile acids (BAs)", drop = FALSE)+
+  #geom_dotplot(binaxis='y', stackdir='center', position = position_dodge(0.75)) +
+  theme_bw() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + 
+  theme(title = element_text(size = 10),
+        axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =0.5,face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+        axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+        panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), 
+        legend.text=element_text(size=8), legend.position = "bottom")+ 
+  guides(fill=guide_legend(nrow= 1))+ 
+  #facet_wrap(media~.)+
+  #labs(title = title) +
+  scale_fill_manual(values = manual_plot_colors, name="Condition")+
+  scale_y_continuous(minor_breaks = seq(0 , 100, 20), breaks = seq(0 , 100, 20))
+
+print(metaB_BAs_plot)
+
+```
+
+## B) Optical density (OD) at 595 nm of C. difficile mono-cultures in a medium with the supplement of different concentrations of secondary bile acid DCA for 71 hours.
+```{r}
+od_ba_df_melt_metadata <- as.data.frame(fread(paste0(datapath, 'Figure7B_OD_BAs.csv'),  header = T), stringsAsFactors = F)
+
+DCA_conc_order <- c("CK+","0.005","0.01","0.02","0.04","0.08","0.16","0.31","0.63","1.25","CK-")
+od_ba_df_melt_metadata$DCA_concentration_mM <- factor(od_ba_df_melt_metadata$DCA_concentration_mM, levels=DCA_conc_order)
+
+od_ba_df_melt_metadata$hours <- (od_ba_df_melt_metadata$minutes/60)
+
+manual_plot_colors =c("CK+"='#131344',
+                      "0.005" = '#70d3e0',
+                      "0.01"= '#1B77A5',
+                      "0.02" = '#6699FF',
+                      "0.04" = "#A46480",
+                      "0.08" = '#F4A261',
+                      "0.16" = '#E34F33',
+                      "0.31" = '#E7B800',
+                      "0.63" = "#CD7A3B",
+                      "1.25" = "#5E6BC4",
+                      "CK-" = "#B2B2BD")
+
+OD_DCA_plot <- ggplot(data=od_ba_df_melt_metadata, aes(x=hours, group = DCA_concentration_mM)) + #, color = DCA_concentration_mM)) +
+        geom_line(aes(y=value, color = DCA_concentration_mM),stat="identity",size=0.8) +
+        #geom_point(aes(y=value))+
+        #geom_bar(aes(y=RA_sum, fill = taxa_ID),stat="identity", alpha=.7) +
+        theme_bw() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "Time (hours)", y = "OD") +
+        theme(title = element_text(size = 10),
+              axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =1,face = "plain"),
+              axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+              axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+              axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+              panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(), 
+              legend.text=element_text(size=8), legend.position = "right")+ 
+        guides(color=guide_legend(ncol= 1))+
+        scale_color_manual(values = manual_plot_colors, name="DCA_concentration")
+
+OD_DCA_plot
+```
+
+#Figure S8. TEM images of C. difficile mono-culture and C. difficile mono-culture treated with CsOSM. 
+## B) Counting three types of cell morphology at 10 μm resolution: normal vegetative cells, elongated vegetative cells, and spores. We did not count dead cells - as they were only fragments of cells, it was not possible to count them reliably. The table corresponds to total cells and the percentage (mean and standard deviation) of the three types of morphology cells in the images (n=3, Student’s t-test, **** adjusted P < 0.0001). 
+```{r}
+
+count_nodead<-as.data.frame(fread(paste0(datapath, 'Figure8_Cell_count_ControlvsTreatment.csv'),  header = T), stringsAsFactors = F)
+
+# Exclude dead cells
+count_nodead <- count_nodead[,c("Condition", "sample_ID", "normal_vegetative_cells", "elongated_vegetative_cells", "spores", "total_cells")]
+count_nodead$total_cells <- rowSums(count_nodead[,c("normal_vegetative_cells", "elongated_vegetative_cells", "spores")])
+count_nodead_total <- count_nodead[,c("Condition", "sample_ID","total_cells")]
+
+count_nodead_melt <- reshape2::melt(count_nodead, id.vars = c("Condition", "sample_ID"))
+names(count_nodead_melt) <- c("Condition", "sample_ID", "cell_type", "value")
+count_nodead_melt$value_scient <- as.character(scales::scientific(count_nodead_melt$value))
+count_nodead_melt <- merge(count_nodead_melt, count_nodead_total, by=c("Condition", "sample_ID"))
+count_nodead_melt$value_perc <- (count_nodead_melt$value*100)/count_nodead_melt$total_cells
+
+plyr::ddply(count_nodead_melt,~Condition+cell_type,summarise,median=mean(value_perc),sd=sd(value_perc))
+
+plyr::ddply(count_nodead_melt,~Condition+cell_type,summarise,median=mean(value),sd=sd(value))
+
+count_nodead_melt %>%
+  group_by(Condition, cell_type) %>%
+  get_summary_stats(value_perc, type = "mean_sd")
+
+
+count_nodead_melt$cond_cell_type <- paste(count_nodead_melt$Condition, count_nodead_melt$cell_type, sep='|')
+stat.test <- count_nodead_melt %>%
+  pairwise_t_test(
+    value_perc~cond_cell_type, paired = FALSE,
+    p.adjust.method = "fdr"
+  )
+stat.test
+
+stat.test$group1_group1_cond <- paste(unlist(lapply(strsplit(as.character(stat.test$group1),'\\|'), `[`, 1)), unlist(lapply(strsplit(as.character(stat.test$group2),'\\|'), `[`, 1)), sep='_')
+stat.test$group1_group1_BA <- paste(unlist(lapply(strsplit(as.character(stat.test$group1),'\\|'), `[`, 2)), unlist(lapply(strsplit(as.character(stat.test$group2),'\\|'), `[`, 2)), sep='_')
+stat.test_filt <- stat.test[stat.test$group1_group1_cond =='Cdiff+Cscind_Cdiff' & stat.test$group1_group1_BA %in% c('elongated_vegetative_cells_elongated_vegetative_cells', 'normal_vegetative_cells_normal_vegetative_cells', 'spores_spores'),]
+```
+

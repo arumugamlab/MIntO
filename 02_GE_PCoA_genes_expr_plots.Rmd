@@ -1,0 +1,214 @@
+---
+title: "metaG metaT integration - TPM profiles - gene expression"
+author: "Carmen Saenz"
+date: "5/16/2021"
+output: html_document
+---
+
+<!-- Load required packages -->
+```{r}
+if("dplyr" %in% rownames(installed.packages()) == FALSE) {install.packages("dplyr")}
+library(dplyr)
+
+if("data.table" %in% rownames(installed.packages()) == FALSE) {install.packages("data.table")}
+library(data.table)
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+if("phyloseq" %in% rownames(installed.packages()) == FALSE) {BiocManager::install("phyloseq")}
+library(phyloseq)
+
+if("ggrepel" %in% rownames(installed.packages()) == FALSE) {install.packages("ggrepel")}
+library(ggrepel)
+if("ggplot2" %in% rownames(installed.packages()) == FALSE) {install.packages("ggplot2")}
+library(ggplot2)
+```
+
+<!-- Set directories -->
+```{r}
+datapath <- "data/batch_culture/"
+```
+
+<!-- Gene expression profile -->
+```{r}
+tpm_profile_genes <-paste0(datapath, "GE.rds")
+
+# # Expression
+# ## Phyloseq object
+gene_expression_phyloseq <- readRDS(tpm_profile_genes)
+
+# ## Metadata
+gene_expression_sam <- data.frame(sample_data(gene_expression_phyloseq), stringsAsFactors = F)
+gene_expression_sam_sub <- subset(gene_expression_sam, select=c("sample","condition","time"))
+names(gene_expression_sam_sub) <- c("Sample","Condition","time")
+
+# ## OTUs(Expression)
+gene_expression_otu <- as.data.frame(unclass(otu_table(gene_expression_phyloseq)), stringsAsFactors = F)
+gene_expression_otu$ID_gene <- rownames(gene_expression_otu)
+```
+
+<!-- Expression bai genes  -->
+# Figure 2. C. scindens-mediated biotransformation of primary BAs and downregulation of C. difficile toxin tcdA expression. 
+## Gene expression of the bai operon in C. scindens in (B) batch culture setups. 
+```{r}
+## bai operon genes ####
+gene_expression_otu_cscind <- gene_expression_otu[gene_expression_otu$ID_gene %in%
+                                                    c("GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1411858_1413381",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1413429_1415348",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1415393_1415893",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1415926_1416675",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1416726_1418006",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1418011_1419444",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457",
+                                                      "GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1421489_1422043"),]
+
+gene_expression_otu_cscind_t <- as.data.frame(t(gene_expression_otu_cscind), stringsAsFactors = F)
+gene_expression_otu_cscind_t$Sample <- rownames(gene_expression_otu_cscind_t)
+features_metadata_cscind <- merge(gene_expression_sam_sub,gene_expression_otu_cscind_t, by = 'Sample')
+features_metadata_cscind_melt <- reshape2::melt(features_metadata_cscind, id.vars = c("Sample","Condition","time"))
+colnames(features_metadata_cscind_melt) <- c("Sample","Condition","time", "ID_gene", "exp")
+features_metadata_cscind_melt$genome <- unlist(lapply(strsplit(as.character(features_metadata_cscind_melt$ID_gene),'\\|'), `[`, 1))
+features_metadata_cscind_melt$exp <- as.numeric(features_metadata_cscind_melt$exp)
+features_metadata_cscind_melt$log_exp <- log2(as.numeric(features_metadata_cscind_melt$exp))
+features_metadata_cscind_melt$log_exp[is.infinite(features_metadata_cscind_melt$log_exp)] <- NA
+
+title_name <- 'C. scindens bai operon - gene expression (batch)'
+features_metadata_cscind_melt_plot <- features_metadata_cscind_melt
+features_metadata_cscind_melt_plot$exp[features_metadata_cscind_melt_plot$exp == 0] <- NA
+features_metadata_cscind_melt_plot <- features_metadata_cscind_melt_plot[!features_metadata_cscind_melt_plot$Condition == 'Cdiff',]
+colors_kit<-c('#131344', '#70d3e0', '#1B77A5', '#6699FF',
+              "#A46480",  
+              '#F4A261','#E34F33','#E7B800')
+cscind_plot <- print(ggplot(data = features_metadata_cscind_melt_plot, 
+                            aes(x=time, y=(exp), color = ID_gene)) + 
+                       geom_line(alpha = 0.8,size = 0.65) +  
+                       geom_point(alpha = 0.8, size = 1) +
+                       facet_grid(.~Condition) +
+                       theme_minimal() +
+                       theme_bw() + labs(title = title_name, y = 'Gene expression', x = 'Time (h)') + 
+                       theme(title = element_text(size = 10),
+                             axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =1,face = "plain"),
+                             axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+                             axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+                             axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+                             panel.grid.minor = element_blank(), legend.position="bottom")+ 
+                       guides(fill=guide_legend(nrow= 3))+ 
+                       facet_wrap(.~Condition, scales = "free_x")+
+                       scale_color_manual(values=colors_kit, name="Bai-operon"))
+
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1411858_1413381" <= baiB
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1413429_1415348" <= baiC
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1415393_1415893" <= baiE
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1415926_1416675" <= baiA2
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1416726_1418006" <= baiF
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1418011_1419444" <= baiG
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457" <= baiH
+"GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1421489_1422043" <= baiI
+
+# fold change of baiH gene
+features_metadata_cscind_melt_plot$exp[which(features_metadata_cscind_melt_plot$ID_gene == 'GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457' & 
+                                                 features_metadata_cscind_melt_plot$time == 40 &
+                                                 features_metadata_cscind_melt_plot$Condition == 'Cdiff_Csind')]/
+  features_metadata_cscind_melt_plot$exp[which(features_metadata_cscind_melt_plot$ID_gene == 'GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457' & 
+                                                 features_metadata_cscind_melt_plot$time == 16 &
+                                                 features_metadata_cscind_melt_plot$Condition == 'Cdiff_Csind')]
+
+summary(features_metadata_cscind_melt_plot$exp[which(features_metadata_cscind_melt_plot$ID_gene == 'GCF_004295125.1_ASM429512v1_genomic|NZ_CP036170.1_1419472_1421457' &
+                                                       features_metadata_cscind_melt_plot$Condition == 'Cdiff_Csind')])
+```
+
+<!-- Expression toxin A, B and CdtA genes  -->
+# Figure 2. C. scindens-mediated biotransformation of primary BAs and downregulation of C. difficile toxin tcdA expression. 
+## Gene expression of the virulence genes tcdA, tcdB and cdtA in C. difficile in (E) batch culture setups.
+```{r}
+# C. difficile genes #####
+### toxin A, B and CdtA ####
+gene_expression_otu_cdiff <- gene_expression_otu[gene_expression_otu$ID_gene %in%
+                                                   c('Clostridioides_difficile_ATCC_9689_DSM_1296_genomic|CP011968.1_795277_803409',
+                                                     'Clostridioides_difficile_ATCC_9689_DSM_1296_genomic|CP011968.1_786827_793927',
+                                                  'Clostridioides_difficile_ATCC_9689_DSM_1296_genomic|CP011968.1_2869254_2869436'),]
+
+
+gene_expression_otu_cdiff_t <- as.data.frame(t(gene_expression_otu_cdiff), stringsAsFactors = F)
+gene_expression_otu_cdiff_t$Sample <- rownames(gene_expression_otu_cdiff_t)
+features_metadata_cdiff <- merge(gene_expression_sam_sub,gene_expression_otu_cdiff_t, by = 'Sample')
+features_metadata_cdiff_melt <- reshape2::melt(features_metadata_cdiff, id.vars = c("Sample","Condition","time"))
+colnames(features_metadata_cdiff_melt) <- c("Sample","Condition","time", "ID_gene", "exp")
+features_metadata_cdiff_melt$genome <- unlist(lapply(strsplit(as.character(features_metadata_cdiff_melt$ID_gene),'\\|'), `[`, 1))
+features_metadata_cdiff_melt$exp <- as.numeric(features_metadata_cdiff_melt$exp)
+features_metadata_cdiff_melt$log_exp <- log2(as.numeric(features_metadata_cdiff_melt$exp))
+features_metadata_cdiff_melt$log_exp[is.infinite(features_metadata_cdiff_melt$log_exp)] <- NA
+
+title_name <- "C. difficile oxin A, B and CdtA - gene expression (batch)"
+
+features_metadata_cdiff_melt_plot <- features_metadata_cdiff_melt
+features_metadata_cdiff_melt_plot$exp[features_metadata_cdiff_melt_plot$exp == 0] <- NA
+colors_kit<-c( '#40a191', '#a9d3da','#86c98e')
+cdiff_plot2 <- print(ggplot(data = features_metadata_cdiff_melt_plot[!is.na(features_metadata_cdiff_melt_plot$exp),], 
+                           aes(x=time, y=(exp), color = ID_gene)) + 
+                      geom_line(alpha = 0.8,size = 0.65) +  
+                      geom_point(alpha = 0.8, size = 1) +
+                      facet_grid(.~Condition) +
+                      theme_minimal() +
+                      theme_bw() + labs(title = title_name, y = 'Gene expression', x = 'Time (h)') + 
+                      theme(title = element_text(size = 10),
+                            axis.text.x = element_text(color = "grey20", size = 10,angle = 0, vjust =1,face = "plain"),
+                            axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
+                            axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
+                            axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
+                            panel.grid.minor = element_blank(), legend.position="bottom") + 
+                      guides(fill=guide_legend(nrow= 1))+ 
+                      facet_wrap(.~Condition, scales = "free_x")+
+                      scale_color_manual(values=colors_kit, name="Virulence genes"))
+
+
+```
+
+<!--PCA -->
+# Figure S5. Comparison of gene expression levels from control and treatment conditions by the projection of the first two components of a principal component analysis (PCA) using the samples from
+## B) batch culture setups. Gene expression profiles were log-transformed, centered and scaled prior to PCA analysis.
+```{r}
+
+##### metadata:
+sample_data_df <- data.frame(sample_data(gene_expression_phyloseq), stringsAsFactors = F)
+
+### Counts
+otu_table_df <-  as.data.frame(unclass(otu_table(gene_expression_phyloseq)), stringsAsFactors = F)
+
+otu_table_df_rowsum_0 = c(which(rowSums(otu_table_df)==0))
+otu_table_df_rowsum_0_list <- rownames(otu_table_df[otu_table_df_rowsum_0,])
+otu_table_df_rowsum_not_0 <- otu_table_df[! rownames(otu_table_df) %in% otu_table_df_rowsum_0_list,]
+otu_table_df_log <- log(otu_table_df_rowsum_not_0)
+otu_table_df_log$ID <- rownames(otu_table_df_log)
+
+##### Replace infinite values by log2(min value * 1e-2) for the PCA
+replace_val <- log((min(otu_table_df[otu_table_df >0 & !is.na(otu_table_df)]))*1e-2)
+otu_table_df_log_noinf2 <- otu_table_df_log %>% dplyr::mutate_all(function(x) ifelse(is.infinite(x), replace_val, x))
+rownames(otu_table_df_log_noinf2) <- otu_table_df_log_noinf2$ID
+otu_table_df_log_noinf2$ID <- NULL
+
+min(otu_table_df_log_noinf2[!is.na(otu_table_df_log_noinf2)])
+
+#Plotting scores of PC1 and PC2 with log transformation
+gene_expression_pca <- prcomp(t(otu_table_df_log_noinf2), center = T, sca=T)
+
+# ***************** ggplot way - w coloring *****************
+#library(ggplot2)
+dtp <- data.frame('time' = sample_data_df$time, 'Condition' = sample_data_df$condition, gene_expression_pca$x[,1:2]) # the first two componets are selected (NB: you can also select 3 for 3D plottings or 3+)
+df_out <- as.data.frame(gene_expression_pca$x)
+percentage <- round(gene_expression_pca$sdev / sum(gene_expression_pca$sdev) * 100, 2)
+percentage <- paste0( colnames(df_out), " (", paste0(as.character(percentage), "%", ")"))
+
+manual_plot_colors =c("Cdiff" = "#92392F", "Cdiff_Csind" = "#11698E") 
+print(ggplot(data = dtp, aes(x = PC1, y = PC2, color = Condition)) +
+        geom_text_repel(aes(label = time),nudge_x = 0.04, size = 3.5, segment.alpha = 0.5) +  geom_point(size = 2, shape = 16)+
+        xlab(percentage[1]) + ylab(percentage[2]) +
+        scale_color_manual(values = manual_plot_colors)+
+        #labs(title = title) +
+        theme_bw()+
+        theme(plot.title = element_text(size=10), legend.position="bottom"))#+ stat_ellipse(type = "norm", linetype = 2))
+
+```
+
+
+
