@@ -54,4 +54,4 @@ dependencies:
   - xz=5.2.6=h166bdaf_0
   - zlib=1.2.13=h166bdaf_4
   - zstd=1.5.2=h6239696_4
-prefix: py36_env.yml
+prefix: py36_env.yml 
