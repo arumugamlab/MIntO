@@ -1,0 +1,1590 @@
+rank	name	childcount	min	max	mode	median	mean	stddev
+genus	Bacillus	609	1	19	10	10	10.38	2.38
+genus	Escherichia/Shigella	1087	6	11	7	7	7.01	0.23
+genus	Methanococcus	12	2	4	2	2.5	2.58	0.64
+genus	Corynebacterium	246	3	7	4	4.0	4.37	0.79
+genus	Ureaplasma	13	2	2	2	2	2.00	0.00
+genus	Yersinia	106	6	9	7	7.0	6.90	0.45
+genus	Chlamydia	146	1	3	2	2.0	1.77	0.46
+genus	Xylella	16	2	2	2	2.0	2.00	0.00
+genus	Vibrio	196	6	15	12	10.0	10.30	1.80
+genus	Pseudomonas	536	1	9	4	5.0	4.94	1.13
+genus	Streptococcus	636	1	9	6	6.0	5.39	1.19
+genus	Halobacterium	5	1	1	1	1	1.00	0.00
+genus	Pasteurella	62	1	8	6	6.0	5.92	0.70
+genus	Neisseria	183	1	5	4	4	3.99	0.26
+genus	Lactococcus	46	4	6	6	6.0	5.76	0.52
+genus	Caulobacter	13	2	3	2	2	2.08	0.27
+genus	Salmonella	788	5	8	7	7.0	6.99	0.17
+genus	Ensifer	34	2	5	3	3.0	3.03	0.38
+genus	Chlorobaculum	2	2	2	2	2.0	2.00	0.00
+genus	Sulfolobus	32	1	1	1	1.0	1.00	0.00
+genus	Rickettsia	65	1	1	1	1	1.00	0.00
+genus	Methanosarcina	25	3	3	3	3	3.00	0.00
+genus	Caldanaerobacter	1	4	4	4	4	4.00	0.00
+genus	Zymomonas	14	2	3	3	3.0	2.86	0.35
+genus	Brucella	120	3	3	3	3.0	3.00	0.00
+genus	Xanthomonas	214	1	2	2	2.0	1.99	0.10
+genus	Methanopyrus	1	1	1	1	1	1.00	0.00
+genus	Pyrobaculum	4	1	1	1	1.0	1.00	0.00
+genus	Pyrococcus	11	1	1	1	1	1.00	0.00
+genus	Buchnera	38	1	3	1	1.0	1.05	0.32
+genus	Tropheryma	2	1	1	1	1.0	1.00	0.00
+genus	Bifidobacterium	134	2	6	4	3.0	3.31	0.94
+genus	Porphyromonas	24	2	5	4	4.0	3.96	0.45
+genus	Clostridium sensu stricto	126	4	16	9	9.0	9.84	1.96
+genus	Staphylococcus	599	1	8	6	6	5.57	0.87
+genus	Leifsonia	5	1	3	1	1	1.40	0.80
+genus	Leptospira	31	2	2	2	2	2.00	0.00
+genus	Chromobacterium	10	8	8	8	8.0	8.00	0.00
+genus	Basfia	1	6	6	6	6	6.00	0.00
+genus	Coxiella	16	1	1	1	1.0	1.00	0.00
+genus	Enterococcus	190	4	7	6	6.0	5.58	0.83
+genus	Mycobacterium	326	1	3	1	1.0	1.13	0.35
+genus	Helicobacter	191	1	3	2	2	1.95	0.25
+genus	GpIIa	28	1	3	2	2.0	1.68	0.66
+genus	Haemophilus	107	6	7	6	6	6.01	0.10
+genus	Geobacter	13	2	4	2	2	2.54	0.84
+genus	Anaplasma	29	1	1	1	1	1.00	0.00
+genus	Lactobacillus	394	1	11	5	5.0	5.36	1.22
+genus	Thermus	16	1	2	2	2.0	1.94	0.24
+genus	Treponema	18	2	4	2	2.0	2.28	0.65
+genus	Mycoplasma	183	1	5	1	1	1.61	0.75
+genus	Picrophilus	1	1	1	1	1	1.00	0.00
+genus	Listeria	203	1	6	6	6	5.69	0.60
+genus	Mesoplasma	21	2	3	2	2	2.10	0.29
+genus	Methylococcus	1	2	2	2	2	2.00	0.00
+genus	Propionibacterium	56	2	6	3	3.0	2.84	0.84
+genus	Idiomarina	5	4	4	4	4	4.00	0.00
+genus	Legionella	119	3	4	3	3	3.10	0.30
+genus	Thermotoga	16	1	1	1	1.0	1.00	0.00
+genus	Deinococcus	21	3	5	3	3	3.38	0.58
+genus	Aquifex	1	2	2	2	2	2.00	0.00
+genus	Methanothermobacter	5	2	2	2	2	2.00	0.00
+genus	Archaeoglobus	5	1	1	1	1	1.00	0.00
+genus	Francisella	84	1	3	3	3.0	2.94	0.28
+genus	Dehalococcoides	25	1	1	1	1	1.00	0.00
+genus	Campylobacter	272	1	4	3	3.0	2.49	0.87
+genus	Ralstonia	55	2	4	4	4	3.44	0.63
+genus	Nitrosomonas	7	1	1	1	1	1.00	0.00
+genus	Haloquadratum	2	2	2	2	2.0	2.00	0.00
+genus	Clostridium XI	56	10	17	12	12.0	12.07	0.94
+genus	Rhizobium	95	2	6	3	3	3.39	0.69
+genus	Cupriavidus	18	4	7	4	5.0	5.17	1.17
+genus	Alcanivorax	5	2	3	2	2	2.40	0.49
+genus	Burkholderia	290	2	7	4	4.0	4.70	0.96
+genus	Mesorhizobium	20	1	2	2	2.0	1.85	0.36
+genus	GpI	29	1	6	4	4	3.97	0.96
+genus	Streptomyces	188	3	8	6	6.0	6.19	0.54
+genus	Geobacillus	27	8	11	10	10	9.56	0.74
+genus	Nocardia	16	3	5	3	3.0	3.25	0.56
+genus	Klebsiella	440	7	9	8	8.0	7.99	0.13
+genus	Symbiobacterium	1	6	6	6	6	6.00	0.00
+genus	Bacteroides	35	4	7	6	6	5.51	0.91
+genus	Thermococcus	30	1	1	1	1.0	1.00	0.00
+genus	Magnetospirillum	6	2	2	2	2.0	2.00	0.00
+genus	Desulfitobacterium	5	5	8	6	6	6.20	0.98
+genus	GpIIb	4	2	2	2	2.0	2.00	0.00
+genus	Sodalis	12	1	7	1	1.0	2.83	2.64
+genus	Rhodococcus	47	3	6	4	4	4.26	0.56
+genus	Brevibacillus	14	7	17	12	12.5	12.79	2.21
+genus	Finegoldia	1	4	4	4	4	4.00	0.00
+genus	Orientia	11	1	1	1	1	1.00	0.00
+genus	Kocuria	10	3	3	3	3.0	3.00	0.00
+genus	Gemmatimonas	3	1	2	2	2	1.67	0.47
+genus	Nitratiruptor	1	3	3	3	3	3.00	0.00
+genus	Sulfurovum	1	3	3	3	3	3.00	0.00
+genus	Candidatus Carsonella	7	1	1	1	1	1.00	0.00
+genus	Azorhizobium	1	3	3	3	3	3.00	0.00
+genus	Macrococcus	5	4	5	5	5	4.80	0.40
+genus	GpXI	7	2	2	2	2	2.00	0.00
+genus	Desulfovibrio	20	1	7	3	3.0	3.50	1.36
+genus	Azospirillum	15	2	10	9	9	8.20	2.54
+genus	Hydrogenobacter	2	1	1	1	1.0	1.00	0.00
+genus	Acetobacter	28	3	5	5	5.0	4.86	0.44
+genus	Deferribacter	1	2	2	2	2	2.00	0.00
+genus	Methanocella	3	2	3	2	2	2.33	0.47
+genus	Rothia	6	3	3	3	3.0	3.00	0.00
+genus	Haloarcula	6	2	3	3	3.0	2.83	0.37
+genus	Aeropyrum	2	1	1	1	1.0	1.00	0.00
+genus	Thermoplasma	2	1	1	1	1.0	1.00	0.00
+genus	Oceanobacillus	4	7	10	10	9.0	8.75	1.30
+genus	Bradyrhizobium	34	1	2	1	1.0	1.21	0.40
+genus	GpIV	4	1	3	1	1.5	1.75	0.83
+genus	Pectobacterium	26	7	7	7	7.0	7.00	0.00
+genus	Gluconobacter	7	4	5	5	5	4.57	0.49
+genus	Histophilus	21	5	5	5	5	5.00	0.00
+genus	Aliivibrio	4	7	13	12	12.0	11.00	2.35
+genus	Ruegeria	5	3	5		4	4.00	0.89
+genus	Borrelia	18	1	1	1	1.0	1.00	0.00
+genus	Acholeplasma	16	2	4	2	2.0	2.19	0.53
+genus	Psychrobacter	14	3	6	4	4.0	4.36	0.81
+genus	Colwellia	8	5	9	6	6.0	6.88	1.45
+genus	Candidatus Pelagibacter	5	1	1	1	1	1.00	0.00
+genus	Thermobifida	1	4	4	4	4	4.00	0.00
+genus	Ferribacterium	1	4	4	4	4	4.00	0.00
+genus	Chlorobium	8	1	3	2	2.0	2.00	0.71
+genus	Methanosphaera	3	2	4	4	4	3.33	0.94
+genus	Ehrlichia	15	1	1	1	1	1.00	0.00
+genus	Thiomicrospira	7	3	4	3	3	3.14	0.35
+genus	Myxococcus	11	3	4	4	4	3.82	0.39
+genus	Nitrobacter	2	1	1	1	1.0	1.00	0.00
+genus	Thiobacillus	1	2	2	2	2	2.00	0.00
+genus	Nitrosococcus	5	2	2	2	2	2.00	0.00
+genus	Parabacteroides	5	7	7	7	7	7.00	0.00
+genus	Carboxydothermus	1	4	4	4	4	4.00	0.00
+genus	Pelobacter	3	2	4		3	3.00	0.82
+genus	Sulfurimonas	5	4	4	4	4	4.00	0.00
+genus	Hahella	3	5	5	5	5	5.00	0.00
+genus	Erythrobacter	11	1	2	1	1	1.36	0.48
+genus	Hyphomonas	2	1	1	1	1.0	1.00	0.00
+genus	Salinibacter	8	1	1	1	1.0	1.00	0.00
+genus	Rhodospirillum	2	4	4	4	4.0	4.00	0.00
+genus	Moorella	6	1	2	1	1.0	1.33	0.47
+genus	Neorickettsia	3	1	1	1	1	1.00	0.00
+genus	Novosphingobium	9	1	5	3	3	2.78	1.03
+genus	Rhodopseudomonas	9	1	2	2	2	1.89	0.31
+genus	Anaeromyxobacter	4	2	2	2	2.0	2.00	0.00
+genus	Syntrophus	1	1	1	1	1	1.00	0.00
+genus	Methanospirillum	1	4	4	4	4	4.00	0.00
+genus	Rhodoferax	6	1	5		2.5	2.67	1.25
+genus	Herminiimonas	3	2	2	2	2	2.00	0.00
+genus	Saccharophagus	1	2	2	2	2	2.00	0.00
+genus	Methylobacillus	1	2	2	2	2	2.00	0.00
+genus	Methanococcoides	2	3	3	3	3.0	3.00	0.00
+genus	Shewanella	50	7	15	8	9.0	9.28	1.58
+genus	Polaromonas	3	1	2	1	1	1.33	0.47
+genus	Sphingopyxis	12	1	1	1	1.0	1.00	0.00
+genus	Candidatus Koribacter	1	1	1	1	1	1.00	0.00
+genus	Arcobacter	27	4	6	5	5	5.00	0.72
+genus	Roseobacter	3	1	1	1	1	1.00	0.00
+genus	Cytophaga	1	3	3	3	3	3.00	0.00
+genus	Rubrobacter	4	1	1	1	1.0	1.00	0.00
+genus	Paraglaciecola	2	5	6		5.5	5.50	0.50
+genus	Chelativorans	1	2	2	2	2	2.00	0.00
+genus	GpXII	1	2	2	2	2	2.00	0.00
+genus	Granulibacter	10	3	3	3	3.0	3.00	0.00
+genus	Oenococcus	7	2	2	2	2	2.00	0.00
+genus	Leuconostoc	37	3	4	4	4	3.95	0.23
+genus	Pediococcus	30	2	5	5	5.0	4.60	0.66
+genus	Syntrophomonas	1	3	3	3	3	3.00	0.00
+genus	Maricaulis	1	2	2	2	2	2.00	0.00
+genus	Alkalilimnicola	1	2	2	2	2	2.00	0.00
+genus	Aeromonas	65	7	11	10	10	9.91	0.52
+genus	Magnetococcus	1	3	3	3	3	3.00	0.00
+genus	Candidatus Solibacter	1	2	2	2	2	2.00	0.00
+genus	Arthrobacter	34	4	9	6	5.5	5.50	1.09
+genus	Syntrophobacter	1	2	2	2	2	2.00	0.00
+genus	Acidothermus	1	1	1	1	1	1.00	0.00
+genus	Pyrodictium	2	1	1	1	1.0	1.00	0.00
+genus	Thermofilum	4	1	1	1	1.0	1.00	0.00
+genus	Nocardioides	15	2	6	2	2	2.67	1.01
+genus	Psychromonas	2	10	10	10	10.0	10.00	0.00
+genus	Acidovorax	12	3	4		3.5	3.50	0.50
+genus	Dichelobacter	1	3	3	3	3	3.00	0.00
+genus	Marinobacter	16	1	4	3	3.0	2.81	0.73
+genus	Bartonella	27	2	3	2	2	2.04	0.19
+genus	Diaphorobacter	3	3	3	3	3	3.00	0.00
+genus	Verminephrobacter	1	3	3	3	3	3.00	0.00
+genus	Halorhodospira	2	2	2	2	2.0	2.00	0.00
+genus	Methylibium	2	1	1	1	1.0	1.00	0.00
+genus	Methanocorpusculum	1	3	3	3	3	3.00	0.00
+genus	Methanoculleus	3	1	1	1	1	1.00	0.00
+genus	Actinobacillus	19	6	6	6	6	6.00	0.00
+genus	Staphylothermus	2	1	1	1	1.0	1.00	0.00
+genus	Rhodobacter	11	2	4		3	3.36	0.64
+genus	Desulfotomaculum	6	5	10	8	8.0	8.00	1.53
+genus	Rhodocista	2	4	7		5.5	5.50	1.50
+genus	Polynucleobacter	15	1	1	1	1	1.00	0.00
+genus	Salinispora	2	3	3	3	3.0	3.00	0.00
+genus	Methanobrevibacter	7	2	3	2	2	2.14	0.35
+genus	Caldicellulosiruptor	9	3	3	3	3	3.00	0.00
+genus	Metallosphaera	9	1	1	1	1	1.00	0.00
+genus	Flavobacterium	40	1	13	6	5.0	4.88	2.55
+genus	Roseiflexus	2	2	2	2	2.0	2.00	0.00
+genus	Acidiphilium	2	2	2	2	2.0	2.00	0.00
+genus	Sphingomonas	24	1	4	2	2.0	2.21	0.71
+genus	Thermosipho	5	3	4	4	4	3.80	0.40
+genus	Alkaliphilus	2	8	10		9.0	9.00	1.00
+genus	Phenylobacterium	2	1	1	1	1.0	1.00	0.00
+genus	Marinomonas	4	7	8	8	8.0	7.75	0.43
+genus	Kineococcus	1	4	4	4	4	4.00	0.00
+genus	Fervidobacterium	4	2	2	2	2.0	2.00	0.00
+genus	Parvibaculum	1	1	1	1	1	1.00	0.00
+genus	Methanoregula	2	1	1	1	1.0	1.00	0.00
+genus	Xanthobacter	1	2	2	2	2	2.00	0.00
+genus	Cronobacter	13	7	7	7	7	7.00	0.00
+genus	Pseudothermotoga	4	1	1	1	1.0	1.00	0.00
+genus	Ignicoccus	2	1	1	1	1.0	1.00	0.00
+genus	Lysinibacillus	11	2	13	12	12	10.55	2.97
+genus	Citrobacter	76	7	9	8	8.0	7.74	0.47
+genus	Serratia	89	6	8	7	7	7.02	0.21
+genus	Dinoroseobacter	1	2	2	2	2	2.00	0.00
+genus	Caldivirga	1	1	1	1	1	1.00	0.00
+genus	Acinetobacter	253	1	8	6	6	6.09	0.58
+genus	Nitrosopumilus	11	1	1	1	1	1.00	0.00
+genus	Petrotoga	1	2	2	2	2	2.00	0.00
+genus	Delftia	5	5	5	5	5	5.00	0.00
+genus	Clostridium XlVa	8	4	8	4	4.5	5.00	1.32
+genus	Methylobacterium	25	4	11	5	5	5.64	1.89
+genus	Chloroflexus	3	3	3	3	3	3.00	0.00
+genus	Renibacterium	3	2	2	2	2	2.00	0.00
+genus	Anoxybacillus	7	7	9	9	9	8.43	0.73
+genus	Thermoanaerobacter	9	4	4	4	4	4.00	0.00
+genus	Heliobacterium	1	10	10	10	10	10.00	0.00
+genus	Cellvibrio	5	2	5		3	3.60	1.20
+genus	GpX	7	2	2	2	2	2.00	0.00
+genus	Candidatus Korarchaeum	1	1	1	1	1	1.00	0.00
+genus	Beijerinckia	1	3	3	3	3	3.00	0.00
+genus	Exiguobacterium	8	4	10	9	9.0	8.50	1.73
+genus	Opitutus	5	1	2	1	1	1.20	0.40
+genus	Natranaerobius	1	4	4	4	4	4.00	0.00
+genus	Elusimicrobium	1	1	1	1	1	1.00	0.00
+genus	Akkermansia	26	3	3	3	3.0	3.00	0.00
+genus	Sulfurihydrogenibium	2	2	3		2.5	2.50	0.50
+genus	Desulfobacterium	1	6	6	6	6	6.00	0.00
+genus	Halothermothrix	1	4	4	4	4	4.00	0.00
+genus	Chloroherpeton	1	1	1	1	1	1.00	0.00
+genus	Prosthecochloris	5	1	2	2	2	1.80	0.40
+genus	Alteromonas	35	1	7	5	5	4.83	1.00
+genus	Lachnospiracea_incertae_sedis	6	4	8	5	5.0	5.33	1.25
+genus	Stenotrophomonas	36	1	4	4	4.0	3.58	0.76
+genus	Hydrogenobaculum	5	2	2	2	2	2.00	0.00
+genus	Acidithiobacillus	8	2	2	2	2.0	2.00	0.00
+genus	Edwardsiella	15	7	10	8	8	8.27	0.77
+genus	Desulfurococcus	3	1	1	1	1	1.00	0.00
+genus	Coprothermobacter	1	2	2	2	2	2.00	0.00
+genus	Dictyoglomus	2	2	2	2	2.0	2.00	0.00
+genus	Thermodesulfovibrio	1	1	1	1	1	1.00	0.00
+genus	Laribacter	3	7	7	7	7	7.00	0.00
+genus	Azotobacter	6	6	6	6	6.0	6.00	0.00
+genus	Gluconacetobacter	2	4	4	4	4.0	4.00	0.00
+genus	Oligotropha	3	1	1	1	1	1.00	0.00
+genus	Persephonella	1	2	2	2	2	2.00	0.00
+genus	Thermomicrobium	1	2	2	2	2	2.00	0.00
+genus	Nautilia	2	4	4	4	4.0	4.00	0.00
+genus	Methylocella	3	1	2	2	2	1.67	0.47
+genus	Thauera	5	4	4	4	4	4.00	0.00
+genus	Desulfatibacillum	1	2	2	2	2	2.00	0.00
+genus	Methanosphaerula	1	3	3	3	3	3.00	0.00
+genus	Thioalkalivibrio	5	1	1	1	1	1.00	0.00
+genus	Brachyspira	9	1	1	1	1	1.00	0.00
+genus	Halorubrum	5	2	3	2	2	2.40	0.49
+genus	Acidobacterium	1	1	1	1	1	1.00	0.00
+genus	Aggregatibacter	17	6	6	6	6	6.00	0.00
+genus	Teredinibacter	2	3	3	3	3.0	3.00	0.00
+genus	Tolumonas	1	8	8	8	8	8.00	0.00
+genus	Beutenbergia	1	2	2	2	2	2.00	0.00
+genus	Dyadobacter	2	3	4		3.5	3.50	0.50
+genus	Micrococcus	8	2	3	2	2.0	2.12	0.33
+genus	Desulfomicrobium	2	2	2	2	2.0	2.00	0.00
+genus	Actinosynnema	3	5	5	5	5	5.00	0.00
+genus	Acidimicrobium	1	2	2	2	2	2.00	0.00
+genus	Capnocytophaga	23	3	4	4	4	3.52	0.50
+genus	Kosmotoga	2	2	2	2	2.0	2.00	0.00
+genus	Variovorax	6	2	3	2	2.0	2.17	0.37
+genus	Brachybacterium	7	3	3	3	3	3.00	0.00
+genus	Zunongwangia	1	3	3	3	3	3.00	0.00
+genus	Paenibacillus	78	6	15	10	10.0	10.47	2.09
+genus	Methylotenera	4	1	3	2	2.0	2.00	0.71
+genus	Chryseobacterium	51	2	8	6	6	5.14	1.72
+genus	Methylovorus	2	2	2	2	2.0	2.00	0.00
+genus	Hirschia	1	2	2	2	2	2.00	0.00
+genus	Pedobacter	9	3	7	4	4	4.44	1.26
+genus	Cryptobacterium	1	3	3	3	3	3.00	0.00
+genus	Saccharomonospora	2	3	3	3	3.0	3.00	0.00
+genus	Slackia	2	2	2	2	2.0	2.00	0.00
+genus	Leptotrichia	13	4	5	5	5	4.85	0.36
+genus	Kytococcus	1	2	2	2	2	2.00	0.00
+genus	Halorhabdus	2	1	1	1	1.0	1.00	0.00
+genus	Halomicrobium	3	2	3	3	3	2.67	0.47
+genus	Methanocaldococcus	6	2	2	2	2.0	2.00	0.00
+genus	Chitinophaga	5	2	6	2	2	3.00	1.55
+genus	Catenulispora	1	3	3	3	3	3.00	0.00
+genus	Jonesia	3	5	5	5	5	5.00	0.00
+genus	Kangiella	4	2	2	2	2.0	2.00	0.00
+genus	Anaerococcus	2	3	4		3.5	3.50	0.50
+genus	Robiginitalea	1	2	2	2	2	2.00	0.00
+genus	Atopobium	1	1	1	1	1	1.00	0.00
+genus	Eggerthella	2	3	3	3	3.0	3.00	0.00
+genus	Alicyclobacillus	2	6	6	6	6.0	6.00	0.00
+genus	Desulfohalobium	1	2	2	2	2	2.00	0.00
+genus	Kribbella	1	2	2	2	2	2.00	0.00
+genus	Nakamurella	2	2	3		2.5	2.50	0.50
+genus	Thermomonospora	1	4	4	4	4	4.00	0.00
+genus	Sebaldella	1	4	4	4	4	4.00	0.00
+genus	Meiothermus	3	2	2	2	2	2.00	0.00
+genus	Stackebrandtia	1	2	2	2	2	2.00	0.00
+genus	Streptobacillus	2	5	5	5	5.0	5.00	0.00
+genus	Ammonifex	1	2	2	2	2	2.00	0.00
+genus	Fibrobacter	2	3	3	3	3.0	3.00	0.00
+genus	Halothiobacillus	2	2	2	2	2.0	2.00	0.00
+genus	Gordonia	12	2	4		3.0	3.25	0.72
+genus	Haliangium	1	2	2	2	2	2.00	0.00
+genus	Rhodothermus	2	1	1	1	1.0	1.00	0.00
+genus	Streptosporangium	1	6	6	6	6	6.00	0.00
+genus	Sulfurospirillum	9	2	4	3	3	2.78	0.63
+genus	Thermanaerovibrio	1	3	3	3	3	3.00	0.00
+genus	Sanguibacter	1	4	4	4	4	4.00	0.00
+genus	Veillonella	5	4	4	4	4	4.00	0.00
+genus	Xylanimonas	1	3	3	3	3	3.00	0.00
+genus	Sphaerobacter	1	2	2	2	2	2.00	0.00
+genus	Dickeya	19	7	7	7	7	7.00	0.00
+genus	Pirellula	2	1	1	1	1.0	1.00	0.00
+genus	Gardnerella	7	2	2	2	2	2.00	0.00
+genus	Saccharofermentans	1	2	2	2	2	2.00	0.00
+genus	Conexibacter	2	1	1	1	1.0	1.00	0.00
+genus	Acidaminococcus	2	3	6		4.5	4.50	1.50
+genus	Haloterrigena	6	2	4	3	3.0	3.00	0.58
+genus	Geodermatophilus	1	3	3	3	3	3.00	0.00
+genus	Pantoea	25	4	7	7	7	6.88	0.59
+genus	Allochromatium	1	3	3	3	3	3.00	0.00
+genus	Ferroglobus	1	1	1	1	1	1.00	0.00
+genus	Enterobacter	161	6	9	8	8	7.96	0.26
+genus	Thermocrinis	2	1	1	1	1.0	1.00	0.00
+genus	Natrialba	1	3	3	3	3	3.00	0.00
+genus	Haloferax	4	2	2	2	2.0	2.00	0.00
+genus	Sideroxydans	1	2	2	2	2	2.00	0.00
+genus	Denitrovibrio	1	2	2	2	2	2.00	0.00
+genus	Methanohalophilus	2	1	3		2.0	2.00	1.00
+genus	Aminobacterium	1	3	3	3	3	3.00	0.00
+genus	Coraliomargarita	1	2	2	2	2	2.00	0.00
+genus	Prevotella	26	3	5	4	4.0	4.04	0.34
+genus	Desulfotalea	1	7	7	7	7	7.00	0.00
+genus	Azoarcus	13	3	5	4	4	3.77	0.58
+genus	Natronomonas	2	1	1	1	1.0	1.00	0.00
+genus	Pseudoalteromonas	39	6	12	9	9	8.79	1.28
+genus	Erwinia	15	7	7	7	7	7.00	0.00
+genus	Xenorhabdus	7	7	7	7	7	7.00	0.00
+genus	Chromohalobacter	1	5	5	5	5	5.00	0.00
+genus	Lawsonia	2	2	2	2	2.0	2.00	0.00
+genus	Gramella	4	3	3	3	3.0	3.00	0.00
+genus	Saccharopolyspora	1	4	4	4	4	4.00	0.00
+genus	Clavibacter	7	2	2	2	2	2.00	0.00
+genus	Sorangium	5	4	4	4	4	4.00	0.00
+genus	Bordetella	639	3	5	3	3	3.01	0.11
+genus	Proteus	31	1	7	7	7	6.58	1.48
+genus	Sphingobium	21	2	4	2	3	2.90	0.81
+genus	Planctopirus	2	2	2	2	2.0	2.00	0.00
+genus	Thermosphaera	1	1	1	1	1	1.00	0.00
+genus	Desulfurivibrio	1	2	2	2	2	2.00	0.00
+genus	Tsukamurella	4	2	2	2	2.0	2.00	0.00
+genus	Moraxella	22	4	4	4	4.0	4.00	0.00
+genus	Arcanobacterium	2	4	4	4	4.0	4.00	0.00
+genus	Syntrophothermus	1	2	2	2	2	2.00	0.00
+genus	Truepera	1	2	2	2	2	2.00	0.00
+genus	Thiomonas	2	1	1	1	1.0	1.00	0.00
+genus	Thermobispora	1	4	4	4	4	4.00	0.00
+genus	Waddlia	1	2	2	2	2	2.00	0.00
+genus	Segniliparus	1	1	1	1	1	1.00	0.00
+genus	Cellulomonas	7	2	3	2	2	2.29	0.45
+genus	Kyrpidia	2	5	5	5	5.0	5.00	0.00
+genus	Starkeya	1	1	1	1	1	1.00	0.00
+genus	Thermincola	1	3	3	3	3	3.00	0.00
+genus	Nocardiopsis	6	5	6	5	5.0	5.17	0.37
+genus	Sporolactobacillaceae_incertae_sedis	3	7	10	7	7	8.00	1.41
+genus	Comamonas	8	2	9		4.5	4.75	2.17
+genus	Hyphomicrobium	4	1	1	1	1.0	1.00	0.00
+genus	Dehalogenimonas	2	1	1	1	1.0	1.00	0.00
+genus	Herbaspirillum	10	2	4	3	3.0	3.00	0.45
+genus	Olsenella	6	1	4	2	2.0	2.50	1.12
+genus	Desulfarculus	1	1	1	1	1	1.00	0.00
+genus	Spirochaeta	6	2	7	2	2.5	3.33	1.80
+genus	Brevundimonas	13	1	2	2	2	1.92	0.27
+genus	Thermosediminibacter	1	3	3	3	3	3.00	0.00
+genus	Acetohalobium	1	5	5	5	5	5.00	0.00
+genus	Acidilobus	2	1	1	1	1.0	1.00	0.00
+genus	Butyrivibrio	2	4	6		5.0	5.00	1.00
+genus	Micromonospora	6	3	4	3	3.0	3.17	0.37
+genus	Gallionella	1	3	3	3	3	3.00	0.00
+genus	Thermoanaerobacterium	5	5	5	5	5	5.00	0.00
+genus	Candidatus Cloacamonas	1	2	2	2	2	2.00	0.00
+genus	Mesotoga	1	2	2	2	2	2.00	0.00
+genus	Methanolacinia	1	2	2	2	2	2.00	0.00
+genus	Vulcanisaeta	2	1	1	1	1.0	1.00	0.00
+genus	Ferrimonas	1	7	7	7	7	7.00	0.00
+genus	Eubacterium	7	2	7	5	5	4.86	1.36
+genus	Ferroplasma	2	1	1	1	1.0	1.00	0.00
+genus	Parvularcula	1	1	1	1	1	1.00	0.00
+genus	Dokdonia	4	3	3	3	3.0	3.00	0.00
+genus	Polaribacter	5	2	6		3	4.00	1.67
+genus	Maribacter	5	2	3	2	2	2.20	0.40
+genus	Psychroflexus	1	3	3	3	3	3.00	0.00
+genus	Phaeobacter	34	4	4	4	4.0	4.00	0.00
+genus	Octadecabacter	3	1	2	2	2	1.67	0.47
+genus	Fusobacterium	42	3	8	5	5.0	5.29	1.08
+genus	Filifactor	1	4	4	4	4	4.00	0.00
+genus	Ketogulonicigenium	6	5	6	5	5.0	5.17	0.37
+genus	Halanaerobium	2	4	4	4	4.0	4.00	0.00
+genus	Stigmatella	1	2	2	2	2	2.00	0.00
+genus	Ilyobacter	1	8	8	8	8	8.00	0.00
+genus	Rubinisphaera	1	2	2	2	2	2.00	0.00
+genus	Achromobacter	22	3	4	3	3.0	3.45	0.50
+genus	Rhodomicrobium	1	2	2	2	2	2.00	0.00
+genus	Methanothermus	1	2	2	2	2	2.00	0.00
+genus	Leadbetterella	1	3	3	3	3	3.00	0.00
+genus	Halogeometricum	1	2	2	2	2	2.00	0.00
+genus	Asticcacaulis	2	3	3	3	3.0	3.00	0.00
+genus	Desulfurispirillum	1	3	3	3	3	3.00	0.00
+genus	Ethanoligenens	5	3	3	3	3	3.00	0.00
+genus	Cellulosilyticum	2	11	11	11	11.0	11.00	0.00
+genus	Granulicella	2	1	1	1	1.0	1.00	0.00
+genus	Alicycliphilus	2	3	3	3	3.0	3.00	0.00
+genus	Methanothermococcus	2	2	2	2	2.0	2.00	0.00
+genus	Ruminococcus	2	4	4	4	4.0	4.00	0.00
+genus	Terriglobus	3	1	2	1	1	1.33	0.47
+genus	Komagataeibacter	7	5	5	5	5	5.00	0.00
+genus	Paludibacter	1	3	3	3	3	3.00	0.00
+genus	Riemerella	13	2	3	3	3	2.92	0.27
+genus	Calditerrivibrio	1	2	2	2	2	2.00	0.00
+genus	Marivirga	1	2	2	2	2	2.00	0.00
+genus	Sulfuricurvum	1	3	3	3	3	3.00	0.00
+genus	Oceanithermus	1	2	2	2	2	2.00	0.00
+genus	Intrasporangium	2	2	2	2	2.0	2.00	0.00
+genus	Thermaerobacter	2	2	2	2	2.0	2.00	0.00
+genus	Thermovibrio	1	3	3	3	3	3.00	0.00
+genus	Pseudoxanthomonas	3	1	2	1	1	1.33	0.47
+genus	Nitratifractor	1	2	2	2	2	2.00	0.00
+genus	Cellulophaga	6	4	5	4	4.0	4.17	0.37
+genus	Isosphaera	1	3	3	3	3	3.00	0.00
+genus	Weeksella	2	5	5	5	5.0	5.00	0.00
+genus	Sphaerochaeta	3	3	4	4	4	3.67	0.47
+genus	Odoribacter	2	4	4	4	4.0	4.00	0.00
+genus	Syntrophobotulus	1	4	4	4	4	4.00	0.00
+genus	Pseudopedobacter	1	4	4	4	4	4.00	0.00
+genus	Desulfurobacterium	1	2	2	2	2	2.00	0.00
+genus	Methanobacterium	9	2	3	2	2	2.22	0.42
+genus	Olivibacter	2	4	4	4	4.0	4.00	0.00
+genus	Aerococcus	13	1	7		4	3.31	2.01
+genus	Thermoproteus	4	1	1	1	1.0	1.00	0.00
+genus	Hippea	1	2	2	2	2	2.00	0.00
+genus	Fluviicola	2	2	3		2.5	2.50	0.50
+genus	Desulfobacca	1	1	1	1	1	1.00	0.00
+genus	Coriobacterium	1	2	2	2	2	2.00	0.00
+genus	Marinithermus	1	3	3	3	3	3.00	0.00
+genus	Carnobacterium	6	6	8		7.0	7.00	1.00
+genus	Rhodopirellula	6	1	2	1	1.0	1.33	0.47
+genus	Wolinella	2	3	3	3	3.0	3.00	0.00
+genus	Photorhabdus	6	7	7	7	7.0	7.00	0.00
+genus	Bdellovibrio	8	1	2	2	2.0	1.62	0.48
+genus	Photobacterium	7	9	21	15	15	14.14	3.83
+genus	Croceibacter	1	2	2	2	2	2.00	0.00
+genus	Nitrosospira	3	1	1	1	1	1.00	0.00
+genus	Acetoanaerobium	1	6	6	6	6	6.00	0.00
+genus	Mobiluncus	1	2	2	2	2	2.00	0.00
+genus	Methanohalobium	1	2	2	2	2	2.00	0.00
+genus	Pseudonocardia	8	3	4	4	4.0	3.62	0.48
+genus	Nitrospira	4	1	1	1	1.0	1.00	0.00
+genus	Amycolatopsis	11	3	4	4	4	3.91	0.29
+genus	Halomonas	21	1	6	6	6	5.29	1.24
+genus	Halalkalicoccus	1	1	1	1	1	1.00	0.00
+genus	Anaerolinea	1	2	2	2	2	2.00	0.00
+genus	Microbacterium	30	1	3	2	2.0	1.93	0.36
+genus	Paracoccus	18	2	4	3	3.0	2.78	0.53
+genus	Verrucosispora	1	3	3	3	3	3.00	0.00
+genus	Methanothrix	2	1	2		1.5	1.50	0.50
+genus	Selenomonas	5	4	7	4	4	4.60	1.20
+genus	Pusillimonas	2	2	2	2	2.0	2.00	0.00
+genus	Gallibacterium	1	6	6	6	6	6.00	0.00
+genus	Halobacteriovorax	3	2	2	2	2	2.00	0.00
+genus	Lacinutrix	3	2	2	2	2	2.00	0.00
+genus	Thermodesulfobium	2	2	2	2	2.0	2.00	0.00
+genus	Haliscomenobacter	1	2	2	2	2	2.00	0.00
+genus	Acidianus	4	1	1	1	1.0	1.00	0.00
+genus	Tepidanaerobacter	2	2	2	2	2.0	2.00	0.00
+genus	Mahella	1	3	3	3	3	3.00	0.00
+genus	Methanotorris	1	2	2	2	2	2.00	0.00
+genus	Methylomonas	6	3	3	3	3.0	3.00	0.00
+genus	Isoptericola	2	3	4		3.5	3.50	0.50
+genus	Ramlibacter	2	1	2		1.5	1.50	0.50
+genus	Thermodesulfobacterium	3	1	1	1	1	1.00	0.00
+genus	Halopiger	1	3	3	3	3	3.00	0.00
+genus	Thermodesulfatator	1	2	2	2	2	2.00	0.00
+genus	Methanosalsum	1	3	3	3	3	3.00	0.00
+genus	Flexistipes	1	2	2	2	2	2.00	0.00
+genus	Weissella	22	5	11	9	8.0	7.86	1.55
+genus	Advenella	2	2	2	2	2.0	2.00	0.00
+genus	Collimonas	7	3	3	3	3	3.00	0.00
+genus	Cyclobacterium	2	3	4		3.5	3.50	0.50
+genus	Pyrolobus	1	1	1	1	1	1.00	0.00
+genus	Marichromatium	1	3	3	3	3	3.00	0.00
+genus	Muricauda	2	2	2	2	2.0	2.00	0.00
+genus	Halolamina	1	2	2	2	2	2.00	0.00
+genus	Roseburia	3	4	6	4	4	4.67	0.94
+genus	Glaciecola	1	4	4	4	4	4.00	0.00
+genus	Taylorella	8	3	3	3	3.0	3.00	0.00
+genus	Halobiforma	1	3	3	3	3	3.00	0.00
+genus	Thermobacillus	1	5	5	5	5	5.00	0.00
+genus	Thiocystis	1	3	3	3	3	3.00	0.00
+genus	Pelagibacterium	1	2	2	2	2	2.00	0.00
+genus	Rhodanobacter	2	2	2	2	2.0	2.00	0.00
+genus	Natronobacterium	1	3	3	3	3	3.00	0.00
+genus	Desulfosporosinus	3	8	11		9	9.33	1.25
+genus	Thermovirga	1	3	3	3	3	3.00	0.00
+genus	Azospira	2	2	4		3.0	3.00	1.00
+genus	Owenweeksia	1	2	2	2	2	2.00	0.00
+genus	Actinoplanes	8	3	6	6	6.0	5.38	1.11
+genus	Simkania	1	1	1	1	1	1.00	0.00
+genus	Tannerella	4	2	2	2	2.0	2.00	0.00
+genus	Elizabethkingia	30	4	5	5	5.0	4.83	0.37
+genus	Frateuria	1	4	4	4	4	4.00	0.00
+genus	Singulisphaera	1	8	8	8	8	8.00	0.00
+genus	Solitalea	1	4	4	4	4	4.00	0.00
+genus	Oceanimonas	1	7	7	7	7	7.00	0.00
+genus	Niabella	2	2	2	2	2.0	2.00	0.00
+genus	Niastella	1	3	3	3	3	3.00	0.00
+genus	Acetobacterium	1	5	5	5	5	5.00	0.00
+genus	Saprospira	1	3	3	3	3	3.00	0.00
+genus	Parachlamydia	2	3	4		3.5	3.50	0.50
+genus	Marinitoga	2	3	3	3	3.0	3.00	0.00
+genus	Corallococcus	2	3	3	3	3.0	3.00	0.00
+genus	Rahnella	4	7	9		8.0	8.00	1.00
+genus	Ignavibacterium	1	1	1	1	1	1.00	0.00
+genus	Fervidicoccus	1	1	1	1	1	1.00	0.00
+genus	Providencia	18	7	7	7	7.0	7.00	0.00
+genus	Methylophaga	2	3	3	3	3.0	3.00	0.00
+genus	Shimwellia	3	8	8	8	8	8.00	0.00
+genus	Hydrogenophaga	6	1	2	2	2.0	1.83	0.37
+genus	Tistrella	1	4	4	4	4	4.00	0.00
+genus	Alistipes	8	2	3	2	2.0	2.12	0.33
+genus	Aequorivita	2	2	2	2	2.0	2.00	0.00
+genus	Belliella	1	4	4	4	4	4.00	0.00
+genus	Ornithobacterium	3	3	3	3	3	3.00	0.00
+genus	Turneriella	1	2	2	2	2	2.00	0.00
+genus	Desulfomonile	1	1	1	1	1	1.00	0.00
+genus	Kitasatospora	4	9	11		10.0	10.00	1.00
+genus	Erysipelothrix	10	3	9		5.5	5.80	2.09
+genus	Microlunatus	2	1	1	1	1.0	1.00	0.00
+genus	Solibacillus	2	12	12	12	12.0	12.00	0.00
+genus	Pelosinus	2	9	15		12.0	12.00	3.00
+genus	Tessaracoccus	9	1	2	2	2	1.78	0.42
+genus	Melioribacter	1	1	1	1	1	1.00	0.00
+genus	Kosakonia	9	5	10	7	7	7.11	1.20
+genus	Caldilinea	1	2	2	2	2	2.00	0.00
+genus	Natrinema	3	3	3	3	3	3.00	0.00
+genus	Pseudogulbenkiania	1	8	8	8	8	8.00	0.00
+genus	Oscillibacter	3	3	3	3	3	3.00	0.00
+genus	Tetragenococcus	6	5	5	5	5.0	5.00	0.00
+genus	Blastococcus	1	3	3	3	3	3.00	0.00
+genus	Phycisphaera	3	1	1	1	1	1.00	0.00
+genus	Rubrivivax	1	3	3	3	3	3.00	0.00
+genus	Leptospirillum	4	2	3	2	2.0	2.25	0.43
+genus	Caldisericum	1	1	1	1	1	1.00	0.00
+genus	Pararhodospirillum	1	1	1	1	1	1.00	0.00
+genus	Morganella	14	7	7	7	7.0	7.00	0.00
+genus	Sulfuricella	1	2	2	2	2	2.00	0.00
+genus	Cycloclasticus	3	1	2	1	1	1.33	0.47
+genus	Thalassospira	3	4	6	4	4	4.67	0.94
+genus	Methanomassiliicoccus	8	1	2	1	1.0	1.12	0.33
+genus	Piscirickettsia	20	6	6	6	6.0	6.00	0.00
+genus	Nitrososphaera	7	1	2	1	1	1.29	0.45
+genus	Methylocystis	3	1	2	1	1	1.33	0.47
+genus	Dehalobacter	3	3	4	3	3	3.33	0.47
+genus	Simiduia	1	3	3	3	3	3.00	0.00
+genus	Thermacetogenium	1	3	3	3	3	3.00	0.00
+genus	Modestobacter	1	3	3	3	3	3.00	0.00
+genus	Desulfobacula	1	4	4	4	4	4.00	0.00
+genus	Amphibacillus	1	6	6	6	6	6.00	0.00
+genus	GpVI	3	2	3	2	2	2.33	0.47
+genus	GpXIII	2	3	4		3.5	3.50	0.50
+genus	GpVII	3	2	3	3	3	2.67	0.47
+genus	Caldisphaera	1	1	1	1	1	1.00	0.00
+genus	Thalassobaculum	2	1	1	1	1.0	1.00	0.00
+genus	Spiribacter	3	1	1	1	1	1.00	0.00
+genus	Echinicola	4	4	4	4	4.0	4.00	0.00
+genus	Halovivax	1	2	2	2	2	2.00	0.00
+genus	Halobacteroides	1	5	5	5	5	5.00	0.00
+genus	Methanomethylovorans	1	2	2	2	2	2.00	0.00
+genus	Natronococcus	1	4	4	4	4	4.00	0.00
+genus	Saccharothrix	1	4	4	4	4	4.00	0.00
+genus	Nonlabens	6	2	4	3	3.0	2.83	0.69
+genus	Desulfocapsa	1	3	3	3	3	3.00	0.00
+genus	Mannheimia	90	6	6	6	6.0	6.00	0.00
+genus	Thalassolituus	3	3	4	4	4	3.67	0.47
+genus	Raoultella	15	8	8	8	8	8.00	0.00
+genus	Saccharibacteria_genera_incertae_sedis	7	1	1	1	1	1.00	0.00
+genus	Spiroplasma	32	1	2	1	1.0	1.16	0.36
+genus	Salinarchaeum	1	1	1	1	1	1.00	0.00
+genus	Brenneria	5	7	7	7	7	7.00	0.00
+genus	Adlercreutzia	1	2	2	2	2	2.00	0.00
+genus	Pandoraea	22	2	4	4	4.0	3.73	0.62
+genus	Salinispira	1	2	2	2	2	2.00	0.00
+genus	Leisingera	3	4	5	4	4	4.33	0.47
+genus	Barnesiella	1	5	5	5	5	5.00	0.00
+genus	Desulfurella	1	2	2	2	2	2.00	0.00
+genus	Halostagnicola	1	2	2	2	2	2.00	0.00
+genus	Bibersteinia	1	6	6	6	6	6.00	0.00
+genus	Kutzneria	1	3	3	3	3	3.00	0.00
+genus	Hymenobacter	13	2	4	3	3	3.00	0.55
+genus	Roseibacterium	1	2	2	2	2	2.00	0.00
+genus	Hafnia	8	7	8	8	8.0	7.75	0.43
+genus	Cesiribacter	1	5	5	5	5	5.00	0.00
+genus	Gilliamella	1	4	4	4	4	4.00	0.00
+genus	Snodgrassella	1	4	4	4	4	4.00	0.00
+genus	Trueperella	11	1	3	3	3	2.45	0.66
+genus	Castellaniella	1	2	2	2	2	2.00	0.00
+genus	Draconibacterium	1	2	2	2	2	2.00	0.00
+genus	Neochlamydia	1	2	2	2	2	2.00	0.00
+genus	Rhodoluna	5	1	1	1	1	1.00	0.00
+genus	Janthinobacterium	6	1	8	8	8.0	6.83	2.61
+genus	Mucinivorans	1	2	2	2	2	2.00	0.00
+genus	Actinotignum	1	3	3	3	3	3.00	0.00
+genus	Fimbriimonas	1	2	2	2	2	2.00	0.00
+genus	Virgibacillus	9	6	8	6	7	6.78	0.79
+genus	Terribacillus	1	8	8	8	8	8.00	0.00
+genus	Dyella	3	2	2	2	2	2.00	0.00
+genus	Dermacoccus	2	3	3	3	3.0	3.00	0.00
+genus	Palaeococcus	1	2	2	2	2	2.00	0.00
+genus	Nitrospirillum	1	5	5	5	5	5.00	0.00
+genus	Neorhizobium	2	3	3	3	3.0	3.00	0.00
+genus	Sandaracinus	1	2	2	2	2	2.00	0.00
+genus	Basilea	1	3	3	3	3	3.00	0.00
+genus	Sphingobacterium	9	2	8		6	5.44	1.89
+genus	Melissococcus	2	4	4	4	4.0	4.00	0.00
+genus	Cedecea	2	7	7	7	7.0	7.00	0.00
+genus	Curtobacterium	5	3	4	3	3	3.40	0.49
+genus	Planococcus	11	8	11	9	9	9.18	0.72
+genus	Geoglobus	2	1	1	1	1.0	1.00	0.00
+genus	Parvimonas	3	3	3	3	3	3.00	0.00
+genus	Myroides	5	5	9	9	9	8.00	1.55
+genus	Frischella	1	4	4	4	4	4.00	0.00
+genus	Jeotgalibacillus	1	9	9	9	9	9.00	0.00
+genus	Celeribacter	3	2	3	2	2	2.33	0.47
+genus	Geoalkalibacter	1	3	3	3	3	3.00	0.00
+genus	Methyloceanibacter	2	1	1	1	1.0	1.00	0.00
+genus	Thiolapillus	1	1	1	1	1	1.00	0.00
+genus	Sulfuritalea	1	2	2	2	2	2.00	0.00
+genus	Winogradskyella	2	2	2	2	2.0	2.00	0.00
+genus	Sporosarcina	11	7	10	8	8	8.36	0.77
+genus	Rathayibacter	6	2	2	2	2.0	2.00	0.00
+genus	Gynuella	1	4	4	4	4	4.00	0.00
+genus	Siansivirga	1	3	3	3	3	3.00	0.00
+genus	Peptoniphilus	3	3	4	3	3	3.33	0.47
+genus	Clostridium IV	4	2	4	3	3.0	3.00	0.71
+genus	Defluviitoga	1	3	3	3	3	3.00	0.00
+genus	Moritella	3	11	17		16	14.67	2.62
+genus	Martelella	3	2	3	3	3	2.67	0.47
+genus	Alcaligenes	8	3	3	3	3.0	3.00	0.00
+genus	Oleispira	1	5	5	5	5	5.00	0.00
+genus	Magnetospira	1	2	2	2	2	2.00	0.00
+genus	Methylomicrobium	3	3	3	3	3	3.00	0.00
+genus	Iodobacter	2	9	10		9.5	9.50	0.50
+genus	Sneathia	1	3	3	3	3	3.00	0.00
+genus	Zobellia	1	2	2	2	2	2.00	0.00
+genus	Pontibacter	3	4	5	4	4	4.33	0.47
+genus	Spirosoma	6	1	3	3	3.0	2.67	0.75
+genus	Ferriphaselus	1	3	3	3	3	3.00	0.00
+genus	Filomicrobium	2	1	1	1	1.0	1.00	0.00
+genus	Salinicoccus	1	4	4	4	4	4.00	0.00
+genus	Sedimenticola	1	2	2	2	2	2.00	0.00
+genus	Altererythrobacter	8	1	2	1	1.0	1.25	0.43
+genus	Spongiibacter	1	2	2	2	2	2.00	0.00
+genus	Hoeflea	1	1	1	1	1	1.00	0.00
+genus	Aquabacterium	2	3	4		3.5	3.50	0.50
+genus	Pragia	2	7	7	7	7.0	7.00	0.00
+genus	Endomicrobium	2	1	1	1	1.0	1.00	0.00
+genus	Croceicoccus	2	1	2		1.5	1.50	0.50
+genus	Parascardovia	1	2	2	2	2	2.00	0.00
+genus	Scardovia	1	2	2	2	2	2.00	0.00
+genus	Natronincola	1	6	6	6	6	6.00	0.00
+genus	Marinovum	1	2	2	2	2	2.00	0.00
+genus	Rufibacter	2	2	4		3.0	3.00	1.00
+genus	Methylophilus	1	2	2	2	2	2.00	0.00
+genus	Thermoactinomyces	3	6	7	7	7	6.67	0.47
+genus	Chondromyces	1	3	3	3	3	3.00	0.00
+genus	Arsenicicoccus	1	2	2	2	2	2.00	0.00
+genus	Luteipulveratus	1	2	2	2	2	2.00	0.00
+genus	Massilia	9	6	9	7	7	7.33	0.82
+genus	Actinomyces	21	3	4	3	3	3.05	0.21
+genus	Ottowia	1	3	3	3	3	3.00	0.00
+genus	Vulgatibacter	1	3	3	3	3	3.00	0.00
+genus	Labilithrix	1	4	4	4	4	4.00	0.00
+genus	Thiopseudomonas	3	3	5		4	4.00	0.82
+genus	Chelatococcus	2	2	2	2	2.0	2.00	0.00
+genus	Desulfuromonas	2	2	2	2	2.0	2.00	0.00
+genus	Kibdelosporangium	1	3	3	3	3	3.00	0.00
+genus	Megasphaera	5	6	7	7	7	6.60	0.49
+genus	Beggiatoa	2	2	2	2	2.0	2.00	0.00
+genus	Lentibacillus	1	6	6	6	6	6.00	0.00
+genus	Algibacter	1	2	2	2	2	2.00	0.00
+genus	Xiphinematobacter	1	1	1	1	1	1.00	0.00
+genus	Blastochloris	4	2	3	3	3.0	2.75	0.43
+genus	Devosia	5	1	3	2	2	2.00	0.63
+genus	Limnohabitans	2	2	3		2.5	2.50	0.50
+genus	Agarivorans	1	7	7	7	7	7.00	0.00
+genus	Sediminicola	1	3	3	3	3	3.00	0.00
+genus	Aneurinibacillus	2	11	17		14.0	14.00	3.00
+genus	Lysobacter	10	2	3	2	2.0	2.10	0.30
+genus	Aureimonas	1	1	1	1	1	1.00	0.00
+genus	Pseudohongiella	1	2	2	2	2	2.00	0.00
+genus	Intestinimonas	3	2	2	2	2	2.00	0.00
+genus	Tenacibaculum	5	3	10	6	6	6.00	2.28
+genus	Roseateles	2	2	4		3.0	3.00	1.00
+genus	Pannonibacter	2	3	3	3	3.0	3.00	0.00
+genus	Aeromicrobium	3	2	2	2	2	2.00	0.00
+genus	Arsenophonus	3	1	7	1	1	3.00	2.83
+genus	Kurthia	2	9	9	9	9.0	9.00	0.00
+genus	Lutibacter	2	2	2	2	2.0	2.00	0.00
+genus	Turicibacter	1	12	12	12	12	12.00	0.00
+genus	Thermosulfidibacter	1	1	1	1	1	1.00	0.00
+genus	Asaia	1	5	5	5	5	5.00	0.00
+genus	Rhodovulum	5	3	3	3	3	3.00	0.00
+genus	GpIX	1	3	3	3	3	3.00	0.00
+genus	GpV	4	3	4	3	3.0	3.25	0.43
+genus	Gemella	4	4	4	4	4.0	4.00	0.00
+genus	Enhydrobacter	7	4	4	4	4	4.00	0.00
+genus	Grimontia	1	9	9	9	9	9.00	0.00
+genus	Clostridium XlVb	1	7	7	7	7	7.00	0.00
+genus	Bosea	6	1	3	2	2.0	2.00	0.58
+genus	Sinomonas	1	4	4	4	4	4.00	0.00
+genus	Frondihabitans	2	2	2	2	2.0	2.00	0.00
+genus	Nibribacter	1	3	3	3	3	3.00	0.00
+genus	Steroidobacter	1	1	1	1	1	1.00	0.00
+genus	Zhongshania	1	3	3	3	3	3.00	0.00
+genus	Sphingorhabdus	4	2	2	2	2.0	2.00	0.00
+genus	Algoriphagus	1	3	3	3	3	3.00	0.00
+genus	Mucilaginibacter	9	2	4	3	3	2.89	0.57
+genus	Aminobacter	3	2	3	2	2	2.33	0.47
+genus	Brevibacterium	10	2	4	4	4.0	3.80	0.60
+genus	Gemmata	4	2	5	5	4.0	3.75	1.30
+genus	Aquisphaera	3	3	4	3	3	3.33	0.47
+genus	Novispirillum	1	5	5	5	5	5.00	0.00
+genus	Rummeliibacillus	1	12	12	12	12	12.00	0.00
+genus	Microbulbifer	5	3	5		4	3.80	0.75
+genus	Gp6	1	1	1	1	1	1.00	0.00
+genus	Frigidibacter	1	2	2	2	2	2.00	0.00
+genus	Fictibacillus	2	7	7	7	7.0	7.00	0.00
+genus	Dokdonella	1	2	2	2	2	2.00	0.00
+genus	Ectothiorhodospira	1	2	2	2	2	2.00	0.00
+genus	Denitrobacterium	1	3	3	3	3	3.00	0.00
+genus	Flavisolibacter	2	1	3		2.0	2.00	1.00
+genus	Halotalea	1	6	6	6	6	6.00	0.00
+genus	Marinobacterium	1	6	6	6	6	6.00	0.00
+genus	Shinella	1	3	3	3	3	3.00	0.00
+genus	Arachidicoccus	4	1	4		2.5	2.50	1.12
+genus	Dietzia	5	2	4		3	3.00	0.89
+genus	Agromyces	5	2	3	2	2	2.40	0.49
+genus	Porphyrobacter	4	1	2	1	1.0	1.25	0.43
+genus	Dermabacter	3	3	3	3	3	3.00	0.00
+genus	Cryobacterium	3	3	3	3	3	3.00	0.00
+genus	Flammeovirga	2	8	10		9.0	9.00	1.00
+genus	Serinicoccus	4	2	2	2	2.0	2.00	0.00
+genus	Salimicrobium	1	7	7	7	7	7.00	0.00
+genus	Flavonifractor	1	2	2	2	2	2.00	0.00
+genus	Parasutterella	1	6	6	6	6	6.00	0.00
+genus	Erysipelotrichaceae_incertae_sedis	1	5	5	5	5	5.00	0.00
+genus	Blautia	6	5	8	5	5.0	5.50	1.12
+genus	Wenyingzhuangia	1	4	4	4	4	4.00	0.00
+genus	Lentzea	1	5	5	5	5	5.00	0.00
+genus	Cloacibacillus	1	5	5	5	5	5.00	0.00
+genus	Brochothrix	5	9	9	9	9	9.00	0.00
+genus	Methyloversatilis	1	2	2	2	2	2.00	0.00
+genus	Blastomonas	2	2	2	2	2.0	2.00	0.00
+genus	Dialister	3	5	5	5	5	5.00	0.00
+genus	Cobetia	2	7	7	7	7.0	7.00	0.00
+genus	Actinoalloteichus	4	3	3	3	3.0	3.00	0.00
+genus	Geosporobacter	2	11	11	11	11.0	11.00	0.00
+genus	Kozakia	2	5	5	5	5.0	5.00	0.00
+genus	Jeongeupia	1	5	5	5	5	5.00	0.00
+genus	Thalassotalea	3	6	6	6	6	6.00	0.00
+genus	Desulfococcus	2	3	3	3	3.0	3.00	0.00
+genus	Vagococcus	4	5	7	7	6.5	6.25	0.83
+genus	Rhodobaca	1	3	3	3	3	3.00	0.00
+genus	Spongiimonas	1	3	3	3	3	3.00	0.00
+genus	Sulfitobacter	8	1	4		2.0	2.00	1.00
+genus	Caldithrix	1	1	1	1	1	1.00	0.00
+genus	Zhihengliuella	1	3	3	3	3	3.00	0.00
+genus	Luteibacter	2	2	2	2	2.0	2.00	0.00
+genus	Janibacter	2	2	2	2	2.0	2.00	0.00
+genus	Marinilactibacillus	1	4	4	4	4	4.00	0.00
+genus	Loktanella	3	2	3	3	3	2.67	0.47
+genus	Minicystis	1	4	4	4	4	4.00	0.00
+genus	Salegentibacter	1	3	3	3	3	3.00	0.00
+genus	Thioclava	1	3	3	3	3	3.00	0.00
+genus	Roseomonas	5	5	5	5	5	5.00	0.00
+genus	Tateyamaria	1	1	1	1	1	1.00	0.00
+genus	Salipiger	1	4	4	4	4	4.00	0.00
+genus	Trichococcus	1	6	6	6	6	6.00	0.00
+genus	Gimesia	7	2	2	2	2	2.00	0.00
+genus	Halioglobus	1	2	2	2	2	2.00	0.00
+genus	Halorientalis	1	2	2	2	2	2.00	0.00
+genus	Anaerostipes	3	4	9	9	9	7.33	2.36
+genus	Planomicrobium	2	9	9	9	9.0	9.00	0.00
+genus	Rivicola	1	5	5	5	5	5.00	0.00
+genus	Paenalcaligenes	1	3	3	3	3	3.00	0.00
+genus	Jeotgalibaca	1	6	6	6	6	6.00	0.00
+genus	Neoasaia	1	4	4	4	4	4.00	0.00
+genus	Nonomuraea	1	5	5	5	5	5.00	0.00
+genus	Bombella	1	1	1	1	1	1.00	0.00
+genus	Roseovarius	4	1	2	2	2.0	1.75	0.43
+genus	Cellulosimicrobium	3	3	3	3	3	3.00	0.00
+genus	Fibrella	1	3	3	3	3	3.00	0.00
+genus	Rhizobacter	2	3	3	3	3.0	3.00	0.00
+genus	Oxalobacter	3	1	2	2	2	1.67	0.47
+genus	Kushneria	3	4	4	4	4	4.00	0.00
+genus	Oceanisphaera	2	8	8	8	8.0	8.00	0.00
+genus	Sulfuriferula	1	3	3	3	3	3.00	0.00
+genus	Oleiphilus	1	5	5	5	5	5.00	0.00
+genus	Tatumella	3	7	7	7	7	7.00	0.00
+genus	Alkalitalea	1	4	4	4	4	4.00	0.00
+genus	Methylovulum	1	1	1	1	1	1.00	0.00
+genus	Granulosicoccus	1	3	3	3	3	3.00	0.00
+genus	Aquitalea	3	8	8	8	8	8.00	0.00
+genus	Vitreoscilla	2	2	7		4.5	4.50	2.50
+genus	Arenibacter	1	3	3	3	3	3.00	0.00
+genus	Antarctobacter	1	2	2	2	2	2.00	0.00
+genus	Prauserella	1	3	3	3	3	3.00	0.00
+genus	Aeribacillus	1	7	7	7	7	7.00	0.00
+genus	Actinopolyspora	1	5	5	5	5	5.00	0.00
+genus	Thermogutta	1	1	1	1	1	1.00	0.00
+genus	Plantactinospora	3	1	3	1	1	1.67	0.94
+genus	Gibbsiella	1	7	7	7	7	7.00	0.00
+genus	Cystobacter	2	4	4	4	4.0	4.00	0.00
+genus	Variibacter	1	1	1	1	1	1.00	0.00
+genus	Microcella	1	1	1	1	1	1.00	0.00
+genus	Acidiferrobacter	3	1	1	1	1	1.00	0.00
+genus	Filimonas	1	5	5	5	5	5.00	0.00
+genus	Halopenitus	1	2	2	2	2	2.00	0.00
+genus	Marinifilum	1	6	6	6	6	6.00	0.00
+genus	Thiohalobacter	1	1	1	1	1	1.00	0.00
+genus	GpVIII	1	3	3	3	3	3.00	0.00
+genus	Ureibacillus	1	9	9	9	9	9.00	0.00
+genus	Zobellella	1	8	8	8	8	8.00	0.00
+genus	Faecalibacterium	5	6	6	6	6	6.00	0.00
+genus	Collinsella	4	5	5	5	5.0	5.00	0.00
+genus	Microvirga	2	3	4		3.5	3.50	0.50
+genus	Methylosinus	1	3	3	3	3	3.00	0.00
+genus	Phyllobacterium	1	3	3	3	3	3.00	0.00
+genus	Halohasta	1	2	2	2	2	2.00	0.00
+genus	Mariprofundus	2	1	2		1.5	1.50	0.50
+genus	Reinekea	1	5	5	5	5	5.00	0.00
+genus	Entomoplasma	3	1	2	1	1	1.33	0.47
+genus	Thiodictyon	1	2	2	2	2	2.00	0.00
+genus	Sagittula	1	2	2	2	2	2.00	0.00
+genus	Olleya	3	4	6	4	4	4.67	0.94
+genus	Niveispirillum	1	4	4	4	4	4.00	0.00
+genus	Bacteriovorax	2	2	2	2	2.0	2.00	0.00
+genus	Tamlana	1	3	3	3	3	3.00	0.00
+genus	Laceyella	1	12	12	12	12	12.00	0.00
+genus	Salinigranum	1	2	2	2	2	2.00	0.00
+genus	Pontimonas	1	1	1	1	1	1.00	0.00
+genus	Sulfobacillus	1	6	6	6	6	6.00	0.00
+genus	Simonsiella	1	5	5	5	5	5.00	0.00
+genus	Desulfobulbus	1	2	2	2	2	2.00	0.00
+genus	Oligella	1	3	3	3	3	3.00	0.00
+genus	Fastidiosipila	1	2	2	2	2	2.00	0.00
+genus	Victivallis	1	4	4	4	4	4.00	0.00
+genus	Mogibacterium	1	2	2	2	2	2.00	0.00
+genus	Salinicola	1	5	5	5	5	5.00	0.00
+genus	Phreatobacter	2	2	2	2	2.0	2.00	0.00
+genus	Melaminivora	1	3	3	3	3	3.00	0.00
+genus	Simplicispira	1	3	3	3	3	3.00	0.00
+genus	Plesiomonas	2	11	13		12.0	12.00	1.00
+genus	Pluralibacter	3	1	7	7	7	5.00	2.83
+genus	Carboxydocella	2	5	5	5	5.0	5.00	0.00
+genus	Gemmobacter	1	3	3	3	3	3.00	0.00
+genus	Catenovulum	2	6	7		6.5	6.50	0.50
+genus	Mycetocola	1	3	3	3	3	3.00	0.00
+genus	Miniimonas	1	2	2	2	2	2.00	0.00
+genus	Pseudarcicella	1	3	3	3	3	3.00	0.00
+genus	Salinimonas	3	4	7		5	5.33	1.25
+genus	Salinisphaera	1	2	2	2	2	2.00	0.00
+genus	Auritidibacter	1	2	2	2	2	2.00	0.00
+genus	Bradymonas	3	3	5	3	3	3.67	0.94
+genus	Streptacidiphilus	1	8	8	8	8	8.00	0.00
+genus	Alloprevotella	1	3	3	3	3	3.00	0.00
+genus	Paraliobacillus	1	9	9	9	9	9.00	0.00
+genus	Hathewaya	2	10	11		10.5	10.50	0.50
+genus	Nitratireductor	1	2	2	2	2	2.00	0.00
+genus	Runella	2	3	3	3	3.0	3.00	0.00
+genus	Acidipila	1	1	1	1	1	1.00	0.00
+genus	Natribacillus	2	6	6	6	6.0	6.00	0.00
+genus	Haloplanus	3	2	2	2	2	2.00	0.00
+genus	Euzebya	2	1	2		1.5	1.50	0.50
+genus	Alkanindiges	1	4	4	4	4	4.00	0.00
+genus	Ornithinimicrobium	3	2	2	2	2	2.00	0.00
+genus	Acidisphaera	1	1	1	1	1	1.00	0.00
+genus	Kordia	1	3	3	3	3	3.00	0.00
+genus	Balneola	1	3	3	3	3	3.00	0.00
+genus	Saccharospirillum	1	4	4	4	4	4.00	0.00
+genus	Gallaecimonas	1	6	6	6	6	6.00	0.00
+genus	Austwickia	1	2	2	2	2	2.00	0.00
+genus	Mariniflexile	1	2	2	2	2	2.00	0.00
+genus	Solimonas	1	2	2	2	2	2.00	0.00
+genus	Clostridium XVIII	3	9	9	9	9	9.00	0.00
+genus	Breoghania	1	2	2	2	2	2.00	0.00
+genus	Maritalea	1	2	2	2	2	2.00	0.00
+genus	Dechloromonas	1	3	3	3	3	3.00	0.00
+genus	Aquimarina	3	3	3	3	3	3.00	0.00
+genus	Lonsdalea	1	7	7	7	7	7.00	0.00
+genus	Facklamia	1	4	4	4	4	4.00	0.00
+genus	Hydrogenophilus	1	3	3	3	3	3.00	0.00
+genus	Methylocaldum	1	2	2	2	2	2.00	0.00
+genus	Ruminococcus2	1	4	4	4	4	4.00	0.00
+genus	Lachnoanaerobaculum	2	5	5	5	5.0	5.00	0.00
+genus	Actinomadura	2	4	5		4.5	4.50	0.50
+genus	Chryseolinea	1	2	2	2	2	2.00	0.00
+genus	Paenisporosarcina	2	10	11		10.5	10.50	0.50
+genus	Sutterella	2	6	8		7.0	7.00	1.00
+genus	Zymobacter	1	8	8	8	8	8.00	0.00
+genus	Gryllotalpicola	1	2	2	2	2	2.00	0.00
+genus	Christensenella	1	2	2	2	2	2.00	0.00
+genus	Buttiauxella	1	8	8	8	8	8.00	0.00
+genus	Euzebyella	1	2	2	2	2	2.00	0.00
+genus	Georgenia	3	2	3	3	3	2.67	0.47
+genus	Cohnella	2	9	9	9	9.0	9.00	0.00
+genus	Pigmentiphaga	2	2	3		2.5	2.50	0.50
+genus	Plantibacter	2	2	2	2	2.0	2.00	0.00
+genus	Cloacibacterium	1	2	2	2	2	2.00	0.00
+genus	Avibacterium	2	6	6	6	6.0	6.00	0.00
+genus	Kandleria	1	11	11	11	11	11.00	0.00
+genus	Phascolarctobacterium	2	5	5	5	5.0	5.00	0.00
+genus	Flaviflexus	2	3	3	3	3.0	3.00	0.00
+genus	Halocella	1	4	4	4	4	4.00	0.00
+genus	Undibacterium	1	6	6	6	6	6.00	0.00
+genus	Diplorickettsia	1	2	2	2	2	2.00	0.00
+genus	Sporomusa	2	4	12		8.0	8.00	4.00
+genus	Pelolinea	1	1	1	1	1	1.00	0.00
+genus	Fulvimonas	1	2	2	2	2	2.00	0.00
+genus	Sphingosinicella	1	1	1	1	1	1.00	0.00
+genus	Thioprofundum	1	1	1	1	1	1.00	0.00
+genus	Rheinheimera	2	5	6		5.5	5.50	0.50
+genus	Eikenella	3	4	4	4	4	4.00	0.00
+genus	Anoxybacter	1	8	8	8	8	8.00	0.00
+genus	Butyricimonas	1	5	5	5	5	5.00	0.00
+genus	Glycocaulis	1	1	1	1	1	1.00	0.00
+genus	Sporolactobacillus	3	6	7	7	7	6.67	0.47
+genus	Leucobacter	2	2	2	2	2.0	2.00	0.00
+genus	Halorussus	1	3	3	3	3	3.00	0.00
+genus	Geovibrio	1	2	2	2	2	2.00	0.00
+genus	Tissierella	1	4	4	4	4	4.00	0.00
+genus	Sporanaerobacter	1	5	5	5	5	5.00	0.00
+genus	Anaerovorax	1	5	5	5	5	5.00	0.00
+genus	Salinibacterium	1	2	2	2	2	2.00	0.00
+genus	Luteimonas	3	1	2	2	2	1.67	0.47
+genus	Methylovirgula	1	1	1	1	1	1.00	0.00
+genus	Muriicola	1	2	2	2	2	2.00	0.00
+genus	Nitriliruptor	1	2	2	2	2	2.00	0.00
+genus	Streptomonospora	1	5	5	5	5	5.00	0.00
+genus	Haematobacter	1	3	3	3	3	3.00	0.00
+genus	Kerstersia	1	3	3	3	3	3.00	0.00
+genus	Terasakiella	1	3	3	3	3	3.00	0.00
+genus	Natronorubrum	1	5	5	5	5	5.00	0.00
+genus	Halapricum	1	1	1	1	1	1.00	0.00
+genus	Halobellus	1	2	2	2	2	2.00	0.00
+genus	Salinivibrio	2	9	9	9	9.0	9.00	0.00
+genus	Cetia	1	4	4	4	4	4.00	0.00
+genus	Pseudolabrys	1	1	1	1	1	1.00	0.00
+genus	Pseudorhodobacter	1	4	4	4	4	4.00	0.00
+genus	Desulfoglaeba	1	2	2	2	2	2.00	0.00
+genus	Citricoccus	2	3	3	3	3.0	3.00	0.00
+genus	Agrococcus	1	1	1	1	1	1.00	0.00
+genus	Caminibacter	1	4	4	4	4	4.00	0.00
+genus	Oerskovia	1	4	4	4	4	4.00	0.00
+genus	Inhella	1	4	4	4	4	4.00	0.00
+genus	Caloramator	1	5	5	5	5	5.00	0.00
+genus	Thermomonas	1	2	2	2	2	2.00	0.00
+genus	Oceanicola	1	1	1	1	1	1.00	0.00
+genus	Saccharibacillus	1	10	10	10	10	10.00	0.00
+genus	Neokomagataea	1	7	7	7	7	7.00	0.00
+genus	Swingsia	1	6	6	6	6	6.00	0.00
+genus	Stella	1	2	2	2	2	2.00	0.00
+genus	Dolosigranulum	1	4	4	4	4	4.00	0.00
+genus	Formosa	1	4	4	4	4	4.00	0.00
+genus	Ferrovibrio	1	1	1	1	1	1.00	0.00
+genus	Aquibacillus	1	8	8	8	8	8.00	0.00
+genus	Chitinimonas	1	5	5	5	5	5.00	0.00
+genus	Tomitella	1	4	4	4	4	4.00	0.00
+genus	Blastopirellula	6	1	2	1	1.0	1.33	0.47
+genus	Salarchaeum	1	1	1	1	1	1.00	0.00
+genus	Humibacter	1	2	2	2	2	2.00	0.00
+genus	Noviherbaspirillum	1	3	3	3	3	3.00	0.00
+genus	Nesterenkonia	1	2	2	2	2	2.00	0.00
+genus	Ruania	1	2	2	2	2	2.00	0.00
+genus	Sphaerotilus	1	4	4	4	4	4.00	0.00
+genus	Labrys	1	3	3	3	3	3.00	0.00
+genus	Neptunomonas	1	5	5	5	5	5.00	0.00
+genus	Empedobacter	1	7	7	7	7	7.00	0.00
+genus	Nitrincola	1	5	5	5	5	5.00	0.00
+genus	Skermanella	1	6	6	6	6	6.00	0.00
+genus	Pseudobutyrivibrio	1	5	5	5	5	5.00	0.00
+genus	Aestuariibacter	1	4	4	4	4	4.00	0.00
+genus	Ancylobacter	1	2	2	2	2	2.00	0.00
+genus	Devriesea	1	2	2	2	2	2.00	0.00
+genus	Proteiniphilum	1	2	2	2	2	2.00	0.00
+genus	Petrimonas	1	2	2	2	2	2.00	0.00
+genus	Murdochiella	3	2	3	2	2	2.33	0.47
+genus	Ezakiella	1	2	2	2	2	2.00	0.00
+genus	Megamonas	1	5	5	5	5	5.00	0.00
+genus	Dermatophilus	1	3	3	3	3	3.00	0.00
+genus	Gordonibacter	2	3	3	3	3.0	3.00	0.00
+genus	Hartmannibacter	1	2	2	2	2	2.00	0.00
+genus	Candidatus Kuenenia	1	1	1	1	1	1.00	0.00
+genus	Micropruina	1	1	1	1	1	1.00	0.00
+genus	Acetothermia_genera_incertae_sedis	1	1	1	1	1	1.00	0.00
+genus	Kingella	1	4	4	4	4	4.00	0.00
+genus	Leminorella	2	7	7	7	7.0	7.00	0.00
+genus	Kluyvera	1	8	8	8	8	8.00	0.00
+genus	Cardiobacterium	1	3	3	3	3	3.00	0.00
+genus	Lautropia	1	5	5	5	5	5.00	0.00
+genus	Paraprevotella	1	7	7	7	7	7.00	0.00
+genus	Aquicella	2	2	2	2	2.0	2.00	0.00
+family	Enterobacteriaceae	273	1	13			6.92	2.06
+family	"Porphyromonadaceae"	14	2	7			3.43	1.50
+family	Entomoplasmataceae	49	1	3			1.99	0.22
+family	Rhodobacteraceae	55	1	6			2.76	1.21
+family	Desulfobacteraceae	5	1	6			3.20	1.72
+family	Burkholderiales_incertae_sedis	7	1	4			2.64	1.22
+family	Flavobacteriaceae	60	1	13			2.97	1.37
+family	Rhodocyclaceae	11	2	5			2.80	0.81
+family	Rhodospirillaceae	17	1	10			3.49	2.01
+family	Vibrionaceae	10	6	21			9.64	2.49
+family	Spirochaetaceae	10	1	7			1.73	0.99
+family	Peptococcaceae 2	2	5	10			8.00	0.00
+family	Desulfurococcaceae	6	1	1			1.00	0.00
+family	Clostridiaceae 1	8	4	16			7.54	3.24
+family	Coriobacteriaceae	14	1	5			2.46	0.90
+family	Lachnospiraceae	18	4	11			5.16	1.72
+family	Alcaligenaceae	23	2	5			2.82	0.40
+family	Chromatiaceae	8	1	6			2.69	1.25
+family	Pasteurellaceae	20	1	8			5.95	0.22
+family	Oxalobacteraceae	12	1	9			3.74	2.29
+family	Comamonadaceae	20	1	9			2.76	0.91
+family	Chlamydiaceae	3	1	3			1.26	0.36
+family	Micrococcaceae	11	2	9			2.87	1.04
+family	Halomonadaceae	9	1	8			5.03	1.89
+family	Halobacteriaceae	18	1	3			1.53	0.79
+family	Cystobacteraceae	4	2	4			2.75	0.83
+family	Pseudomonadaceae	14	1	9			4.04	1.17
+family	Alteromonadaceae	12	1	7			4.56	1.37
+family	"Rhodothermaceae"	4	1	1			1.00	0.00
+family	Thermodesulfobacteriaceae	3	1	2			1.33	0.47
+family	Xanthomonadaceae	18	1	4			2.09	0.66
+family	Veillonellaceae	8	4	15			6.15	2.55
+family	Erysipelotrichaceae	6	3	14			9.47	3.24
+family	Planctomycetaceae	22	1	8			1.99	1.56
+family	Rhizobiaceae	5	2	6			3.08	0.15
+family	Anaerolineaceae	5	1	2			1.40	0.49
+family	Ectothiorhodospiraceae	8	1	2			1.50	0.50
+family	Phyllobacteriaceae	9	1	3			1.69	0.69
+family	Brucellaceae	4	3	5			3.33	0.58
+family	Cytophagaceae	13	1	5			3.04	0.49
+family	Staphylococcaceae	4	1	8			4.59	0.65
+family	Microbacteriaceae	26	1	4			1.81	0.67
+family	Natrialbaceae	11	2	5			3.00	0.85
+family	Oceanospirillaceae	8	3	8			5.18	1.18
+family	Sphingomonadaceae	10	1	5			1.98	0.72
+family	Chitinophagaceae	12	1	6			2.71	1.01
+family	Planococcaceae	15	2	14			9.87	2.59
+family	Haloferacaceae	12	2	3			2.03	0.11
+family	Actinomycetaceae	8	1	4			2.81	0.61
+family	Streptomycetaceae	4	3	11			8.05	1.35
+family	Ruminococcaceae	13	2	8			3.18	1.13
+family	Acetobacteraceae	20	1	7			3.77	1.79
+family	Carnobacteriaceae	7	4	8			5.43	1.05
+family	Desulfovibrionaceae	3	1	7			2.83	0.62
+family	Burkholderiaceae	8	1	7			3.76	1.45
+family	Promicromonosporaceae	5	3	4			3.10	0.20
+family	Intrasporangiaceae	7	2	2			2.00	0.00
+family	Erythrobacteraceae	5	1	2			1.27	0.16
+family	Beijerinckiaceae	5	1	3			1.73	0.74
+family	Flammeovirgaceae	4	2	10			5.00	2.55
+family	Bacillaceae 2	11	6	10			7.16	1.08
+family	Neisseriaceae	14	1	10			5.71	1.88
+family	Sphingobacteriaceae	7	2	8			3.97	0.80
+family	Peptostreptococcaceae	4	4	17			8.77	3.85
+family	Bacillaceae 1	5	1	19			8.47	1.35
+family	Methanococcaceae	2	2	4			2.29	0.29
+family	Corynebacteriaceae	1	3	7			4.37	0.00
+family	Mycoplasmataceae	2	1	5			1.80	0.20
+family	Streptococcaceae	2	1	9			5.58	0.18
+family	Caulobacteraceae	4	1	3			2.00	0.71
+family	Chlorobiaceae	4	1	3			1.70	0.41
+family	Sulfolobaceae	3	1	1			1.00	0.00
+family	Rickettsiaceae	2	1	1			1.00	0.00
+family	Methanosarcinaceae	6	1	3			2.50	0.50
+family	Thermoanaerobacteraceae	6	1	4			3.06	1.06
+family	Methanopyraceae	1	1	1			1.00	0.00
+family	Thermoproteaceae	4	1	1			1.00	0.00
+family	Thermococcaceae	3	1	2			1.33	0.47
+family	Cellulomonadaceae	3	1	4			2.43	1.23
+family	Bifidobacteriaceae	4	2	6			2.33	0.57
+family	Leptospiraceae	2	2	2			2.00	0.00
+family	Coxiellaceae	3	1	2			1.67	0.47
+family	Enterococcaceae	4	4	7			5.21	0.83
+family	Mycobacteriaceae	2	1	3			2.06	0.94
+family	Helicobacteraceae	5	1	4			2.99	0.65
+family	Family II	2	1	3			1.84	0.16
+family	Geobacteraceae	2	2	4			2.77	0.23
+family	Anaplasmataceae	3	1	1			1.00	0.00
+family	Lactobacillaceae	2	1	11			4.98	0.38
+family	Thermaceae	4	1	3			2.24	0.44
+family	Picrophilaceae	1	1	1			1.00	0.00
+family	Listeriaceae	2	1	9			7.34	1.66
+family	Methylococcaceae	5	1	3			2.20	0.75
+family	Propionibacteriaceae	5	1	6			1.72	0.69
+family	Idiomarinaceae	1	4	4			4.00	0.00
+family	Legionellaceae	1	3	4			3.10	0.00
+family	Thermotogaceae	2	1	1			1.00	0.00
+family	Deinococcaceae	1	3	5			3.38	0.00
+family	Aquificaceae	4	1	2			1.50	0.50
+family	Methanobacteriaceae	4	2	4			2.42	0.53
+family	Archaeoglobaceae	3	1	1			1.00	0.00
+family	Francisellaceae	1	1	3			2.94	0.00
+family	Dehalococcoidaceae	1	1	1			1.00	0.00
+family	Campylobacteraceae	3	1	6			3.42	1.12
+family	Nitrosomonadaceae	2	1	1			1.00	0.00
+family	Alcanivoracaceae	2	2	3			2.20	0.20
+family	Family I	1	1	6			3.97	0.00
+family	Nocardiaceae	3	2	6			3.59	0.48
+family	Clostridiales_Incertae Sedis XVIII	1	6	6			6.00	0.00
+family	Bacteroidaceae	1	4	7			5.51	0.00
+family	Peptococcaceae 1	5	3	11			5.17	2.36
+family	Paenibacillaceae 1	5	5	17			9.45	2.55
+family	Clostridiales_Incertae Sedis XI	8	2	6			3.73	1.25
+family	Gemmatimonadaceae	1	1	2			1.67	0.00
+family	Nautiliaceae	5	2	4			3.40	0.80
+family	Xanthobacteraceae	6	1	3			2.00	0.82
+family	Family XI	1	2	2			2.00	0.00
+family	Deferribacteraceae	5	2	2			2.00	0.00
+family	Methanocellaceae	1	2	3			2.33	0.00
+family	Thermoplasmataceae	1	1	1			1.00	0.00
+family	Bradyrhizobiaceae	5	1	3			1.42	0.44
+family	Family IV	1	1	3			1.75	0.00
+family	Acholeplasmataceae	1	2	4			2.19	0.00
+family	Moraxellaceae	5	1	8			4.49	0.81
+family	Colwelliaceae	2	5	9			6.44	0.44
+family	SAR11	1	1	1			1.00	0.00
+family	Nocardiopsaceae	3	4	6			4.72	0.52
+family	Piscirickettsiaceae	5	1	6			3.09	1.60
+family	Myxococcaceae	2	3	4			3.41	0.41
+family	Hydrogenophilaceae	2	2	3			2.50	0.50
+family	Desulfuromonadaceae	2	2	4			2.50	0.50
+family	Hahellaceae	1	5	5			5.00	0.00
+family	Hyphomonadaceae	4	1	2			1.50	0.50
+family	Syntrophaceae	3	1	1			1.00	0.00
+family	Methanospirillaceae	1	4	4			4.00	0.00
+family	Methylophilaceae	4	1	3			2.00	0.00
+family	Shewanellaceae	1	7	15			9.28	0.00
+family	Rubrobacteraceae	1	1	1			1.00	0.00
+family	Family XII	1	2	2			2.00	0.00
+family	Leuconostocaceae	3	2	11			4.60	2.44
+family	Syntrophomonadaceae	2	2	3			2.50	0.50
+family	Aeromonadaceae	5	7	11			8.18	0.95
+family	Magnetococcaceae	1	3	3			3.00	0.00
+family	Syntrophobacteraceae	2	2	2			2.00	0.00
+family	Acidothermaceae	1	1	1			1.00	0.00
+family	Pyrodictiaceae	2	1	1			1.00	0.00
+family	Thermofilaceae	1	1	1			1.00	0.00
+family	Nocardioidaceae	3	2	6			2.22	0.32
+family	Psychromonadaceae	1	10	10			10.00	0.00
+family	Cardiobacteriaceae	2	3	3			3.00	0.00
+family	Bartonellaceae	1	2	3			2.04	0.00
+family	Methanocorpusculaceae	1	3	3			3.00	0.00
+family	Methanomicrobiaceae	2	1	2			1.50	0.50
+family	Micromonosporaceae	5	1	6			3.24	1.20
+family	Clostridiales_Incertae Sedis III	4	2	5			3.25	1.09
+family	Chloroflexaceae	2	2	3			2.50	0.50
+family	Fervidobacteriaceae	2	2	4			2.90	0.90
+family	Clostridiaceae 2	2	6	10			7.50	1.50
+family	Kineosporiaceae	1	4	4			4.00	0.00
+family	Rhodobiaceae	2	1	1			1.00	0.00
+family	Methanoregulaceae	2	1	3			2.00	1.00
+family	Nitrosopumilaceae	1	1	1			1.00	0.00
+family	Petrotogaceae	3	2	3			2.67	0.47
+family	Methylobacteriaceae	2	3	11			4.57	1.07
+family	Heliobacteriaceae	1	10	10			10.00	0.00
+family	Family X	1	2	2			2.00	0.00
+family	Bacillales_Incertae Sedis XII	1	4	10			8.50	0.00
+family	Opitutaceae	1	1	2			1.20	0.00
+family	Natranaerobiaceae	1	4	4			4.00	0.00
+family	Elusimicrobiaceae	1	1	1			1.00	0.00
+family	Verrucomicrobiaceae	1	3	3			3.00	0.00
+family	Hydrogenothermaceae	2	2	3			2.25	0.25
+family	Halanaerobiaceae	3	4	4			4.00	0.00
+family	Acidithiobacillaceae	1	2	2			2.00	0.00
+family	Thermodesulfobiaceae	2	2	2			2.00	0.00
+family	"Dictyoglomaceae"	1	2	2			2.00	0.00
+family	"Nitrospiraceae"	3	1	3			1.42	0.59
+family	Thermomicrobiaceae	1	2	2			2.00	0.00
+family	"Brachyspiraceae"	1	1	1			1.00	0.00
+family	Alteromonadales_incertae_sedis	1	3	3			3.00	0.00
+family	Beutenbergiaceae	2	2	2			2.00	0.00
+family	Desulfomicrobiaceae	1	2	2			2.00	0.00
+family	Pseudonocardiaceae	13	3	5			3.66	0.71
+family	Acidimicrobiaceae	1	2	2			2.00	0.00
+family	Kosmotogaceae	2	2	2			2.00	0.00
+family	Dermabacteraceae	3	2	3			2.67	0.47
+family	"Leptotrichiaceae"	4	3	5			4.21	0.80
+family	Dermacoccaceae	3	2	3			2.33	0.47
+family	Methanocaldococcaceae	2	2	2			2.00	0.00
+family	Catenulisporaceae	1	3	3			3.00	0.00
+family	Jonesiaceae	1	5	5			5.00	0.00
+family	Alicyclobacillaceae	2	5	6			5.50	0.50
+family	Desulfohalobiaceae	1	2	2			2.00	0.00
+family	Nakamurellaceae	1	2	3			2.50	0.00
+family	Thermomonosporaceae	2	4	5			4.25	0.25
+family	Glycomycetaceae	1	2	2			2.00	0.00
+family	"Fibrobacteraceae"	1	3	3			3.00	0.00
+family	Halothiobacillaceae	1	2	2			2.00	0.00
+family	"Haliangiaceae"	1	2	2			2.00	0.00
+family	Streptosporangiaceae	2	5	6			5.50	0.50
+family	Synergistaceae	5	2	5			3.20	0.98
+family	Sanguibacteraceae	1	4	4			4.00	0.00
+family	Sphaerobacteraceae	1	2	2			2.00	0.00
+family	Conexibacteraceae	1	1	1			1.00	0.00
+family	Acidaminococcaceae	2	3	6			4.75	0.25
+family	Geodermatophilaceae	3	3	3			3.00	0.00
+family	Gallionellaceae	3	2	3			2.67	0.47
+family	Puniceicoccaceae	1	2	2			2.00	0.00
+family	"Prevotellaceae"	3	3	7			4.68	1.69
+family	Desulfobulbaceae	4	2	7			3.50	2.06
+family	Pseudoalteromonadaceae	1	6	12			8.79	0.00
+family	Polyangiaceae	3	3	4			3.67	0.47
+family	Tsukamurellaceae	1	2	2			2.00	0.00
+family	Trueperaceae	1	2	2			2.00	0.00
+family	Waddliaceae	1	2	2			2.00	0.00
+family	Segniliparaceae	1	1	1			1.00	0.00
+family	Sporolactobacillaceae	2	6	10			7.34	0.66
+family	Hyphomicrobiaceae	7	1	3			1.82	0.58
+family	Desulfarculaceae	1	1	1			1.00	0.00
+family	Halobacteroidaceae	2	5	5			5.00	0.00
+family	Acidilobaceae	1	1	1			1.00	0.00
+family	Ferrimonadaceae	1	7	7			7.00	0.00
+family	Eubacteriaceae	2	2	7			4.93	0.07
+family	Ferroplasmaceae	1	1	1			1.00	0.00
+family	"Parvularculaceae"	1	1	1			1.00	0.00
+family	"Fusobacteriaceae"	2	3	8			6.64	1.36
+family	Methanothermaceae	1	2	2			2.00	0.00
+family	Chrysiogenaceae	1	3	3			3.00	0.00
+family	Clostridiales_Incertae Sedis XVII	2	2	6			4.00	2.00
+family	Desulfurobacteriaceae	2	2	3			2.50	0.50
+family	Aerococcaceae	2	1	7			3.66	0.34
+family	Desulfurellaceae	2	2	2			2.00	0.00
+family	Cryomorphaceae	2	2	3			2.25	0.25
+family	Bdellovibrionaceae	1	1	2			1.62	0.00
+family	Methanotrichaceae	1	1	2			1.50	0.00
+family	Bacteriovoracaceae	2	2	2			2.00	0.00
+family	"Saprospiraceae"	2	2	3			2.50	0.50
+family	Clostridiales_Incertae Sedis IV	1	3	3			3.00	0.00
+family	Cyclobacteriaceae	4	3	4			3.62	0.41
+family	Simkaniaceae	1	1	1			1.00	0.00
+family	Parachlamydiaceae	2	2	4			2.75	0.75
+family	Ignavibacteriaceae	2	1	1			1.00	0.00
+family	Fervidicoccaceae	1	1	1			1.00	0.00
+family	"Rikenellaceae"	2	2	3			2.06	0.06
+family	Caldilineaceae	1	2	2			2.00	0.00
+family	Phycisphaeraceae	1	1	1			1.00	0.00
+family	Caldisericaceae	1	1	1			1.00	0.00
+family	Sulfuricellaceae	2	2	3			2.50	0.50
+family	Methanomassiliicoccaceae	1	1	2			1.12	0.00
+family	Nitrososphaeraceae	1	1	2			1.29	0.00
+family	Methylocystaceae	3	1	3			2.44	0.79
+family	Family VI	1	2	3			2.33	0.00
+family	Family XIII	1	3	4			3.50	0.00
+family	Family VII	1	2	3			2.67	0.00
+family	Caldisphaeraceae	1	1	1			1.00	0.00
+family	Spiroplasmataceae	1	1	2			1.16	0.00
+family	Orbaceae	2	4	4			4.00	0.00
+family	Prolixibacteraceae	1	2	2			2.00	0.00
+family	Fimbriimonadaceae	1	2	2			2.00	0.00
+family	Sandaracinaceae	1	2	2			2.00	0.00
+family	Oceanospirillales_incertae_sedis	2	2	4			3.00	1.00
+family	Peptoniphilaceae	1	3	4			3.33	0.00
+family	Moritellaceae	1	11	17			14.67	0.00
+family	"Aurantimonadaceae"	2	1	3			1.84	0.84
+family	Thermoactinomycetaceae 1	2	6	12			9.34	2.66
+family	Vulgatibacteraceae	1	3	3			3.00	0.00
+family	Labilitrichaceae	1	4	4			4.00	0.00
+family	Thiotrichaceae	1	2	2			2.00	0.00
+family	Paenibacillaceae 2	1	11	17			14.00	0.00
+family	Aquificales_incertae_sedis	1	1	1			1.00	0.00
+family	Family IX	1	3	3			3.00	0.00
+family	Family V	1	3	4			3.25	0.00
+family	Bacillales_Incertae Sedis XI	1	4	4			4.00	0.00
+family	Sinobacteraceae	2	1	2			1.50	0.50
+family	Brevibacteriaceae	1	2	4			3.80	0.00
+family	Dietziaceae	1	2	4			3.00	0.00
+family	Sutterellaceae	2	6	8			6.50	0.50
+family	Clostridiaceae 4	1	11	11			11.00	0.00
+family	Deferribacterales_incertae_sedis	1	1	1			1.00	0.00
+family	Oleiphilaceae	1	5	5			5.00	0.00
+family	Marinilabiliaceae	1	4	4			4.00	0.00
+family	Granulosicoccaceae	1	3	3			3.00	0.00
+family	Actinopolysporaceae	1	5	5			5.00	0.00
+family	Rhizobiales_incertae_sedis	3	1	2			1.67	0.47
+family	Family VIII	1	3	3			3.00	0.00
+family	"Mariprofundaceae"	1	1	2			1.50	0.00
+family	"Victivallaceae"	1	4	4			4.00	0.00
+family	Clostridiales_Incertae Sedis XIII	2	2	5			3.50	1.50
+family	Clostridiales_Incertae Sedis XVI	1	5	5			5.00	0.00
+family	"Salinisphaeraceae"	1	2	2			2.00	0.00
+family	Bradymonadaceae	1	3	5			3.67	0.00
+family	Euzebyaceae	1	1	2			1.50	0.00
+family	"Saccharospirillaceae"	1	4	4			4.00	0.00
+family	Dermatophilaceae	2	2	3			2.50	0.50
+family	Christensenellaceae	1	2	2			2.00	0.00
+family	Bogoriellaceae	1	2	3			2.67	0.00
+family	Thioalkalispiraceae	1	1	1			1.00	0.00
+family	Nitriliruptoraceae	1	2	2			2.00	0.00
+family	Sneathiellaceae	1	1	1			1.00	0.00
+family	Corynebacterineae_incertae_sedis	1	4	4			4.00	0.00
+family	Ruaniaceae	1	2	2			2.00	0.00
+family	Candidatus Brocadiaceae	1	1	1			1.00	0.00
+suborder	Frankineae	8	1	3			2.31	0.66
+suborder	Corynebacterineae	10	1	7			2.90	1.23
+suborder	"Acidimicrobineae"	2	1	2			1.50	0.50
+suborder	Cystobacterineae	4	2	4			3.04	0.24
+suborder	Micrococcineae	20	1	9			2.26	1.10
+suborder	"Coriobacterineae"	1	1	5			2.46	0.00
+suborder	Actinomycineae	1	1	4			2.81	0.00
+suborder	Streptomycineae	1	3	11			8.05	0.00
+suborder	Propionibacterineae	2	1	6			1.97	0.25
+suborder	Streptosporangineae	3	4	6			4.82	0.52
+suborder	"Rubrobacterineae"	1	1	1			1.00	0.00
+suborder	Micromonosporineae	1	1	6			3.24	0.00
+suborder	Chloroflexineae	1	2	3			2.50	0.00
+suborder	Kineosporiineae	1	4	4			4.00	0.00
+suborder	Pseudonocardineae	1	3	5			3.66	0.00
+suborder	Catenulisporineae	1	3	3			3.00	0.00
+suborder	Glycomycineae	1	2	2			2.00	0.00
+suborder	Nannocystineae	1	2	2			2.00	0.00
+suborder	"Sphaerobacterineae"	1	2	2			2.00	0.00
+suborder	Sorangiineae	2	3	4			3.84	0.16
+suborder	Actinopolysporineae	1	5	5			5.00	0.00
+order	Desulfuromonadales	3	2	4			3.09	0.65
+order	Cytophagales	7	1	10			2.67	1.34
+order	Thermoplasmatales	7	1	1			1.00	0.00
+order	"Flavobacteriales"	16	1	13			1.20	0.55
+order	Clostridiales	32	2	17			5.36	2.62
+order	Rhizobiales	22	1	11			2.21	0.86
+order	"Bacteroidales"	8	2	7			3.46	1.15
+order	Rickettsiales	4	1	1			1.00	0.00
+order	Chromatiales	7	1	6			1.74	0.78
+order	Burkholderiales	9	1	9			3.47	1.69
+order	Bacillales	18	1	19			7.59	2.62
+order	Rhodospirillales	3	1	10			3.09	0.78
+order	Actinomycetales	28	1	11			2.32	1.74
+order	Oceanospirillales	9	1	8			3.71	1.41
+order	Alteromonadales	10	1	17			7.47	3.24
+order	Ktedonobacterales	1	4	4	4	4	4.00	0.00
+order	Lactobacillales	7	1	11			4.92	0.60
+order	Gammaproteobacteria_incertae_sedis	8	1	6			2.50	1.50
+order	Alphaproteobacteria_incertae_sedis	1	2	2			2.00	0.00
+order	Halanaerobiales	3	4	8			5.67	1.70
+order	"Enterobacteriales"	1	1	13			6.92	0.00
+order	Entomoplasmatales	2	1	3			1.58	0.42
+order	Rhodobacterales	1	1	6			2.76	0.00
+order	Desulfobacterales	2	1	7			3.35	0.15
+order	Rhodocyclales	1	2	5			2.80	0.00
+order	"Vibrionales"	1	6	21			9.64	0.00
+order	Spirochaetales	3	1	7			1.58	0.42
+order	Desulfurococcales	2	1	1			1.00	0.00
+order	Pasteurellales	1	1	8			5.95	0.00
+order	Chlamydiales	4	1	4			1.75	0.68
+order	Halobacteriales	1	1	3			1.53	0.00
+order	Pseudomonadales	2	1	9			4.26	0.22
+order	"Sphingobacteriales"	4	1	8			2.54	1.05
+order	Thermodesulfobacteriales	1	1	2			1.33	0.00
+order	Xanthomonadales	2	1	4			1.80	0.30
+order	Selenomonadales	2	3	15			5.45	0.70
+order	Erysipelotrichales	1	3	14			9.47	0.00
+order	Planctomycetales	1	1	8			1.99	0.00
+order	Anaerolineales	1	1	2			1.40	0.00
+order	Natrialbales	1	2	5			3.00	0.00
+order	Sphingomonadales	2	1	5			1.62	0.36
+order	Haloferacales	1	2	3			2.03	0.00
+order	Desulfovibrionales	3	1	7			2.28	0.39
+order	Neisseriales	1	1	10			5.71	0.00
+order	Methanococcales	2	2	4			2.14	0.14
+order	Mycoplasmatales	1	1	5			1.80	0.00
+order	Caulobacterales	2	1	3			1.75	0.25
+order	Chlorobiales	1	1	3			1.70	0.00
+order	Sulfolobales	1	1	1			1.00	0.00
+order	Methanosarcinales	2	1	3			2.00	0.50
+order	Thermoanaerobacterales	2	1	4			2.53	0.53
+order	Methanopyrales	1	1	1			1.00	0.00
+order	Thermoproteales	2	1	1			1.00	0.00
+order	Thermococcales	1	1	2			1.33	0.00
+order	Bifidobacteriales	1	2	6			2.33	0.00
+order	Legionellales	2	1	4			2.38	0.72
+order	Campylobacterales	2	1	6			3.20	0.22
+order	Thermales	1	1	3			2.24	0.00
+order	Methylococcales	1	1	3			2.20	0.00
+order	Thermotogales	2	1	4			1.95	0.95
+order	Deinococcales	2	2	5			2.69	0.69
+order	Aquificales	3	1	3			1.58	0.51
+order	Methanobacteriales	2	2	4			2.21	0.21
+order	Archaeoglobales	1	1	1			1.00	0.00
+order	Thiotrichales	3	1	6			2.68	0.48
+order	Dehalococcoidales	1	1	1			1.00	0.00
+order	Nitrosomonadales	1	1	1			1.00	0.00
+order	Gemmatimonadales	1	1	2			1.67	0.00
+order	Nautiliales	1	2	4			3.40	0.00
+order	Deferribacterales	2	1	2			1.50	0.50
+order	Methanocellales	1	2	3			2.33	0.00
+order	Acholeplasmatales	1	2	4			2.19	0.00
+order	Hydrogenophilales	1	2	3			2.50	0.00
+order	Syntrophobacterales	2	1	2			1.50	0.50
+order	Methanomicrobiales	4	1	4			2.62	0.96
+order	Methylophilales	1	1	3			2.00	0.00
+order	Aeromonadales	1	7	11			8.18	0.00
+order	Magnetococcales	1	3	3			3.00	0.00
+order	Cardiobacteriales	1	3	3			3.00	0.00
+order	Nitrosopumilales	1	1	1			1.00	0.00
+order	Petrotogales	1	2	3			2.67	0.00
+order	Opitutales	1	1	2			1.20	0.00
+order	Natranaerobiales	1	4	4			4.00	0.00
+order	Elusimicrobiales	1	1	1			1.00	0.00
+order	Verrucomicrobiales	1	3	3			3.00	0.00
+order	Acidithiobacillales	1	2	2			2.00	0.00
+order	"Dictyoglomales"	1	2	2			2.00	0.00
+order	"Nitrospirales"	1	1	3			1.42	0.00
+order	Thermomicrobiales	1	2	2			2.00	0.00
+order	Kosmotogales	1	2	2			2.00	0.00
+order	"Fusobacteriales"	2	3	8			5.42	1.22
+order	"Fibrobacterales"	1	3	3			3.00	0.00
+order	Synergistales	1	2	5			3.20	0.00
+order	Solirubrobacterales	1	1	1			1.00	0.00
+order	Gallionellales	1	2	3			2.67	0.00
+order	Puniceicoccales	1	2	2			2.00	0.00
+order	Desulfarculales	1	1	1			1.00	0.00
+order	Acidilobales	2	1	1			1.00	0.00
+order	"Parvularculales"	1	1	1			1.00	0.00
+order	Chrysiogenales	1	3	3			3.00	0.00
+order	Desulfurobacteriales	1	2	3			2.50	0.00
+order	Desulfurellales	1	2	2			2.00	0.00
+order	Bdellovibrionales	2	1	2			1.81	0.19
+order	Ignavibacteriales	1	1	1			1.00	0.00
+order	Fervidicoccales	1	1	1			1.00	0.00
+order	Caldilineales	1	2	2			2.00	0.00
+order	Phycisphaerales	1	1	1			1.00	0.00
+order	Caldisericales	1	1	1			1.00	0.00
+order	Sulfuricellales	1	2	3			2.50	0.00
+order	Methanomassiliicoccales	1	1	2			1.12	0.00
+order	Nitrososphaerales	1	1	2			1.29	0.00
+order	Orbales	1	4	4			4.00	0.00
+order	Fimbriimonadales	1	2	2			2.00	0.00
+order	Myxococcales	4	2	4			2.72	0.77
+order	"Mariprofundales"	1	1	2			1.50	0.00
+order	Victivallales	1	4	4			4.00	0.00
+order	"Salinisphaerales"	1	2	2			2.00	0.00
+order	Bradymonadales	1	3	5			3.67	0.00
+order	Euzebyales	1	1	2			1.50	0.00
+order	Nitriliruptorales	1	2	2			2.00	0.00
+order	Sneathiellales	1	1	1			1.00	0.00
+order	Candidatus Brocadiales	1	1	1			1.00	0.00
+order	Acidimicrobiales	1	1	2			1.50	0.00
+order	Coriobacteriales	1	1	5			2.46	0.00
+order	Rubrobacterales	1	1	1			1.00	0.00
+order	"Chloroflexales"	1	2	3			2.50	0.00
+order	Sphaerobacterales	1	2	2			2.00	0.00
+subclass	Actinobacteridae	2	1	11			2.32	0.00
+subclass	Rubrobacteridae	2	1	1			1.00	0.00
+subclass	Nitriliruptoridae	2	1	2			1.75	0.25
+subclass	Acidimicrobidae	1	1	2			1.50	0.00
+subclass	Coriobacteridae	1	1	5			2.46	0.00
+subclass	Sphaerobacteridae	1	2	2			2.00	0.00
+class	Cyanobacteria	49	1	6			2.25	0.76
+class	Gammaproteobacteria	45	1	21			2.54	2.37
+class	Clostridia	6	1	17			3.59	1.52
+class	Alphaproteobacteria	26	1	11			2.02	0.90
+class	Betaproteobacteria	14	1	10			2.76	1.15
+class	Acidobacteria_Gp4	1	1	1	1	1	1.00	0.00
+class	Bacilli	3	1	19			5.17	1.88
+class	Phycisphaerae	4	1	2			1.25	0.43
+class	Halobacteria	5	1	5			2.11	0.48
+class	Planctomycetia	4	1	8			2.00	0.71
+class	Acidobacteria_Gp1	5	1	2			1.07	0.13
+class	Acidobacteria_Gp3	1	2	2			2.00	0.00
+class	"Dehalococcoidetes"	1	1	1			1.00	0.00
+class	Endomicrobia	1	1	1			1.00	0.00
+class	Spartobacteria	1	1	1			1.00	0.00
+class	Acidobacteria_Gp6	1	1	1			1.00	0.00
+class	"Bacteroidetes"_incertae_sedis	1	6	6			6.00	0.00
+class	Deltaproteobacteria	9	1	7			2.38	0.84
+class	Cytophagia	1	1	10			2.67	0.00
+class	Thermoplasmata	2	1	2			1.06	0.06
+class	Flavobacteriia	1	1	13			1.20	0.00
+class	"Bacteroidia"	1	2	7			3.46	0.00
+class	Ktedonobacteria	1	4	4			4.00	0.00
+class	Mollicutes	3	1	5			1.86	0.25
+class	Spirochaetia	1	1	7			1.58	0.00
+class	Thermoprotei	5	1	1			1.00	0.00
+class	Chlamydiia	1	1	4			1.75	0.00
+class	Sphingobacteriia	1	1	8			2.54	0.00
+class	Thermodesulfobacteria	1	1	2			1.33	0.00
+class	Negativicutes	1	3	15			5.45	0.00
+class	Erysipelotrichia	1	3	14			9.47	0.00
+class	Anaerolineae	1	1	2			1.40	0.00
+class	Methanococci	1	2	4			2.14	0.00
+class	"Chlorobia"	1	1	3			1.70	0.00
+class	"Methanomicrobia"	3	1	4			2.32	0.25
+class	Methanopyri	1	1	1			1.00	0.00
+class	Thermococci	1	1	2			1.33	0.00
+class	Epsilonproteobacteria	2	1	6			3.30	0.10
+class	Deinococci	2	1	5			2.46	0.22
+class	Thermotogae	3	1	4			2.21	0.33
+class	Aquificae	2	1	3			2.04	0.46
+class	Methanobacteria	1	2	4			2.21	0.00
+class	Archaeoglobi	1	1	1			1.00	0.00
+class	Dehalococcoidia	1	1	1			1.00	0.00
+class	Gemmatimonadetes	1	1	2			1.67	0.00
+class	Deferribacteres	1	1	2			1.50	0.00
+class	Opitutae	2	1	2			1.60	0.40
+class	Elusimicrobia	1	1	1			1.00	0.00
+class	Verrucomicrobiae	1	3	3			3.00	0.00
+class	"Dictyoglomia"	1	2	2			2.00	0.00
+class	"Nitrospira"	1	1	3			1.42	0.00
+class	Thermomicrobia	2	2	2			2.00	0.00
+class	Fusobacteriia	1	3	8			5.42	0.00
+class	"Fibrobacteria"	1	3	3			3.00	0.00
+class	Synergistia	1	2	5			3.20	0.00
+class	Chrysiogenetes	1	3	3			3.00	0.00
+class	Ignavibacteria	1	1	1			1.00	0.00
+class	Caldilineae	1	2	2			2.00	0.00
+class	Caldisericia	1	1	1			1.00	0.00
+class	Fimbriimonadia	1	2	2			2.00	0.00
+class	"Zetaproteobacteria"	1	1	2			1.50	0.00
+class	"Lentisphaeria"	1	4	4			4.00	0.00
+class	Chloroflexia	1	2	3			2.50	0.00
+class	Actinobacteria	5	1	11			1.81	0.54
+phylum	Cyanobacteria/Chloroplast	3	1	6			2.08	0.12
+phylum	"Verrucomicrobia"	6	1	3			1.43	0.73
+phylum	"Chloroflexi"	9	1	4			1.88	0.91
+phylum	"Bacteroidetes"	40	1	13			1.27	0.91
+phylum	"Proteobacteria"	10	1	21			2.25	1.20
+phylum	Firmicutes	9	1	19			3.74	2.69
+phylum	"Planctomycetes"	4	1	8			2.31	0.74
+phylum	"Korarchaeota"	1	1	1			1.00	0.00
+phylum	Cloacimonetes	1	2	2			2.00	0.00
+phylum	Candidatus Saccharibacteria	1	1	1			1.00	0.00
+phylum	Acetothermia	1	1	1			1.00	0.00
+phylum	"Thaumarchaeota"	2	1	2			1.14	0.14
+phylum	"Acidobacteria"	4	1	2			1.27	0.42
+phylum	"Euryarchaeota"	8	1	5			1.65	0.56
+phylum	"Elusimicrobia"	2	1	1			1.00	0.00
+phylum	"Tenericutes"	1	1	5			1.86	0.00
+phylum	"Spirochaetes"	1	1	7			1.58	0.00
+phylum	"Crenarchaeota"	1	1	1			1.00	0.00
+phylum	"Chlamydiae"	1	1	4			1.75	0.00
+phylum	"Thermodesulfobacteria"	1	1	2			1.33	0.00
+phylum	"Chlorobi"	1	1	3			1.70	0.00
+phylum	"Deinococcus-Thermus"	1	1	5			2.46	0.00
+phylum	"Thermotogae"	1	1	4			2.21	0.00
+phylum	"Aquificae"	1	1	3			2.04	0.00
+phylum	"Gemmatimonadetes"	1	1	2			1.67	0.00
+phylum	"Deferribacteres"	1	1	2			1.50	0.00
+phylum	"Dictyoglomi"	1	2	2			2.00	0.00
+phylum	Nitrospirae	1	1	3			1.42	0.00
+phylum	"Fusobacteria"	1	3	8			5.42	0.00
+phylum	"Fibrobacteres"	1	3	3			3.00	0.00
+phylum	"Synergistetes"	1	2	5			3.20	0.00
+phylum	"Chrysiogenetes"	1	3	3			3.00	0.00
+phylum	Ignavibacteriae	1	1	1			1.00	0.00
+phylum	"Caldiserica"	1	1	1			1.00	0.00
+phylum	"Armatimonadetes"	1	2	2			2.00	0.00
+phylum	"Lentisphaerae"	1	4	4			4.00	0.00
+phylum	"Actinobacteria"	1	1	11			1.81	0.00
+domain	Bacteria	49	1	21			1.84	0.95
+domain	Archaea	6	1	5			1.13	0.24

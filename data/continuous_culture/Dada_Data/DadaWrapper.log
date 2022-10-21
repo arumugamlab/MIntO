@@ -1,0 +1,43 @@
+Time after package installation: 2021-12-10 10:40:24 
+Package Versions: R: R version 4.0.3 (2020-10-10);  dada2: 1.18.0;  ShortRead: 1.48.0;  ggplot2: 3.3.5;  dplyr: 1.0.7;  tidyr: 1.1.4; 
+*** Quality Stats Collected ***
+Time after Quality Stats collection: 2021-12-10 10:40:42 
+Time Passed in total:  18.1499999999996
+*** Start generating Quality Plots ***
+*** Quality Plots generated ***
+*** Start Filtering ***
+**Filtering sample No: 1 called: S10
+**Filtering sample No: 2 called: S12
+**Filtering sample No: 3 called: S14
+**Filtering sample No: 4 called: S16
+**Filtering sample No: 5 called: S18
+**Filtering sample No: 6 called: S20
+**Filtering sample No: 7 called: S22
+**Filtering sample No: 8 called: S24
+**Filtering sample No: 9 called: S26
+**Filtering sample No: 10 called: S28
+**Filtering sample No: 11 called: S6
+**Filtering sample No: 12 called: S8
+*** Filtering Done ***
+Time after filtering step: 2021-12-10 10:42:21 
+Time Passed in total:  116.314
+*** Start estimating err_F if not given ***
+*** err_F has been estimated ***
+Reads used for err_F estimation:  365155
+Time after err_F estimation: 2021-12-10 10:42:38 
+Time Passed in total:  133.664
+*** Start estimating err_R if not given ***
+*** err_R has been estimated ***
+Reads used for err_R estimation:  365155
+Time after err_R estimation: 2021-12-10 10:42:59 
+Time Passed in total:  154.33
+*** Start denoising data, bimera detection, and merging of reads into amplicons***
+*** all samples denoised and mergerd amplicons generated ***
+Time after denoising: 2021-12-10 10:43:00 
+Time Passed in total:  155.638
+*** Start generating Sequence table and removing bimeras ***
+*** seqtable generated, bimeras removed ***
+*** Start saving the data ***
+*** Sequence table generated, Data saved ***
+*** Start generating Summary Plots ***
+*** Summary Plots generated, Function done ***

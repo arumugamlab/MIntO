@@ -1,0 +1,7 @@
+Condition	sample_ID	normal_vegetative_cells	elongated_vegetative_cells	spores	dead_cells	total_cells
+Cdiff	abc_0012	156	25	63	104	348
+Cdiff	sample 1_2_0028	114	39	72	140	365
+Cdiff	sample 1_2_0029	140	39	74	107	360
+Cdiff+Cscind	Training2_0008	72	31	198	32	333
+Cdiff+Cscind	sample 3_2_0007	55	35	243	36	369
+Cdiff+Cscind	sample 3_2_0008	61	32	237	33	363
