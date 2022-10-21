@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 <h1 align="center"> MIntO </h1>
 <h1 align="center"> A Modular and Scalable Pipeline for Microbiome Metagenomics and Metatranscriptomics Data Integration </h1>
 
