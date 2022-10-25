@@ -33,7 +33,6 @@ dependencies:
   - xz=5.2.5=h516909a_1
   - zlib=1.2.11=h516909a_1010
   - zstd=1.4.5=h6597ccf_2
-  - pip:
-    - natsort==7.1.1
-    - run-dbcan==2.0.11
+  - natsort==7.1.1
+  - run-dbcan==2.0.11
 prefix: dbcan_ironmenv
