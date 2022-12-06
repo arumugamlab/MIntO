@@ -16,44 +16,12 @@ localrules: mark_circular_metaspades_contigs, mark_circular_flye_contigs, rename
 import os.path
 from os import path
 
-# args = sys.argv
-# config_path = args[args.index("--configfile") + 1]
-config_path = 'configuration yaml file' #args[args_idx+1]
-print(" *******************************")
-print(" Reading configuration yaml file")#: ", config_path)
-print(" *******************************")
-print("  ")
+# Get common config variables
+# These are:
+#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+include: 'config_parser.smk'
 
 # Variables from configuration yaml file
-
-if config['PROJECT'] is None:
-    print('ERROR in ', config_path, ': PROJECT variable is empty. Please, complete ', config_path)
-else:
-    project_id = config['PROJECT']
-
-if config['working_dir'] is None:
-    print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
-elif path.exists(config['working_dir']) is False:
-    print('ERROR in ', config_path, ': working_dir variable path does not exit. Please, complete ', config_path)
-else:
-    working_dir = config['working_dir']
-
-if config['omics'] in ('metaG'):
-    omics = config['omics']
-else:
-    print('ERROR in ', config_path, ': omics variable is not correct. "omics" variable should be metaG.')
-
-if config['minto_dir'] is None:
-    print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
-elif path.exists(config['minto_dir']) is False:
-    print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
-else:
-    minto_dir=config["minto_dir"]
-
-if config['local_dir'] is None:
-    print('ERROR in ', config_path, ': local_dir variable is empty. Please, complete ', config_path)
-else:
-    local_dir = config['local_dir']
 
 # Make list of illumina samples, if ILLUMINA in config
 if 'ILLUMINA' in config:
@@ -119,19 +87,31 @@ if config['METASPADES_memory'] is None:
 elif type(config['METASPADES_memory']) != int:
     print('ERROR in ', config_path, ': METASPADES_memory variable is not an integer. Please, complete ', config_path)
 
-if config['METASPADES_hybrid_max_k'] in (33, 55, 77, 99, 127):
-    hybrid_max_k = config['METASPADES_hybrid_max_k']
-elif type(config['METASPADES_hybrid_max_k']) != int:
-    print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable is not correct. "METASPADES_hybrid_max_k" variable should be 33, 55, 77, 99 or 127.')
+if type(config['METASPADES_hybrid_max_k']) != int or config['METASPADES_hybrid_max_k']%2==0:
+    print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be an odd integer')
+elif 'METASPADES_custom_build' in config:
+    if config['METASPADES_hybrid_max_k'] < 300:
+        hybrid_max_k = config['METASPADES_hybrid_max_k']
+    else:
+        print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be below 300.')
 else:
-    print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable is not correct. "METASPADES_illumina_max_k" variable should be 33, 55, 77, 99 or 127.')
+    if config['METASPADES_hybrid_max_k'] < 128:
+        hybrid_max_k = config['METASPADES_hybrid_max_k']
+    else:
+        print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be below 128.')
 
-if config['METASPADES_illumina_max_k'] in (33, 55, 77, 99, 127):
-    illumina_max_k = config['METASPADES_illumina_max_k']
-elif type(config['METASPADES_illumina_max_k']) != int:
-    print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable is not correct. "METASPADES_illumina_max_k" variable should be 33, 55, 77, 99 or 127.')
+if type(config['METASPADES_illumina_max_k']) != int or config['METASPADES_illumina_max_k']%2==0:
+    print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be an odd integer')
+elif 'METASPADES_custom_build' in config:
+    if config['METASPADES_illumina_max_k'] < 300:
+        illumina_max_k = config['METASPADES_illumina_max_k']
+    else:
+        print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 300.')
 else:
-    print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable is not correct. "METASPADES_illumina_max_k" variable should be 33, 55, 77, 99 or 127.')
+    if config['METASPADES_illumina_max_k'] < 128:
+        illumina_max_k = config['METASPADES_illumina_max_k']
+    else:
+        print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 128.')
 
 if config['MEGAHIT_threads'] is None:
     print('ERROR in ', config_path, ': MEGAHIT_threads variable is empty. Please, complete ', config_path)
@@ -150,6 +130,7 @@ elif type(config['MEGAHIT_memory']) != int:
     print('ERROR in ', config_path, ': MEGAHIT_memory variable is not an integer. Please, complete ', config_path)
 elif type(config['MEGAHIT_memory']) == int:
     memory_config=config['MEGAHIT_memory']
+
 # Define all the outputs needed by target 'all'
 
 def illumina_single_assembly_output():
@@ -226,8 +207,10 @@ rule correct_spadeshammer:
         """ 
         mkdir -p {params.tmp_dir}
         mkdir -p $(dirname {output.fwd})
-        time ({spades_script} --only-error-correction -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.tmp_dir} --tmp-dir {params.tmp_dir}/tmp --phred-offset {params.qoffset}; \
-        rsync -a {params.tmp_dir}/corrected/{wildcards.illumina}.1.fq.00.0_0.cor.fastq.gz {output.fwd}; rsync -a {params.tmp_dir}/corrected/{wildcards.illumina}.2.fq.00.0_0.cor.fastq.gz {output.rev};) >& {log}
+        time (\
+            {spades_script} --only-error-correction -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.tmp_dir} --tmp-dir {params.tmp_dir}/tmp --phred-offset {params.qoffset}
+            rsync -a {params.tmp_dir}/corrected/{wildcards.illumina}.1.fq.00.0_0.cor.fastq.gz {output.fwd}; rsync -a {params.tmp_dir}/corrected/{wildcards.illumina}.2.fq.00.0_0.cor.fastq.gz {output.rev}
+        ) >& {log}
         rm -rf {params.tmp_dir}
         """
 
@@ -259,8 +242,10 @@ rule illumina_assembly_metaspades:
         mkdir -p {params.tmp_asm}
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
-        time ({spades_script} --meta --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
-        rsync -a {params.tmp_asm}/{params.kmer_dir}/* $remote_dir/ ) >& {log}
+        time (\
+            {spades_script} --meta --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            rsync -a {params.tmp_asm}/{params.kmer_dir}/* $remote_dir/ 
+        ) >& {log}
         rm -rf {params.tmp_asm}/{params.kmer_dir}
         rm -rf {params.tmp_asm}/tmp
         """
@@ -298,8 +283,10 @@ rule hybrid_assembly_metaspades:
         mkdir -p {params.tmp_asm}
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
-        time ({spades_script} --meta --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
-        rsync -a {params.tmp_asm}/{params.kmer_dir}/* $remote_dir/ ) >& {log}
+        time (\
+            {spades_script} --meta --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            rsync -a {params.tmp_asm}/{params.kmer_dir}/* $remote_dir/ 
+        ) >& {log}
         rm -rf {params.tmp_asm}/{params.kmer_dir}
         rm -rf {params.tmp_asm}/tmp
         """
@@ -320,8 +307,8 @@ rule coassembly_megahit:
         rev_reads=lambda wildcards, input: ",".join(input.rev),
         memory_config=config['MEGAHIT_memory']
     resources:
-        mem = lambda wildcards, input, attempt: len(input.fwd)*(memory_config+6*attempt), #lambda wildcards, input, attempt: len(input.fwd)*(5+6*attempt),
-        mem_bytes=lambda wildcards, input, attempt: len(input.fwd)*(memory_config+6*attempt)*1024*1024*1024 #lambda wildcards, input, attempt: len(input.fwd)*(5+6*attempt)*1024*1024*1024
+        mem = lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1))),
+        mem_bytes=lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1)))*1024*1024*1024 
     log:
         "{wd}/logs/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}_{assembly_preset}_coassembly_megahit.log"
     threads: config['MEGAHIT_threads']
@@ -329,14 +316,20 @@ rule coassembly_megahit:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        mkdir -p {params.tmp_asm}/tmp-{wildcards.assembly_preset}
+        local_dir="{params.tmp_asm}/{wildcards.assembly_preset}"
+        tmp_dir="{params.tmp_asm}/tmp-{wildcards.assembly_preset}"
+        mkdir -p $tmp_dir
         # Don't create the --out-dir directory as MEGAHIT wants it to not exist before
-        time (megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir {params.tmp_asm}/{wildcards.assembly_preset} --tmp-dir {params.tmp_asm}/tmp-{wildcards.assembly_preset} --presets {wildcards.assembly_preset}) >& {log}
-        rm -rf {params.tmp_asm}/tmp-{wildcards.assembly_preset}
+        time (\
+            megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir $local_dir --tmp-dir $tmp_dir --presets {wildcards.assembly_preset}
+        ) >& {log}
+        rm -rf tmp_dir
+        cd $local_dir
+        tar cfz intermediate_contigs.tar.gz intermediate_contigs && rm -rf intermediate_contigs
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
-        rsync -a {params.tmp_asm}/{wildcards.assembly_preset}/* $remote_dir/
-        rm -rf {params.tmp_asm}/{wildcards.assembly_preset}
+        rsync -a $local_dir/* $remote_dir/
+        rm -rf $local_dir
         """
 
 ###############################################################################################
@@ -360,7 +353,9 @@ rule nanopore_assembly_metaflye:
     shell:
         """
         mkdir -p $(dirname {output[0]})
-        flye --nano-raw {input} --out-dir $(dirname {output[0]}) --threads {threads} --meta {params.options} >& {log}
+        time (\
+            flye --nano-raw {input} --out-dir $(dirname {output[0]}) --threads {threads} --meta {params.options}
+        ) >& {log}
         """
 
 ###############################################################################################
@@ -433,5 +428,3 @@ rule rename_megahit_contigs:
         """ 
         perl -ne 's/^>k(\d+)_(\d+) (.*)len=(\d+)/>MEGAHIT.{wildcards.assembly_preset}.{wildcards.coassembly}_NODE_$2_length_$4_k_$1/ if m/^>/; print $_;' < {input} > {output}
         """ 
-
-# Generic rules
