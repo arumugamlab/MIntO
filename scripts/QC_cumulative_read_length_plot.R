@@ -14,6 +14,22 @@
 # Keep the % of forward-reverse reads specified in the config file
 # If the estimated read length cutoff is below 50bp, trimmomatic will use 50bp as the minimum sequence length for MINLEN (Trimmomatic).
 
+# Parse command line arguments
+library(optparse)
+option_list = list(
+                make_option(c("--input"),      type="character", default=NULL, help="input file", metavar="character"),
+                make_option(c("--frac"),       type="double",    default=NULL, help="minimum fraction of reads to keep", metavar="numeric"),
+                make_option(c("--out_plot"),   type="character", default=NULL, help="output file with plots", metavar="character"),
+                make_option(c("--out_cutoff"), type="character", default=NULL, help="output file with length cutfoff value", metavar="character")
+                )
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
+
+if (any(is.null(c(opt$input, opt$frac, opt$out_plot, opt$out_cutoff)))) {
+  print_help(opt_parser)
+  stop("Missing required arguments\n", call.=FALSE)
+}
+
 
 # Load libraries
 library(data.table)
@@ -22,11 +38,10 @@ library(ggplot2)
 library(tidyr)
 
 # Arguments
-args = commandArgs(trailingOnly=TRUE)
-input_file = args[1]
-fraction_remain = as.numeric(args[2])
-output_plot = args[3]
-output_file = args[4]
+input_file = opt$input
+fraction_remain = as.numeric(opt$frac)
+output_plot = opt$out_plot
+output_file = opt$out_cutoff
 
 read_len_df <- as.data.frame(fread(file=input_file, sep=" "), header=FALSE, stringsAsFactors = F)
 colnames(read_len_df) <- c('n_reads', 'len_reads', 'sample')
@@ -39,7 +54,7 @@ read_len_df_total_reads = data.frame(read_len_df %>%
 # Calculate cumulative reads distribution per bp per sample
 read_len_df_cumsum = data.frame(read_len_df %>% 
                                   dplyr::group_by(sample) %>% 
-                                  dplyr::arrange(len_reads) %>% # order by read lenght
+                                  dplyr::arrange(len_reads) %>% # order by read length
                                   dplyr::mutate(cumsum = cumsum(n_reads)))
 
 # Combine files to calculate total number of reads
@@ -70,12 +85,13 @@ read_len_df_plot$fwd_rv[read_len_df_plot$sample_pair == "2"]<- 'Rev'
 
 # Plot cumulative reads distribution per bp per sample
 title = "Read lengths after trimming"
-read_len_plot= (ggplot(data=read_len_df_plot, aes(x=len_reads, y=cumsum_total_perc, group = sample_name, color=sample_name)) + 
-geom_line()  + 
-theme_bw() + 
-theme(axis.text = element_text(size = 9.5),legend.position = 'none') + 
-labs(x ="read bp (length cutoff)", y="fraction remaining (%)", title = title) + 
-facet_grid(fwd_rv~.))
+read_len_plot = (ggplot(data=read_len_df_plot, aes(x=len_reads, y=cumsum_total_perc, group = sample_name, color=sample_name)) + 
+                    geom_line()  + 
+                    scale_y_continuous(minor_breaks = seq(80, 100, 5), breaks = seq(0, 100, 20)) +
+                    theme_bw() + 
+                    theme(axis.text = element_text(size = 9.5), legend.position = 'none') + 
+                    labs(x ="read bp (length cutoff)", y="fraction remaining (%)", title = title) + 
+                    facet_grid(fwd_rv~.))
 
 # Calculate MINLEN parameter in Trimmomatic to keep the % of forward-reverse reads specified in the config file
 read_len_df_plot$cumsum_total_perc <- read_len_df_plot$cumsum_total_perc
@@ -99,13 +115,13 @@ if (min_len_read < 50){
 }
 
 # MINLEN parameter in Trimmomatic
-print(paste0('Recommended trimming lenght cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp'))
+print(paste0('Recommended trimming length cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp'))
 cat(paste0("TRIMMOMATIC_minlen: ",min_len_read),file=output_file,sep="\n")
 
 # Output plot
 read_len_plot_out <- (read_len_plot + 
-geom_hline(yintercept = fraction_remain, color = "black", linetype = "dashed") + 
-geom_vline(xintercept = min_len_read, color = "black", linetype = "dashed"))
+                        geom_hline(yintercept = fraction_remain, color = "black", linetype = "dashed") + 
+                        geom_vline(xintercept = min_len_read, color = "black", linetype = "dashed"))
 
 pdf(output_plot, width=10,height=7,paper="special")
 print(read_len_plot_out)
