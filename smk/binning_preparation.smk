@@ -87,16 +87,31 @@ if 'ILLUMINA' in config:
 else:
     print('WARNING in ', config_path, ': ILLUMINA list of samples is empty. Skipping short-reads assembly.')
 
+if type(config['METASPADES_hybrid_max_k']) != int or config['METASPADES_hybrid_max_k']%2==0:
+    print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be an odd integer')
+elif 'METASPADES_custom_build' in config:
+    if config['METASPADES_hybrid_max_k'] < 300:
+        hybrid_max_k = config['METASPADES_hybrid_max_k']
+    else:
+        print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be below 300.')
+else:
+    if config['METASPADES_hybrid_max_k'] < 128:
+        hybrid_max_k = config['METASPADES_hybrid_max_k']
+    else:
+        print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be below 128.')
 
-if config['METASPADES_hybrid_max_k'] in (33, 55, 77, 99, 127):
-    hybrid_max_k = config['METASPADES_hybrid_max_k']
-elif type(config['METASPADES_hybrid_max_k']) != int:
-    print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable is not correct. "METASPADES_hybrid_max_k" variable should be 33, 55, 77, 99 or 127.')
-
-if config['METASPADES_illumina_max_k'] in (33, 55, 77, 99, 127):
-    illumina_max_k = config['METASPADES_illumina_max_k']
-elif type(config['METASPADES_illumina_max_k']) != int:
-    print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable is not correct. "METASPADES_illumina_max_k" variable should be 33, 55, 77, 99 or 127.')
+if type(config['METASPADES_illumina_max_k']) != int or config['METASPADES_illumina_max_k']%2==0:
+    print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be an odd integer')
+elif 'METASPADES_custom_build' in config:
+    if config['METASPADES_illumina_max_k'] < 300:
+        illumina_max_k = config['METASPADES_illumina_max_k']
+    else:
+        print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 300.')
+else:
+    if config['METASPADES_illumina_max_k'] < 128:
+        illumina_max_k = config['METASPADES_illumina_max_k']
+    else:
+        print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 128.')
 
 if config['BWA_threads'] is None:
     print('ERROR in ', config_path, ': BWA_threads variable is empty. Please, complete ', config_path)
