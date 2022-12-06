@@ -2,45 +2,58 @@
 
 # ---
 # title: "Taxonomic profile"
-# author: "Carmen Saenz"
+# author: "Carmen Saenz, Mani Arumugam"
 # date: "09/10/2021"
-# Generate Visualization plots from assembly-free taxonomy profile (from MetaPhlan or mOTUs2):
+# Generate Visualization plots from assembly-free taxonomy profile (from MetaPhlan or mOTUs3):
 #   - PCoA
 #   - Relative abundances of 15 most abundant genera across the samples
+#   - Alpha diversity plot
 # ---
 
+# Parse command line arguments
+library(optparse)
+option_list = list(
+                make_option(c("--table"),    type="character", default=NULL, help="taxonomic profile table", metavar="character"),
+                make_option(c("--profiler"), type="character", default=NULL, help="name of the taxonomic profiler", metavar="character"),
+                make_option(c("--metadata"), type="character", default=NULL, help="metadata file", metavar="character"),
+                make_option(c("--factor"),   type="character", default=NULL, help="name of key factor from metadata file", metavar="character"),
+                make_option(c("--factor2"),  type="character", default=NULL, help="name of 2nd factor from metadata file", metavar="character"),
+                make_option(c("--time"),     type="character", default=NULL, help="name of time variable from metadata file", metavar="character"),
+                make_option(c("--outdir"),   type="character", default=NULL, help="output directory", metavar="character")
+                )
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
+
+profile_file = opt$table
+profile_param = opt$profiler
+out_dir = opt$outdir
+metadata_file = opt$metadata
+out_phyloseq = paste0(out_dir, '/', profile_param,'_phyloseq.rds')
+
+if (any(is.null(c(opt$table, opt$profiler, opt$metadata, opt$factor, opt$outdir)))) {
+  print_help(opt_parser)
+  stop("Missing required arguments\n", call.=FALSE)
+}
+
 # Load libraries
-#if("data.table" %in% rownames(installed.packages()) == FALSE) {install.packages("data.table")}
 library(data.table)
-#if("tidyverse" %in% rownames(installed.packages()) == FALSE) {install.packages("tidyverse")}
-library(tidyverse)
+library(dplyr)
 library(tidyr)
-#if("ggplot2" %in% rownames(installed.packages()) == FALSE) {install.packages("ggplot2")}
+library(stringr)
 library(ggplot2)
-#if("ggrepel" %in% rownames(installed.packages()) == FALSE) {install.packages("ggrepel")}
 library(ggrepel)
-#if("phyloseq" %in% rownames(installed.packages()) == FALSE) {install.packages("phyloseq")}
 library(phyloseq)
-#if("reshape2" %in% rownames(installed.packages()) == FALSE) {install.packages("reshape2")}
 library(reshape2)
 library(vegan)
 
 set.seed(1234)
 
-# Arguments
-args = commandArgs(trailingOnly=TRUE)
-profile_dir = args[1]
-profile_param = args[2]
-out_dir = args[3]
-metadata_file = args[4]
-out_phyloseq = paste0(out_dir, profile_param,'_phyloseq.rds')
-
 ##########################  ** Function - PCoA **  ########################## 
-plot_PCoA <- function(distance_lab, data_phyloseq, color, label){ #out_name,title_name,
+plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #out_name,title_name,
   label2 <- noquote(label)
   #### PCoA
   ord<- ordinate(data_phyloseq, method = "PCoA", distance = distance_lab)
-  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape=NULL, label=label) #type = type,
+  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape = shape, label = label) #type = type,
   PcoA_Sample_site_abundance <- PcoA_Sample_site_abundance +
     ggtitle(title_name, distance_lab)  +
     geom_point(size = 2.5) +
@@ -50,125 +63,64 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label){ #out_name,titl
   PcoA_Sample_site_abundance$layers[[2]] <- NULL
   PcoA_Sample_site_abundance$layers[[3]] <- NULL
   PcoA_Sample_site_abundance_2<- PcoA_Sample_site_abundance +
-    geom_text_repel(aes(label = sample_alias), size = 3.0, segment.alpha = 0.5, max.overlaps = getOption("ggrepel.max.overlaps", default = 20)) +
-    geom_point(size = 2, shape = 16)
+    geom_text_repel(aes(label = get(label)), 
+                          size = 3.0, 
+                          segment.alpha = 0.5, 
+                          max.overlaps = getOption("ggrepel.max.overlaps", default = 20)
+                    )
+  if (!is.null(shape)) {
+    PcoA_Sample_site_abundance_2 <- PcoA_Sample_site_abundance_2 + geom_point(aes(shape = get(shape)), size = 2)
+  } else {
+    PcoA_Sample_site_abundance_2 <- PcoA_Sample_site_abundance_2 + geom_point(shape = 16, size = 2)
+  }
   PcoA_Sample_site_abundance_2$layers[[1]] <- NULL
   return(PcoA_Sample_site_abundance_2)
 }
 
-# Generate phyloseq object - mOUTs2 output ####
-if (profile_param %like% 'motus') {
-  # **********************************           mOTUs output          ********************************
-  files <- list.files(profile_dir, recursive = T)
-  files <- files[grepl(paste0("\\.", profile_param,'$'), files)]
+# Generate phyloseq object - metaphlan/mOTUs3 output ####
+# Common workflow, since we reformat mOTUs3 output like MetaPhlAn output
   
-  countslist <- list()
-  for(i in files){
-    #readLines(paste0(profile_dir, i)) %>% head(10)
-    infile <- as.data.frame(fread(paste0(profile_dir, i),  header = F, skip = 3, sep = '\t'), stringsAsFactors = F)
-    names(infile)[1] <- c("mOTUs_id")
-    names(infile)[2] <- c("consensus_taxonomy")
-    names(infile)[3] <- unlist(lapply(strsplit(gsub(i, pattern=paste0("\\.", profile_param), replacement=""),'\\/'), `[`, 2))
-    countslist[[i]] <- infile
+  species_table <- as.data.frame(fread(profile_file, header = T), stringsAsFactors = F) %>%
+    filter(grepl('s__', clade_name)) %>%
+    select(-clade_taxid) %>%
+    mutate(across('clade_name', str_replace, '[kpcofgs]__', '')) %>%
+    tidyr::separate(clade_name, c("kingdom", "phylum", "class", "order", "family", "genus", "species"), "[\\|]") %>%
+    arrange(species)
+  rownames(species_table) <- species_table$species
+  
+  #### OTU table
+  otu_table <- species_table %>%
+    select(-c("kingdom", "phylum", "class", "order", "family", "genus", "species"))
+  if (profile_param %like% 'metaphlan') {
+    otu_table <- otu_table/100
   }
-  
-  countsdf <- data.frame(countslist %>% purrr::reduce(full_join, by = c("mOTUs_id", "consensus_taxonomy")))
-  #countsdf[1:10,1:4]
+  otu_table <- as.data.frame(otu_table)
   
   #### Taxa table
-  taxa_df <- subset(countsdf, select=c("mOTUs_id","consensus_taxonomy"))
-  
-  taxa_df <- as.data.frame(taxa_df %>%
-                             tidyr::separate(consensus_taxonomy, c("levels1", "levels2"), "k__"))
-  taxa_df <- as.data.frame(taxa_df %>%
-                             tidyr::separate(levels2, c("kingdom", "levels3"), "\\|p__"))
-  taxa_df <- as.data.frame(taxa_df %>%
-                             tidyr::separate(levels3, c("phylum", "levels4"), "\\|c__"))
-  taxa_df <- as.data.frame(taxa_df %>%
-                             tidyr::separate(levels4, c("class", "levels5"), "\\|o__"))
-  taxa_df <- as.data.frame(taxa_df %>%
-                             tidyr::separate(levels5, c("order", "levels6"), "\\|f__"))
-  taxa_df <- as.data.frame(taxa_df %>%
-                             tidyr::separate(levels6, c("family", "levels7"), "\\|g__"))
-  taxa_df <- as.data.frame(taxa_df %>%
-                             tidyr::separate(levels7, c("genus", "species_long"), "\\|s__"))
-  taxa_df$levels1 <- NULL
-  taxa_df$species <- unlist(lapply(strsplit(taxa_df$species_long,'\\['), `[`, 1))
-  taxa_df[taxa_df$mOTUs_id=='-1',] <- c('-1','Unknown','Unknown','Unknown','Unknown','Unknown','Unknown','Unknown','Unknown')
-  taxa_df$species[taxa_df$species==""] <- taxa_df$species_long[taxa_df$species==""]
-  taxa_df$species <- gsub(pattern='species incertae sedis', replacement='', taxa_df$species)
-  #taxa_df$species[which(taxa_df$species == "")] <- taxa_df$species[which(taxa_df$species == "")]
-  taxa_df$species <- gsub(pattern="\\[", replacement="", taxa_df$species)
-  taxa_df$species <- gsub(pattern="\\]", replacement="", taxa_df$species)
-  taxa_df$species <- paste(unlist(lapply(strsplit(taxa_df$species,'\\ '), `[`, 1)), unlist(lapply(strsplit(taxa_df$species,'\\ '), `[`, 2)))
-  taxa_df$genus <- gsub(pattern="\\ gen\\. incertae sedis", replacement="", taxa_df$genus)
-  taxa_df$genus <- unlist(lapply(strsplit(taxa_df$genus,' '), `[`, 1))
-  #taxa_df[taxa_df$mOTUs_id=='-1',] <- c('-1','Unknown','Unknown','Unknown','Unknown','Unknown','Unknown','Unknown','Unknown')
-
-  #### OTU table
-  otu_table <- subset(countsdf, select= -c(consensus_taxonomy))
-  rownames(otu_table) <- otu_table$mOTUs_id
-  otu_table$mOTUs_id <- NULL
-  #### Taxa table
-  rownames(taxa_df) <- taxa_df$mOTUs_id
-}
-
-# Generate phyloseq object - metaphlan output ####
-if (profile_param == 'metaphlan') {
-  # **********************************           metaphlan output          ********************************
-  # files <- list.files(profile_dir, recursive = T)
-  # files <- files[grepl(paste0("\\.", profile_param), files)]
-  
-  all_taxa <- as.data.frame(fread(paste0(profile_dir, '/merged_abundance_table.txt'),  header = T), stringsAsFactors = F)
-  all_taxa_sub <- subset(all_taxa, select = c('clade_name', 'clade_taxid'))
-  all_taxa_sub$clade_name <- paste0('|', all_taxa_sub$clade_name)
-  all_taxa_sub2 <- as.data.frame(all_taxa_sub %>% tidyr::separate(clade_name, c("delete","kingdom", "phylum", "class", "order", "family", "genus", "species"), "\\|[kpcofgs]__"))
-  all_taxa_sub2 <- all_taxa_sub2[!is.na(all_taxa_sub2$species),]
-  all_taxa_sub2$delete <- NULL
-  rownames(all_taxa_sub2) <- all_taxa_sub2$species
-  
-  #### OTU table
-  sp_taxa <- as.data.frame(fread(paste0(profile_dir, '/merged_abundance_table_species.txt'),  header = T), stringsAsFactors = F)
-  names(sp_taxa) <- gsub('\\.metaphlan','', names(sp_taxa))
-  otu_table <- sp_taxa
-  rownames(otu_table) <- otu_table$body_site
-  otu_table$body_site <- NULL
-  otu_table <- otu_table/100
-  
-  #### Taxa table
-  taxa_df <- all_taxa_sub2
-  rownames(taxa_df) <- taxa_df$species
+  taxa_df <- species_table %>%
+    select(c("kingdom", "phylum", "class", "order", "family", "genus", "species"))
   taxa_df <- as.data.frame(taxa_df)
-}
 
 # **********************************                                             ********************************
 # **********************************          Generate phyloseq object           ********************************
 # **********************************                                             ********************************
 
-# OTUs
-otu_table <- as.data.frame(otu_table)
-# TAX table
-## Sort TAX table row names as OTUs table row names
-otu_table_sort <- otu_table[order(rownames(otu_table)),]
-# Sort original data frame by the order of the new data frame
-taxa_df_sort <- taxa_df[match(rownames(otu_table_sort), rownames(taxa_df)),]
 # # Metadata
-if (metadata_file=='None'){
-  metadata_df <- data.frame(sample=names(otu_table_sort), condition='condition', sample_alias=names(otu_table_sort))
+if (is.null(metadata_file)) {
+  metadata_df <- data.frame(sample=names(otu_table), factor='default', sample_alias=names(otu_table))
+  names(metadata_df)[2] <- opt$factor
 } else{
   metadata_df <- as.data.frame(fread(metadata_file,  header = T), stringsAsFactors = F)
-  names(metadata_df)[[1]] <- "sample"
-  names(metadata_df)[[2]] <- "condition"
-  names(metadata_df)[[3]] <- "sample_alias"
 }
 samp <- sample_data(metadata_df)
 rownames(samp) <- samp$sample
 
 # phyloseq object
-profile_phyloseq <- phyloseq(otu_table(as.matrix(otu_table_sort), taxa_are_rows = T), tax_table(as.matrix(taxa_df_sort)), samp)
+profile_phyloseq <- phyloseq(otu_table(as.matrix(otu_table), taxa_are_rows = T), tax_table(as.matrix(taxa_df)), samp)
 
-head(tax_table(profile_phyloseq))
-head(taxa_names(profile_phyloseq))
+#head(tax_table(profile_phyloseq))
+#head(taxa_names(profile_phyloseq))
+
 # Save taxonomic profile as phyloseq object
 saveRDS(profile_phyloseq, file = out_phyloseq)
 
@@ -181,31 +133,33 @@ if (profile_param %like% 'motus_raw') {
   profile_phyloseq_ra <- readRDS(out_phyloseq)
 } 
 
-# PCoA - Bray-Curtis ##### ALL samples ####
+##########################################
+# Output 1: Beta diversity - PCoA
+##########################################
+
 distance_lab = 'bray'
 title_name <- c(paste0("PCoA - Taxonomic profile - ", profile_param), "Bray-Curtis")
-out_name <- paste0(out_dir, profile_param, ".PCoA.Bray_Curtis.pdf")
+out_name <- paste0(out_dir, '/', profile_param, ".PCoA.Bray_Curtis.pdf")
 title_name_pval <- paste0("Bray-Curtis")
-if(length(unique(metadata_df$condition))>1){
+if(length(unique(metadata_df[[opt$factor]]))>1){
   #**adonis/adonis2, Permutational Multivariate Analysis of Variance Using Distance Matrix**: ####
   library(vegan)
   #adonis_list$bray
-  otu_table_sort <- as.data.frame(unclass(otu_table(profile_phyloseq_ra)), stringsAsFactors = F)
+  otu_table <- as.data.frame(unclass(otu_table(profile_phyloseq_ra)), stringsAsFactors = F)
   metadata_df <- data.frame(sample_data(profile_phyloseq_ra), stringsAsFactors = F)
   rownames(metadata_df) <- metadata_df$sample
-  metadata <-metadata_df[match(names(otu_table_sort), rownames(metadata_df)),]
-  #adonis_bray_Status<-adonis(as.dist(vegdist(t(otu_table_sort), method="bray", na.rm = T)) ~ condition, data = metadata)
-  #adonis_bray_Status$aov.tab
-  adonis_bray_Status2<-adonis2(as.dist(vegdist(t(otu_table_sort), method="bray", na.rm = T)) ~ condition, data = metadata)
-  r2_value <- format(round(adonis_bray_Status2$R2[1],3), nsmall = 3)
-  p_value <- adonis_bray_Status2$`Pr(>F)`[1]
+  metadata <-metadata_df[match(names(otu_table), rownames(metadata_df)),]
+  dist <- as.dist(vegdist(t(otu_table), method="bray", na.rm = T))
+  adonis_bray_Status<-adonis2(as.formula(paste("dist", "~", opt$factor)), data = metadata)
+  r2_value <- format(round(adonis_bray_Status$R2[1],3), nsmall = 3)
+  p_value <- adonis_bray_Status$`Pr(>F)`[1]
   
   title_name_pval <- paste0("Bray-Curtis; R2=",r2_value,"; pval=",p_value)
 }
 
 #plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, title_name, out_name)
 
-plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, "condition", "sample_alias")
+plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, color=opt$factor, label = if (!is.null(opt$time)) opt$time else "sample_alias", shape=opt$factor2)
 
 manual_plot_colors =c('#9D0208', '#264653','#e9c46a','#D8DCDE','#B6D0E0',
                       '#FFC87E','#F4A261','#E34F33','#E9C46A',
@@ -215,21 +169,24 @@ manual_plot_colors =c('#9D0208', '#264653','#e9c46a','#D8DCDE','#B6D0E0',
 # Save ####
 pdf(out_name,width=8,height=8,paper="special" )
 print(plot_PCoA_out  + 
-        scale_color_manual(values=manual_plot_colors, name='Condition') +
+        #scale_color_manual(values=manual_plot_colors, name='Condition') +
         coord_fixed() +
         theme(legend.position="bottom")+
         ggtitle(title_name, title_name_pval))
 print(plot_PCoA_out  + 
-        facet_wrap(.~condition)+
-        scale_color_manual(values=manual_plot_colors, name='Condition') +
+        facet_wrap(as.formula(paste(".", "~", opt$factor)))+
+        #scale_color_manual(values=manual_plot_colors, name='Condition') +
         coord_fixed() +
         theme(legend.position="bottom")+
         ggtitle(title_name, title_name_pval))
 dev.off()
 
 
-# Barchart - Top 15 genera####
-##### metadata:
+##########################################
+# Output 2: Barchart - Top 15 genera
+##########################################
+
+#### metadata:
 sample_data_df <- data.frame(sample_data(profile_phyloseq_ra), stringsAsFactors = F)
 
 ### OTUs - db
@@ -242,7 +199,7 @@ otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq_ra)), stringsAs
 otu_table_df$taxa_ID <- rownames(otu_table_df)
 rownames(otu_table_df) <- NULL
 otu_taxa_merge <- merge(otu_table_df, taxa_table_df, by = 'taxa_ID' , all.x = T)
-write.csv(otu_taxa_merge,paste0(out_dir, profile_param, ".csv"), row.names = F, quote = F)
+write.csv(otu_taxa_merge, paste0(out_dir, '/', profile_param, ".csv"), row.names = F, quote = F)
 
 # Filter by mOTUs present in the data
 otu_taxa_filt_df = otu_taxa_merge[rowSums(otu_taxa_merge[, 2:ncol(otu_table_df)])>0,]
@@ -260,9 +217,9 @@ otu_taxa_filt_df = otu_taxa_filt_df %>% select(1:ncol(otu_table_df))
 
 otu_taxa_melt <- melt(otu_taxa_filt_df, id.vars=c("taxa_ID"))
 otu_taxa_melt <- merge(taxa_table_df, otu_taxa_melt, by="taxa_ID")
-#colnames(otu_taxa_melt) <- c('taxa_ID',"kingdom", "phylum","class","order","family","genus","mOTU","short_name","sample", "RA"   )
+#colnames(otu_taxa_melt) <- c('taxa_ID', "kingdom", "phylum", "class", "order", "family", "genus", "mOTU", "short_name", "sample", "RA")
 
-otu_taxa_metadata =  merge(sample_data_df,otu_taxa_melt,  by.x = 'sample', by.y = 'variable')
+otu_taxa_metadata =  merge(sample_data_df, otu_taxa_melt, by.x = 'sample', by.y = 'variable')
 
 otu_taxa_metadata$value <- as.numeric(otu_taxa_metadata$value)
 otu_taxa_metadata_top15_df <- data.frame(otu_taxa_metadata %>% 
@@ -279,9 +236,10 @@ otu_taxa_metadata_top15$genus[!otu_taxa_metadata_top15$genus %in% c(otu_taxa_met
 otu_taxa_metadata_top15$genus[is.na(otu_taxa_metadata_top15$genus)] <- 'Other'
 
 # Plot
+sample_var = if (!is.null(opt$time)) opt$time else "sample_alias"
 otu_taxa_metadata_top15_sum <- data.frame(otu_taxa_metadata_top15 %>% 
-                                            dplyr::group_by(sample, condition, sample_alias, genus) %>% 
-                                            dplyr::summarise(RA_count = sum(value)))
+                                            dplyr::group_by(sample, across(all_of(opt$factor)), sample_alias, genus) %>% 
+                                            dplyr::summarise(RA_count = sum(value), .groups="drop_last"))
 
 otu_taxa_metadata_top15_sum$genus<- factor(otu_taxa_metadata_top15_sum$genus, levels = rev(c(otu_taxa_metadata_top15_list, 'Other', 'Unknown')))
 #variables = unique(otu_taxa_metadata$species[order(-otu_taxa_metadata$value)])
@@ -292,18 +250,72 @@ colors_kit<-c('#D8DCDE', '#B6D0E0',
               '#A786C9','#D4C0E2','#975773','#6699FF','#000066',
               '#7AAFCA','#006699','#A9D181','#2F8475','#264445')
 
-out_name <- paste0(out_dir, profile_param, '.Top15genera.pdf')
-pdf(out_name,width=15,height=6,paper="special" )
-print(ggplot(data=otu_taxa_metadata_top15_sum, aes(x=sample_alias, group = genus)) +
-        geom_bar(aes(y=RA_count, fill = genus),stat="identity", alpha=.7) +
-        theme_minimal() + theme(axis.text = element_text(size = 8),panel.grid.minor = element_blank()) + labs(x = "Samples", y = "Relative abundance") +
+out_name <- paste0(out_dir, '/', profile_param, '.Top15genera.pdf')
+pdf(out_name,width=15,height=15,paper="special" )
+print(ggplot(data=otu_taxa_metadata_top15_sum, aes_string(x = "sample_alias", group = "genus")) +
+        geom_bar(aes(y=RA_count, fill = genus), stat="identity", alpha=.7) +
+        theme_minimal() + 
+        theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) + 
+        labs(x = "Samples", y = "Relative abundance") +
         theme(title = element_text(size = 10),
-              axis.text.x = element_text(color = "grey20", size = 10,angle = 60, vjust =1,face = "plain"),
-              axis.text.y = element_text(color = "grey20", size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"),
-              axis.title.x = element_text(color = "grey20", size = 12, angle = 0, hjust = 0.5, vjust = 1, face = "plain"),
-              axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = .5, vjust = .5, face = "plain"), 
-              panel.grid.major.x = element_blank(), panel.grid.minor = element_blank())+
-        guides(fill=guide_legend(ncol= 1))+ 
-        facet_wrap(.~condition, scales = "free_x")+
+              axis.text.x = element_text(color = "grey20", size = 10, angle = 60, hjust = 1.00, vjust = 1.00, face = "plain"),
+              axis.text.y = element_text(color = "grey20", size = 10, angle = 00, hjust = 1.00, vjust = 0.00, face = "plain"),
+              axis.title.x = element_text(color = "grey20", size = 12, angle = 00, hjust = 0.5, vjust = 1.0, face = "plain"),
+              axis.title.y = element_text(color = "grey20", size = 12, angle = 90, hjust = 0.5, vjust = 0.5, face = "plain"), 
+              panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(),
+              ) +
+        guides(fill=guide_legend(ncol= 1)) +
+        facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")+
+#        theme(panel.margin.y = unit(0, "lines")) +
         scale_fill_manual(values = colors_kit, name="Top 15 genera"))
+dev.off()
+
+##########################################
+# Output 3: Alpha diversity - richness
+##########################################
+
+# Make df
+richness_df <- as.data.frame(colSums(otu_table_df>0, na.rm = TRUE))
+names(richness_df) <- c("richness")
+richness_df["sample"] <- row.names(richness_df)
+richness_df <- inner_join(richness_df, sample_data_df, by="sample")
+
+
+# Plot
+out_name <- paste0(out_dir, '/', profile_param, '.richness.pdf')
+pdf(out_name,width=10,height=10,paper="special" )
+if (!is.null(opt$time)) {
+    richness_plot <-ggplot(data=richness_df, aes_string(x=opt$time, y="richness", group=opt$factor2)) +
+                        geom_line(aes_string(color=opt$factor2)) +
+                        geom_point() +
+                        theme(legend.position = "top") +
+                        theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) +
+                        labs(x = opt$time, y = "Richness") +
+                        theme(title = element_text(size = 10),
+                              panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(),
+                            ) +
+                        facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
+} else if (!is.null(opt$factor2)) {
+    richness_plot <-ggplot(data=richness_df, aes_string(x=opt$factor2, y="richness")) +
+                        geom_boxplot() +
+                        geom_point() +
+                        theme(legend.position = "top") +
+                        theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) +
+                        labs(x = opt$factor2, y = "Richness") +
+                        theme(title = element_text(size = 10),
+                              panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(),
+                            ) +
+                        facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
+} else {
+    richness_plot <-ggplot(data=richness_df, aes_string(x=opt$factor, y="richness")) +
+                        geom_boxplot() +
+                        geom_point() +
+                        theme(legend.position = "top") +
+                        theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) +
+                        labs(x = opt$factor, y = "Richness") +
+                        theme(title = element_text(size = 10),
+                              panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(),
+                            ) 
+}
+print(richness_plot)
 dev.off()
