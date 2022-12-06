@@ -8,6 +8,8 @@ rule bam_idx:
         '{some}.bam'
     output:
         '{some}.bam.bai'
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml" #trimmomatic
     shell:
         """
         if [ -s {input[0]} ] #if the input is nonempty...
@@ -24,6 +26,8 @@ rule faidx:
         '{something}.f{asta}'
     output: 
         '{something}.f{asta}.fai'
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml" #trimmomatic
     shell: 
         """
         if [ -s {input[0]} ] #if the input is nonempty...
