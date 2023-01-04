@@ -400,21 +400,21 @@ local_dir: {local_dir}
 minto_dir: {minto_dir}
 METADATA: {metadata}
 
-######################
+########################################
 # Program settings
-######################
+########################################
 
-#########################################
-# Pre-processing - length reads filtering
-#########################################
+#########################
+# Read length filtering
+#########################
 
 TRIMMOMATIC_threads: {params.trim_threads}
 TRIMMOMATIC_memory: {params.trim_memory}
 $(cat {input.cutoff_file})
 
-########################################
-# Pre-processing - host genome filtering
-########################################
+#########################
+# Host genome filtering
+#########################
 
 # bwa-mem2 index files will be stored at: <PATH_host_genome>/BWA_index/<NAME_host_genome>.*
 # If it already exists, then it will be used directly.
@@ -425,14 +425,27 @@ $(cat {input.cutoff_file})
 
 PATH_host_genome:
 NAME_host_genome:
-BWA_index_host_threads: 2
 BWA_index_host_memory: 40
-BWA_host_threads:
-BWA_host_memory: 
+BWA_host_threads: 8
+BWA_host_memory: 40
 ___EOF___
 
-        if [ "{omics}" == "metaG" ]; then
+        if [ "{omics}" == "metaT" ]; then
             cat >> {output.config_file} <<___EOF___
+
+#########################
+# Ribosomal RNA depletion
+#########################
+
+sortmeRNA_threads: 4
+sortmeRNA_memory: 5
+sortmeRNA_db: {minto_dir}/data/rRNA_databases
+sortmeRNA_db_idx: {minto_dir}/data/rRNA_databases/idx
+___EOF___
+
+        fi
+
+        cat >> {output.config_file} <<___EOF___
 
 ##################################
 # Assembly-free taxonomy profiling
@@ -445,31 +458,13 @@ ___EOF___
 # Comma-delimited combination of multiple options also supported
 # Eg:
 #    taxa_profile: metaphlan,motus_rel
-TAXA_threads:
-TAXA_memory:
-taxa_profile: metaphlan 
-___EOF___
+TAXA_threads: 8
+TAXA_memory: 10
+taxa_profile: motus_rel 
 
-        elif [ "{omics}" == "metaT" ]; then
-            cat >> {output.config_file} <<___EOF___
-
-#########################
-# ribosomal RNA depletion
-#########################
-
-sortmeRNA_threads: 4
-sortmeRNA_memory: 4
-sortmeRNA_db: {minto_dir}/data/rRNA_databases
-sortmeRNA_db_idx: {minto_dir}/data/rRNA_databases/idx
-___EOF___
-
-        fi
-
-        cat >> {output.config_file} <<___EOF___
-
-##################################
-# Parameters for QC_2 plots
-##################################
+#####################
+# Plotting parameters
+#####################
 
 # PLOT_factor  - the main factor in the metadata file to differentiate in visualization (using color)
 # PLOT_factor2 - the second factor in the metadata file to differentiate in visualization (using shape)
