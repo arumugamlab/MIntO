@@ -2,33 +2,37 @@
 # General settings
 ######################
 PROJECT: IBD_tutorial
-working_dir: /mypath/IBD_tutorial_output
+working_dir: /mypath/IBD_tutorial
 omics: metaT
-local_dir: /mypath/tmp/IBD_tutorial_metaT
-minto_dir: /mypath/MIntO
-METADATA: /mypath/MIntO/tutorial/metadata/tutorial_metadata.txt
+local_dir: /scratch/johndoe/IBD_tutorial
+minto_dir: /server/apps/MIntO
+METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 
 ######################
 # Program settings
 ######################
-# Pre-processing - length reads filtering
+# Read length filtering
 TRIMMOMATIC_threads: 5
 TRIMMOMATIC_memory: 4
 TRIMMOMATIC_minlen: 54
 
-# Pre-processing - host genome filtering
-PATH_host_genome: /mypath/MIntO/tutorial
+# Host genome filtering
+PATH_host_genome: /mypath/IBD_tutorial
 NAME_host_genome: build_hg18_subset.fna
-BWA_index_host_threads: 10
-BWA_index_host_memory: 5
-BWA_host_threads: 4
-BWA_host_memory: 5
+BWA_index_host_memory: 40
+BWA_host_threads: 8
+BWA_host_memory: 40
 
-# ribosomal RNA depletion
+# Ribosomal RNA depletion
 sortmeRNA_threads: 4
 sortmeRNA_memory: 5
 sortmeRNA_db: /mypath/MIntO/data/rRNA_databases
 sortmeRNA_db_idx: /mypath/MIntO/data/rRNA_databases/idx
+
+# Assembly-free taxonomy profiling
+TAXA_threads: 8
+TAXA_memory: 10
+taxa_profile: motus_rel
 
 # Input data
 # ILLUMINA section:

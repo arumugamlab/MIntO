@@ -2,17 +2,17 @@
 # General settings
 ######################
 PROJECT: IBD_tutorial
-working_dir: /mypath/IBD_tutorial_output
+working_dir: /mypath/IBD_tutorial
 omics: metaT
-local_dir: /mypath/tmp/IBD_tutorial_metaT
-minto_dir: /mypath/MIntO
-METADATA: /mypath/MIntO/tutorial/metadata/tutorial_metadata.txt
+local_dir: /scratch/johndoe/IBD_tutorial
+minto_dir: /server/apps/MIntO
+METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 raw_reads_dir: /mypath/IBD_tutorial_raw/metaT
 
 ######################
 # Program settings
 ######################
-# Pre-processing - quality reads filtering
+# Read quality filtering
 trimmomatic_adaptors: Skip
 perc_remaining_reads: 95 
 TRIMMOMATIC_threads: 4
