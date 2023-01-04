@@ -1,6 +1,7 @@
 ######################
 # General settings
 ######################
+
 PROJECT: 
 working_dir: 
 omics: 
@@ -12,11 +13,14 @@ raw_reads_dir:
 ######################
 # Program settings
 ######################
-# Pre-processing - quality reads filtering
+
+# Read quality filtering
 trimmomatic_adaptors: 
-perc_remaining_reads:  
+TRIMMOMATIC_index_barcodes:
+TRIMMOMATIC_simple_clip_threshold:
 TRIMMOMATIC_threads: 
 TRIMMOMATIC_memory: 
+perc_remaining_reads:  
 
 # Input data
 # ILLUMINA section:

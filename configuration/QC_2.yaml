@@ -1,6 +1,7 @@
 ######################
 # General settings
 ######################
+
 PROJECT: 
 working_dir: 
 omics: 
@@ -11,32 +12,34 @@ METADATA:
 ######################
 # Program settings
 ######################
-# Pre-processing - length reads filtering
+
+# Read length filtering
 TRIMMOMATIC_threads: 
 TRIMMOMATIC_memory: 
 TRIMMOMATIC_minlen: 
 
-# Pre-processing - host genome filtering
+# Host genome filtering
 PATH_host_genome: 
 NAME_host_genome: 
-BWA_index_host_threads: 
 BWA_index_host_memory: 
 BWA_host_threads: 
 BWA_host_memory: 
 
-# Assembly-free taxonomy profiling - ONLY metaG
+# Assembly-free taxonomy profiling
 TAXA_threads: 
 TAXA_memory: 
 taxa_profile: 
 
-
-# Assembly-free taxonomy profiling - ONLY metaT
+# Ribosomal RNA depletion - ONLY metaT
 sortmeRNA_threads: 
 sortmeRNA_memory: 
 sortmeRNA_db: 
 sortmeRNA_db_idx: 
 
+##################
 # Input data
+##################
+
 # ILLUMINA section:
 # -----------------
 # List of illumina samples that will be filtered by read length.
