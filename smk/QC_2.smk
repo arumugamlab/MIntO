@@ -33,10 +33,20 @@ try:
     if 'ILLUMINA' in config:
         #print("Samples:")
         for ilmn in config["ILLUMINA"]:
-            fwd = "{}/{}/1-trimmed/{}/{}.1.paired.fq.gz".format(working_dir, omics, ilmn, ilmn)
-            rev = "{}/{}/1-trimmed/{}/{}.2.paired.fq.gz".format(working_dir, omics, ilmn, ilmn)
-            if (path.exists(fwd) is True) and \
-               (path.exists(rev) is True):
+            file_found = False
+            for loc in ['5-1-sortmerna', '4-hostfree']:
+                fwd = "{}/{}/{}/{}/{}.1.fq.gz".format(working_dir, omics, loc, ilmn, ilmn)
+                rev = "{}/{}/{}/{}/{}.2.fq.gz".format(working_dir, omics, loc, ilmn, ilmn)
+                if (path.exists(fwd) is True) and \
+                   (path.exists(rev) is True):
+                       file_found = True
+            for loc in ['3-minlength', '1-trimmed']:
+                fwd = "{}/{}/{}/{}/{}.1.paired.fq.gz".format(working_dir, omics, loc, ilmn, ilmn)
+                rev = "{}/{}/{}/{}/{}.2.paired.fq.gz".format(working_dir, omics, loc, ilmn, ilmn)
+                if (path.exists(fwd) is True) and \
+                   (path.exists(rev) is True):
+                       file_found = True
+            if file_found == True:
                 #print(ilmn)
                 ilmn_samples.append(ilmn)
             else:
@@ -90,11 +100,6 @@ elif type(config['TRIMMOMATIC_minlen']) != int:
 # BWA for host genome filtering
 ##############################################
 
-if config['BWA_index_host_threads'] is None:
-    print('ERROR in ', config_path, ': BWA_index_host_threads variable is empty. Please, complete ', config_path)
-elif type(config['BWA_index_host_threads']) != int:
-    print('ERROR in ', config_path, ': BWA_index_host_threads variable is not an integer. Please, complete ', config_path)
-
 if config['BWA_index_host_memory'] is None:
     print('ERROR in ', config_path, ': BWA_index_host_memory variable is empty. Please, complete ', config_path)
 elif type(config['BWA_index_host_memory']) != int:
@@ -111,30 +116,29 @@ elif type(config['BWA_host_memory']) != int:
     print('ERROR in ', config_path, ': BWA_host_memory variable is not an integer. Please, complete ', config_path)
 
 ##############################################
-# metaG - taxonomy
+# taxonomy
 ##############################################
 
-if omics == 'metaG':
-    if config['TAXA_threads'] is None:
-        print('ERROR in ', config_path, ': TAXA_threads variable is empty. Please, complete ', config_path)
-    elif type(config['TAXA_threads']) != int:
-        print('ERROR in ', config_path, ': TAXA_threads variable is not an integer. Please, complete ', config_path)
-    else:
-        TAXA_threads=config["TAXA_threads"]
+if config['TAXA_threads'] is None:
+    print('ERROR in ', config_path, ': TAXA_threads variable is empty. Please, complete ', config_path)
+elif type(config['TAXA_threads']) != int:
+    print('ERROR in ', config_path, ': TAXA_threads variable is not an integer. Please, complete ', config_path)
+else:
+    TAXA_threads=config["TAXA_threads"]
 
-    if config['TAXA_memory'] is None:
-        print('ERROR in ', config_path, ': TAXA_memory variable is empty. Please, complete ', config_path)
-    elif type(config['TAXA_memory']) != int:
-        print('ERROR in ', config_path, ': TAXA_memory variable is not an integer. Please, complete ', config_path)
-    else:
-        TAXA_memory=config["TAXA_memory"]
+if config['TAXA_memory'] is None:
+    print('ERROR in ', config_path, ': TAXA_memory variable is empty. Please, complete ', config_path)
+elif type(config['TAXA_memory']) != int:
+    print('ERROR in ', config_path, ': TAXA_memory variable is not an integer. Please, complete ', config_path)
+else:
+    TAXA_memory=config["TAXA_memory"]
 
-    allowed = ('metaphlan', 'motus_rel', 'motus_raw')
-    flags = [0 if x in allowed else 1 for x in config['taxa_profile'].split(",")]
-    if sum(flags) == 0:
-        taxonomy=config["taxa_profile"]
-    else:
-        print('ERROR in ', config_path, ': taxa_profile variable is not correct. "taxa_profile" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
+allowed = ('metaphlan', 'motus_rel', 'motus_raw')
+flags = [0 if x in allowed else 1 for x in config['taxa_profile'].split(",")]
+if sum(flags) == 0:
+    taxonomy=config["taxa_profile"]
+else:
+    print('ERROR in ', config_path, ': taxa_profile variable is not correct. "taxa_profile" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
 
 ##############################################
 # metaG - QC plots
@@ -160,6 +164,10 @@ plot_args_str = ' '.join(plot_args_list)
 # metaT - rRNA removal
 ##############################################
 
+sortmeRNA_db = ''
+sortmeRNA_db_idx = ''
+sortmeRNA_memory = ''
+sortmeRNA_threads = 1
 if omics == 'metaT':
     if config['sortmeRNA_threads'] is None:
         print('ERROR in ', config_path, ': sortmeRNA_threads variable is empty. Please, complete ', config_path)
@@ -220,52 +228,43 @@ def filter_host_genome_output():
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [])
     return(result)
 
-def filter_config_yml_output():
+def taxonomy_plot_output():
+    taxonomies = taxonomy.split(",")
+    results = list()
+    profiles = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}", 
+                wd = working_dir,
+                omics = omics,
+                sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
+                taxonomy = taxonomies),\
+            expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt", 
+                wd = working_dir,
+                omics = omics,
+                taxonomy = taxonomies)
+    plots = expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf", 
+                wd = working_dir,
+                omics = omics,
+                taxonomy = taxonomies),\
+            expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf", 
+                wd = working_dir,
+                omics = omics,
+                taxonomy = taxonomies)
+    results.append(profiles)
+    results.append(plots)
+    return(results)
+
+def next_step_config_yml_output():
     result = expand("{wd}/{omics}/assembly.yaml", 
-                    wd = working_dir,
-                    omics = omics)
+                wd = working_dir,
+                omics = omics),\
+    expand("{wd}/{omics}/mapping.yaml", 
+                wd = working_dir,
+                omics = omics)
     return(result)
 
-if omics == 'metaG': 
-    sortmeRNA_db_idx='None'
-    sortmeRNA_db='None'
-    sortmeRNA_memory=1
-    sortmeRNA_threads=1
-    def extra_output():
-        taxonomies = taxonomy.split(",")
-        results = list()
-        profiles = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}", 
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    taxonomy = taxonomies),\
-                expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt", 
-                    wd = working_dir,
-                    omics = omics,
-                    taxonomy = taxonomies)
-        plots = expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf", 
-                    wd = working_dir,
-                    omics = omics,
-                    taxonomy = taxonomies),\
-                expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf", 
-                    wd = working_dir,
-                    omics = omics,
-                    taxonomy = taxonomies)
-        results.append(profiles)
-        results.append(plots)
-        return(results)
-    def filter_config_yml_output():
-        result = expand("{wd}/{omics}/assembly.yaml", 
-                    wd = working_dir,
-                    omics = omics),\
-        expand("{wd}/{omics}/mapping.yaml", 
-                    wd = working_dir,
-                    omics = omics)
-        return(result)
-else:
-    taxonomy='None'
-    TAXA_threads=1
-    TAXA_memory=1
+def extra_output():
+    return()
+
+if omics == 'metaT': 
     def extra_output():
         result = expand("{sortmeRNA_db_idx}", 
                     sortmeRNA_db_idx=sortmeRNA_db_idx),\
@@ -279,7 +278,7 @@ else:
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     group=['1', '2'])
         return(result)
-    def filter_config_yml_output():
+    def next_step_config_yml_output():
         result = expand("{wd}/{omics}/mapping.yaml", 
                     wd = working_dir,
                     omics = omics)
@@ -288,10 +287,11 @@ else:
 
 rule all:
     input: 
-        filter_trim_length_output(),
-        filter_host_genome_output(),
+        #filter_trim_length_output(),
+        #filter_host_genome_output(),
+        taxonomy_plot_output(),
         extra_output(),
-        filter_config_yml_output()
+        next_step_config_yml_output()
 
 ###############################################################################################
 # Pre-processing of metaG and metaT data step 
@@ -357,8 +357,6 @@ rule bwaindex_host_genome:
         "{somewhere}/{genome}_BWAindex.log"
     resources:
         mem=config['BWA_index_host_memory']
-    threads:
-        config['BWA_index_host_threads'] 
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
     shell:
@@ -375,7 +373,7 @@ rule qc2_host_filter:
     input: 
         pairead_fw=rules.qc2_length_filter.output.paired1,
         pairead_rv=rules.qc2_length_filter.output.paired2,
-        bwaindex=lambda wildcards: expand('{somewhere}/BWA_index/{genome}.{ext}', somewhere=host_genome_path, genome=host_genome_name, ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac'])
+        bwaindex=lambda wildcards: ancient(expand('{somewhere}/BWA_index/{genome}.{ext}', somewhere=host_genome_path, genome=host_genome_name, ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac']))
     output: 
         host_reads="{wd}/{omics}/4-hostfree/{sample}/{sample}.host.reads", 
         host_free_fw="{wd}/{omics}/4-hostfree/{sample}/{sample}.1.fq.gz",
@@ -409,8 +407,119 @@ rule qc2_host_filter:
         """
 
 ###############################################################################################
-# Assembly-free taxonomy profiling - only on metaG data
+# Pre-processing of metaT data - rRNA filtering - only on metaT data
 ###############################################################################################
+
+def get_rRNA_db_files(wildcards):
+    files = ["rfam-5.8s-database-id98.fasta",
+            "rfam-5s-database-id98.fasta",
+            "silva-arc-16s-id95.fasta",
+            "silva-arc-23s-id98.fasta",
+            "silva-bac-16s-id90.fasta",
+            "silva-bac-23s-id98.fasta",
+            "silva-euk-18s-id95.fasta",
+            "silva-euk-28s-id98.fasta"]
+    return(expand("{sortmeRNA_db}/{f}",
+                    sortmeRNA_db=sortmeRNA_db,
+                    f=files))
+
+rule qc2_filter_rRNA_index:
+    input:
+        rRNA_db=get_rRNA_db_files
+    output:
+        rRNA_db_index_file = "{sortmeRNA_db_idx}/rRNA_db_index.log".format(sortmeRNA_db_idx=sortmeRNA_db_idx),
+        rRNA_db_index = directory(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
+    params:
+        tmp_sortmerna_index=lambda wildcards: "{local_dir}/{omics}.rRNA_index/".format(local_dir=local_dir, omics = omics),
+        #sortmeRNA_db_idx = sortmeRNA_db_idx
+    resources:
+        mem=sortmeRNA_memory
+    threads:
+        sortmeRNA_threads
+    log:
+        "{wd}/logs/{omics}/5-1-sortmerna/rRNA_index.log".format(wd=working_dir, omics = omics),
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
+    shell: 
+        """
+        mkdir -p {params.tmp_sortmerna_index}idx/ 
+        time (\
+            sortmerna --workdir {params.tmp_sortmerna_index} --idx-dir {params.tmp_sortmerna_index}idx/ -index 1 \
+                --ref {input.rRNA_db[0]} \
+                --ref {input.rRNA_db[1]} \
+                --ref {input.rRNA_db[2]} \
+                --ref {input.rRNA_db[3]} \
+                --ref {input.rRNA_db[4]} \
+                --ref {input.rRNA_db[5]} \
+                --ref {input.rRNA_db[6]} \
+                --ref {input.rRNA_db[7]}
+            rsync {params.tmp_sortmerna_index}idx/* {output.rRNA_db_index}
+            echo 'SortMeRNA indexed rRNA_databases done' > {sortmeRNA_db_idx}/rRNA_db_index.log
+            ) >& {log}
+        rm -rf {params.tmp_sortmerna_index}
+        """
+
+rule qc2_filter_rRNA:
+    input:
+        host_free_fw=rules.qc2_host_filter.output.host_free_fw,
+        host_free_rv=rules.qc2_host_filter.output.host_free_rv,
+        rRNA_db_index=ancient(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
+    output:
+        rRNA_out="{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.blast.gz",
+        rRNA_free_fw="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.1.fq.gz",
+        rRNA_free_rv="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.2.fq.gz"
+    params:
+        tmp_sortmerna=lambda wildcards: "{local_dir}/{omics}_{sample}.filter_rRNA/".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
+        db_idx_dir=sortmeRNA_db_idx,
+        db_dir=sortmeRNA_db,
+    resources:
+        mem=sortmeRNA_memory
+    threads:
+        sortmeRNA_threads
+    log:
+        "{wd}/logs/{omics}/5-1-sortmerna/{sample}.log"
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
+    shell: 
+        """
+        mkdir -p {params.tmp_sortmerna}
+        remote_dir=$(dirname {output.rRNA_free_fw})
+        time (sortmerna --workdir {params.tmp_sortmerna} --kvdb {params.tmp_sortmerna}kvdb/ --idx-dir {params.db_idx_dir}/ --readb {params.tmp_sortmerna}readb/ --paired_in --fastx false --blast 1 -threads {threads} --num_alignments 1 \
+--ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
+--ref {params.db_dir}/rfam-5s-database-id98.fasta \
+--ref {params.db_dir}/silva-arc-16s-id95.fasta \
+--ref {params.db_dir}/silva-arc-23s-id98.fasta \
+--ref {params.db_dir}/silva-bac-16s-id90.fasta \
+--ref {params.db_dir}/silva-bac-23s-id98.fasta \
+--ref {params.db_dir}/silva-euk-18s-id95.fasta \
+--ref {params.db_dir}/silva-euk-28s-id98.fasta \
+--reads {input.host_free_fw} --reads {input.host_free_rv}
+        zcat {params.tmp_sortmerna}/out/aligned.blast.gz | cut -f1 | uniq > {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list
+        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_fw} --output {params.tmp_sortmerna}{wildcards.sample}.1.fq.gz
+        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_rv} --output {params.tmp_sortmerna}{wildcards.sample}.2.fq.gz
+        rsync {params.tmp_sortmerna}* $remote_dir
+        rsync {params.tmp_sortmerna}out/* $remote_dir/out/ ) >& {log}
+        rm -rf {params.tmp_sortmerna}
+        """
+
+###############################################################################################
+# Assembly-free taxonomy profiling
+###############################################################################################
+
+def get_tax_profile_input_files(wildcards):
+    if wildcards.omics == "metaT":
+        return(expand("{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.{pair}.fq.gz",
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    sample = wildcards.sample,
+                    pair = [1, 2]))
+    else:
+        return(expand("{wd}/{omics}/4-hostfree/{sample}/{sample}.{pair}.fq.gz",
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    sample = wildcards.sample,
+                    pair = [1, 2]))
+
 rule taxonomic_profile_metaphlan_download_db:
     output: 
         metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir)
@@ -437,14 +546,13 @@ rule taxonomic_profile_metaphlan_download_db:
 rule metaphlan_tax_profile:
     input:
         metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir), 
-        host_free_fw=rules.qc2_host_filter.output.host_free_fw,
-        host_free_rv=rules.qc2_host_filter.output.host_free_rv,
+        reads=get_tax_profile_input_files
     output:
         ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan"
     params:
         tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.metaphlan_taxonomic_profile/".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
     resources:
-        mem=TAXA_memory #lambda wildcards, input: len(input.host_free_fw) + 2
+        mem=TAXA_memory
     threads:
         TAXA_threads
     log:
@@ -455,7 +563,7 @@ rule metaphlan_tax_profile:
         """
         mkdir -p {params.tmp_taxa_prof}
         remote_dir=$(dirname {output.ra})
-        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.host_free_fw},{input.host_free_rv} --input_type fastq --bowtie2out {params.tmp_taxa_prof}{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}{wildcards.sample}.metaphlan -t rel_ab_w_read_stats
+        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}{wildcards.sample}.metaphlan -t rel_ab_w_read_stats
         rsync {params.tmp_taxa_prof}* $remote_dir) >& {log}
         rm -rf {params.tmp_taxa_prof}
         """
@@ -485,14 +593,13 @@ rule metaphlan_combine_profiles:
 
 rule motus_map_db:
     input: 
-        host_free_fw=rules.qc2_host_filter.output.host_free_fw,
-        host_free_rv=rules.qc2_host_filter.output.host_free_rv,
+        reads=get_tax_profile_input_files
     output: 
         mgc="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus.mgc",
     params:
         tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.motus.taxonomic_profile/".format(local_dir=local_dir, omics = wildcards.omics, sample = wildcards.sample),
     resources:
-        mem=TAXA_memory #lambda wildcards, input: len(input.host_free_fw) + 2
+        mem=TAXA_memory
     threads:
         TAXA_threads
     log:
@@ -503,7 +610,7 @@ rule motus_map_db:
         """
         mkdir -p {params.tmp_taxa_prof}
         time (\
-            motus map_tax   -t {threads}          -f {input.host_free_fw} -r {input.host_free_rv}       -o {params.tmp_taxa_prof}{wildcards.sample}.motus.bam -b
+            motus map_tax   -t {threads}          -f {input.reads[0]} -r {input.reads[1]}       -o {params.tmp_taxa_prof}{wildcards.sample}.motus.bam -b
             motus calc_mgc  -n {wildcards.sample} -i {params.tmp_taxa_prof}{wildcards.sample}.motus.bam -o {params.tmp_taxa_prof}{wildcards.sample}.motus.mgc
             rm {params.tmp_taxa_prof}{wildcards.sample}.motus.bam
             rsync {params.tmp_taxa_prof}{wildcards.sample}.motus.mgc {output.mgc}
@@ -518,7 +625,7 @@ rule motus_calc_motu:
         raw="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw",
         rel="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel"
     resources:
-        mem=TAXA_memory #lambda wildcards, input: len(input.host_free_fw) + 2
+        mem=TAXA_memory
     threads: 2
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{sample}.motus.log"
@@ -572,98 +679,8 @@ rule plot_taxonomic_profile:
     shell:
         """ 
         time (\
-                Rscript {script_dir}/plot_6_taxa_profile.R --table {input.merged} --profiler {wildcards.omics}.{wildcards.taxonomy} --metadata {metadata} {params.plot_args} --outdir $(dirname {output.pcoa})/ 
+                Rscript {script_dir}/plot_6_taxa_profile.R --table {input.merged} --profiler {wildcards.omics}.{wildcards.taxonomy} --metadata {metadata} --outdir $(dirname {output.pcoa}) {params.plot_args}
             ) >& {log}
-        """
-
-###############################################################################################
-# Pre-processing of metaG and metaT data - rRNA filtering - only on metaT data
-###############################################################################################
-
-rule qc2_filter_rRNA_index:
-    input:
-        rRNA_db1="{sortmeRNA_db}/rfam-5.8s-database-id98.fasta".format(sortmeRNA_db=sortmeRNA_db),
-        rRNA_db2="{sortmeRNA_db}/rfam-5s-database-id98.fasta".format(sortmeRNA_db=sortmeRNA_db),
-        rRNA_db3="{sortmeRNA_db}/silva-arc-16s-id95.fasta".format(sortmeRNA_db=sortmeRNA_db),
-        rRNA_db4="{sortmeRNA_db}/silva-arc-23s-id98.fasta".format(sortmeRNA_db=sortmeRNA_db),
-        rRNA_db5="{sortmeRNA_db}/silva-bac-16s-id90.fasta".format(sortmeRNA_db=sortmeRNA_db),
-        rRNA_db6="{sortmeRNA_db}/silva-bac-23s-id98.fasta".format(sortmeRNA_db=sortmeRNA_db),
-        rRNA_db7="{sortmeRNA_db}/silva-euk-18s-id95.fasta".format(sortmeRNA_db=sortmeRNA_db),
-        rRNA_db8="{sortmeRNA_db}/silva-euk-28s-id98.fasta".format(sortmeRNA_db=sortmeRNA_db)
-    output:
-        rRNA_db_index_file = "{sortmeRNA_db_idx}/rRNA_db_index.log".format(sortmeRNA_db_idx=sortmeRNA_db_idx),
-        rRNA_db_index = directory(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
-    params:
-        tmp_sortmerna_index=lambda wildcards: "{local_dir}/{omics}.rRNA_index/".format(local_dir=local_dir, omics = omics),
-        #sortmeRNA_db_idx = sortmeRNA_db_idx
-    resources:
-        mem=sortmeRNA_memory
-    threads:
-        sortmeRNA_threads
-    log:
-        "{wd}/logs/{omics}/5-1-sortmerna/rRNA_index.log".format(wd=working_dir, omics = omics),
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
-    shell: 
-        """
-        mkdir -p {params.tmp_sortmerna_index}idx/ 
-        time (\
-            sortmerna --workdir {params.tmp_sortmerna_index} --idx-dir {params.tmp_sortmerna_index}idx/ -index 1 \
-                --ref {input.rRNA_db1} \
-                --ref {input.rRNA_db2} \
-                --ref {input.rRNA_db3} \
-                --ref {input.rRNA_db4} \
-                --ref {input.rRNA_db5} \
-                --ref {input.rRNA_db6} \
-                --ref {input.rRNA_db7} \
-                --ref {input.rRNA_db8}
-            rsync {params.tmp_sortmerna_index}idx/* {output.rRNA_db_index}
-            echo 'SortMeRNA indexed rRNA_databases done' > {sortmeRNA_db_idx}/rRNA_db_index.log
-            ) >& {log}
-        rm -rf {params.tmp_sortmerna_index}
-        """
-
-rule qc2_filter_rRNA:
-    input:
-        host_free_fw="{wd}/{omics}/4-hostfree/{sample}/{sample}.1.fq.gz",
-        host_free_rv="{wd}/{omics}/4-hostfree/{sample}/{sample}.2.fq.gz",
-        rRNA_db_index=expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx)
-    output:
-        rRNA_out="{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.blast.gz",
-        rRNA_free_fw="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.1.fq.gz",
-        rRNA_free_rv="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.2.fq.gz"
-    params:
-        tmp_sortmerna=lambda wildcards: "{local_dir}/{omics}_{sample}.filter_rRNA/".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
-        db_idx_dir=sortmeRNA_db_idx,
-        db_dir=sortmeRNA_db,
-    resources:
-        mem=sortmeRNA_memory
-    threads:
-        sortmeRNA_threads
-    log:
-        "{wd}/logs/{omics}/5-1-sortmerna/{sample}.log"
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
-    shell: 
-        """
-        mkdir -p {params.tmp_sortmerna}
-        remote_dir=$(dirname {output.rRNA_free_fw})
-        time (sortmerna --workdir {params.tmp_sortmerna} --kvdb {params.tmp_sortmerna}kvdb/ --idx-dir {params.db_idx_dir}/ --readb {params.tmp_sortmerna}readb/ --paired_in --fastx false --blast 1 -threads {threads} --num_alignments 1 \
---ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
---ref {params.db_dir}/rfam-5s-database-id98.fasta \
---ref {params.db_dir}/silva-arc-16s-id95.fasta \
---ref {params.db_dir}/silva-arc-23s-id98.fasta \
---ref {params.db_dir}/silva-bac-16s-id90.fasta \
---ref {params.db_dir}/silva-bac-23s-id98.fasta \
---ref {params.db_dir}/silva-euk-18s-id95.fasta \
---ref {params.db_dir}/silva-euk-28s-id98.fasta \
---reads {input.host_free_fw} --reads {input.host_free_rv}
-        zcat {params.tmp_sortmerna}/out/aligned.blast.gz | cut -f1 | uniq > {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list
-        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_fw} --output {params.tmp_sortmerna}{wildcards.sample}.1.fq.gz
-        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_rv} --output {params.tmp_sortmerna}{wildcards.sample}.2.fq.gz
-        rsync {params.tmp_sortmerna}* $remote_dir
-        rsync {params.tmp_sortmerna}out/* $remote_dir/out/ ) >& {log}
-        rm -rf {params.tmp_sortmerna}
         """
 
 ##########################################################################################################
@@ -675,8 +692,6 @@ rule qc2_filter_config_yml_assembly:
         host_free_fw=expand("{{wd}}/{{omics}}/4-hostfree/{sample}/{sample}.1.fq.gz", sample=ilmn_samples),
     output: 
         config_file="{wd}/{omics}/assembly.yaml"
-    params: 
-        #sample_names=lambda wildcards, input: "\\n-".join(input.host_free_fw),
     resources:
         mem=2
     threads: 2
@@ -840,8 +855,6 @@ rule qc2_filter_config_yml_mapping:
         host_free_fw=expand("{{wd}}/{{omics}}/4-hostfree/{sample}/{sample}.1.fq.gz", sample=ilmn_samples),
     output: 
         config_file="{wd}/{omics}/mapping.yaml"
-    params: 
-        #sample_names=lambda wildcards, input: "\\n-".join(input.host_free_fw),
     resources:
         mem=2
     threads: 2
