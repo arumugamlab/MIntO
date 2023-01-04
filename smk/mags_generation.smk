@@ -346,6 +346,8 @@ rule copy_genomes_in_all:
 		#"cp -r {input.all_folder}/*.fna {output}"
 
 ## Run checkm on the genomes in all
+## TODO: Error checking before writing the output file
+##
 rule run_checkm:
 	input:
 		all_genomes="{wd}/metaG/8-1-binning/mags_generation_pipeline/all"
@@ -354,8 +356,6 @@ rule run_checkm:
 		"{wd}/metaG/8-1-binning/mags_generation_pipeline/checkm_completed.txt"
 	
 	# params:
-	# 	#checkm_threads=config["CHECKM_THREADS"], #Move to threads
-	# 	#pplacer_threads=config["PPLACER_THREADS"],#Move to threads
 	# 	making_batch="{script_dir}/making_batch_checkm.sh",#.format(config["SCRIPT_FOLDER"]),
 	# 	run_checkm="{script_dir}/run_checkm.sh"#.format(config["SCRIPT_FOLDER"])
 	
@@ -378,12 +378,12 @@ rule run_checkm:
 		cd {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/checkm
 		sh {script_dir}/making_batch_checkm.sh
 		sh {script_dir}/run_checkm.sh {threads} {threads}
-		echo 'checkm finished!' >> {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/checkm_completed.txt) &> {log} """
+		echo 'checkm finished!' >> {output}) &> {log} """
 
 ## Create a comphrensive table with checkm 
 rule make_comphrensive_table:
 	input:
-		"{wd}/metaG/8-1-binning/mags_generation_pipeline/checkm_completed.txt"
+		rules.run_checkm.output
 		
 	output:
 		checkm_total = "{wd}/metaG/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
@@ -427,7 +427,7 @@ rule make_comphrensive_table:
 ## Copy HQ genomes inside HQ_genomes folder
 rule copy_HQ_genomes:
  	input:
- 		checkm_total="{wd}/metaG/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv",
+ 		checkm_total=rules.make_comphrensive_table.output,
 		#all_genomes_folder = "{initial_folder}/all/tmp_genomes"
  	
 	output:
@@ -472,7 +472,7 @@ rule copy_HQ_genomes:
 ## Run coverm on HQ genomes to create the .tsv file
 rule run_coverm:
 	input:
-		HQ_table="{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv"
+		HQ_table=rules.copy_HQ_genomes.output
 	
 	output:
 		coverm_output="{wd}/metaG/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"  #unique-{}-cluster.tsv"
@@ -499,8 +499,8 @@ rule run_coverm:
 ## Run retrieving scored 
 rule calculate_score_genomes:
 	input:
-		coverm_output = "{wd}/metaG/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv",
-		HQ_table = "{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv"
+		coverm_output = rules.run_coverm.output,
+		HQ_table = rules.copy_HQ_genomes.output
 
 	output:
 		scored_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
@@ -529,8 +529,8 @@ rule calculate_score_genomes:
 ## Run retrieved the best unique genomes
 rule find_unique_and_best_genomes:
 	input:
-		scored_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv",
-		coverm="{wd}/metaG/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
+		scored_genomes = rules.calculate_score_genomes.output,
+		coverm = rules.run_coverm.output
 	
 	output:
 		scored = "{wd}/metaG/8-1-binning/mags_generation_pipeline/coverm_unique_cluster_scored.tsv",
