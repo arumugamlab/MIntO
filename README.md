@@ -32,16 +32,13 @@ Also you can have a look to the **[tutorial](https://github.com/arumugamlab/MInt
 
 ## Publication
 
-If you have used MIntO during your analysis, please cite:
+If you use MIntO during your analysis, please cite:
 
- **MIntO: a Modular and Scalable Pipeline for Microbiome Meta-omics Data Integration**  
-Carmen Saenz, Eleonora Nigro, Vithiagaran Gunalan, & Manimozhiyan Arumugam  
+**MIntO: a Modular and Scalable Pipeline for Microbiome Meta-omics Data Integration**  
+Carmen Saenz, Eleonora Nigro, Vithiagaran Gunalan & Manimozhiyan Arumugam  
 _Frontiers in Bioinformatics_ (2022). doi: [10.3389/fbinf.2022.846922](https://doi.org/10.3389/fbinf.2022.846922). 
 
 
 ## Contacts
 
 Feel free to get in touch with the authors if you have any questions. You can post issues in this repository, or write to the corresponding author from the article link above.
-
-=======
-
