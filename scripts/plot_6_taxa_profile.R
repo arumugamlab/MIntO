@@ -236,9 +236,13 @@ otu_taxa_metadata_top15$genus[!otu_taxa_metadata_top15$genus %in% c(otu_taxa_met
 otu_taxa_metadata_top15$genus[is.na(otu_taxa_metadata_top15$genus)] <- 'Other'
 
 # Plot
-sample_var = if (!is.null(opt$time)) opt$time else "sample_alias"
+sample_var <- if (!is.null(opt$time)) opt$time else "sample_alias"
+group_by_vars <- c(opt$factor, sample_var) 
+if (!is.null(opt$factor2)) {
+    group_by_vars <- c(opt$factor, opt$factor2, sample_var) 
+}
 otu_taxa_metadata_top15_sum <- data.frame(otu_taxa_metadata_top15 %>% 
-                                            dplyr::group_by(sample, across(all_of(opt$factor)), sample_alias, genus) %>% 
+                                            dplyr::group_by(sample, across(all_of(group_by_vars)), genus) %>% 
                                             dplyr::summarise(RA_count = sum(value), .groups="drop_last"))
 
 otu_taxa_metadata_top15_sum$genus<- factor(otu_taxa_metadata_top15_sum$genus, levels = rev(c(otu_taxa_metadata_top15_list, 'Other', 'Unknown')))
@@ -252,7 +256,7 @@ colors_kit<-c('#D8DCDE', '#B6D0E0',
 
 out_name <- paste0(out_dir, '/', profile_param, '.Top15genera.pdf')
 pdf(out_name,width=15,height=15,paper="special" )
-print(ggplot(data=otu_taxa_metadata_top15_sum, aes_string(x = "sample_alias", group = "genus")) +
+plot_genera_out <- ggplot(data=otu_taxa_metadata_top15_sum, aes(x = .data[[sample_var]], group = genus)) +
         geom_bar(aes(y=RA_count, fill = genus), stat="identity", alpha=.7) +
         theme_minimal() + 
         theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) + 
@@ -265,9 +269,15 @@ print(ggplot(data=otu_taxa_metadata_top15_sum, aes_string(x = "sample_alias", gr
               panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(),
               ) +
         guides(fill=guide_legend(ncol= 1)) +
-        facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")+
 #        theme(panel.margin.y = unit(0, "lines")) +
-        scale_fill_manual(values = colors_kit, name="Top 15 genera"))
+        scale_fill_manual(values = colors_kit, name="Top 15 genera")
+
+if (!is.null(opt$factor2)) {
+    plot_genera_out <- plot_genera_out + facet_grid(as.formula(paste(opt$factor, "~", opt$factor2)), scales = "free_x")
+} else {
+    plot_genera_out <- plot_genera_out + facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
+}
+print(plot_genera_out)
 dev.off()
 
 ##########################################
@@ -283,11 +293,14 @@ richness_df <- inner_join(richness_df, sample_data_df, by="sample")
 
 # Plot
 out_name <- paste0(out_dir, '/', profile_param, '.richness.pdf')
-pdf(out_name,width=10,height=10,paper="special" )
+pdf(out_name, width=10, height=10, paper="special" )
+
 if (!is.null(opt$time)) {
-    richness_plot <-ggplot(data=richness_df, aes_string(x=opt$time, y="richness", group=opt$factor2)) +
-                        geom_line(aes_string(color=opt$factor2)) +
+    group_var = if (!is.null(opt$factor2)) opt$factor2 else opt$factor
+    richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$time]], y=richness, group=.data[[group_var]])) +
+                        geom_line(aes(color=.data[[group_var]])) +
                         geom_point() +
+                        ylim(0, NA) +
                         theme(legend.position = "top") +
                         theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) +
                         labs(x = opt$time, y = "Richness") +
@@ -296,9 +309,10 @@ if (!is.null(opt$time)) {
                             ) +
                         facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
 } else if (!is.null(opt$factor2)) {
-    richness_plot <-ggplot(data=richness_df, aes_string(x=opt$factor2, y="richness")) +
+    richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$factor2]], y=richness)) +
                         geom_boxplot() +
                         geom_point() +
+                        ylim(0, NA) +
                         theme(legend.position = "top") +
                         theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) +
                         labs(x = opt$factor2, y = "Richness") +
@@ -307,9 +321,10 @@ if (!is.null(opt$time)) {
                             ) +
                         facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
 } else {
-    richness_plot <-ggplot(data=richness_df, aes_string(x=opt$factor, y="richness")) +
+    richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$factor]], y=richness)) +
                         geom_boxplot() +
                         geom_point() +
+                        ylim(0, NA) +
                         theme(legend.position = "top") +
                         theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) +
                         labs(x = opt$factor, y = "Richness") +
