@@ -156,6 +156,8 @@ rule all:
 rule rRNA_db_download:
     output:
         "{somewhere}/rRNA_databases/{something}.fasta"
+    resources: mem=index_memory
+    threads: index_threads
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell:
@@ -198,7 +200,7 @@ rule rRNA_db_index:
         """
         mkdir -p {params.tmp_sortmerna_index}/idx/ 
         dboption=$(echo {input} | sed "s/ / --ref /g")
-        time (sortmerna --workdir {params.tmp_sortmerna_index} --idx-dir {params.tmp_sortmerna_index}/idx/ -index 1 --ref $dboption
+        time (sortmerna --workdir {params.tmp_sortmerna_index} --idx-dir {params.tmp_sortmerna_index}/idx/ --index 1 --ref $dboption --threads {threads}
         rsync {params.tmp_sortmerna_index}/idx/* {output.rRNA_db_index}
         echo 'SortMeRNA indexed rRNA_databases done' > {output.rRNA_db_index_file}) >& {log}
         rm -rf {params.tmp_sortmerna_index}

@@ -452,7 +452,7 @@ rule copy_HQ_genomes:
 		import subprocess
 		import pandas as pd
 		# open the checkm_comprhrensive table
-		checkm_results=pd.read_csv(input.checkm_total, sep = "\t")
+		checkm_results=pd.read_csv(str(input.checkm_total), sep = "\t")
  		# take and save the HQ table
 		HQ_checkm_results = checkm_results[(checkm_results["Completeness"] >= params.completeness) & (checkm_results["Contamination"] <= params.contamination)]
 		HQ_checkm_results.to_csv(output.HQ_table, sep = "\t", index = False)
@@ -549,10 +549,10 @@ rule find_unique_and_best_genomes:
 		import pandas as pd
 
 		# read the table for the score
-		score_table = pd.read_csv(input.scored_genomes, sep = "\t", index_col = "Bin_id", comment = "#") # we skip the first line with the --score_method
+		score_table = pd.read_csv(str(input.scored_genomes), sep = "\t", index_col = "Bin_id", comment = "#") # we skip the first line with the --score_method
 
 		# read coverm table
-		coverm_table = pd.read_csv(input.coverm, sep = "\t", names = ["ref_cluster", "cluster_members"])
+		coverm_table = pd.read_csv(str(input.coverm), sep = "\t", names = ["ref_cluster", "cluster_members"])
 
 
 		# list of best genomes that should be written in the output
