@@ -34,6 +34,11 @@ TAXA_threads: 8
 TAXA_memory: 10
 taxa_profile: motus_rel
 
+# Analysis parameters
+MAIN_factor: participant_ID2
+PLOT_factor2:
+PLOT_time: week_n
+
 # Input data
 # ILLUMINA section:
 # -----------------

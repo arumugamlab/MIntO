@@ -36,6 +36,14 @@ sortmeRNA_memory:
 sortmeRNA_db: 
 sortmeRNA_db_idx: 
 
+#####################
+## Analysis parameters
+######################
+
+MAIN_factor:
+PLOT_factor2:
+PLOT_time:
+
 ##################
 # Input data
 ##################

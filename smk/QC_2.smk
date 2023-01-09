@@ -146,11 +146,11 @@ else:
 
 plot_args_list = list()
 main_factor = None
-if config['PLOT_factor'] is not None:
-    main_factor = config['PLOT_factor']
+if config['MAIN_factor'] is not None:
+    main_factor = config['MAIN_factor']
     plot_args_list.append('--factor ' + main_factor) 
 else:
-    print('ERROR in ', config_path, ': "PLOT_factor" variable cannot be empty.')
+    print('ERROR in ', config_path, ': "MAIN_factor" variable cannot be empty.')
 
 if config['PLOT_factor2'] is not None:
     plot_args_list.append('--factor2 ' + config['PLOT_factor2']) 
@@ -364,7 +364,7 @@ rule bwaindex_host_genome:
         mkdir -p {params.tmp_bwaindex}
         time (\
                 bwa-mem2 index {input} -p {params.tmp_bwaindex}/{wildcards.genome}
-                rsync {params.tmp_bwaindex}* {somewhere}/BWA_index/
+                rsync {params.tmp_bwaindex}/* {wildcards.somewhere}/BWA_index/
                 rm -rf {params.tmp_bwaindex}
             ) &> {log} 
         """
@@ -430,7 +430,7 @@ rule qc2_filter_rRNA_index:
         rRNA_db_index_file = "{sortmeRNA_db_idx}/rRNA_db_index.log".format(sortmeRNA_db_idx=sortmeRNA_db_idx),
         rRNA_db_index = directory(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
     params:
-        tmp_sortmerna_index=lambda wildcards: "{local_dir}/{omics}.rRNA_index/".format(local_dir=local_dir, omics = omics),
+        tmp_working_dir=lambda wildcards: "{local_dir}/{omics}.rRNA_index".format(local_dir=local_dir, omics = omics),
         #sortmeRNA_db_idx = sortmeRNA_db_idx
     resources:
         mem=sortmeRNA_memory
@@ -442,9 +442,9 @@ rule qc2_filter_rRNA_index:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell: 
         """
-        mkdir -p {params.tmp_sortmerna_index}idx/ 
+        mkdir -p {params.tmp_working_dir}idx/ 
         time (\
-            sortmerna --workdir {params.tmp_sortmerna_index} --idx-dir {params.tmp_sortmerna_index}idx/ -index 1 \
+            sortmerna --workdir {params.tmp_working_dir}/ --idx-dir {params.tmp_working_dir}/idx/ -index 1 \
                 --ref {input.rRNA_db[0]} \
                 --ref {input.rRNA_db[1]} \
                 --ref {input.rRNA_db[2]} \
@@ -453,10 +453,10 @@ rule qc2_filter_rRNA_index:
                 --ref {input.rRNA_db[5]} \
                 --ref {input.rRNA_db[6]} \
                 --ref {input.rRNA_db[7]}
-            rsync {params.tmp_sortmerna_index}idx/* {output.rRNA_db_index}
+            rsync {params.tmp_working_dir}/idx/* {output.rRNA_db_index}
             echo 'SortMeRNA indexed rRNA_databases done' > {sortmeRNA_db_idx}/rRNA_db_index.log
             ) >& {log}
-        rm -rf {params.tmp_sortmerna_index}
+        rm -rf {params.tmp_working_dir}
         """
 
 rule qc2_filter_rRNA:
@@ -469,7 +469,7 @@ rule qc2_filter_rRNA:
         rRNA_free_fw="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.1.fq.gz",
         rRNA_free_rv="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.2.fq.gz"
     params:
-        tmp_sortmerna=lambda wildcards: "{local_dir}/{omics}_{sample}.filter_rRNA/".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
+        tmp_sortmerna=lambda wildcards: "{local_dir}/{omics}_{sample}.filter_rRNA".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
         db_idx_dir=sortmeRNA_db_idx,
         db_dir=sortmeRNA_db,
     resources:
@@ -484,7 +484,7 @@ rule qc2_filter_rRNA:
         """
         mkdir -p {params.tmp_sortmerna}
         remote_dir=$(dirname {output.rRNA_free_fw})
-        time (sortmerna --workdir {params.tmp_sortmerna} --kvdb {params.tmp_sortmerna}kvdb/ --idx-dir {params.db_idx_dir}/ --readb {params.tmp_sortmerna}readb/ --paired_in --fastx false --blast 1 -threads {threads} --num_alignments 1 \
+        time (sortmerna --workdir {params.tmp_sortmerna} --kvdb {params.tmp_sortmerna}/kvdb/ --idx-dir {params.db_idx_dir}/ --readb {params.tmp_sortmerna}/readb/ --paired_in --fastx false --blast 1 -threads {threads} --num_alignments 1 \
 --ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
 --ref {params.db_dir}/rfam-5s-database-id98.fasta \
 --ref {params.db_dir}/silva-arc-16s-id95.fasta \
@@ -495,10 +495,10 @@ rule qc2_filter_rRNA:
 --ref {params.db_dir}/silva-euk-28s-id98.fasta \
 --reads {input.host_free_fw} --reads {input.host_free_rv}
         zcat {params.tmp_sortmerna}/out/aligned.blast.gz | cut -f1 | uniq > {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list
-        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_fw} --output {params.tmp_sortmerna}{wildcards.sample}.1.fq.gz
-        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_rv} --output {params.tmp_sortmerna}{wildcards.sample}.2.fq.gz
-        rsync {params.tmp_sortmerna}* $remote_dir
-        rsync {params.tmp_sortmerna}out/* $remote_dir/out/ ) >& {log}
+        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_fw} --output {params.tmp_sortmerna}/{wildcards.sample}.1.fq.gz
+        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_rv} --output {params.tmp_sortmerna}/{wildcards.sample}.2.fq.gz
+        rsync {params.tmp_sortmerna}/* $remote_dir
+        rsync {params.tmp_sortmerna}/out/* $remote_dir/out/ ) >& {log}
         rm -rf {params.tmp_sortmerna}
         """
 
@@ -550,7 +550,7 @@ rule metaphlan_tax_profile:
     output:
         ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan"
     params:
-        tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.metaphlan_taxonomic_profile/".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
+        tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.metaphlan_taxonomic_profile".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
     resources:
         mem=TAXA_memory
     threads:
@@ -563,8 +563,8 @@ rule metaphlan_tax_profile:
         """
         mkdir -p {params.tmp_taxa_prof}
         remote_dir=$(dirname {output.ra})
-        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}{wildcards.sample}.metaphlan -t rel_ab_w_read_stats
-        rsync {params.tmp_taxa_prof}* $remote_dir) >& {log}
+        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}/{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan -t rel_ab_w_read_stats
+        rsync {params.tmp_taxa_prof}/* $remote_dir) >& {log}
         rm -rf {params.tmp_taxa_prof}
         """
 
@@ -597,7 +597,7 @@ rule motus_map_db:
     output: 
         mgc="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus.mgc",
     params:
-        tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.motus.taxonomic_profile/".format(local_dir=local_dir, omics = wildcards.omics, sample = wildcards.sample),
+        tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.motus.taxonomic_profile".format(local_dir=local_dir, omics = wildcards.omics, sample = wildcards.sample),
     resources:
         mem=TAXA_memory
     threads:
@@ -610,10 +610,10 @@ rule motus_map_db:
         """
         mkdir -p {params.tmp_taxa_prof}
         time (\
-            motus map_tax   -t {threads}          -f {input.reads[0]} -r {input.reads[1]}       -o {params.tmp_taxa_prof}{wildcards.sample}.motus.bam -b
-            motus calc_mgc  -n {wildcards.sample} -i {params.tmp_taxa_prof}{wildcards.sample}.motus.bam -o {params.tmp_taxa_prof}{wildcards.sample}.motus.mgc
-            rm {params.tmp_taxa_prof}{wildcards.sample}.motus.bam
-            rsync {params.tmp_taxa_prof}{wildcards.sample}.motus.mgc {output.mgc}
+            motus map_tax   -t {threads}          -f {input.reads[0]} -r {input.reads[1]}       -o {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam -b
+            motus calc_mgc  -n {wildcards.sample} -i {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam -o {params.tmp_taxa_prof}/{wildcards.sample}.motus.mgc
+            rm {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam
+            rsync {params.tmp_taxa_prof}/{wildcards.sample}.motus.mgc {output.mgc}
             ) >& {log}
         rm -rf {params.tmp_taxa_prof}
         """

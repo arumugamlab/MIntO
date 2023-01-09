@@ -463,14 +463,14 @@ TAXA_memory: 10
 taxa_profile: motus_rel 
 
 #####################
-# Plotting parameters
+# Analysis parameters
 #####################
 
-# PLOT_factor  - the main factor in the metadata file to differentiate in visualization (using color)
+# MAIN_factor  - the main factor in the metadata file to differentiate in visualization (using color)
 # PLOT_factor2 - the second factor in the metadata file to differentiate in visualization (using shape)
 # PLOT_time    - name of the factor in the metadata file denoting time (e.g. hour, day)
 
-PLOT_factor:
+MAIN_factor:
 PLOT_factor2:
 PLOT_time:
 
