@@ -381,9 +381,8 @@ rule qc1_config_yml_file:
     output: 
         config_file="{wd}/{omics}/QC_2.yaml"
     params: 
-        tmp_qc1_yaml=lambda wildcards: "{local_dir}/{omics}_qc1_config_yml_file/".format(local_dir=local_dir, omics = omics),
-        trim_threads=config['TRIMMOMATIC_memory'],
-        trim_memory=config['TRIMMOMATIC_threads'] 
+        trim_threads=config['TRIMMOMATIC_threads'],
+        trim_memory=config['TRIMMOMATIC_memory'] 
     log: 
         "{wd}/logs/{omics}/qc1_config_yml_file.log"
     shell: 
