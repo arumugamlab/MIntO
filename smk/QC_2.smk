@@ -375,7 +375,6 @@ rule qc2_host_filter:
         pairead_rv=rules.qc2_length_filter.output.paired2,
         bwaindex=lambda wildcards: ancient(expand('{somewhere}/BWA_index/{genome}.{ext}', somewhere=host_genome_path, genome=host_genome_name, ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac']))
     output: 
-        host_reads="{wd}/{omics}/4-hostfree/{sample}/{sample}.host.reads", 
         host_free_fw="{wd}/{omics}/4-hostfree/{sample}/{sample}.1.fq.gz",
         host_free_rv="{wd}/{omics}/4-hostfree/{sample}/{sample}.2.fq.gz",
     params:
@@ -393,14 +392,10 @@ rule qc2_host_filter:
         """ 
         mkdir -p {params.tmp_bwa}
         remote_dir=$(dirname {output.host_free_fw})
-        host_read_list="{params.tmp_bwa}/$(basename {output.host_reads})"
         time (\
-                bwa-mem2 mem -a -t {threads} -v 3 {params.bwaindex} {input.pairead_fw} {input.pairead_rv} \
-                | msamtools filter -S -l 30 - \
-                | cut -f1 \
-                > $host_read_list
-                mseqtools subset --exclude --list $host_read_list --paired --input {input.pairead_fw} --output {params.tmp_bwa}/$(basename {output.host_free_fw})
-                mseqtools subset --exclude --list $host_read_list --paired --input {input.pairead_rv} --output {params.tmp_bwa}/$(basename {output.host_free_rv})
+                bwa-mem2 mem -t {threads} -v 3 {params.bwaindex} {input.pairead_fw} {input.pairead_rv} \
+                  | msamtools filter -S -l 30 --invert --keep_unmapped -bu - \
+                  | samtools fastq -1 {params.tmp_bwa}/$(basename {output.host_free_fw}) -2 {params.tmp_bwa}/$(basename {output.host_free_rv}) -s /dev/null -c 6 -N -
                 rsync {params.tmp_bwa}/* $remote_dir/ 
             ) >& {log}
         rm -rf {params.tmp_bwa}
