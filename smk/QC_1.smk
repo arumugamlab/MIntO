@@ -132,7 +132,7 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
 
     localrules: qc1_get_index_barcode, qc1_make_custom_adapter_file
 
-    if config['TRIMMOMATIC_index_barcodes'] == "infer":
+    if config['TRIMMOMATIC_index_barcodes'].lower() == "infer":
         # Infer from fastq file
         rule qc1_get_index_barcode:
             input:
@@ -407,8 +407,6 @@ METADATA: {metadata}
 # Read length filtering
 #########################
 
-TRIMMOMATIC_threads: {params.trim_threads}
-TRIMMOMATIC_memory: {params.trim_memory}
 $(cat {input.cutoff_file})
 
 #########################

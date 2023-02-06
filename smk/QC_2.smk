@@ -78,23 +78,20 @@ else:
     print('ERROR in {}: NAME_host_genome={} does not exist as fasta or BWA db in PATH_host_genome={}. Please, correct!'.format(config_path, NAME_host_genome, PATH_host_genome))
 
 ##############################################
-# Trimmomatic
+# Minimum read-length trimming
 ##############################################
 
-if config['TRIMMOMATIC_threads'] is None:
-    print('ERROR in ', config_path, ': TRIMMOMATIC_threads variable is empty. Please, complete ', config_path)
-elif type(config['TRIMMOMATIC_threads']) != int:
-    print('ERROR in ', config_path, ': TRIMMOMATIC_threads variable is not an integer. Please, complete ', config_path)
+read_min_len = 50
+if 'READ_minlen' in config and config['READ_minlen'] is not None:
+    read_min_len = config['READ_minlen']
+elif 'TRIMMOMATIC_minlen' in config and config['TRIMMOMATIC_minlen'] is not None:
+    read_min_len = config['TRIMMOMATIC_minlen']
+else:
+    print('ERROR in ', config_path, ': READ_minlen variable is empty. Please, complete ', config_path)
 
-if config['TRIMMOMATIC_memory'] is None:
-    print('ERROR in ', config_path, ': TRIMMOMATIC_memory variable is empty. Please, complete ', config_path)
-elif type(config['TRIMMOMATIC_memory']) != int:
-    print('ERROR in ', config_path, ': TRIMMOMATIC_memory variable is not an integer. Please, complete ', config_path)
+if type(read_min_len) != int:
+    print('ERROR in ', config_path, ': READ_minlen variable is not an integer. Please, complete ', config_path)
 
-if config['TRIMMOMATIC_minlen'] is None:
-    print('ERROR in ', config_path, ': TRIMMOMATIC_minlen variable is empty. Please, complete ', config_path)
-elif type(config['TRIMMOMATIC_minlen']) != int:
-    print('ERROR in ', config_path, ': TRIMMOMATIC_minlen variable is not an integer. Please, complete ', config_path)
 
 ##############################################
 # BWA for host genome filtering
@@ -268,7 +265,7 @@ if omics == 'metaT':
     def extra_output():
         result = expand("{sortmeRNA_db_idx}", 
                     sortmeRNA_db_idx=sortmeRNA_db_idx),\
-        expand("{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.blast.gz", 
+        expand("{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.log", 
                     wd = working_dir,
                     omics = omics,
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else []),\
@@ -298,52 +295,51 @@ rule all:
 # Read length filtering using the MINLEN 
 ###############################################################################################
 
+# We use suffix fq.gz for "seqkit seq" output even though it outputs unzipped fq.
+# This is because the next step "seqkit pair" uses extension to decide whether to compress using pigz or not.
 rule qc2_length_filter:
     input:
         read_fw='{wd}/{omics}/1-trimmed/{sample}/{sample}.1.paired.fq.gz',
         read_rv='{wd}/{omics}/1-trimmed/{sample}/{sample}.2.paired.fq.gz',
     output: 
-        paired1="{wd}/{omics}/3-minlength/{sample}/{sample}.1.paired.fq.gz", 
-        single1="{wd}/{omics}/3-minlength/{sample}/{sample}.1.single.fq.gz", 
-        paired2="{wd}/{omics}/3-minlength/{sample}/{sample}.2.paired.fq.gz", 
-        single2="{wd}/{omics}/3-minlength/{sample}/{sample}.2.single.fq.gz", 
+        paired1="{wd}/{omics}/3-minlength/{sample}/{sample}.1.fq.gz", 
+        paired2="{wd}/{omics}/3-minlength/{sample}/{sample}.2.fq.gz", 
         summary="{wd}/{omics}/3-minlength/{sample}/{sample}.trim.summary"
     params:
         tmp_trim_len=lambda wildcards: "{local_dir}/{omics}_{sample}filter_trim_length".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
-        read_length_cutoff=config["TRIMMOMATIC_minlen"]
+        read_length_cutoff=read_min_len
     log:
         "{wd}/logs/{omics}/3-minlength/{sample}.log"
     resources:
-        mem=config['TRIMMOMATIC_memory']
+        mem=20
     threads:
-        config['TRIMMOMATIC_threads'] 
+        16
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #trimmomatic
+        config["minto_dir"]+"/envs/MIntO_base.yml"
     shell: 
         """
         mkdir -p {params.tmp_trim_len}
         remote_dir=$(dirname {output.paired1})
-        echo {resources.mem}
-        time ( \
-            trimmomatic PE -threads {threads} \
-                -summary {output.summary} \
-                -phred33 \
-                {input.read_fw} {input.read_rv} \
-                {params.tmp_trim_len}/$(basename {output.paired1}) {params.tmp_trim_len}/$(basename {output.single1}) \
-                {params.tmp_trim_len}/$(basename {output.paired2}) {params.tmp_trim_len}/$(basename {output.single2}) \
-                MINLEN:{params.read_length_cutoff} \
-            && rsync {params.tmp_trim_len}/* $remote_dir
+        cd {params.tmp_trim_len}
+        time ( 
+            mkfifo {wildcards.sample}.1.fq.gz
+            mkfifo {wildcards.sample}.2.fq.gz
+            seqkit seq {input.read_fw} -m {params.read_length_cutoff} | seqkit replace -p '/1' -r '' > {wildcards.sample}.1.fq.gz &
+            seqkit seq {input.read_rv} -m {params.read_length_cutoff} | seqkit replace -p '/2' -r '' > {wildcards.sample}.2.fq.gz &
+            seqkit pair -1 {wildcards.sample}.1.fq.gz -2 {wildcards.sample}.2.fq.gz -O result -u >& {output.summary}
+            rsync -a result/{wildcards.sample}.* $remote_dir/
         ) >& {log}
+        cd {local_dir}
         rm -rf {params.tmp_trim_len} 
         """
 
 ###############################################################################################
 # Pre-processing of metaG and metaT data
-# Remove host genome sequences 
+# Remove host genome sequences
 ###############################################################################################
 
 rule bwaindex_host_genome:
-    input: 
+    input:
         host_genome='{somewhere}/{genome}'
     output:
         '{somewhere}/BWA_index/{genome}.0123',
@@ -353,7 +349,7 @@ rule bwaindex_host_genome:
         '{somewhere}/BWA_index/{genome}.pac',
     params:
         tmp_bwaindex=lambda wildcards: "{local_dir}/{genome}_bwaindex".format(local_dir=local_dir, genome=wildcards.genome),
-    log: 
+    log:
         "{somewhere}/{genome}_BWAindex.log"
     resources:
         mem=config['BWA_index_host_memory']
@@ -364,17 +360,17 @@ rule bwaindex_host_genome:
         mkdir -p {params.tmp_bwaindex}
         time (\
                 bwa-mem2 index {input} -p {params.tmp_bwaindex}/{wildcards.genome}
-                rsync {params.tmp_bwaindex}/* {wildcards.somewhere}/BWA_index/
+                rsync -a {params.tmp_bwaindex}/* {wildcards.somewhere}/BWA_index/
                 rm -rf {params.tmp_bwaindex}
-            ) &> {log} 
+            ) &> {log}
         """
 
 rule qc2_host_filter:
-    input: 
+    input:
         pairead_fw=rules.qc2_length_filter.output.paired1,
         pairead_rv=rules.qc2_length_filter.output.paired2,
         bwaindex=lambda wildcards: ancient(expand('{somewhere}/BWA_index/{genome}.{ext}', somewhere=host_genome_path, genome=host_genome_name, ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac']))
-    output: 
+    output:
         host_free_fw="{wd}/{omics}/4-hostfree/{sample}/{sample}.1.fq.gz",
         host_free_rv="{wd}/{omics}/4-hostfree/{sample}/{sample}.2.fq.gz",
     params:
@@ -385,18 +381,18 @@ rule qc2_host_filter:
     resources:
         mem=config['BWA_host_memory']
     threads:
-        config['BWA_host_threads'] 
+        config['BWA_host_threads']
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
+        config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2, msamtools>=1.1.1, samtools
     shell:
-        """ 
+        """
         mkdir -p {params.tmp_bwa}
         remote_dir=$(dirname {output.host_free_fw})
         time (\
                 bwa-mem2 mem -t {threads} -v 3 {params.bwaindex} {input.pairead_fw} {input.pairead_rv} \
                   | msamtools filter -S -l 30 --invert --keep_unmapped -bu - \
                   | samtools fastq -1 {params.tmp_bwa}/$(basename {output.host_free_fw}) -2 {params.tmp_bwa}/$(basename {output.host_free_rv}) -s /dev/null -c 6 -N -
-                rsync {params.tmp_bwa}/* $remote_dir/ 
+                rsync -a {params.tmp_bwa}/* $remote_dir/
             ) >& {log}
         rm -rf {params.tmp_bwa}
         """
@@ -448,7 +444,7 @@ rule qc2_filter_rRNA_index:
                 --ref {input.rRNA_db[5]} \
                 --ref {input.rRNA_db[6]} \
                 --ref {input.rRNA_db[7]}
-            rsync {params.tmp_working_dir}/idx/* {output.rRNA_db_index}
+            rsync -a {params.tmp_working_dir}/idx/* {output.rRNA_db_index}
             echo 'SortMeRNA indexed rRNA_databases done' > {sortmeRNA_db_idx}/rRNA_db_index.log
             ) >& {log}
         rm -rf {params.tmp_working_dir}
@@ -460,7 +456,7 @@ rule qc2_filter_rRNA:
         host_free_rv=rules.qc2_host_filter.output.host_free_rv,
         rRNA_db_index=ancient(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
     output:
-        rRNA_out="{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.blast.gz",
+        rRNA_out="{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.log",
         rRNA_free_fw="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.1.fq.gz",
         rRNA_free_rv="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.2.fq.gz"
     params:
@@ -479,7 +475,7 @@ rule qc2_filter_rRNA:
         """
         mkdir -p {params.tmp_sortmerna}
         remote_dir=$(dirname {output.rRNA_free_fw})
-        time (sortmerna --workdir {params.tmp_sortmerna} --kvdb {params.tmp_sortmerna}/kvdb/ --idx-dir {params.db_idx_dir}/ --readb {params.tmp_sortmerna}/readb/ --paired_in --fastx false --blast 1 -threads {threads} --num_alignments 1 \
+        (time sortmerna --paired_in --fastx --out2 --other --threads {threads} --no-best --num_alignments 1 --workdir {params.tmp_sortmerna} --idx-dir {params.db_idx_dir}/ \
 --ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
 --ref {params.db_dir}/rfam-5s-database-id98.fasta \
 --ref {params.db_dir}/silva-arc-16s-id95.fasta \
@@ -489,11 +485,9 @@ rule qc2_filter_rRNA:
 --ref {params.db_dir}/silva-euk-18s-id95.fasta \
 --ref {params.db_dir}/silva-euk-28s-id98.fasta \
 --reads {input.host_free_fw} --reads {input.host_free_rv}
-        zcat {params.tmp_sortmerna}/out/aligned.blast.gz | cut -f1 | uniq > {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list
-        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_fw} --output {params.tmp_sortmerna}/{wildcards.sample}.1.fq.gz
-        mseqtools subset --exclude --list {params.tmp_sortmerna}/out/{wildcards.sample}.rrna.list --paired --input {input.host_free_rv} --output {params.tmp_sortmerna}/{wildcards.sample}.2.fq.gz
-        rsync {params.tmp_sortmerna}/* $remote_dir
-        rsync {params.tmp_sortmerna}/out/* $remote_dir/out/ ) >& {log}
+        rsync -a {params.tmp_sortmerna}/out/other_fwd.fq.gz {output.rRNA_free_fw}
+        rsync -a {params.tmp_sortmerna}/out/other_rev.fq.gz {output.rRNA_free_rv}
+        rsync -a {params.tmp_sortmerna}/out/aligned.log {output.rRNA_out} ) >& {log}
         rm -rf {params.tmp_sortmerna}
         """
 
@@ -516,7 +510,7 @@ def get_tax_profile_input_files(wildcards):
                     pair = [1, 2]))
 
 rule taxonomic_profile_metaphlan_download_db:
-    output: 
+    output:
         metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir)
     resources:
         mem=TAXA_memory #lambda wildcards, input: len(input.host_free_fw) + 2
@@ -527,7 +521,7 @@ rule taxonomic_profile_metaphlan_download_db:
     conda:
         config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
     shell:
-        """ 
+        """
         time (metaphlan --version
         metaphlan --install --bowtie2db {minto_dir}/data/metaphlan/
         echo 'MetaPhlAn database downloaded'
@@ -540,7 +534,7 @@ rule taxonomic_profile_metaphlan_download_db:
 
 rule metaphlan_tax_profile:
     input:
-        metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir), 
+        metaphlan_db=ancient("{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir)),
         reads=get_tax_profile_input_files
     output:
         ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan"
@@ -559,14 +553,14 @@ rule metaphlan_tax_profile:
         mkdir -p {params.tmp_taxa_prof}
         remote_dir=$(dirname {output.ra})
         time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}/{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan -t rel_ab_w_read_stats
-        rsync {params.tmp_taxa_prof}/* $remote_dir) >& {log}
+        rsync -a {params.tmp_taxa_prof}/* $remote_dir) >& {log}
         rm -rf {params.tmp_taxa_prof}
         """
 
 rule metaphlan_combine_profiles:
-    input: 
+    input:
         ra=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, sample = ilmn_samples),
-    output: 
+    output:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table.txt",
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
     wildcard_constraints:
@@ -579,7 +573,7 @@ rule metaphlan_combine_profiles:
     conda:
         config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
     shell:
-        """ 
+        """
         time (\
                 merge_metaphlan_tables.py {input.ra} > {output.merged}
                 grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' | cut -f{params.cut_fields} > {output.species}
@@ -608,7 +602,7 @@ rule motus_map_db:
             motus map_tax   -t {threads}          -f {input.reads[0]} -r {input.reads[1]}       -o {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam -b
             motus calc_mgc  -n {wildcards.sample} -i {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam -o {params.tmp_taxa_prof}/{wildcards.sample}.motus.mgc
             rm {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam
-            rsync {params.tmp_taxa_prof}/{wildcards.sample}.motus.mgc {output.mgc}
+            rsync -a {params.tmp_taxa_prof}/{wildcards.sample}.motus.mgc {output.mgc}
             ) >& {log}
         rm -rf {params.tmp_taxa_prof}
         """
