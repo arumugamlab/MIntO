@@ -222,7 +222,7 @@ rule eggnog_db:
     log:
         "{minto_dir}/logs/eggnog_db_download.log"
     conda:
-        config["minto_dir"]+"/envs/py38_env.yml"
+        config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """ 
         mkdir -p {minto_dir}/data/eggnog_data/data
@@ -246,7 +246,7 @@ rule Kofam_db:
     log:
         "{minto_dir}/logs/kofam_db_download.log"
     conda:
-        config["minto_dir"]+"/envs/kofamscan_env.yml"
+        config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """ 
         mkdir -p {minto_dir}/data/kofam_db/
@@ -274,7 +274,7 @@ rule dbCAN_db:
     log:
         "{minto_dir}/logs/dbCAN_db_download.log"
     conda:
-        config["minto_dir"]+"/envs/dbcan_env.yml"
+        config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """ 
         mkdir -p {minto_dir}/data/dbCAN_db/

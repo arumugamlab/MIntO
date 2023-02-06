@@ -314,7 +314,7 @@ rule gene_annot_kofamscan:
         mem=10
     threads: 9
     conda:
-        config["minto_dir"]+"/envs/kofamscan_env.yml" #config["kofamscan_ironmenv"]
+        config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
         mkdir -p {params.tmp_kofamscan}tmp
@@ -343,7 +343,7 @@ rule gene_annot_dbcan:
         mem=10
     threads: 9
     conda:
-        config["minto_dir"]+"/envs/dbcan_env.yml" #config["dbcan_ironmenv"]
+        config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
         mkdir -p {params.tmp_dbcan}
@@ -369,7 +369,7 @@ rule gene_annot_eggnog:
         mem=10
     threads: 9
     conda:
-        config["minto_dir"]+"/envs/py38_env.yml" #config["py38_ironmenv"]
+        config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
         mkdir -p {params.tmp_eggnog}
