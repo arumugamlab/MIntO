@@ -127,8 +127,9 @@ def motus_db_out():
         minto_dir=minto_dir)
     return(result)
 
-def conda_env_out():
+def all_env_out():
     files = ["vamb_env.log",
+             "r_pkgs.log",
              "mags_env.log"]
     result = expand("{somewhere}/logs/{file}",
                 somewhere = minto_dir,
@@ -144,7 +145,7 @@ rule all:
         dbCAN_db_out(),
         metaphlan_db_out(),
         motus_db_out(),
-        conda_env_out()
+        all_env_out()
 
 ###############################################################################################
 # Download and index rRNA database - SortMeRNA
@@ -382,6 +383,20 @@ rule motus_db:
 ###############################################################################################
 # Generate conda environments
 ###############################################################################################
+
+rule r_pkgs:
+    output:
+        r_pkgs="{minto_dir}/logs/r_pkgs.log"
+    resources:
+        mem=download_memory
+    threads:
+        download_threads
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
+    shell:
+        """
+        time (echo 'r_pkgs environment generated') &> {output}
+        """
 
 rule mags_gen_vamb:
     output: 
