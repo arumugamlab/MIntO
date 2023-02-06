@@ -1,0 +1,10 @@
+name: mags
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - checkm-genome=1.2.2
+  - coverm=0.6.1
+  - phylophlan
+  - prokka=1.14.6

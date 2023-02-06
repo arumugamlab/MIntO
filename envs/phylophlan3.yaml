@@ -1,8 +1,0 @@
-name: phylophlan3
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-  - pytorch
-dependencies:
-  - bioconda::phylophlan

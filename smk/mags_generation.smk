@@ -371,7 +371,7 @@ rule run_checkm:
 		#pplacer_threads=config["PPLACER_THREADS"],
 	
 	conda:
-		config["minto_dir"]+"/envs/checkm.yaml"
+		config["minto_dir"]+"/envs/mags.yaml"
 	
 	shell:
 		""" time (rsync {input.all_genomes}/*.fna {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/checkm
@@ -491,7 +491,7 @@ rule run_coverm:
 		config["COVERM_THREADS"]
 
 	conda:
-		config["minto_dir"]+"/envs/coverm.yaml"
+		config["minto_dir"]+"/envs/mags.yaml"
 
 	shell:
 		""" time (coverm cluster --genome-fasta-directory {params.HQ_folder} -x fna --ani 99  --output-cluster-definition {output.coverm_output} --threads {threads} --precluster-method finch) &> {log} """
@@ -644,7 +644,7 @@ rule run_prokka:
 		config["PROKKA_CPUS"]
 	
 	conda:
-		config["minto_dir"]+"/envs/prokka.yaml"
+		config["minto_dir"]+"/envs/mags.yaml"
 	
 	shell: 
 		""" time (sh {script_dir}run_prokka.sh {params.run_prokka} {threads} {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/ {params.unique_genomes_folder} {output.prokka_ended})&> {log} """
@@ -678,7 +678,7 @@ rule run_taxonomy:
 		config["TAXONOMY_CPUS"]
 	
 	conda:
-		config["minto_dir"]+"/envs/phylophlan3.yaml"
+		config["minto_dir"]+"/envs/mags.yaml"
 
 	shell: 
 		"""time (sh {script_dir}run_taxonomy.sh {params.run_taxonomy} {threads} {params.unique_genomes_folder} {params.output_phylophlan} {params.database_folder} {output.taxonomy_ended} {params.taxonomy_database})&> {log} """

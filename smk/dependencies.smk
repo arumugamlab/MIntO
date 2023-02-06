@@ -129,11 +129,7 @@ def motus_db_out():
 
 def conda_env_out():
     files = ["vamb_env.log",
-                "checkm_env.log",
-                "coverm_env.log",
-                "phylophlan3_env.log",
-                "prokka_env.log",
-                "py36_env.log"]
+             "mags_env.log"]
     result = expand("{somewhere}/logs/{file}",
                 somewhere = minto_dir,
                 file = files)
@@ -404,72 +400,18 @@ rule mags_gen_vamb:
         echo 'VAMB environment generated') &> {log}
         """
 
-rule mags_gen_checkm:
+rule mags_gen:
     output: 
-        checkm_env="{minto_dir}/logs/checkm_env.log"
+        mags_env="{minto_dir}/logs/mags_env.log"
     resources: 
         mem=download_memory
     threads: 
         download_threads
-    log:
-        "{minto_dir}/logs/checkm_env.log"
     conda:
-        config["minto_dir"]+"/envs/checkm.yaml"
+        config["minto_dir"]+"/envs/mags.yml"
     shell:
         """ 
-        time (
-        echo 'CheckM environment generated') &> {log}
-        """
-
-rule mags_gen_coverm:
-    output: 
-        coverm_env="{minto_dir}/logs/coverm_env.log"
-    resources: 
-        mem=download_memory
-    threads: 
-        download_threads
-    log:
-        "{minto_dir}/logs/coverm_env.log"
-    conda:
-        config["minto_dir"]+"/envs/coverm.yaml"
-    shell:
-        """ 
-        time (
-        echo 'CoverM environment generated') &> {log}
-        """
-
-rule mags_gen_phylophlan3:
-    output: 
-        phylophlan3_env="{minto_dir}/logs/phylophlan3_env.log"
-    resources: 
-        mem=download_memory
-    threads: 
-        download_threads
-    log:
-        "{minto_dir}/logs/phylophlan3_env.log"
-    conda:
-        config["minto_dir"]+"/envs/phylophlan3.yaml"
-    shell:
-        """ 
-        time (
-        echo 'PhyloPhlAn3 environment generated') &> {log}
-        """
-
-rule mags_gen_prokka:
-    output: 
-        prokka_env="{minto_dir}/logs/prokka_env.log"
-    resources: 
-        mem=download_memory
-    threads: 
-        download_threads
-    log:
-        "{minto_dir}/logs/prokka_env.log"
-    conda:
-        config["minto_dir"]+"/envs/prokka.yaml"
-    shell:
-        """ 
-        time (
-        echo 'Prokka environment generated') &> {log}
+        time (echo 'mags environment generated') &> {output}
         """
 
 rule mags_gen_py36:
