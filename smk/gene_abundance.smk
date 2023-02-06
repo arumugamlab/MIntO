@@ -663,7 +663,7 @@ rule gene_abund_normalization_MG:
     resources:
         mem=config["BWA_memory"]
     conda:
-        config["minto_dir"]+"/envs/taxa_env.yml"
+        config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell: 
         """
         time (Rscript {script_dir}/profile_MG.R {threads} {resources.mem} {input.absolute_counts} {input.genomes_marker_genes} {output.norm_counts} {omics} {params.mapped_reads_threashold}) &> {log}
@@ -688,7 +688,7 @@ rule gene_abund_normalization_TPM:
     resources:
         mem=config["BWA_memory"]
     conda:
-        config["minto_dir"]+"/envs/taxa_env.yml" #R
+        config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
         time (Rscript {script_dir}/profile_TPM.R {input.absolute_counts} {output.norm_counts} {wildcards.omics} {params.mapped_reads_threashold}) &> {log}

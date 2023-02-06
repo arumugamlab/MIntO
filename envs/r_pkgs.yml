@@ -4,6 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
+  - bioconductor-biostrings=2.66
   - bioconductor-keggrest=1.38.0
   - bioconductor-pfam.db=3.16.0
   - bioconductor-phyloseq=1.42.0
