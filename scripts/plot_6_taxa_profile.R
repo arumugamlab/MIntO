@@ -159,7 +159,7 @@ if(length(unique(metadata_df[[opt$factor]]))>1){
 
 #plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, title_name, out_name)
 
-plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, color=opt$factor, label = if (!is.null(opt$time)) opt$time else "sample_alias", shape=opt$factor2)
+plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, color=opt$factor, label = if (!is.null(opt$time)) opt$time else "sample", shape=opt$factor2)
 
 manual_plot_colors =c('#9D0208', '#264653','#e9c46a','#D8DCDE','#B6D0E0',
                       '#FFC87E','#F4A261','#E34F33','#E9C46A',
@@ -236,7 +236,7 @@ otu_taxa_metadata_top15$genus[!otu_taxa_metadata_top15$genus %in% c(otu_taxa_met
 otu_taxa_metadata_top15$genus[is.na(otu_taxa_metadata_top15$genus)] <- 'Other'
 
 # Plot
-sample_var <- if (!is.null(opt$time)) opt$time else "sample_alias"
+sample_var <- if (!is.null(opt$time)) opt$time else "sample"
 group_by_vars <- c(opt$factor, sample_var) 
 if (!is.null(opt$factor2)) {
     group_by_vars <- c(opt$factor, opt$factor2, sample_var) 
