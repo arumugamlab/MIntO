@@ -275,7 +275,7 @@ rule gene_annot_subset:
         mem=5
     threads: 8
     conda:
-        config["minto_dir"]+"/envs/taxa_env.yml"
+        config["minto_dir"]+"/envs/r_pkgs.yml"
     shell: 
         """
         mkdir -p {params.tmp_subset}/GFF
@@ -312,7 +312,7 @@ rule gene_annot_kofamscan:
         "{wd}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_kofamscan.log"
     resources:
         mem=10
-    threads: 9
+    threads: 16
     conda:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
@@ -341,7 +341,7 @@ rule gene_annot_dbcan:
         "{wd}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_dbcan.log"
     resources:
         mem=10
-    threads: 9
+    threads: 16
     conda:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
@@ -367,7 +367,7 @@ rule gene_annot_eggnog:
         "{wd}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_eggnog.log"
     resources:
         mem=10
-    threads: 9
+    threads: 16
     conda:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
@@ -413,7 +413,7 @@ rule predicted_gene_annotation_collate:
         mem=10
     threads: 9
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" # config["py36_ironmenv"]
+        config["minto_dir"]+"/envs/mags.yml" # python with pandas
     shell:
         """
         time (python3 {script_dir}/collate.py {wildcards.wd}/DB/{post_analysis_dir}/annot/ {params.prefix})&> {log}
