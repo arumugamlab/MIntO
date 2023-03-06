@@ -21,3 +21,4 @@ dependencies:
   - r-stringr=1.5.0
   - r-tidyr=1.2.1
   - r-vegan=2.6_4
+  - perl=5.32.1

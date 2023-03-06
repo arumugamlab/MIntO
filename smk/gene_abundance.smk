@@ -623,7 +623,7 @@ rule gene_abund_marker_genes:
     resources:
         mem=config["BWA_memory"]
     conda:
-        config["minto_dir"]+"/envs/taxa_env.yml"
+        config["minto_dir"]+"/envs/r_pkgs.yml"
     shell: 
         """ rm -rf {params.tmp_MG}
         mkdir -p {params.tmp_MG}/
