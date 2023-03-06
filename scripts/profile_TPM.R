@@ -28,11 +28,11 @@ gene_abund_bed_coord_df$coord <- gsub('-', '_', gene_abund_bed_coord_df$coord)
 
 gene_abund_bed_coord_df$start <- as.numeric(gene_abund_bed_coord_df$start)
 gene_abund_bed_coord_df$stop <- as.numeric(gene_abund_bed_coord_df$stop)
-gene_abund_bed_coord_df$gene_lenght <- abs(gene_abund_bed_coord_df$stop- gene_abund_bed_coord_df$start) +1
+gene_abund_bed_coord_df$gene_length <- abs(gene_abund_bed_coord_df$stop- gene_abund_bed_coord_df$start) +1
 ## Subset df by colname
 ### Gene info
-gene_info_bed_df <- gene_abund_bed_coord_df[colnames(gene_abund_bed_coord_df) %in% c(gene_info, "coord", "gene_lenght")]
-colnames(gene_info_bed_df) <- c("chr","start","stop","name","score","strand","source","feature","frame","info", "coord", "gene_lenght")
+gene_info_bed_df <- gene_abund_bed_coord_df[colnames(gene_abund_bed_coord_df) %in% c(gene_info, "coord", "gene_length")]
+colnames(gene_info_bed_df) <- c("chr","start","stop","name","score","strand","source","feature","frame","info", "coord", "gene_length")
 ### Gene abundances
 gene_abund_samples_df <- gene_abund_bed_coord_df[!colnames(gene_abund_bed_coord_df) %in% gene_info]
 #### Filter gene abundances df by gene coordinates
@@ -41,7 +41,7 @@ rownames(gene_abund_samples_u_df) <- gene_abund_samples_u_df$coord
 gene_abund_samples_u_df$coord <- NULL
 
 ## Calculate RPK from gene abundances
-gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_lenght
+gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_length
 
 ## RPK sum per sample
 rpk_sum <- as.data.frame(colSums(gene_rpk_samples_u_df))
@@ -52,7 +52,7 @@ rm(gene_rpk_samples_u_df)
 ## Filter number of mapped reads bellow the threashold
 gene_abund_samples_u_df[gene_abund_samples_u_df[,!colnames(gene_abund_samples_u_df) %in% gene_info] <=read_n] <- 0
 
-gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_lenght
+gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_length
 ### Traslocate df to merge it later with total_reads_df
 gene_rpk_samples_u_t_df <- as.data.frame(t(gene_rpk_samples_u_df))
 

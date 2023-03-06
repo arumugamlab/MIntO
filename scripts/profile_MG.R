@@ -48,7 +48,7 @@ gene_abund_bed_coord_df$coord <- gsub('\\-', '\\_', gene_abund_bed_coord_df$coor
 ### Calculate gene length
 gene_abund_bed_coord_df$start <- as.numeric(gene_abund_bed_coord_df$start)
 gene_abund_bed_coord_df$stop <- as.numeric(gene_abund_bed_coord_df$stop)
-gene_abund_bed_coord_df$gene_lenght <- abs(gene_abund_bed_coord_df$stop- gene_abund_bed_coord_df$start) +1
+gene_abund_bed_coord_df$gene_length <- abs(gene_abund_bed_coord_df$stop- gene_abund_bed_coord_df$start) +1
 ### Subset df by colname
 ### Gene abundances
 gene_abund_samples_df <- gene_abund_bed_coord_df[!colnames(gene_abund_bed_coord_df) %in% gene_info]
@@ -58,11 +58,11 @@ rownames(gene_abund_samples_u_df) <- gene_abund_samples_u_df$coord
 gene_abund_samples_u_df$coord <- NULL
 
 ## Calculate RPK from gene abundances (gene abundances normalized by gene length)
-gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_lenght
+gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_length
 gene_rpk_samples_u_df$coord <- rownames(gene_rpk_samples_u_df)
 ### Gene info
-gene_info_bed_df <- gene_abund_bed_coord_df[colnames(gene_abund_bed_coord_df) %in% c(gene_info, "coord", "gene_lenght")]
-colnames(gene_info_bed_df) <- c("chr","start","stop","name","score","strand","source","feature","frame","info", "coord", "gene_lenght")
+gene_info_bed_df <- gene_abund_bed_coord_df[colnames(gene_abund_bed_coord_df) %in% c(gene_info, "coord", "gene_length")]
+colnames(gene_info_bed_df) <- c("chr","start","stop","name","score","strand","source","feature","frame","info", "coord", "gene_length")
 gene_rpk_bed_df <- merge(gene_info_bed_df, gene_rpk_samples_u_df, by='coord')
 #dim(gene_rpk_bed_df)
 gene_rpk_bed_df$header <- gsub('\\-', '\\_', gene_rpk_bed_df$info)
@@ -78,7 +78,7 @@ gene_rpk_fetchMG <- merge(fetchMG_sub_df, gene_rpk_bed_df, by=c('ID_MAG','header
 #setdiff(fetchMG_sub_df$ID_gene,gene_rpk_fetchMG$ID_gene)
 
 
-gene_rpk_fetchMG_sub <- dplyr::select(gene_rpk_fetchMG, -c("header","COG","coord","chr", "start","stop","name","score","strand","source","feature","frame","info", "gene_lenght"))
+gene_rpk_fetchMG_sub <- dplyr::select(gene_rpk_fetchMG, -c("header","COG","coord","chr", "start","stop","name","score","strand","source","feature","frame","info", "gene_length"))
 # Calculate median abundance of the 10 single-copy marker genes
 gene_rpk_fetchMG_sub_median <- as.data.frame(gene_rpk_fetchMG_sub %>%
                                                dplyr::group_by(ID_MAG) %>%
@@ -88,7 +88,7 @@ gene_rpk_fetchMG_sub_median$header <- 'MG'
 gene_rpk_fetchMG_sub_median <- as.data.frame(gene_rpk_fetchMG_sub_median %>%
                                                dplyr::select(ID_MAG, header, everything()))
 
-gene_rpk_bed_sub_df <-  dplyr::select(gene_rpk_bed_df, -c("coord","chr", "start","stop","name","score","strand","source","feature","frame","info", "gene_lenght"))
+gene_rpk_bed_sub_df <-  dplyr::select(gene_rpk_bed_df, -c("coord","chr", "start","stop","name","score","strand","source","feature","frame","info", "gene_length"))
 gene_rpk_bed_sub_df <- as.data.frame(gene_rpk_bed_sub_df %>%
                                        dplyr::select(ID_MAG, header, everything()))
 
@@ -120,7 +120,7 @@ gene_rpk_bed_fetchMG_percell_norm <- as.data.frame(gene_rpk_bed_fetchMG_percell_
                                                 dplyr::rename_at(vars(!matches(c("header"))), ~ paste0(omics,".", .)))
 
 # Merge with gene_info
-gene_info_bed_df <- gene_rpk_bed_df[colnames(gene_rpk_bed_df) %in% c('header','coord', gene_info, 'gene_lenght')]
+gene_info_bed_df <- gene_rpk_bed_df[colnames(gene_rpk_bed_df) %in% c('header','coord', gene_info, 'gene_length')]
 gene_rpk_bed_df <- merge(gene_info_bed_df, gene_rpk_bed_fetchMG_percell_norm, by='header')
 gene_rpk_bed_df$header <- NULL
 print(dim(gene_info_bed_df))

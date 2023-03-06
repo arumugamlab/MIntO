@@ -34,7 +34,6 @@ tpm_profile_all = pd.read_csv(wd + '/output/data_integration/' + map_reference +
 
 if omics == 'metaG_metaT':
     metaG_file_raw = pd.read_csv(wd + '/metaG/6-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.bed',sep='\t')
-    #metaT_file = open(wd + '/metaT/6-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.' + normalization + '.csv', 'r')
     metaT_file_raw = pd.read_csv(wd + '/metaT/6-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.bed',sep='\t')
     #################################
     tpm_profile_all_sub = tpm_profile_all[['chr','start','stop','name','score','strand','source','feature','frame','info']]
@@ -54,6 +53,3 @@ else:
     omics_file_raw.rename(columns = dict(omics_new_names), inplace=True)
     omics_file_raw_sub = pd.merge(omics_file_raw, tpm_profile_all_sub, on=['chr','start','stop','name','score','strand','source','feature','frame','info'], how = 'right')
     omics_file_raw_sub.to_csv(wd + '/output/data_integration/' + map_reference + '/' + omics + '.genes_abundances.p' + identity + '.bed', index=False, encoding='utf-8', sep="\t", quoting=csv.QUOTE_NONE)
-
-
-

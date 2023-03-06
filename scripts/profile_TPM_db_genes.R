@@ -13,7 +13,7 @@ read_n <- args[4]
 read_length_out <- args[5]
 
 ## Bed file colnames
-gene_info <- c('Genes','gene_lenght')
+gene_info <- c('Genes','gene_length')
 
 # GENE ABUNDANCES per SAMPLE
 gene_abund_txt_df <- as.data.frame(fread(gene_abund_txt, header=T), stringsAsFactors = F)
@@ -26,8 +26,8 @@ gene_abund_txt_coord_df <- gene_abund_txt_df
 # Read file with length of fasta sequences 
 read_length_df <- as.data.frame(fread(read_length_out, header=F, fill=T, stringsAsFactors = F, check.names = F, strip.white = T, sep = ''), stringsAsFactors = F)
 read_length_df <- data.frame(do.call('rbind', str_split(string = read_length_df$V1, pattern = '__')))
-names(read_length_df) <- c('Genes','gene_lenght')
-read_length_df$gene_lenght <- as.numeric(read_length_df$gene_lenght)
+names(read_length_df) <- c('Genes','gene_length')
+read_length_df$gene_length <- as.numeric(read_length_df$gene_length)
 
 read_length_df$Genes <- unlist(lapply(strsplit(as.character(read_length_df$Genes),' '), `[`, 1))
 
@@ -43,7 +43,7 @@ rownames(gene_abund_samples_u_df) <- gene_abund_samples_u_df$Genes
 gene_abund_samples_u_df$Genes <- NULL
 
 ## Calculate RPK from gene abundances
-gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_lenght
+gene_rpk_samples_u_df <- gene_abund_samples_u_df[1:ncol(gene_abund_samples_u_df)-1]/gene_abund_samples_u_df$gene_length
 ### Traslocate df to merge it later with total_reads_df
 gene_rpk_samples_u_t_df <- as.data.frame(t(gene_rpk_samples_u_df))
 

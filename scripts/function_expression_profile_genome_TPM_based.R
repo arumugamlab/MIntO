@@ -141,9 +141,9 @@ if (omics == 'metaG_metaT'){
   tpm_profile_df = as.data.frame(fread(profiles_tpm, header=T), stringsAsFactors = F)
   tpm_profile_df$coord <- paste0(tpm_profile_df$chr, '_',tpm_profile_df$start, '_', tpm_profile_df$stop)
   tpm_profile_df$coord <- gsub('\\-','\\_', tpm_profile_df$coord)
-  tpm_profile_df$gene_lenght <- abs(tpm_profile_df$stop- tpm_profile_df$start) +1
+  tpm_profile_df$gene_length <- abs(tpm_profile_df$stop- tpm_profile_df$start) +1
   tpm_profile_df <- as.data.frame(tpm_profile_df %>%
-                                    dplyr::select(coord, chr,start,stop,name,score,strand,source,feature,frame,info,gene_lenght , everything()))
+                                    dplyr::select(coord, chr,start,stop,name,score,strand,source,feature,frame,info,gene_length , everything()))
   tpm_profile_df$info[tpm_profile_df$name=='.'] <- tpm_profile_df$coord[tpm_profile_df$name=='.']
   bed_colnames <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
   tpm_profile_bed_df <- tpm_profile_df[colnames(tpm_profile_df) %in% c('coord',bed_colnames)]
@@ -154,7 +154,7 @@ if (omics == 'metaG_metaT'){
   
   
   ## Calculate RPK from gene abundances
-  gene_rpk_profile <- tpm_profile[2:ncol(tpm_profile)]/tpm_profile$gene_lenght
+  gene_rpk_profile <- tpm_profile[2:ncol(tpm_profile)]/tpm_profile$gene_length
   ## RPK sum per sample
   rpk_sum <- as.data.frame(colSums(gene_rpk_profile))
   names(rpk_sum) <- 'total_sum'
@@ -172,7 +172,7 @@ if (omics == 'metaG_metaT'){
   tpm_profile_read_n <- tpm_profile
   rm(tpm_profile)
   tpm_profile_read_n[tpm_profile_read_n[,!colnames(tpm_profile_read_n)=='coord'] <=read_n] <- 0
-  gene_rpk_profile <- tpm_profile_read_n[2:ncol(tpm_profile_read_n)]/tpm_profile_read_n$gene_lenght
+  gene_rpk_profile <- tpm_profile_read_n[2:ncol(tpm_profile_read_n)]/tpm_profile_read_n$gene_length
   
   ## Sum reads below the threashold and add them as unknown
   rpk_sum_below_read_n <- as.data.frame(colSums(gene_rpk_profile))
@@ -200,7 +200,7 @@ if (omics == 'metaG_metaT'){
   rownames(tpm_profile) <- NULL
   
   # ## Calculate RPK from gene abundances
-  # gene_rpk_profile <- tpm_profile[2:ncol(tpm_profile)]/tpm_profile$gene_lenght
+  # gene_rpk_profile <- tpm_profile[2:ncol(tpm_profile)]/tpm_profile$gene_length
   # ## RPK sum per sample
   # rpk_sum <- as.data.frame(colSums(gene_rpk_profile))
   # names(rpk_sum) <- 'total_sum'
@@ -797,9 +797,9 @@ if (omics == 'metaG_metaT'){
   tpm_profile_df = as.data.frame(fread(profiles_tpm, header=T), stringsAsFactors = F)
   tpm_profile_df$coord <- paste0(tpm_profile_df$chr, '_',tpm_profile_df$start, '_', tpm_profile_df$stop)
   tpm_profile_df$coord <- gsub('\\-','\\_', tpm_profile_df$coord)
-  tpm_profile_df$gene_lenght <- abs(tpm_profile_df$stop- tpm_profile_df$start) +1
+  tpm_profile_df$gene_length <- abs(tpm_profile_df$stop- tpm_profile_df$start) +1
   tpm_profile_df <- as.data.frame(tpm_profile_df %>%
-                                    dplyr::select(coord, chr,start,stop,name,score,strand,source,feature,frame,info,gene_lenght , everything()))
+                                    dplyr::select(coord, chr,start,stop,name,score,strand,source,feature,frame,info,gene_length , everything()))
   tpm_profile_df$info[tpm_profile_df$name=='.'] <- tpm_profile_df$coord[tpm_profile_df$name=='.']
   bed_colnames <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
   tpm_profile_bed_df <- tpm_profile_df[colnames(tpm_profile_df) %in% c('coord',bed_colnames)]
@@ -809,7 +809,7 @@ if (omics == 'metaG_metaT'){
   tpm_profile$coord <- NULL
   
   ## Calculate RPK from gene abundances
-  gene_rpk_profile <- tpm_profile[2:ncol(tpm_profile)]/tpm_profile$gene_lenght
+  gene_rpk_profile <- tpm_profile[2:ncol(tpm_profile)]/tpm_profile$gene_length
   ## RPK sum per sample
   rpk_sum <- as.data.frame(colSums(gene_rpk_profile))
   names(rpk_sum) <- 'total_sum'
@@ -824,7 +824,7 @@ if (omics == 'metaG_metaT'){
   tpm_profile_read_n <- tpm_profile
   rm(tpm_profile)
   tpm_profile_read_n[tpm_profile_read_n[,!colnames(tpm_profile_read_n)=='coord'] <=read_n] <- 0
-  gene_rpk_profile <- tpm_profile_read_n[2:ncol(tpm_profile_read_n)]/tpm_profile_read_n$gene_lenght
+  gene_rpk_profile <- tpm_profile_read_n[2:ncol(tpm_profile_read_n)]/tpm_profile_read_n$gene_length
   
   ## Sum reads below the threashold and add them as unknown
   rpk_sum_below_read_n <- as.data.frame(colSums(gene_rpk_profile))
@@ -852,7 +852,7 @@ if (omics == 'metaG_metaT'){
   rownames(tpm_profile) <- NULL
   
   # ## Calculate RPK from gene abundances
-  # gene_rpk_profile <- tpm_profile[2:ncol(tpm_profile)]/tpm_profile$gene_lenght
+  # gene_rpk_profile <- tpm_profile[2:ncol(tpm_profile)]/tpm_profile$gene_length
   # ## RPK sum per sample
   # rpk_sum <- as.data.frame(colSums(gene_rpk_profile))
   # names(rpk_sum) <- 'total_sum'

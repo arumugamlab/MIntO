@@ -3,7 +3,7 @@
 # '''
 # Generate gene expression profile from genome-based mode gene profiles 
 #
-# Authors: Carmen Saenz
+# Authors: Carmen Saenz, Mani Arumugam
 #
 # '''
 
@@ -11,20 +11,14 @@ args = commandArgs(trailingOnly=TRUE)
 
 ##########################  ** Load arguments **  ########################## 
 threads_n <- args[1]
-memory_lim <- args[2]
-wd <- args[3]
-omics <- args[4] #'metaG_metaT'
-map_reference <- args[5]
-normalization <- args[6]
-identity <- args[7]
-annot_file <- args[8] 
-metadata_file <- args[9]
-input_file <- args[10]
-annot_arg  <- args[11]
+integration_dir <- args[2]
+omics <- args[3] #'metaG_metaT'
+annot_file <- args[4]
+metadata_file <- args[5]
+input_file <- args[6]
+annot_arg  <- args[7]
 annot_names <- unlist(strsplit(annot_arg, split = "\\,")[[1]])
 print(annot_names)
-
-dir_DB <- paste0(wd, "/output/data_integration/", map_reference)
 
 ##########################  ** Load libraries **  ########################## 
 library(dplyr)
@@ -118,9 +112,7 @@ plot_PCA <- function(data_phyloseq, color, label){
 profiles_tpm <- input_file
 
 print('#################################### Paths ####################################')
-filename=paste0(omics,".genes_abundances.p", identity,".", normalization)
 # Generate output directories ####
-integration_dir=paste0(dir_DB, '/',filename)
 dir.create(file.path(integration_dir), showWarnings = FALSE)
 visual_dir=paste0(integration_dir,'/plots/')
 dir.create(file.path(visual_dir), showWarnings = FALSE)
@@ -133,7 +125,7 @@ if (omics == 'metaG_metaT'){
   tpm_profile_df$info[tpm_profile_df$name=='.'] <- tpm_profile_df$coord[tpm_profile_df$name=='.']
   bed_colnames <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
   tpm_profile_bed_df <- tpm_profile_df[colnames(tpm_profile_df) %in% c('coord',bed_colnames)]
-  tpm_profile_sub_df <- tpm_profile_df[!colnames(tpm_profile_df) %in% c(bed_colnames, 'gene_lenght')]
+  tpm_profile_sub_df <- tpm_profile_df[!colnames(tpm_profile_df) %in% c(bed_colnames, 'gene_length')]
   tpm_profile_sub2 <- tpm_profile_sub_df[!duplicated(tpm_profile_sub_df[,'coord']),]
   rm(tpm_profile_sub_df)
   rm(tpm_profile_df)
@@ -484,7 +476,7 @@ if (omics == 'metaG_metaT'){
   tpm_profile_df$info[tpm_profile_df$name=='.'] <- tpm_profile_df$coord[tpm_profile_df$name=='.']
   bed_colnames <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
   tpm_profile_bed_df <- tpm_profile_df[colnames(tpm_profile_df) %in% c('coord',bed_colnames)]
-  tpm_profile_sub_df <- tpm_profile_df[!colnames(tpm_profile_df) %in% c(bed_colnames, 'gene_lenght')]
+  tpm_profile_sub_df <- tpm_profile_df[!colnames(tpm_profile_df) %in% c(bed_colnames, 'gene_length')]
   tpm_profile_sub2 <- tpm_profile_sub_df[!duplicated(tpm_profile_sub_df[,'coord']),]
   rm(tpm_profile_sub_df)
   rm(tpm_profile_df)
