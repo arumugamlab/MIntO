@@ -184,7 +184,7 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
             barcode2=$(cat {input.barcodes} | sed "s/;/+/" | cut -f2 -d'+' | tr 'ATGC' 'TACG' | rev)
             # Make custom adapters for this sample using its index sequences
             #  1. Make palindromes
-            cat {input.template} | mseqtools subset --input - --list {wildcards.wd}/{wildcards.omics}/palindrome.list --uncompressed --output - | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | sed "s^Adapter.*/^PrefixPE-Ad/^" > {output.adapter}
+            cat {input.template} | seqkit grep --quiet -n -f {wildcards.wd}/{wildcards.omics}/palindrome.list -w 1000 -o - | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | sed "s^Adapter.*/^PrefixPE-Ad/^" > {output.adapter}
             #  2. Make 5-prime adapters
             cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" >> {output.adapter}
             #  3. Make 3-prime adapters

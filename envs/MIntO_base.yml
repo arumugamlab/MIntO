@@ -10,7 +10,6 @@ dependencies:
   - megahit=1.2.9
   - metabat2=2.12.1
   - msamtools=1.1.1
-  - mseqtools=0.9.1
   - samtools=1.14
   - seqtk=1.3
   - seqkit=2.3.1
