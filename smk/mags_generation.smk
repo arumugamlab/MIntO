@@ -20,6 +20,8 @@ Authors: Eleonora Nigro, Mani Arumugam
 import os.path
 from os import path
 
+localrules: copy_genomes_in_all, copy_best_genomes, check_prokka_output
+
 # args = sys.argv
 # config_path = args[args.index("--configfile") + 1]
 config_path = 'configuration yaml file' #args[args_idx+1]
@@ -101,16 +103,6 @@ if config['MIN_FASTA_LENGTH'] is None:
 elif type(config['MIN_FASTA_LENGTH']) != int:
     print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is not an integer. Please, complete ', config_path)
 
-if config['CHECKM_THREADS'] is None:
-    print('ERROR in ', config_path, ': CHECKM_THREADS variable is empty. Please, complete ', config_path)
-elif type(config['CHECKM_THREADS']) != int:
-    print('ERROR in ', config_path, ': CHECKM_THREADS variable is not an integer. Please, complete ', config_path)
-
-if config['CHECKM_memory'] is None:
-    print('ERROR in ', config_path, ': CHECKM_memory variable is empty. Please, complete ', config_path)
-elif type(config['CHECKM_memory']) != int:
-    print('ERROR in ', config_path, ': CHECKM_memory variable is not an integer. Please, complete ', config_path)
-
 if config['CHECKM_COMPLETENESS'] is None:
     print('ERROR in ', config_path, ': CHECKM_COMPLETENESS variable is empty. Please, complete ', config_path)
 elif type(config['CHECKM_COMPLETENESS']) != int:
@@ -121,16 +113,13 @@ if config['CHECKM_CONTAMINATION'] is None:
 elif type(config['CHECKM_CONTAMINATION']) != int:
     print('ERROR in ', config_path, ': CHECKM_CONTAMINATION variable is not an integer. Please, complete ', config_path)
 
-if config['CLEAN_CHECKM'] is None:
-    print('ERROR in ', config_path, ': CLEAN_CHECKM variable is empty. "CLEAN_CHECKM" variable should be yes or no')
-elif config['CLEAN_CHECKM'] == True:
-    print('WARNING in ', config_path, ': MIntO is cleaning the checkm intermediates files')
-    clean_checkm = "yes"
-elif config['CLEAN_CHECKM'] == False:
-    clean_checkm = "no"
-    print('WARNING in ', config_path, ': MIntO is keeping the checkm intermediates files')
+checkm_batch_size = 50
+if config['CHECKM_BATCH_SIZE'] is None:
+    print('WARNING in ', config_path, ': CHECKM_BATCH_SIZE variable is empty. Using 50', config_path)
+elif type(config['CHECKM_CONTAMINATION']) != int:
+    print('ERROR in ', config_path, ': CHECKM_CONTAMINATION variable is not an integer. Please, complete ', config_path)
 else:
-    print('ERROR in ', config_path, ': CLEAN_CHECKM variable is empty. "CLEAN_CHECKM" variable should be yes or no')
+    checkm_batch_size = config['CHECKM_BATCH_SIZE']
 
 if config['COVERM_THREADS'] is None:
     print('ERROR in ', config_path, ': COVERM_THREADS variable is empty. Please, complete ', config_path)
@@ -238,68 +227,78 @@ rule run_vamb:
         rsync {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}/tmp/*  {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}
         rm -rf {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/{wildcards.binner}/tmp) &> {log}"""
 
-### Run take all genomes [put all the genomes in a folder "all" where CheckM will be launched] # this is on vamb, if there are other binners, depending on the output, the bins should be moved in all
+### Select MAGs that satisfy min_fasta_length criterion
+# this is on vamb, if there are other binners, depending on the output, the bins should be processed differently
 rule take_all_genomes_for_each_run:
     input:
         vamb_cluster = rules.run_vamb.output.tsv,
         contigs_file = "{wd}/metaG/8-1-binning/{project}_scaffolds.2500.fasta".format(wd = working_dir, project = project),
     output:
         discarded_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/{binner}_discarded_genomes.txt",#.format(wd = working_dir, binner = binner),
-        tmp_folder = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/tmp_folder"),
+        bin_folder = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/bins"),
     params:
         min_fasta_length = config["MIN_FASTA_LENGTH"],
-        tmp_folder = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/tmp_folder"),
     log:
         "{wd}/logs/metaG/mags_generation/{binner}.take_all_genomes_for_each_run.log"#.format(wdir = wdir, binner = binner)
     resources:
         mem=10
     threads:
-        8 # Decide number of threads
+        2 # Decide number of threads
     conda:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
-        """ time (python {script_dir}/take_all_genomes.py --vamb_cluster_tsv {input.vamb_cluster} --contigs_file {input.contigs_file} --assembly_method_name {wildcards.binner} \
---min_fasta_length {params.min_fasta_length} --output_folder {params.tmp_folder} --discarded_genomes_info {output.discarded_genomes}) &> {log} """
+        """
+        time (python {script_dir}/take_all_genomes.py --vamb_cluster_tsv {input.vamb_cluster} --contigs_file {input.contigs_file} --assembly_method_name {wildcards.binner} \
+--min_fasta_length {params.min_fasta_length} --output_folder {output.bin_folder} --discarded_genomes_info {output.discarded_genomes}) &> {log}
+        """
 
-### Run copy all the genomes and remove tmp folders
-checkpoint copy_genomes_in_all:
+###############################
+# Prepare batches for checkM
+###############################
+
+checkpoint prepare_bins_for_checkm:
     input:
-        all_folder = expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/tmp_folder",wd = working_dir, binner = config['BINNERS'])
+        bin_folder = rules.take_all_genomes_for_each_run.output.bin_folder
     output:
-        all_genomes = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/all"), # remember to cancel it in the rule_all
-        output = "{wd}/metaG/8-1-binning/mags_generation_pipeline/copy_genomes_all_finished.txt"
-    log:
-        "{wd}/logs/metaG/mags_generation/copy_genomes_in_all.log"#.format(wdir = config['working_dir'])
-    resources:
-        mem=10
-    threads:
-        8 # Decide number of threads
+        checkm_groups = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/checkm")
+    params:
+        batch_size = checkm_batch_size
     shell:
-        """ time (mkdir -p {output.all_genomes}
-        for i in {input.all_folder}; do
-          cp -r $i/*.fna {output.all_genomes}
+        """
+        cd {input.bin_folder}
+        files=$(ls *.fna | wc -l)
+        batches=$(expr $files / {params.batch_size})
+        batches=$(expr $batches + 1)
+        for i in $(seq -w 1 $batches); do
+          mkdir -p {output.checkm_groups}/$i
+          touch {output.checkm_groups}/$i.batch
         done
-        echo 'Finished to copy genomes in all' > {output.output}) &> {log} """
+        for i in $(seq -w 1 $batches); do
+          list=$(ls *.fna | head -{params.batch_size})
+          mv $list {output.checkm_groups}/$i/
+        done
+        """
 
 ###############################
-# This function lists checkM output for all the bins made in checkpoint above
+# Get the batches per binner
 ###############################
 
-def get_checkm_files(wildcards):
+def get_checkm_output_for_batches(wildcards):
     #Collect the genome bins from previous step
-    checkpoint_output = checkpoints.copy_genomes_in_all.get(**wildcards).output[0]
-    result = expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/all/{mag}.checkM.txt",
+    checkpoint_output = checkpoints.prepare_bins_for_checkm.get(**wildcards).output[0]
+    result = expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/checkm/{batch}.checkM.txt",
                     wd=wildcards.wd,
-                    mag=glob_wildcards(os.path.join(checkpoint_output, '{mag}.fna')).mag)
+                    binner=wildcards.binner,
+                    batch=glob_wildcards(os.path.join(checkpoint_output, '{batch}.batch')).batch)
     return(result)
 
 ########################
-# CheckM on a fna file
+# CheckM on a batch
 ########################
 
-rule checkm_genome:
+rule checkm_batch:
     input:
-        '{somewhere}/{something}.fna'
+        '{somewhere}/{something}.batch'
     output:
         '{somewhere}/{something}.checkM.txt'
     log:
@@ -312,35 +311,97 @@ rule checkm_genome:
     shell:
         """
         tmp=$(mktemp -d)
-        cd $tmp
-        mkdir -p bin
-        ln -s {input} bin/
-        checkm lineage_wf -x fna -f {output} --threads {threads} --pplacer_threads {threads} --tab_table bin $tmp >& {log}
-        cd ..
+        checkm lineage_wf -x fna -f {output} --threads {threads} --pplacer_threads {threads} --tab_table {wildcards.somewhere}/{wildcards.something} $tmp >& {log}
         rm -rf $tmp
         """
 
-## Create a comphrensive table with checkm
+########################
+# Merge batches of checkm for a single binner
+########################
+
+rule merge_checkm_batches:
+    input:
+        get_checkm_output_for_batches
+    output:
+        binner_combined = "{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/{binner}.checkM.txt"
+    log:
+        "{wd}/logs/metaG/mags_generation/{binner}.checkM.merge.log"#.format(wdir = config['working_dir'])
+    resources:
+        mem=10
+    threads:
+        2
+    run:
+        import pandas as pd
+        # concatenate all the .tsv file in the folder in order to create a comphresenive file
+        li = []
+        for filename in input:
+            df = pd.read_csv(filename, index_col=None, header=0, sep = "\t")
+            li.append(df)
+        all_checkm_output = pd.concat(li, axis=0, ignore_index=True)
+        # save the file with all the checkm in the same file
+        all_checkm_output.to_csv("{}".format(output.binner_combined), sep = "\t", index = False)
+
+rule move_bins_after_checkm:
+    input:
+        checkm_report=rules.merge_checkm_batches.output.binner_combined,
+        fna_folder="{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/checkm/"
+    output:
+        moved="{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/fna.moved",
+    params:
+        batch_size = checkm_batch_size
+    shell:
+        """
+        cd {input.fna_folder}
+        for i in *.batch; do
+          batch=${{i%%.batch}}
+          mv $batch/*.fna ../bins/
+          rmdir $batch
+          rm $batch.checkM.log
+          rm $batch.checkM.txt
+          rm $i
+        done
+        touch {output.moved}
+        """
+
+rule copy_genomes_in_all:
+    input:
+        bin_folder = lambda wildcards: expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/bins",
+                                wd = wildcards.wd,
+                                binner = config['BINNERS']),
+        moved = lambda wildcards: expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/fna.moved",
+                                wd = wildcards.wd,
+                                binner = config['BINNERS'])
+    output:
+        all_genomes = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/all"),
+        copied = "{wd}/metaG/8-1-binning/mags_generation_pipeline/copy_genomes_all_finished.txt"
+    shell:
+        """
+        mkdir -p {output.all_genomes}
+        for i in {input.bin_folder}; do
+          cp $i/*.fna {output.all_genomes}/
+        done
+        touch {output.copied}
+        """
+
+########################
+# Create a comprehensive table with checkm from all binners
+########################
+
 rule make_comprehensive_table:
     input:
-        get_checkm_files
+        lambda wildcards: expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/{binner}.checkM.txt",
+                                wd = wildcards.wd,
+                                binner = config['BINNERS'])
     output:
         checkm_total = "{wd}/metaG/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
-    params:
-        checkm_tsv_tables = "{wd}/metaG/8-1-binning/mags_generation_pipeline/checkm",
-        remove_intermediate_files_checkm = "{clean_checkm}".format(clean_checkm = clean_checkm), #config["CLEAN_CHECKM"]
-        #make_comprehensive="{}/make_comprehensive_checkm.py".format(config["SCRIPT_FOLDER"])
     log:
         "{wd}/logs/metaG/mags_generation/make_comprehensive_table.log"#.format(wdir = config['working_dir'])
     resources:
         mem=10
     threads:
-        8
+        2
     run:
-        import glob
-        import os
         import pandas as pd
-        import shutil
         # concatenate all the .tsv file in the folder in order to create a comphresenive file
         li = []
         for filename in input:
@@ -350,30 +411,24 @@ rule make_comprehensive_table:
         # save the file with all the checkm in the same file
         all_checkm_output.to_csv("{}".format(output.checkm_total), sep = "\t", index = False)
 
-        if params.remove_intermediate_files_checkm == "yes":
-            folder=glob.glob(params.checkm_tsv_tables + "/*/") # (could be done os.remove(input.checkm_tsv_tables + "/*/) , but just to be sure not to take any .tsv)
-            for f in folder:
-                if not ".tsv" in f:
-                    print("[rule make_comprehensive_table]: removing intermediate files: {}".format(f))
-                    shutil.rmtree(f)
-
 ## Copy HQ genomes inside HQ_genomes folder
 rule copy_HQ_genomes:
     input:
-        checkm_total=rules.make_comprehensive_table.output,
+        checkm_total = rules.make_comprehensive_table.output,
+        copied = rules.copy_genomes_in_all.output.copied
     output:
         HQ_table="{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv",
+        HQ_folder=directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes")
     params:
-        HQ_folder="{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes",
-        all_genomes_folder =  "{wd}/metaG/8-1-binning/mags_generation_pipeline/all/",
+        all_genomes_folder = "{wd}/metaG/8-1-binning/mags_generation_pipeline/all/",
         completeness = config["CHECKM_COMPLETENESS"],
         contamination = config["CHECKM_CONTAMINATION"]
     log:
-        "{wd}/logs/metaG/mags_generation/copy_HQ_genomes.log"#.format(wdir = config['working_dir'])
+        "{wd}/logs/metaG/mags_generation/copy_HQ_genomes.log"
     resources:
         mem=10
     threads:
-        8
+        2
     run:
         import subprocess
         import pandas as pd
@@ -384,25 +439,25 @@ rule copy_HQ_genomes:
         HQ_checkm_results.to_csv(output.HQ_table, sep = "\t", index = False)
         # create the path for copying the genomes
         try:
-            os.mkdir(params.HQ_folder)
-        except OSError:
-            print("Creation of the directory {} failed!".format(params.HQ_folder))
+            os.mkdir(output.HQ_folder)
+        except OSError as error:
+            print(error)
         # take the bins
         hq_bins = list(HQ_checkm_results["Bin Id"])
-        for bin_id in hq_bins:
-            source_file = params.all_genomes_folder +"/{}.fna".format(bin_id)
-            destination_file = params.HQ_folder  + "/{}.fna".format(bin_id)
-            print("[rule copy_HQ_genomes] Copying {} to {}".format(source_file, destination_file))
-            subprocess.call(["cp", source_file, destination_file] )
+        with open(str(log), 'w') as f:
+            for bin_id in hq_bins:
+                source_file = params.all_genomes_folder +"/{}.fna".format(bin_id)
+                destination_file = output.HQ_folder  + "/{}.fna".format(bin_id)
+                print("[rule copy_HQ_genomes] Copying {} to {}".format(source_file, destination_file), file=f)
+                subprocess.call(["cp", source_file, destination_file])
 
 ## Run coverm on HQ genomes to create the .tsv file
 rule run_coverm:
     input:
-        HQ_table=rules.copy_HQ_genomes.output
+        HQ_table=rules.copy_HQ_genomes.output.HQ_table
     output:
-        coverm_output="{wd}/metaG/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"  #unique-{}-cluster.tsv"
+        cluster_tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
     params:
-        #coverm_threads = config["COVERM_THREADS"], # Moved to threads
         HQ_folder="{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes"
     log:
         "{wd}/logs/metaG/mags_generation/run_coverm.log"
@@ -413,13 +468,15 @@ rule run_coverm:
     conda:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
-        """ time (coverm cluster --genome-fasta-directory {params.HQ_folder} -x fna --ani 99  --output-cluster-definition {output.coverm_output} --threads {threads} --precluster-method finch) &> {log} """
+        """
+        time (coverm cluster --genome-fasta-directory {params.HQ_folder} -x fna --ani 99 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch) &> {log}
+        """
 
 ## Run retrieving scored
 rule calculate_score_genomes:
     input:
-        coverm_output = rules.run_coverm.output,
-        HQ_table = rules.copy_HQ_genomes.output
+        cluster_tsv = rules.run_coverm.output.cluster_tsv,
+        HQ_table = rules.copy_HQ_genomes.output.HQ_table
     output:
         scored_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
     params:
@@ -431,11 +488,13 @@ rule calculate_score_genomes:
     resources:
         mem=10
     threads:
-        8 # Decide number of threads
+        2 # Decide number of threads
     conda:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
-        """ time (python {script_dir}calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}) &> {log} """
+        """
+        time (python {script_dir}calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}) &> {log}
+        """
 
 
 ## Run retrieved the best unique genomes
@@ -451,7 +510,7 @@ rule find_unique_and_best_genomes:
     resources:
         mem=10
     threads:
-        8 # Decide number of threads
+        2 # Decide number of threads
     run:
         import pandas as pd
 
@@ -512,7 +571,7 @@ checkpoint copy_best_genomes:
     resources:
         mem=10
     threads:
-        8 # Decide number of threads
+        1 # Decide number of threads
     shell:
         """
         time (mkdir -p {output.genome_dir}
