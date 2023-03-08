@@ -434,8 +434,8 @@ ___EOF___
 # Ribosomal RNA depletion
 #########################
 
-sortmeRNA_threads: 4
-sortmeRNA_memory: 5
+sortmeRNA_threads: 8
+sortmeRNA_memory: 10
 sortmeRNA_db: {minto_dir}/data/rRNA_databases
 sortmeRNA_db_idx: {minto_dir}/data/rRNA_databases/idx
 ___EOF___

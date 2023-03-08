@@ -281,7 +281,7 @@ rule BWA_index_contigs:
     output:
         bwaindex="{wd}/{omics}/6-mapping/BWA_index/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta.bwt.2bit.64"
     log:
-        "{wd}/{omics}/logs/6-mapping/{project}_scaffolds_{scaffolds_type}.{min_length}.BWA_index.log"
+        "{wd}/logs/{omics}/6-mapping/{project}_scaffolds_{scaffolds_type}.{min_length}.BWA_index.log"
     params:
         local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/BWA_index".format(local_dir=local_dir, omics=wildcards.omics)
     resources:
@@ -316,9 +316,9 @@ rule map_contigs_BWA:
         sort_mem = config['SAMTOOLS_sort_memory_gb'],
         local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/{illumina}".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina)
     log:
-        '{wd}/{omics}/6-mapping/{illumina}/{illumina}.{project}_scaffolds_{scaffolds_type}.{min_length}.bwa2.log'
+        '{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.{project}_scaffolds_{scaffolds_type}.{min_length}.bwa2.log'
     resources:
-        mem = lambda wildcards, attempt: 240 + config['SAMTOOLS_sort_threads']*config['SAMTOOLS_sort_memory_gb'] + 40*attempt
+        mem = lambda wildcards, attempt: 50 + config['SAMTOOLS_sort_threads']*config['SAMTOOLS_sort_memory_gb'] + 40*attempt
     threads: 
         config['BWA_threads']
     conda:
@@ -499,30 +499,24 @@ BINNERS:
 - vamb_512
 - vamb_768
 
-VAMB_THREADS:
-VAMB_memory:
+VAMB_THREADS: 24
+VAMB_memory: 20
 
 # Use GPU in VAMB:
-# could be "yes" or "not"
+# could be "yes" or "no"
 VAMB_GPU: no
 
 
 # CHECKM settings
 #
-CHECKM_THREADS: 
-CHECKM_memory: 
-
-# checkm threshold
-CHECKM_COMPLETENESS: 90  #higher than this
+CHECKM_COMPLETENESS: 90  # higher than this
 CHECKM_CONTAMINATION: 5  # lower than this
-
-# Clean up checkm files?
-CLEAN_CHECKM: yes # can be yes or not
+CHECKM_BATCH_SIZE: 50    # Process MAGs with this batch size
 
 # COVERM settings
 #
-COVERM_THREADS: 
-COVERM_memory: 
+COVERM_THREADS: 8
+COVERM_memory: 5
 
 # SCORING THE BEST GENOMES settings
 #
@@ -533,16 +527,16 @@ SCORE_METHOD: "checkm"
 # PROKKA settings
 #
 RUN_PROKKA: yes
-PROKKA_CPUS: 
-PROKKA_memory: 
+PROKKA_CPUS: 8
+PROKKA_memory: 5
 
 # PHYLOPHLAN METAGENOMICS settings
 #
 RUN_TAXONOMY: yes
 TAXONOMY_DATABASE: SGB.Jan20
-TAXONOMY_CPUS: 
-TAXONOMY_memory: 
-DATABASE_FOLDER:" > {params.tmp_binning_yaml}mags_generation.yaml
+TAXONOMY_CPUS: 8
+TAXONOMY_memory: 5
+DATABASE_FOLDER: {minto_dir}/data" > {params.tmp_binning_yaml}mags_generation.yaml
 
 rsync {params.tmp_binning_yaml}mags_generation.yaml {output.config_file}) >& {log}
 rm -rf {params.tmp_binning_yaml}

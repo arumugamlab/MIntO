@@ -707,10 +707,10 @@ METADATA: {metadata}
 # MetaSPAdes settings
 #
 METASPADES_qoffset: auto
-METASPADES_threads:
-METASPADES_memory:
-METASPADES_hybrid_max_k:
-METASPADES_illumina_max_k:
+METASPADES_threads: 16
+METASPADES_memory: 8
+METASPADES_hybrid_max_k: 99
+METASPADES_illumina_max_k: 99
 
 # MEGAHIT settings
 #
@@ -750,7 +750,7 @@ METAFLYE_presets:
 # BWA settings
 # Used when mapping reads back to contigs
 #
-BWA_threads:
+BWA_threads: 24
 
 # samtools settings
 # Used when sorting bam files
@@ -884,12 +884,13 @@ NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa 
 # - KEGG
 # - eggNOG
 ANNOTATION:
+ - dbCAN
 
-BWAindex_threads:
-BWAindex_memory:
-BWA_threads:
-BWA_memory:
-MIN_mapped_reads:
+BWAindex_threads: 4
+BWAindex_memory: 10
+BWA_threads: 24
+BWA_memory: 20
+MIN_mapped_reads: 2
 
 # Input data
 
