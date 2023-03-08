@@ -225,7 +225,7 @@ rule illumina_assembly_metaspades:
         "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/contigs.fasta",
         "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/scaffolds.fasta",
     params:
-        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{illumina}_assembly_metaspades/{illumina}".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina),
+        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{illumina}_assembly_metaspades".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina),
         qoffset=config["METASPADES_qoffset"],
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
         kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
@@ -248,6 +248,7 @@ rule illumina_assembly_metaspades:
         ) >& {log}
         rm -rf {params.tmp_asm}/{params.kmer_dir}
         rm -rf {params.tmp_asm}/tmp
+        rmdir {params.tmp_asm}
         """
 
 ###############################################################################################
@@ -266,7 +267,7 @@ rule hybrid_assembly_metaspades:
         "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/contigs.fasta",
         "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/scaffolds.fasta",
     params:
-        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{nanopore}-{illumina}_assembly_metaspades/{nanopore}-{illumina}".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina, nanopore=wildcards.nanopore),
+        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{nanopore}-{illumina}_assembly_metaspades".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina, nanopore=wildcards.nanopore),
         qoffset=config["METASPADES_qoffset"],
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
         kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
@@ -289,6 +290,7 @@ rule hybrid_assembly_metaspades:
         ) >& {log}
         rm -rf {params.tmp_asm}/{params.kmer_dir}
         rm -rf {params.tmp_asm}/tmp
+        rmdir {params.tmp_asm}
         """
 
 ###############################################################################################
@@ -302,7 +304,7 @@ rule coassembly_megahit:
     output: 
         coassemblies= "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa" 
     params:
-        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{name}_coassembly_megahit".format(local_dir=local_dir, omics=wildcards.omics, name=wildcards.coassembly),
+        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{name}_coassembly_megahit_{assembly_preset}".format(local_dir=local_dir, omics=wildcards.omics, name=wildcards.coassembly, assembly_preset=wildcards.assembly_preset),
         fwd_reads=lambda wildcards, input: ",".join(input.fwd),
         rev_reads=lambda wildcards, input: ",".join(input.rev),
         memory_config=config['MEGAHIT_memory']
@@ -323,13 +325,16 @@ rule coassembly_megahit:
         time (\
             megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir $local_dir --tmp-dir $tmp_dir --presets {wildcards.assembly_preset}
         ) >& {log}
-        rm -rf tmp_dir
+        rm -rf $tmp_dir
         cd $local_dir
         tar cfz intermediate_contigs.tar.gz intermediate_contigs && rm -rf intermediate_contigs
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
         rsync -a $local_dir/* $remote_dir/
+        cd {params.tmp_asm}
+        cd ..
         rm -rf $local_dir
+        rmdir {params.tmp_asm}
         """
 
 ###############################################################################################
