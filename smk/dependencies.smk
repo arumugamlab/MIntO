@@ -69,7 +69,7 @@ else:
 
 
 def rRNA_db_out():
-    files = ["rfam-5.8s-database-id98.fasta", 
+    files = ["rfam-5.8s-database-id98.fasta",
                 "rfam-5s-database-id98.fasta",
                 "silva-arc-16s-id95.fasta",
                 "silva-arc-23s-id98.fasta",
@@ -127,6 +127,11 @@ def motus_db_out():
         minto_dir=minto_dir)
     return(result)
 
+def fetchMGs_out():
+    result=expand("{minto_dir}/logs/fetchMGs_download.done",
+        minto_dir=minto_dir)
+    return(result)
+
 def all_env_out():
     files = ["vamb_env.log",
              "r_pkgs.log",
@@ -138,13 +143,14 @@ def all_env_out():
 
 # Define all the outputs needed by target 'all'
 rule all:
-    input: 
+    input:
         rRNA_db_out(),
         eggnog_db_out(),
         Kofam_db_out(),
         dbCAN_db_out(),
         metaphlan_db_out(),
         motus_db_out(),
+        fetchMGs_out(),
         all_env_out()
 
 ###############################################################################################
@@ -158,14 +164,14 @@ rule rRNA_db_download:
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell:
-        """ 
+        """
         mkdir -p {wildcards.somewhere}/rRNA_databases
         cd {wildcards.somewhere}/rRNA_databases
         wget https://raw.githubusercontent.com/biocore/sortmerna/master/data/rRNA_databases/{wildcards.something}.fasta
         """
 
 def get_rRNA_db_index_input(wildcards):
-    files = ["rfam-5.8s-database-id98.fasta", 
+    files = ["rfam-5.8s-database-id98.fasta",
                 "rfam-5s-database-id98.fasta",
                 "silva-arc-16s-id95.fasta",
                 "silva-arc-23s-id98.fasta",
@@ -173,7 +179,7 @@ def get_rRNA_db_index_input(wildcards):
                 "silva-bac-23s-id98.fasta",
                 "silva-euk-18s-id95.fasta",
                 "silva-euk-28s-id98.fasta"]
-    result = expand("{somewhere}/data/rRNA_databases/{file}", 
+    result = expand("{somewhere}/data/rRNA_databases/{file}",
                 somewhere = wildcards.somewhere,
                 file = files)
     return(result)
@@ -193,9 +199,9 @@ rule rRNA_db_index:
        "{somewhere}/logs/rRNA_db_index.log"
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
-    shell: 
+    shell:
         """
-        mkdir -p {params.tmp_sortmerna_index}/idx/ 
+        mkdir -p {params.tmp_sortmerna_index}/idx/
         dboption=$(echo {input} | sed "s/ / --ref /g")
         time (sortmerna --workdir {params.tmp_sortmerna_index} --idx-dir {params.tmp_sortmerna_index}/idx/ --index 1 --ref $dboption --threads {threads}
         rsync {params.tmp_sortmerna_index}/idx/* {output.rRNA_db_index}
@@ -225,13 +231,13 @@ rule eggnog_db:
     conda:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
-        """ 
+        """
         mkdir -p {minto_dir}/data/eggnog_data/data
         time (cd {minto_dir}/data/eggnog_data/
         wget https://raw.githubusercontent.com/eggnogdb/eggnog-mapper/master/download_eggnog_data.py
         printf "y\\ny\\ny\\ny\\ny\\n" |python3 {minto_dir}/data/eggnog_data/download_eggnog_data.py --data_dir {minto_dir}/data/eggnog_data/data -P -M -f
         echo 'eggNOG database downloaded') &> {log}
-        """ 
+        """
 
 ###############################################################################################
 # Download KEGG database - KOfamScan
@@ -249,14 +255,14 @@ rule Kofam_db:
     conda:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
-        """ 
+        """
         mkdir -p {minto_dir}/data/kofam_db/
         time (cd {minto_dir}/data/kofam_db/
         wget ftp://ftp.genome.jp/pub/db/kofam/*
         gunzip {minto_dir}/data/kofam_db/ko_list.gz
         tar -zxvf {minto_dir}/data/kofam_db/profiles.tar.gz
         echo 'KEGG database downloaded') &> {log}
-        """    
+        """
 
 ###############################################################################################
 # Download dbCAN database - run_dbcan
@@ -277,7 +283,7 @@ rule dbCAN_db:
     conda:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
-        """ 
+        """
         mkdir -p {minto_dir}/data/dbCAN_db/
         cd {minto_dir}/data/dbCAN_db/
         time (wget https://bcb.unl.edu/dbCAN2/download/Databases/CAZyDB.09242021.fa
@@ -294,9 +300,9 @@ rule dbCAN_db:
         wget https://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm
         hmmpress stp.hmm
         echo 'dbCAN database downloaded and installed') &> {log}
-        """    
+        """
 
-## https://github.com/linnabrown/run_dbcan 
+## https://github.com/linnabrown/run_dbcan
 
 # Database Installation.
 # git clone https://github.com/linnabrown/run_dbcan.git
@@ -308,7 +314,7 @@ rule dbCAN_db:
 #     && wget http://bcb.unl.edu/dbCAN2/download/Databases/tcdb.fa && diamond makedb --in tcdb.fa -d tcdb \
 #     && wget http://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm && hmmpress tf-1.hmm \
 #     && wget http://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm && hmmpress tf-2.hmm \
-#     && wget http://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm && hmmpress stp.hmm 
+#     && wget http://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm && hmmpress stp.hmm
 
 
 # DATABASES Installation
@@ -328,18 +334,18 @@ rule dbCAN_db:
 ###############################################################################################
 
 rule metaphlan_db:
-    output: 
+    output:
         "{minto_dir}/logs/metaphlan_download_db_checkpoint.log"
-    resources: 
+    resources:
         mem=download_memory
-    threads: 
+    threads:
         download_threads
     log:
         "{minto_dir}/logs/metaphlan_download_db.log"
     conda:
-        config["minto_dir"]+"/envs/metaphlan.yml" 
+        config["minto_dir"]+"/envs/metaphlan.yml"
     shell:
-        """ 
+        """
         mkdir -p {minto_dir}/data/metaphlan/
         time (\
                 metaphlan --version
@@ -357,18 +363,18 @@ rule metaphlan_db:
 ###############################################################################################
 
 rule motus_db:
-    output: 
+    output:
         "{minto_dir}/logs/motus_download_db_checkpoint.log"
-    resources: 
+    resources:
         mem=download_memory
-    threads: 
+    threads:
         download_threads
     log:
         "{minto_dir}/logs/motus_download_db.log"
     conda:
-        config["minto_dir"]+"/envs/motus_env.yml" 
+        config["minto_dir"]+"/envs/motus_env.yml"
     shell:
-        """ 
+        """
         time (\
             motus downloadDB
             if [ $? -eq 0 ]; then
@@ -377,6 +383,36 @@ rule motus_db:
             else
                 echo 'mOTUs3 database download: FAIL'
             fi
+            ) &> {log}
+        """
+
+###############################################################################################
+# Download fetchMGs
+###############################################################################################
+
+rule download_fetchMGs:
+    output:
+        done="{minto_dir}/logs/fetchMGs_download.done",
+        data=directory("{minto_dir}/data/fetchMGs-1.2")
+    resources:
+        mem=download_memory
+    threads:
+        download_threads
+    log:
+        "{minto_dir}/logs/fetchMGs_download.log"
+    shell:
+        """
+        time (\
+            cd {minto_dir}/data/
+            wget -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs/archive/refs/tags/v1.2.tar.gz
+            tar xfz fetchMGs-1.2.tar.gz
+            if [ $? -eq 0 ]; then
+                echo 'fetchMGs download: OK'
+                echo OK > {output.done}
+            else
+                echo 'fetchMGs download: FAIL'
+            fi
+            rm fetchMGs-1.2.tar.gz
             ) &> {log}
         """
 
@@ -399,49 +435,49 @@ rule r_pkgs:
         """
 
 rule mags_gen_vamb:
-    output: 
+    output:
         vamb_env="{minto_dir}/logs/vamb_env.log"
-    resources: 
+    resources:
         mem=download_memory
-    threads: 
+    threads:
         download_threads
     log:
         "{minto_dir}/logs/vamb_env.log"
     conda:
         config["minto_dir"]+"/envs/vamb.yaml"
     shell:
-        """ 
+        """
         time (
         echo 'VAMB environment generated') &> {log}
         """
 
 rule mags_gen:
-    output: 
+    output:
         mags_env="{minto_dir}/logs/mags_env.log"
-    resources: 
+    resources:
         mem=download_memory
-    threads: 
+    threads:
         download_threads
     conda:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
-        """ 
+        """
         time (echo 'mags environment generated') &> {output}
         """
 
 rule mags_gen_py36:
-    output: 
+    output:
         py36_env="{minto_dir}/logs/py36_env.log"
-    resources: 
+    resources:
         mem=download_memory
-    threads: 
+    threads:
         download_threads
     log:
         "{minto_dir}/logs/py36_env.log"
     conda:
         config["minto_dir"]+"/envs/py36_env.yml"
     shell:
-        """ 
+        """
         time (
         echo 'Python 3.6 environment generated') &> {log}
         """

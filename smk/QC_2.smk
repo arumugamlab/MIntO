@@ -687,7 +687,7 @@ rule qc2_filter_config_yml_assembly:
     log: 
         "{wd}/logs/{omics}/config_yml_assembly.log"
     conda: 
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        config["minto_dir"]+"/envs/r_pkgs.yml"
     shell: 
         """
         cat > {output} <<___EOF___
@@ -871,7 +871,7 @@ alignment_identity: 95
 
 # Normalization approach
 abundance_normalization: TPM
-fetchMGs_dir:
+fetchMGs_dir: {minto_dir}/data/fetchMGs-1.2
 
 # Map reads to reference
 map_reference: MAG
