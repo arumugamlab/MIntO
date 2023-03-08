@@ -188,12 +188,6 @@ if map_reference == 'MAG':
         expand("{wd}/{bwaindex_path}.pac",
                     wd = working_dir, 
                     bwaindex_path = bwaindex_db),\
-        expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.bam", 
-                    wd = working_dir,
-                    omics = omics,
-                    post_analysis_out = "MAGs_genes",
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    identity = identity,),\
         expand("{wd}/DB/{post_analysis_dir}/genome.def",
                     wd = working_dir,
                     post_analysis_dir = "9-MAGs-prokka-post-analysis"),\
@@ -250,12 +244,6 @@ if map_reference == 'reference_genome':
         expand("{wd}/{bwaindex_path}.pac", 
                     wd = working_dir,
                     bwaindex_path = bwaindex_db),\
-        expand("{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.bam", 
-                    wd = working_dir,
-                    omics = omics,
-                    post_analysis_out = "reference_genes",
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    identity = identity,),\
         expand("{wd}/DB/{post_analysis_dir}/genome.def",
                     wd = working_dir,
                     post_analysis_dir = "9-reference-genes-post-analysis"),\
@@ -456,13 +444,11 @@ rule gene_abund_bwa_raw:
         hq_reads_fw=lambda wildcards: '{wd}/{omics}/{hq_dir}/{sample}/{sample}.1.fq.gz'.format(wd = working_dir,omics=omics, hq_dir=hq_dir, sample=wildcards.sample),
         hq_reads_rv=lambda wildcards: '{wd}/{omics}/{hq_dir}/{sample}/{sample}.2.fq.gz'.format(wd = working_dir,omics=omics, hq_dir=hq_dir, sample=wildcards.sample),
         genomes_definition= "{wd}/DB/{post_analysis_dir}/genome.def".format(wd = working_dir, post_analysis_dir = post_analysis_dir), 
-
     output:
-        filter="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.bam",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
-        sort="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
-        index="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
-        bwa_log="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.log",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
-        profile_raw="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity),
+        sort="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
+        index="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
+        bwa_log="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.log",
+        profile_raw="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",
         map_profile="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
         map_mag_profile="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz",
         map_mag_profile_rel="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz",
@@ -472,32 +458,36 @@ rule gene_abund_bwa_raw:
         length=config["msamtools_filter_length"],
         prefix="{sample}.p{identity}.filtered",
         memory=lambda wildcards, resources: resources.mem - 1,
-        mapped_reads_threashold=config["MIN_mapped_reads"]
+        mapped_reads_threshold=config["MIN_mapped_reads"]
     log:
-        "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}.p{identity}_bwa.log" #.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity, post_analysis_out=post_analysis_out),
+        "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/{sample}.p{identity}_bwa.log"
     threads: config["BWA_threads"]
     resources:
         mem=config["BWA_memory"]
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"] #BWA + samtools
+        config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl
     shell:
-        """ rm -rf {params.tmp_bwa}
+        """
+        rm -rf {params.tmp_bwa}
         mkdir -p {params.tmp_bwa}
         bwaindex_dir=$(dirname {input.bwaindex})
-        remote_dir=$(dirname {output.filter})
+        remote_dir=$(dirname {output.sort})
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_dir}}/{post_analysis_out} {input.hq_reads_fw} {input.hq_reads_rv}| \
-msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > {params.tmp_bwa}{params.prefix}.bam) >& {params.tmp_bwa}{params.prefix}.log
+                msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > {params.tmp_bwa}{params.prefix}.bam) >& {params.tmp_bwa}{params.prefix}.log
         samtools sort {params.tmp_bwa}{params.prefix}.bam -o {params.tmp_bwa}{params.prefix}.sorted.bam -@ {threads} -m {params.memory}G --output-fmt=BAM 
         samtools index {params.tmp_bwa}{params.prefix}.sorted.bam {params.tmp_bwa}{params.prefix}.sorted.bam.bai -@ {threads}
         total_reads="$(grep Processed {params.tmp_bwa}{params.prefix}.log | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         echo $total_reads
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.txt.gz --total $total_reads --multi prop --unit abund --nolen
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz --total $total_reads --multi all --unit abund --nolen
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label={omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.relabund.prop.genome.txt.gz --multi=proportional --unit=rel --genome {input.genomes_definition}
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.genome.txt.gz --mincount={params.mapped_reads_threashold} --multi=proportional --unit=abund --nolen --genome {input.genomes_definition}
+        common_args="--label {wildcards.omics}.{wildcards.sample} --total=$total_reads --mincount={params.mapped_reads_threshold}"
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam $common_args -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.txt.gz --multi=prop --unit=abund --nolen
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam $common_args -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz  --multi=all  --unit=abund --nolen
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam $common_args -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.genome.txt.gz --multi=prop --unit=abund --nolen --genome {input.genomes_definition}
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam $common_args -o {params.tmp_bwa}{params.prefix}.profile.relabund.prop.genome.txt.gz --multi=prop --unit=rel --genome {input.genomes_definition}
+        rm {params.tmp_bwa}{params.prefix}.bam
         
         rsync {params.tmp_bwa}* ${{remote_dir}}
-        rm -rf {params.tmp_bwa}) >& {log}"""
+        rm -rf {params.tmp_bwa}) >& {log}
+        """
 
 ###############################################################################################
 # Prepare genes for mapping to gene-database
@@ -521,12 +511,14 @@ rule gene_abund_bwaindex_gene_catalog:
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"]
     shell:
-        """ rm -rf {params.tmp_bwaindex}
+        """
+        rm -rf {params.tmp_bwaindex}
         mkdir -p {working_dir}/DB/{post_analysis_dir}/fasta/
         mkdir -p {params.tmp_bwaindex}
         time (bwa-mem2 index {gene_catalog_db}/{gene_catalog_name} -p {params.tmp_bwaindex}{gene_catalog_name}
         rsync {params.tmp_bwaindex}* {gene_catalog_db}/BWA_index/
-        rm -rf {params.tmp_bwaindex}) &> {log} """
+        rm -rf {params.tmp_bwaindex}) &> {log}
+        """
         
 rule gene_abund_bwa_tpm:
     input:
@@ -545,16 +537,17 @@ rule gene_abund_bwa_tpm:
         prefix="{sample}.p{identity}.filtered",
         memory=lambda wildcards, resources: resources.mem - 1,
         bwaindex="{gene_catalog_path}/BWA_index/{gene_catalog_name}".format(gene_catalog_path=gene_catalog_db, gene_catalog_name=gene_catalog_name),
-        mapped_reads_threashold=config["MIN_mapped_reads"]
+        mapped_reads_threshold=config["MIN_mapped_reads"]
     log:
-        "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-db_genes/{sample}.p{identity}_bwa.log"#.format(wd = working_dir, omics = omics, sample = ilmn_samples, identity = identity, post_analysis_out=post_analysis_out),
+        "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-db_genes/{sample}.p{identity}_bwa.log"
     threads: config["BWA_threads"]
     resources:
         mem=config["BWA_memory"]
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"] #BWA + samtools
     shell:
-        """ rm -rf {params.tmp_bwa}
+        """
+        rm -rf {params.tmp_bwa}
         mkdir -p {params.tmp_bwa}
         bwaindex_dir=$(dirname {input.bwaindex})
         remote_dir=$(dirname {output.filter})
@@ -562,10 +555,11 @@ rule gene_abund_bwa_tpm:
 msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > {params.tmp_bwa}{params.prefix}.bam) >& {params.tmp_bwa}{params.prefix}.log
         total_reads="$(grep Processed {params.tmp_bwa}{params.prefix}.log | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         echo $total_reads
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile_TPM.txt.gz --total $total_reads --mincount {params.mapped_reads_threashold} --multi prop --unit tpm
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz --total $total_reads --mincount {params.mapped_reads_threashold} --multi all --unit abund --nolen
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile_TPM.txt.gz --total $total_reads --mincount {params.mapped_reads_threshold} --multi prop --unit tpm
+        msamtools profile {params.tmp_bwa}{params.prefix}.bam --label {wildcards.omics}.{wildcards.sample} -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz --total $total_reads --mincount {params.mapped_reads_threshold} --multi all --unit abund --nolen
         rsync {params.tmp_bwa}* ${{remote_dir}} ) >& {log}
-        rm -rf {params.tmp_bwa}"""
+        rm -rf {params.tmp_bwa}
+        """
 
 ###############################################################################################
 # Computation of read counts to genes belonging to MAGs or publicly available genomes
@@ -589,7 +583,8 @@ rule gene_abund_compute:
     conda: 
         config["minto_dir"]+"/envs/MIntO_base.yml" #bedtools
     shell:
-        """ rm -rf {params.tmp_bwa}
+        """
+        rm -rf {params.tmp_bwa}
         mkdir -p {params.tmp_bwa}
         time (files='{ilmn_samples}'; echo ${{files}} | tr ' ' '\\t' > {params.tmp_bwa}filename_list
         echo -e 'chr\\tstart\\tstop\\tname\\tscore\\tstrand\\tsource\\tfeature\\tframe\\tinfo' > {params.tmp_bwa}column_names
@@ -597,7 +592,8 @@ rule gene_abund_compute:
         sed 's/\t$//' {params.tmp_bwa}column_names2 >> {params.tmp_bwa}{params.prefix}; echo '' >> {params.tmp_bwa}{params.prefix}
         bedtools multicov -bams {input.sort} -bed {input.bed_subset} >> {params.tmp_bwa}{params.prefix}
         rsync {params.tmp_bwa}{params.prefix} {output.absolute_counts}) &> {log}
-        rm -rf {params.tmp_bwa}"""
+        rm -rf {params.tmp_bwa}
+        """
 
 ###############################################################################################
 # Normalization of read counts to 10 marker genes (MG normalization)
@@ -625,14 +621,15 @@ rule gene_abund_marker_genes:
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell: 
-        """ rm -rf {params.tmp_MG}
+        """
+        rm -rf {params.tmp_MG}
         mkdir -p {params.tmp_MG}/
         remote_dir=$(dirname {output.genomes_marker_genes})
         time (Rscript {script_dir}/fetchMGs_fasta_files.R {threads} ${{remote_dir}}/ {post_analysis_out} {normalization} 
         for g in $(cat {input.genomes_list})
             do {input.fetchMGs_dir}/fetchMGs.pl -outdir {params.tmp_MG}${{g}} -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction ${{remote_dir}}/CD_transl/${{g}}_translated_cds_SUBSET.faa >& {params.tmp_MG}${{g}}_fetchMGs.log
             mv {params.tmp_MG}${{g}}_fetchMGs.log {params.tmp_MG}${{g}}
-            mkdir -p ${{remote_dir}}/fetchMGs/${{g}}; \
+            mkdir -p ${{remote_dir}}/fetchMGs/${{g}}
             rsync -rma {params.tmp_MG}${{g}}/ ${{remote_dir}}/fetchMGs/${{g}}
         done
         flag=True
@@ -655,7 +652,7 @@ rule gene_abund_normalization_MG:
     output:
         norm_counts="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.MG.csv"#.format(wd = working_dir, omics = omics, post_analysis_out=post_analysis_out, identity = identity), 
     params:
-        mapped_reads_threashold=config["MIN_mapped_reads"]
+        mapped_reads_threshold=config["MIN_mapped_reads"]
     #    tmp_MG="{local_dir}/{post_analysis_out}.MG_marker_genes/"#.format(local_dir=local_dir, post_analysis_out=post_analysis_out),
     log:
         "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.MG.log"#.format(wd = working_dir, omics = omics, post_analysis_out=post_analysis_out, identity = identity)
@@ -666,7 +663,7 @@ rule gene_abund_normalization_MG:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell: 
         """
-        time (Rscript {script_dir}/profile_MG.R {threads} {resources.mem} {input.absolute_counts} {input.genomes_marker_genes} {output.norm_counts} {omics} {params.mapped_reads_threashold}) &> {log}
+        time (Rscript {script_dir}/profile_MG.R {threads} {resources.mem} {input.absolute_counts} {input.genomes_marker_genes} {output.norm_counts} {omics} {params.mapped_reads_threshold}) &> {log}
         """
 
 ###############################################################################################
@@ -680,7 +677,7 @@ rule gene_abund_normalization_TPM:
     output:
         norm_counts="{wd}/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.TPM.csv",
     params:
-        mapped_reads_threashold=config["MIN_mapped_reads"]
+        mapped_reads_threshold=config["MIN_mapped_reads"]
     #    tmp_norm=lambda wildcards: "{local_dir}/{omics}_{norm}_genes_abundances_normalization/".format(local_dir=local_dir, omics=omics, norm=wildcards.norm),
     log:
         "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.TPM.log"
@@ -691,7 +688,7 @@ rule gene_abund_normalization_TPM:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/profile_TPM.R {input.absolute_counts} {output.norm_counts} {wildcards.omics} {params.mapped_reads_threashold}) &> {log}
+        time (Rscript {script_dir}/profile_TPM.R {input.absolute_counts} {output.norm_counts} {wildcards.omics} {params.mapped_reads_threshold}) &> {log}
         """
 
 ###############################################################################################
@@ -707,7 +704,7 @@ rule gene_abund_tpm_merge:
         tmp_tpm_merge=lambda wildcards: "{local_dir}/{omics}_{identity}.gene_abund_tpm_merge/".format(local_dir=local_dir, omics=omics, identity=identity),
         profile_tpm_list=lambda wildcards, input: ",".join(input.profile_tpm)
         #prefix_db="{gene_catalog_path}/{gene_catalog_name}",
-        #mapped_reads_threashold=config["MIN_mapped_reads"]
+        #mapped_reads_threshold=config["MIN_mapped_reads"]
     log:
         "{wd}/logs/{omics}/6-mapping-profiles/BWA_reads-{post_analysis_out}/gene_abund_merge.p{identity}.TPM_log"
     threads: config["BWA_threads"]
@@ -728,7 +725,7 @@ rule gene_abund_tpm_merge:
         # prefix_tpm=$(basename {output.profile_tpm_all})
         # time (sh {script_dir}/msamtools_merge_profiles.sh {input.profile_abund[0]} '{params.profile_tpm_list}' db_genes {params.tmp_tpm_merge} ${{prefix}}
         # sh {script_dir}/read_length_count_fasta.sh {params.prefix_db} {params.tmp_tpm_merge}/read_length_count_fasta.txt
-        # Rscript {script_dir}/profile_TPM_db_genes.R {params.tmp_tpm_merge}${{prefix}} {params.tmp_tpm_merge}${{prefix_tpm}} {wildcards.omics} {params.mapped_reads_threashold} {params.tmp_tpm_merge}/read_length_count_fasta.txt
+        # Rscript {script_dir}/profile_TPM_db_genes.R {params.tmp_tpm_merge}${{prefix}} {params.tmp_tpm_merge}${{prefix_tpm}} {wildcards.omics} {params.mapped_reads_threshold} {params.tmp_tpm_merge}/read_length_count_fasta.txt
         # rsync {params.tmp_tpm_merge}${{prefix}} {output.profile_abund_all}
         # rsync {params.tmp_tpm_merge}${{prefix_tpm}} {output.profile_tpm_all}) &> {log}
         # rm -rf {params.tmp_tpm_merge}"""
@@ -782,7 +779,7 @@ rule config_yml_integration:
         config_file="{wd}/data_integration.yaml"
     params: 
         tmp_integration_yaml=lambda wildcards: "{local_dir}{omics}_config_yml_integration/".format(local_dir=local_dir, omics = omics),
-        mapped_reads_threashold=config["MIN_mapped_reads"],
+        mapped_reads_threshold=config["MIN_mapped_reads"],
     resources:
         mem=2
     threads: 2
@@ -796,7 +793,7 @@ rule config_yml_integration:
 ######################
 PROJECT: {project_id}
 working_dir: {wildcards.wd}
-omics:
+omics: metaG_metaT
 local_dir: {local_dir}
 minto_dir: {minto_dir}
 METADATA: {metadata}
@@ -807,10 +804,10 @@ METADATA: {metadata}
 alignment_identity: {identity}
 abundance_normalization: {normalization}
 map_reference: {map_reference}
-MIN_mapped_reads: {params.mapped_reads_threashold}
+MIN_mapped_reads: {params.mapped_reads_threshold}
 
-MERGE_threads:
-MERGE_memory:
+MERGE_threads: 4
+MERGE_memory: 5
 
 ANNOTATION_file:
 
@@ -822,6 +819,8 @@ ANNOTATION_file:
 # - eggNOG_OGs
 # - KEGG_Pathway
 ANNOTATION_ids:
+ - dbCAN.mod
+ - dbCAN.enzclass
 " > {params.tmp_integration_yaml}data_integration.yaml
 
 rsync {params.tmp_integration_yaml}data_integration.yaml {output.config_file}) >& {log}
