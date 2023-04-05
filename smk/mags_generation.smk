@@ -601,7 +601,7 @@ rule prokka_for_genome:
     shell:
         """
         rm -rf $(dirname {output})
-        prokka --outdir $(dirname {output}) --prefix {wildcards.mag} --addgenes --cpus {threads} --centre X --compliant {input} >& {log}
+        prokka --outdir $(dirname {output}) --prefix {wildcards.mag} --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
         """
 
 ###############################
