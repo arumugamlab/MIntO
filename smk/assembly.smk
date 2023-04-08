@@ -31,15 +31,14 @@ if 'ILLUMINA' in config:
         try:
             # Make list of illumina samples, if ILLUMINA in config
             ilmn_samples = list()
-            if 'ILLUMINA' in config:
-                #print("Samples:")
-                for ilmn in config["ILLUMINA"]:
-                    if path.exists(working_dir+'/'+omics+'/4-hostfree/'+ilmn+'/'+ilmn+'.1.fq.gz') is True:
-                        #print(ilmn)
-                        ilmn_samples.append(ilmn)
-                    else:
-                        raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
-        except: 
+            #print("Samples:")
+            for ilmn in config['ILLUMINA']:
+                x = str(ilmn)
+                if path.exists(working_dir+'/'+omics+'/4-hostfree/'+ x +'/'+ x +'.1.fq.gz') is True:
+                    ilmn_samples.append(x)
+                else:
+                    raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
+        except TypeError:
             print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
 else:
     print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
@@ -137,7 +136,7 @@ def illumina_single_assembly_output():
     result = expand("{wd}/{omics}/7-assembly/{sample}/{kmer_dir}/{sample}.{sequence}.fasta.len", 
                     wd = working_dir,
                     omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
+                    sample = ilmn_samples,
                     kmer_dir = "k21-" + str(illumina_max_k),
                     sequence = ["contigs", "scaffolds"])
     return(result)
