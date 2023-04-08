@@ -383,9 +383,10 @@ rule mark_circular_metaspades_contigs:
             fiter = fasta_iter(input[0])
             for entry in fiter:
                 header, seq = entry
-                if seq[0:params.kmer] == seq[-params.kmer:]:
-                    seq = seq[0:-params.kmer]
-                    header = regex.sub("length_%s_" % len(seq), header) + '_circularA'
+                if len(seq) > params.kmer:
+                    if seq[0:params.kmer] == seq[-params.kmer:]:
+                        seq = seq[0:-params.kmer]
+                        header = regex.sub("length_%s_" % len(seq), header) + '_circularA'
                 out.write(f'>MetaSPAdes.k21-{wildcards.maxk}.{wildcards.sample}_{header}\n')
                 out.write(seq+"\n")
 
