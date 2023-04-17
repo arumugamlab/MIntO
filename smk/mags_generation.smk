@@ -33,10 +33,6 @@ print("  ")
 # Variables from configuration yaml file
 
 # some variables
-if config['PROJECT'] is None:
-    print('ERROR in ', config_path, ': PROJECT variable is empty. Please, complete ', config_path)
-else:
-    project = config['PROJECT']
 
 if config['working_dir'] is None:
     print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
@@ -207,8 +203,8 @@ rule all:
 ### Run Vamb
 rule run_vamb:
     input:
-        contigs_file = "{wd}/metaG/8-1-binning/{project}_scaffolds.2500.fasta".format(wd = working_dir, project = project),
-        depth_file = "{wd}/metaG/8-1-binning/{project}_scaffolds.2500.depth.txt".format(wd = working_dir, project = project),
+        contigs_file = "{wd}/metaG/8-1-binning/scaffolds.2500.fasta".format(wd = working_dir),
+        depth_file = "{wd}/metaG/8-1-binning/scaffolds.2500.depth.txt".format(wd = working_dir),
     output:
         tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/clusters.tsv"
     params:
@@ -232,7 +228,7 @@ rule run_vamb:
 rule take_all_genomes_for_each_run:
     input:
         vamb_cluster = rules.run_vamb.output.tsv,
-        contigs_file = "{wd}/metaG/8-1-binning/{project}_scaffolds.2500.fasta".format(wd = working_dir, project = project),
+        contigs_file = "{wd}/metaG/8-1-binning/scaffolds.2500.fasta".format(wd = working_dir),
     output:
         discarded_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/{binner}_discarded_genomes.txt",#.format(wd = working_dir, binner = binner),
         bin_folder = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/{binner}/bins"),
