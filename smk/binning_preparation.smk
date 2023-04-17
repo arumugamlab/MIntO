@@ -328,7 +328,7 @@ rule map_contigs_BWA:
         mkdir -p $(dirname {output}) {params.local_loc}
         local_file={params.local_loc}/$(basename {output.bam})
         db_name=$(echo {input.bwa_index} | sed "s/.bwt.2bit.64//")
-        time (bwa-mem2 mem -a -t {params.map_threads} $db_name {input.fwd} {input.rev} \
+        time (bwa-mem2 mem -a -P -t {params.map_threads} $db_name {input.fwd} {input.rev} \
                 | msamtools filter -buS -p 95 -l 45 - \
                 | samtools sort -m {params.sort_mem}G --threads {params.sort_threads} - \
                 > $local_file
