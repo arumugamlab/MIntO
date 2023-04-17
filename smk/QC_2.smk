@@ -757,6 +757,9 @@ BWA_threads: 24
 SAMTOOLS_sort_threads: 4
 SAMTOOLS_sort_memory_gb: 20
 
+# Binning preparation settings
+CONTIG_MAPPING_BATCH_SIZE: 100
+
 # Input data
 
 # HYBRID section:
