@@ -11,13 +11,16 @@ import snakemake
 include: '../scripts/07-common-rules.smk'
 include: '../scripts/08-common-rules.smk'
 
-localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, link_bam, combine_fasta, check_depths, combine_depth
+localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
+            filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, \
+            link_bam, check_depth_batches, combine_contigs_depth_batches, combine_fasta_batches, \
+            combine_fasta, check_depths, combine_depth
 
 #
 # configuration yaml file
 # import sys
-import os.path
 from os import path
+import math
 
 # args = sys.argv
 # config_path = args[args.index("--configfile") + 1]
@@ -113,6 +116,14 @@ else:
     else:
         print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 128.')
 
+batch_size = 100
+if config['CONTIG_MAPPING_BATCH_SIZE'] is None:
+    print('ERROR in ', config_path, ': CONTIG_MAPPING_BATCH_SIZE variable is empty. Please, complete ', config_path)
+elif type(config['CONTIG_MAPPING_BATCH_SIZE']) != int:
+    print('ERROR in ', config_path, ': CONTIG_MAPPING_BATCH_SIZE variable is not an integer. Please, complete ', config_path)
+else:
+    batch_size = config['CONTIG_MAPPING_BATCH_SIZE']
+
 if config['BWA_threads'] is None:
     print('ERROR in ', config_path, ': BWA_threads variable is empty. Please, complete ', config_path)
 elif type(config['BWA_threads']) != int:
@@ -172,44 +183,63 @@ else:
     print('WARNING in ', config_path, ': COASSEMBLY list of samples is empty. Skipping co-assembly.')
 
 
+# Useful functions
+def get_assemblies(scaffolds_type):
+    if scaffolds_type == 'illumina_single_nanopore':
+        return(hybrid_assemblies)
+    elif scaffolds_type == 'nanopore':
+        return(nanopore_assemblies)
+    elif scaffolds_type == 'illumina_coas':
+        return(co_assemblies)
+    elif scaffolds_type == 'illumina_single':
+        return(ilmn_samples)
+
+def get_batch(assemblies, batch_no):
+    start = (int(batch_no)-1)*batch_size
+    end   = start + batch_size
+    return(assemblies[start:end])
+
+
+def get_num_batches(assemblies):
+    batch_count = len(assemblies) / batch_size
+    return(math.ceil(batch_count))
+
 #print(SCAFFOLDS_type)
 
 # Define all the outputs needed by target 'all'
 
 rule all:
-    input: 
-        fasta = "{wd}/{omics}/8-1-binning/{project}_scaffolds.2500.fasta".format(
-                wd = working_dir, 
-                omics = omics,
-                project = project_name),
-        depth = "{wd}/{omics}/8-1-binning/{project}_scaffolds.2500.depth.txt".format(
-                wd = working_dir, 
-                omics = omics,
-                project = project_name),
+    input:
+        fasta = "{wd}/{omics}/8-1-binning/scaffolds.2500.fasta".format(
+                wd = working_dir,
+                omics = omics),
+        depth = "{wd}/{omics}/8-1-binning/scaffolds.2500.depth.txt".format(
+                wd = working_dir,
+                omics = omics),
         config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
-                wd = working_dir, 
+                wd = working_dir,
                 omics = omics)
 
 ###############################################################################################
-# Filter contigs from 
+# Filter contigs from
 #  1. MetaSPAdes-individual-assembled illumina samples,
-#  2. MEGAHIT-co-assembled illumina samples, 
+#  2. MEGAHIT-co-assembled illumina samples,
 #  3. MetaSPAdes-hybrid-assembled illumina+nanopore data,
 #  4. MetaFlye-assembled nanopore sequences
 ###############################################################################################
 
 rule filter_contigs_nanopore:
-    input: 
-        #lambda wildcards: expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.polcirc.fasta", 
-        lambda wildcards: expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.fasta", 
+    input:
+        #lambda wildcards: expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.polcirc.fasta",
+        lambda wildcards: expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                sample = nanopore_assemblies,
+                sample = get_batch(nanopore_assemblies, wildcards.batch),
                 assembly_preset = config['METAFLYE_presets'])
-    output: 
-        "{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta"
+    output:
+        "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
-        scaffolds_type = 'nanopore'
+        scaf_type = 'nanopore'
     resources:
         mem = 5
     params:
@@ -218,17 +248,17 @@ rule filter_contigs_nanopore:
         filter_fasta_list_by_length(input, output[0], params.min_length)
 
 rule filter_contigs_illumina_single_nanopore:
-    input: 
-        #lambda wildcards: expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.assembly.polcirc.fasta", 
-        lambda wildcards: expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.scaffolds.fasta", 
+    input:
+        #lambda wildcards: expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.assembly.polcirc.fasta",
+        lambda wildcards: expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.scaffolds.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                assembly = hybrid_assemblies,
+                assembly = get_batch(hybrid_assemblies, wildcards.batch),
                 kmer_dir = "k21-" + str(hybrid_max_k))
-    output: 
-        "{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta"
+    output:
+        "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
-        scaffolds_type = 'illumina_single_nanopore'
+        scaf_type = 'illumina_single_nanopore'
     resources:
         mem = 5
     params:
@@ -237,16 +267,17 @@ rule filter_contigs_illumina_single_nanopore:
         filter_fasta_list_by_length(input, output[0], params.min_length)
 
 rule filter_contigs_illumina_single:
-    input: 
-        lambda wildcards: expand("{wd}/{omics}/7-assembly/{illumina}/{kmer_dir}/{illumina}.scaffolds.fasta", 
+    input:
+        lambda wildcards: expand("{wd}/{omics}/7-assembly/{illumina}/{kmer_dir}/{illumina}.scaffolds.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                illumina = ilmn_samples,
+                illumina = get_batch(ilmn_samples, wildcards.batch),
                 kmer_dir = "k21-" + str(illumina_max_k))
-    output: 
-        "{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta"
+    output:
+        "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
+        #"{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaf_type}.{min_length}.fasta"
     wildcard_constraints:
-        scaffolds_type = 'illumina_single'
+        scaf_type = 'illumina_single'
     resources:
         mem = 5
     params:
@@ -255,16 +286,16 @@ rule filter_contigs_illumina_single:
         filter_fasta_list_by_length(input, output[0], params.min_length)
 
 rule filter_contigs_illumina_coas:
-    input: 
+    input:
         lambda wildcards: expand("{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                coassembly = co_assemblies,
+                coassembly = get_batch(co_assemblies, wildcards.batch),
                 assembly_preset = config['MEGAHIT_presets'])
-    output: 
-        "{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta"
+    output:
+        "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
-        scaffolds_type = 'illumina_coas'
+        scaf_type = 'illumina_coas'
     resources:
         mem = 5
     params:
@@ -277,13 +308,13 @@ rule filter_contigs_illumina_coas:
 ################################################################################################
 rule BWA_index_contigs:
     input:
-        scaffolds="{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta"
+        scaffolds="{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     output:
-        bwaindex="{wd}/{omics}/6-mapping/BWA_index/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta.bwt.2bit.64"
+        bwaindex="{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.bwt.2bit.64"
     log:
-        "{wd}/logs/{omics}/6-mapping/{project}_scaffolds_{scaffolds_type}.{min_length}.BWA_index.log"
+        "{wd}/logs/{omics}/6-mapping/scaffolds_{scaf_type}/batch{batch}.{min_length}.BWA_index.log"
     params:
-        local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/BWA_index".format(local_dir=local_dir, omics=wildcards.omics)
+        local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}".format(local_dir=local_dir, omics=wildcards.omics, scaf_type=wildcards.scaf_type)
     resources:
         mem = 450
     threads: 4
@@ -294,32 +325,32 @@ rule BWA_index_contigs:
         outdir=$(dirname {output})
         mkdir -p $outdir {params.local_loc}
         time (bwa-mem2 index {input.scaffolds} -p {params.local_loc}/$(basename {input})) >& {log}
-        ln -s {params.local_loc}/$(basename {input}).* $outdir/
+        ln -s --force {params.local_loc}/$(basename {input}).* $outdir/
         """
 
-# Maps reads to contig-set using bwa2 
+# Maps reads to contig-set using bwa2
 # Baseline memory usage is:
 #   Main: 240GB
-#   Sort: using config values: SAMTOOLS_sort_threads and SAMTOOLS_sort_memory_gb; 
+#   Sort: using config values: SAMTOOLS_sort_threads and SAMTOOLS_sort_memory_gb;
 #         e.g. 4 threads and 20GB = 80GB
 # If an attempt fails, 40GB extra for every new attempt
 rule map_contigs_BWA:
-    input: 
-        bwa_index = "{wd}/{omics}/6-mapping/BWA_index/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta.bwt.2bit.64",
+    input:
+        bwaindex="{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.bwt.2bit.64",
         fwd='{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz',
         rev='{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz'
     output:
-        bam='{wd}/{omics}/6-mapping/{illumina}/{illumina}.{project}_scaffolds_{scaffolds_type}.{min_length}.fasta.sorted.bam'
+        bam='{wd}/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.batch{batch}.{min_length}.fasta.sorted.bam'
     params:
         map_threads = config['BWA_threads'],
         sort_threads = config['SAMTOOLS_sort_threads'],
         sort_mem = config['SAMTOOLS_sort_memory_gb'],
-        local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/{illumina}".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina)
+        local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/{illumina}/{scaf_type}/{batch}/".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina, scaf_type=wildcards.scaf_type, batch=wildcards.batch)
     log:
-        '{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.{project}_scaffolds_{scaffolds_type}.{min_length}.bwa2.log'
+        "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.batch{batch}.{min_length}.bwa2.log"
     resources:
         mem = lambda wildcards, attempt: 50 + config['SAMTOOLS_sort_threads']*config['SAMTOOLS_sort_memory_gb'] + 40*attempt
-    threads: 
+    threads:
         config['BWA_threads']
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
@@ -327,8 +358,8 @@ rule map_contigs_BWA:
         """
         mkdir -p $(dirname {output}) {params.local_loc}
         local_file={params.local_loc}/$(basename {output.bam})
-        db_name=$(echo {input.bwa_index} | sed "s/.bwt.2bit.64//")
-        time (bwa-mem2 mem -a -P -t {params.map_threads} $db_name {input.fwd} {input.rev} \
+        db_name=$(echo {input.bwaindex} | sed "s/.bwt.2bit.64//")
+        time (bwa-mem2 mem -P -a -t {params.map_threads} $db_name {input.fwd} {input.rev} \
                 | msamtools filter -buS -p 95 -l 45 - \
                 | samtools sort -m {params.sort_mem}G --threads {params.sort_threads} - \
                 > $local_file
@@ -338,64 +369,136 @@ rule map_contigs_BWA:
 
 # symlink the bam files into a shorter name because the filename is used in the header of the output depth file.
 # Since we map to different contig-sets, and the names of the bam files are thus different, the headers will not
-# look alike for the different contig-sets. We need to ensure that the samples in columns are in the right order 
+# look alike for the different contig-sets. We need to ensure that the samples in columns are in the right order
 # in the depth files (see rule 'check_depths') and to make life easier we create symlinks with just sample names
-# so that simple check for the first line in the header file will be enough. However, {project} and {min_length} 
-# are added purely to propagate them as wildcards to earlier steps.
+# so that simple check for the first line in the header file will be enough. However, {min_length}
+# is added purely to propagate them as wildcards to earlier steps.
 rule link_bam:
-    input: 
+    input:
         rules.map_contigs_BWA.output.bam
-    output: 
-        "{wd}/{omics}/8-1-binning/depth_{scaffolds_type}/{project}.{illumina}.{min_length}"
+    output:
+        "{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}"
     shell:
         """
         mkdir -p $(dirname {output})
         ln --force -s {input} {output}
         """
 
-# Run jgi contig depth script for each contig-set
-rule contigs_depth:
-    input: 
-        bamlinks = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaffolds_type}/{project}.{illumina}.{min_length}", 
+# Run coverM to get contig depth for each contig-set
+rule contigs_depth_batch:
+    input:
+        bamlinks = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
-                                            scaffolds_type = wildcards.scaffolds_type,
-                                            project = wildcards.project,
+                                            scaf_type = wildcards.scaf_type,
+                                            batch = wildcards.batch,
                                             min_length = wildcards.min_length,
                                             illumina=ilmn_samples)
-    output: 
-        depths="{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaffolds_type}.{min_length}.depth.txt",
+    output:
+        depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt",
     params:
-        #samples = lambda wildcards: " ".join(["{proj}.{i}.{len}".format(proj=wildcards.project, i=i, len=wildcards.min_length) for i in ilmn_samples])
         samples = lambda wildcards, input: [os.path.basename(i) for i in input.bamlinks]
     resources:
         mem = 450
-    threads: 
+    threads:
         len(ilmn_samples)
     log:
-        "{wd}/{omics}/8-1-binning/{project}_{scaffolds_type}.{min_length}_depth.log"
-    conda: 
-        config["minto_dir"]+"/envs/MIntO_base.yml" #metabat2
+        "{wd}/log/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.log"
+    conda:
+        config["minto_dir"]+"/envs/mags.yml" #coverm
     shell:
         """
         cd $(dirname {input[0]})
-        time (jgi_summarize_bam_contig_depths --outputDepth {output} {params.samples}) >& {log}
+        time (coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {threads} --output-file {output} --bam-files {params.samples}) >& {log}
         """
+
+##################################################
+# Combining across batches within a scaffold_type
+##################################################
+
+# Sanity check to ensure that the order of sample-depths in the depth file is the same. Otherwise binning will be wrong!
+rule check_depth_batches:
+    input:
+        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt",
+                                            wd = wildcards.wd,
+                                            omics = wildcards.omics,
+                                            scaf_type = wildcards.scaf_type,
+                                            batch = list(range(1, 1+get_num_batches(get_assemblies(wildcards.scaf_type)))),
+                                            min_length = wildcards.min_length)
+    output:
+        ok="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batches.{min_length}.ok"
+    shell:
+        """
+        rm --force {output}
+        uniq_headers=$(for file in {input.depths}; do head -1 $file; done | sort -u | wc -l)
+        if [ "$uniq_headers" == "1" ]; then
+            touch {output}
+        else
+            # Headers were not unique. So report and set exit code for this rule to non-zero
+            >&2 echo "Headers in depth files were not unique - please check depth files"
+            test "1" == "2"
+        fi
+        """
+
+rule combine_contigs_depth_batches:
+    input:
+        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt",
+                                            wd = wildcards.wd,
+                                            omics = wildcards.omics,
+                                            scaf_type = wildcards.scaf_type,
+                                            batch = list(range(1, 1+get_num_batches(get_assemblies(wildcards.scaf_type)))),
+                                            min_length = wildcards.min_length),
+        ok = rules.check_depth_batches.output.ok
+    output:
+        depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}/combined.{min_length}.depth.txt",
+    resources:
+       mem = 10
+    threads:
+        1
+    shell:
+        """
+        head -1 {input.depths[0]} > {output}
+        (for file in {input.depths}; do tail -n +2 $file; done) >> {output}
+        """
+
+
+# Combine multiple fasta files from batches into one per scaf_type
+rule combine_fasta_batches:
+    input:
+        fasta=lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta",
+                                            wd = wildcards.wd,
+                                            omics = wildcards.omics,
+                                            scaf_type = wildcards.scaf_type,
+                                            batch = list(range(1, 1+get_num_batches(get_assemblies(wildcards.scaf_type)))),
+                                            min_length = wildcards.min_length)
+    output:
+        fasta_combined="{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/combined.{min_length}.fasta"
+    resources:
+       mem = 10
+    threads:
+        1
+    shell:
+        """
+        cat {input} > {output}
+        """
+
+#####################################
+# Combining across scaffold_type
+#####################################
 
 # Combine multiple fasta files into one
 rule combine_fasta:
-    input: 
-        fasta=lambda wildcards: expand("{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaffolds_type}.{min_length}.fasta", 
+    input:
+        fasta=lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/combined.{min_length}.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                project = wildcards.project,
                 min_length = wildcards.min_length,
-                scaffolds_type = SCAFFOLDS_type)
-    output: 
-        fasta_combined="{wd}/{omics}/8-1-binning/{project}_scaffolds.{min_length}.fasta"
+                scaf_type = SCAFFOLDS_type)
+    output:
+        fasta_combined="{wd}/{omics}/8-1-binning/scaffolds.{min_length}.fasta"
     resources:
        mem = 10
-    threads: 
+    threads:
         1
     shell:
         """
@@ -404,19 +507,18 @@ rule combine_fasta:
 
 # Sanity check to ensure that the order of sample-depths in the depth file is the same. Otherwise binning will be wrong!
 rule check_depths:
-    input: 
-        depth=lambda wildcards: expand("{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaffolds_type}.{min_length}.depth.txt", 
+    input:
+        depths=lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/combined.{min_length}.depth.txt",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                project = wildcards.project,
                 min_length = wildcards.min_length,
-                scaffolds_type = SCAFFOLDS_type)
+                scaf_type = SCAFFOLDS_type)
     output:
-        ok="{wd}/{omics}/8-1-binning/{project}_scaffolds.{min_length}.ok"
+        ok="{wd}/{omics}/8-1-binning/depths.{min_length}.ok"
     shell:
         """
         rm --force {output}
-        uniq_headers=$(for file in {input.depth}; do head -1 $file; done | sort -u | wc -l)
+        uniq_headers=$(for file in {input.depths}; do head -1 $file; done | sort -u | wc -l)
         if [ "$uniq_headers" == "1" ]; then
             touch {output}
         else
@@ -428,52 +530,43 @@ rule check_depths:
 
 # Combine multiple depth files into one
 rule combine_depth:
-    input: 
-        depth=lambda wildcards: expand("{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaf_type}.{min_length}.depth.txt", 
+    input:
+        depths=lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/combined.{min_length}.depth.txt",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                project = wildcards.project,
                 min_length = wildcards.min_length,
                 scaf_type = SCAFFOLDS_type),
-        depth_ok = "{wd}/{omics}/8-1-binning/{project}_scaffolds.{min_length}.ok"
-    output: 
-        depth_combined="{wd}/{omics}/8-1-binning/{project}_scaffolds.{min_length}.depth.txt"
+        depth_ok = rules.check_depths.output.ok
+    output:
+        depth_combined="{wd}/{omics}/8-1-binning/scaffolds.{min_length}.depth.txt"
     resources:
        mem = 10
-    threads: 
+    threads:
         1
     shell:
         """
-        head -1 {input.depth[0]} > {output}
-        (for file in {input.depth}; do tail -n +2 $file; done) >> {output}
+        head -1 {input.depths[0]} > {output}
+        (for file in {input.depths}; do tail -n +2 $file; done) >> {output}
         """
 
 ###############################################################################################
-# Generate configuration yml file for recovery of MAGs and taxonomic annotation step - binning 
+# Generate configuration yml file for recovery of MAGs and taxonomic annotation step - binning
 ###############################################################################################
 
 rule config_yml_binning:
-    input: 
-        #depth_combined="{{wd}}/{{omics}}/8-1-binning/{project}_scaffolds.{min_length}.depth.txt".format(project=project_name, min_length = min_length),
-        #depth_combined=lambda wildcards: expand("{{wd}}/{{omics}}/8-1-binning/{project}_scaffolds.{min_length}.depth.txt", 
-        #        project = project_name,
-        #        min_length = wildcards.min_length)
-        depth=lambda wildcards: expand("{wd}/{omics}/8-1-binning/{project}_scaffolds.2500.depth.txt", 
+    input:
+        depth=lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.2500.depth.txt",
                 wd = wildcards.wd,
-                omics = wildcards.omics,
-                project = project_name),
-    output: 
+                omics = wildcards.omics),
+    output:
         config_file="{wd}/{omics}/mags_generation.yaml",
-    params: 
-        tmp_binning_yaml=lambda wildcards: "{local_dir}/{omics}_config_yml_binning/".format(local_dir=local_dir, omics = omics),
     resources:
         mem=2
     threads: 2
-    log: 
+    log:
         "{wd}/logs/{omics}/config_yml_mags_generation.log"
-    shell: 
+    shell:
         """
-        mkdir -p {params.tmp_binning_yaml}
         time (echo "######################
 # General settings
 ######################
@@ -521,7 +614,7 @@ COVERM_memory: 5
 # SCORING THE BEST GENOMES settings
 #
 # this could be checkm or genome
-SCORE_METHOD: "checkm" 
+SCORE_METHOD: "checkm"
 
 
 # PROKKA settings
@@ -536,8 +629,7 @@ RUN_TAXONOMY: yes
 TAXONOMY_DATABASE: SGB.Jan20
 TAXONOMY_CPUS: 8
 TAXONOMY_memory: 5
-DATABASE_FOLDER: {minto_dir}/data" > {params.tmp_binning_yaml}mags_generation.yaml
+DATABASE_FOLDER: {minto_dir}/data" > {output.config_file}
 
-rsync {params.tmp_binning_yaml}mags_generation.yaml {output.config_file}) >& {log}
-rm -rf {params.tmp_binning_yaml}
+) >& {log}
         """
