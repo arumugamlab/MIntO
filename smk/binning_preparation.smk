@@ -124,6 +124,10 @@ elif type(config['CONTIG_MAPPING_BATCH_SIZE']) != int:
 else:
     batch_size = config['CONTIG_MAPPING_BATCH_SIZE']
 
+spades_contigs_or_scaffolds = "scaffolds"
+if config['SPADES_CONTIGS_OR_SCAFFOLDS'] in ('contigs', 'contig', 'scaffolds', 'scaffold'):
+    spades_contigs_or_scaffolds = config['SPADES_CONTIGS_OR_SCAFFOLDS']
+
 if config['BWA_threads'] is None:
     print('ERROR in ', config_path, ': BWA_threads variable is empty. Please, complete ', config_path)
 elif type(config['BWA_threads']) != int:
@@ -250,11 +254,12 @@ rule filter_contigs_nanopore:
 rule filter_contigs_illumina_single_nanopore:
     input:
         #lambda wildcards: expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.assembly.polcirc.fasta",
-        lambda wildcards: expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.scaffolds.fasta",
+        lambda wildcards: expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.{contig_or_scaffold}.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
                 assembly = get_batch(hybrid_assemblies, wildcards.batch),
-                kmer_dir = "k21-" + str(hybrid_max_k))
+                kmer_dir = "k21-" + str(hybrid_max_k),
+                contig_or_scaffold = spades_contigs_or_scaffolds)
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
@@ -268,11 +273,12 @@ rule filter_contigs_illumina_single_nanopore:
 
 rule filter_contigs_illumina_single:
     input:
-        lambda wildcards: expand("{wd}/{omics}/7-assembly/{illumina}/{kmer_dir}/{illumina}.scaffolds.fasta",
+        lambda wildcards: expand("{wd}/{omics}/7-assembly/{illumina}/{kmer_dir}/{illumina}.{contig_or_scaffold}.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
                 illumina = get_batch(ilmn_samples, wildcards.batch),
-                kmer_dir = "k21-" + str(illumina_max_k))
+                kmer_dir = "k21-" + str(hybrid_max_k),
+                contig_or_scaffold = spades_contigs_or_scaffolds)
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
         #"{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaf_type}.{min_length}.fasta"

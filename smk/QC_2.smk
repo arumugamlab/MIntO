@@ -759,6 +759,7 @@ SAMTOOLS_sort_memory_gb: 20
 
 # Binning preparation settings
 CONTIG_MAPPING_BATCH_SIZE: 100
+SPADES_CONTIGS_OR_SCAFFOLDS: scaffolds
 
 # Input data
 
