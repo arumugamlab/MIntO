@@ -61,6 +61,7 @@ elif path.exists(config['minto_dir']) is False:
     print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
 else:
     minto_dir=config["minto_dir"]
+    script_dir=config["minto_dir"]+"/scripts/"
 
 if config['METADATA'] is None:
     print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
@@ -86,7 +87,6 @@ if 'ILLUMINA' in config:
         for ilmn in config["ILLUMINA"]:
             #print(" "+ilmn)
             ilmn_samples.append(ilmn)
-        ilmn_samples.sort()
 else:
     print('WARNING in ', config_path, ': ILLUMINA list of samples is empty. Skipping short-reads assembly.')
 
@@ -214,10 +214,7 @@ def get_num_batches(assemblies):
 
 rule all:
     input:
-        fasta = "{wd}/{omics}/8-1-binning/scaffolds.2500.fasta".format(
-                wd = working_dir,
-                omics = omics),
-        depth = "{wd}/{omics}/8-1-binning/scaffolds.2500.depth.txt".format(
+        abundance = "{wd}/{omics}/8-1-binning/scaffolds.2500.abundance.npz".format(
                 wd = working_dir,
                 omics = omics),
         config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
@@ -403,7 +400,7 @@ rule contigs_depth_batch:
     output:
         depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt",
     params:
-        samples = lambda wildcards, input: [os.path.basename(i) for i in input.bamlinks]
+        samples = lambda wildcards, input: [os.path.basename(i) for i in input.bamlinks] # cd to folder and use just filename so that depth header is simple
     resources:
         mem = 450
     threads:
@@ -555,6 +552,24 @@ rule combine_depth:
         (for file in {input.depths}; do tail -n +2 $file; done) >> {output}
         """
 
+### Prepare abundance.npz for avamb v4+
+rule make_abundance_npz:
+    input:
+        contigs_file = rules.combine_fasta.output.fasta_combined,
+        depth_file = rules.combine_depth.output.depth_combined
+    output:
+        npz="{wd}/{omics}/8-1-binning/scaffolds.{min_length}.abundance.npz"
+    log:
+        "{wd}/logs/{omics}/8-1-binning/scaffolds.{min_length}.abundance.log"
+    threads:
+        1
+    conda:
+        config["minto_dir"]+"/envs/avamb.yml"
+    shell:
+        """
+        time (python {script_dir}/make_vamb_abundance_npz.py --fasta {input.contigs_file} --jgi {input.depth_file} --output {output.npz} --samples {ilmn_samples}) >& {log}
+        """
+
 ###############################################################################################
 # Generate configuration yml file for recovery of MAGs and taxonomic annotation step - binning
 ###############################################################################################
@@ -588,15 +603,15 @@ METADATA: {metadata}
 ######################
 # COMMON PARAMETERS
 #
-MIN_FASTA_LENGTH: "500000"
+MIN_FASTA_LENGTH: 500000
+BINSPLIT_CHAR: _
 
 # VAMB settings
 #
 BINNERS:
-- vamb_256
-- vamb_384
-- vamb_512
-- vamb_768
+- aaey
+- aaez
+- vae384
 
 VAMB_THREADS: 24
 VAMB_memory: 20

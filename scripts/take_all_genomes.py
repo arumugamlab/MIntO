@@ -33,8 +33,13 @@ def read_params():
 		help = "the table with the cluster obtained by vamb",
 		)
 	
+	p.add_argument("--binsplit_char",
+		help = "character used to concatenate sample-id with contig-id to make unique fasta headers",
+		default = "_"
+		)
+
 	p.add_argument("--assembly_method_name", 
-		help = "the assmebly method used (vamb_256, vamb_384, vamb_512, vamb_768", 
+		help = "the assembly method used (aaey, aaez, vamb384, vamb512",
 		default= "")
 
 	p.add_argument("--contigs_file", 
@@ -82,8 +87,9 @@ cluster_tsv = pd.read_csv(cluster_tsv, sep = "\t", names = ["bin", "contig"])
 bins_dictionary = {}
 
 for i in range(len(cluster_tsv)):
-	bin_id = cluster_tsv["bin"][i]
 	contig = str(cluster_tsv["contig"][i]).split(" ")[0]
+	sample = str(cluster_tsv["contig"][i]).split(args.binsplit_char)[0]
+	bin_id = "{}_{}".format(sample, cluster_tsv["bin"][i])
 
 	if not bin_id in bins_dictionary:
 		bins_dictionary[bin_id] = [contig]

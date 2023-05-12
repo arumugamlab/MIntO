@@ -457,7 +457,7 @@ gap_penalty = args.gap_penalty
 circularity_threshold = args.circularity_threshold
 favor_circular = args.favor_circular
 path_to_checkm_table = args.checkm_output
-checkm = pd.read_csv(path_to_checkm_table, sep = "\t", index_col = "Bin Id") #index_col = "Bin Id"
+checkm = pd.read_csv(path_to_checkm_table, sep = "\t", index_col = "Name") #index_col = "Bin Id"
 output_file = args.output_file
 
 
@@ -498,14 +498,13 @@ if score_method == "checkm":
 				if genome_name in checkm.index:
 					completeness = float(checkm["Completeness"].loc[genome_name])
 					contamination = float(checkm["Contamination"].loc[genome_name])
-					strain_hetero = float(checkm["Strain heterogeneity"].loc[genome_name])
 
 					# calculate the score (based on genome)
 					seq_score = math.log10(genome_info["Longest_bp"]/int(genome_info["Contigs"])) + math.log10(genome_info["N50_bp"]/int(genome_info["L50"]))
 					qual_score = completeness - (2 * contamination)
 					score = (0.1 * qual_score) + seq_score
 
-					fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(genome_name, 
+					fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(genome_name, 
 						score, 
 						seq_score, 
 						qual_score, 
@@ -522,7 +521,6 @@ if score_method == "checkm":
 						genome_info["N90_bp"], 
 						genome_info["Longest_bp"],
 						genome_info["Shortest_bp"], 
-						strain_hetero, 
 						genome_info["seq_1M"], 
 						genome_info["seq_2M"]
 						))
@@ -557,7 +555,6 @@ elif score_method == "genome":
 				if genome_name in checkm.index:
 					completeness = float(checkm["Completeness"].loc[genome_name])
 					contamination = float(checkm["Contamination"].loc[genome_name])
-					strain_hetero = float(checkm["Strain heterogeneity"].loc[genome_name]) #in real checkm Strain heterogeneity
 
 					seq_score = float(genome_info["Score"]) # the seqeunce score has been calculated before 
 					qual_score = completeness - (2 * contamination)
@@ -565,7 +562,7 @@ elif score_method == "genome":
 
 
 
-					fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
+					fh.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(
 					genome_name, 
 					score_checkm, # this is updated with the checkm  (probably I can make just one function now that I understand)
 					seq_score, 
@@ -589,7 +586,6 @@ elif score_method == "genome":
 					genome_info["CircularFraction"], #column added in genome modality
 					genome_info["Circular"],  #column added in genome modality
 					genome_info["ConsideredCircular"],  #column added in genome modality
-					strain_hetero, 
 					genome_info["seq_1M"], 
 					genome_info["seq_2M"]
 					  ))
