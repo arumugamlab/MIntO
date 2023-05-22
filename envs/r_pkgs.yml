@@ -16,7 +16,7 @@ dependencies:
   - r-optparse=1.7.3
   - r-r.utils=2.12.2
   - r-reshape2=1.4.4
-  - r-rlang=1.0.6
+  - r-rlang=1.1.0
   - r-seqinr=4.2_23
   - r-stringr=1.5.0
   - r-tidyr=1.2.1

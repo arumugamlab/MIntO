@@ -118,7 +118,7 @@ def dbCAN_db_out():
     return(result)
 
 def metaphlan_db_out():
-    result=expand("{minto_dir}/logs/metaphlan_download_db_checkpoint.log",
+    result=expand("{minto_dir}/data/mpa_vOct22_CHOCOPhlAnSGB_202212_VSG.fna",
         minto_dir=minto_dir)
     return(result)
 
@@ -481,4 +481,3 @@ rule mags_gen_py36:
         time (
         echo 'Python 3.6 environment generated') &> {log}
         """
-

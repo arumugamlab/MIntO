@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-Pre-processing of metaG and metaT data step 
+Pre-processing of metaG and metaT data step
     - read length filtering
     - host genome filtering
     - rRNA filtering
@@ -52,7 +52,7 @@ try:
             else:
                 raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
     n_samples=len(ilmn_samples)+3
-except: 
+except:
     print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
 
 ##############################################
@@ -145,14 +145,14 @@ plot_args_list = list()
 main_factor = None
 if config['MAIN_factor'] is not None:
     main_factor = config['MAIN_factor']
-    plot_args_list.append('--factor ' + main_factor) 
+    plot_args_list.append('--factor ' + main_factor)
 else:
     print('ERROR in ', config_path, ': "MAIN_factor" variable cannot be empty.')
 
 if config['PLOT_factor2'] is not None:
-    plot_args_list.append('--factor2 ' + config['PLOT_factor2']) 
+    plot_args_list.append('--factor2 ' + config['PLOT_factor2'])
 if config['PLOT_time'] is not None:
-    plot_args_list.append('--time ' + config['PLOT_time']) 
+    plot_args_list.append('--time ' + config['PLOT_time'])
 
 plot_args_str = ' '.join(plot_args_list)
 
@@ -201,25 +201,25 @@ if omics == 'metaT':
 ##############################################
 
 def filter_trim_length_output():
-    result = expand("{wd}/{omics}/3-minlength/{sample}/{sample}.{group}.{out}.fq.gz", 
+    result = expand("{wd}/{omics}/3-minlength/{sample}/{sample}.{group}.{out}.fq.gz",
                     wd = working_dir,
                     omics = omics,
                     group = ['1', '2'],
                     out = ['single', 'paired'],
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else []),\
-            expand("{wd}/{omics}/3-minlength/{sample}/{sample}.trim.summary", 
+            expand("{wd}/{omics}/3-minlength/{sample}/{sample}.trim.summary",
                     wd = working_dir,
                     omics = omics,
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [])
     return(result)
 
 def filter_host_genome_output():
-    result = expand("{wd}/{omics}/4-hostfree/{sample}/{sample}.{group}.fq.gz", 
+    result = expand("{wd}/{omics}/4-hostfree/{sample}/{sample}.{group}.fq.gz",
                     wd = working_dir,
                     omics = omics,
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     group = ['1', '2']),\
-            expand("{wd}/{omics}/4-hostfree/{sample}/{sample}.host.reads", 
+            expand("{wd}/{omics}/4-hostfree/{sample}/{sample}.host.reads",
                     wd = working_dir,
                     omics = omics,
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [])
@@ -228,20 +228,20 @@ def filter_host_genome_output():
 def taxonomy_plot_output():
     taxonomies = taxonomy.split(",")
     results = list()
-    profiles = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}", 
+    profiles = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}",
                 wd = working_dir,
                 omics = omics,
                 sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                 taxonomy = taxonomies),\
-            expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt", 
+            expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
                 wd = working_dir,
                 omics = omics,
                 taxonomy = taxonomies)
-    plots = expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf", 
+    plots = expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf",
                 wd = working_dir,
                 omics = omics,
                 taxonomy = taxonomies),\
-            expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf", 
+            expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf",
                 wd = working_dir,
                 omics = omics,
                 taxonomy = taxonomies)
@@ -250,10 +250,10 @@ def taxonomy_plot_output():
     return(results)
 
 def next_step_config_yml_output():
-    result = expand("{wd}/{omics}/assembly.yaml", 
+    result = expand("{wd}/{omics}/assembly.yaml",
                 wd = working_dir,
                 omics = omics),\
-    expand("{wd}/{omics}/mapping.yaml", 
+    expand("{wd}/{omics}/mapping.yaml",
                 wd = working_dir,
                 omics = omics)
     return(result)
@@ -261,29 +261,29 @@ def next_step_config_yml_output():
 def extra_output():
     return()
 
-if omics == 'metaT': 
+if omics == 'metaT':
     def extra_output():
-        result = expand("{sortmeRNA_db_idx}", 
+        result = expand("{sortmeRNA_db_idx}",
                     sortmeRNA_db_idx=sortmeRNA_db_idx),\
-        expand("{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.log", 
+        expand("{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.log",
                     wd = working_dir,
                     omics = omics,
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else []),\
-        expand("{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.{group}.fq.gz", 
+        expand("{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.{group}.fq.gz",
                     wd = working_dir,
                     omics = omics,
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     group=['1', '2'])
         return(result)
     def next_step_config_yml_output():
-        result = expand("{wd}/{omics}/mapping.yaml", 
+        result = expand("{wd}/{omics}/mapping.yaml",
                     wd = working_dir,
                     omics = omics)
         return(result)
 
 
 rule all:
-    input: 
+    input:
         #filter_trim_length_output(),
         #filter_host_genome_output(),
         taxonomy_plot_output(),
@@ -291,8 +291,8 @@ rule all:
         next_step_config_yml_output()
 
 ###############################################################################################
-# Pre-processing of metaG and metaT data step 
-# Read length filtering using the MINLEN 
+# Pre-processing of metaG and metaT data step
+# Read length filtering using the MINLEN
 ###############################################################################################
 
 # We use suffix fq.gz for "seqkit seq" output even though it outputs unzipped fq.
@@ -301,9 +301,9 @@ rule qc2_length_filter:
     input:
         read_fw='{wd}/{omics}/1-trimmed/{sample}/{sample}.1.paired.fq.gz',
         read_rv='{wd}/{omics}/1-trimmed/{sample}/{sample}.2.paired.fq.gz',
-    output: 
-        paired1="{wd}/{omics}/3-minlength/{sample}/{sample}.1.fq.gz", 
-        paired2="{wd}/{omics}/3-minlength/{sample}/{sample}.2.fq.gz", 
+    output:
+        paired1="{wd}/{omics}/3-minlength/{sample}/{sample}.1.fq.gz",
+        paired2="{wd}/{omics}/3-minlength/{sample}/{sample}.2.fq.gz",
         summary="{wd}/{omics}/3-minlength/{sample}/{sample}.trim.summary"
     params:
         tmp_trim_len=lambda wildcards: "{local_dir}/{omics}_{sample}filter_trim_length".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
@@ -316,12 +316,12 @@ rule qc2_length_filter:
         16
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
-    shell: 
+    shell:
         """
         mkdir -p {params.tmp_trim_len}
         remote_dir=$(dirname {output.paired1})
         cd {params.tmp_trim_len}
-        time ( 
+        time (
             mkfifo {wildcards.sample}.1.fq.gz
             mkfifo {wildcards.sample}.2.fq.gz
             seqkit seq {input.read_fw} -m {params.read_length_cutoff} | seqkit replace -p '/1' -r '' > {wildcards.sample}.1.fq.gz &
@@ -330,7 +330,7 @@ rule qc2_length_filter:
             rsync -a result/{wildcards.sample}.* $remote_dir/
         ) >& {log}
         cd {local_dir}
-        rm -rf {params.tmp_trim_len} 
+        rm -rf {params.tmp_trim_len}
         """
 
 ###############################################################################################
@@ -431,9 +431,9 @@ rule qc2_filter_rRNA_index:
         "{wd}/logs/{omics}/5-1-sortmerna/rRNA_index.log".format(wd=working_dir, omics = omics),
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
-    shell: 
+    shell:
         """
-        mkdir -p {params.tmp_working_dir}idx/ 
+        mkdir -p {params.tmp_working_dir}idx/
         time (\
             sortmerna --workdir {params.tmp_working_dir}/ --idx-dir {params.tmp_working_dir}/idx/ -index 1 \
                 --ref {input.rRNA_db[0]} \
@@ -471,7 +471,7 @@ rule qc2_filter_rRNA:
         "{wd}/logs/{omics}/5-1-sortmerna/{sample}.log"
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
-    shell: 
+    shell:
         """
         mkdir -p {params.tmp_sortmerna}
         remote_dir=$(dirname {output.rRNA_free_fw})
@@ -565,8 +565,7 @@ rule metaphlan_combine_profiles:
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
     wildcard_constraints:
         taxonomy='metaphlan'
-    params:
-        cut_fields='1,3-{}'.format(len(ilmn_samples)+3)
+
     threads: 1
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}_combine.log"
@@ -576,14 +575,14 @@ rule metaphlan_combine_profiles:
         """
         time (\
                 merge_metaphlan_tables.py {input.ra} > {output.merged}
-                grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' | cut -f{params.cut_fields} > {output.species}
+                grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
             ) >& {log}
         """
 
 rule motus_map_db:
-    input: 
+    input:
         reads=get_tax_profile_input_files
-    output: 
+    output:
         mgc="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus.mgc",
     params:
         tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.motus.taxonomic_profile".format(local_dir=local_dir, omics = wildcards.omics, sample = wildcards.sample),
@@ -608,9 +607,9 @@ rule motus_map_db:
         """
 
 rule motus_calc_motu:
-    input: 
+    input:
         mgc=rules.motus_map_db.output.mgc,
-    output: 
+    output:
         raw="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw",
         rel="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel"
     resources:
@@ -629,9 +628,9 @@ rule motus_calc_motu:
         """
 
 rule motus_combine_profiles:
-    input: 
+    input:
         profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, sample = ilmn_samples),
-    output: 
+    output:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table.txt",
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
     wildcard_constraints:
@@ -645,17 +644,17 @@ rule motus_combine_profiles:
     conda:
         config["minto_dir"]+"/envs/motus_env.yml" #motus3
     shell:
-        """ 
+        """
         time (\
-                motus merge -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/' > {output.merged}
-                grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' | cut -f{params.cut_fields} > {output.species}
+                motus merge -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/'| cut -f{params.cut_fields}  > {output.merged}
+                grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
             ) >& {log}
         """
 
 rule plot_taxonomic_profile:
-    input: 
+    input:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table.txt",
-    output: 
+    output:
         pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf",
         barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf",
     params:
@@ -666,29 +665,29 @@ rule plot_taxonomic_profile:
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
-        """ 
+        """
         time (\
                 Rscript {script_dir}/plot_6_taxa_profile.R --table {input.merged} --profiler {wildcards.omics}.{wildcards.taxonomy} --metadata {metadata} --outdir $(dirname {output.pcoa}) {params.plot_args}
             ) >& {log}
         """
 
 ##########################################################################################################
-# Generate configuration yml file for recovery of MAGs and taxonomic annotation step - assembly/coassembly 
+# Generate configuration yml file for recovery of MAGs and taxonomic annotation step - assembly/coassembly
 ##########################################################################################################
 
 rule qc2_filter_config_yml_assembly:
-    input: 
+    input:
         host_free_fw=expand("{{wd}}/{{omics}}/4-hostfree/{sample}/{sample}.1.fq.gz", sample=ilmn_samples),
-    output: 
+    output:
         config_file="{wd}/{omics}/assembly.yaml"
     resources:
         mem=2
     threads: 2
-    log: 
+    log:
         "{wd}/logs/{omics}/config_yml_assembly.log"
-    conda: 
+    conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
-    shell: 
+    shell:
         """
         cat > {output} <<___EOF___
 ######################
@@ -768,7 +767,7 @@ SAMTOOLS_sort_memory_gb: 20
 #   Hybrid assemblies will be performed for each combination of nanopore and illumina samples.
 #   E.g.:
 #
-#   N1: I3+I4 
+#   N1: I3+I4
 #
 #   The above will result in 2 hybrid assemblies: 'N1-I3' and 'N1-I4'
 #
@@ -805,7 +804,7 @@ $(for i in {ilmn_samples}; do echo "- $i"; done)
 # -------------------
 # MEGAHIT coassembly will be performed using the following definitions.
 # Each coassembly is named in the LHS, and corresponding illumina sample(s) are in RHS (delimited by '+').
-# One coassembly will be performed for each line. 
+# One coassembly will be performed for each line.
 # E.g. 'Subject1: I3+I4' will result in 1 coassembly: 'Subject1' using I3 and I4 data.
 # Memory per coassembly is calculated to be 10G per sample in the coassembly.
 # Please make sure that there is enough RAM on the server.
@@ -819,12 +818,12 @@ library(dplyr)
 concat <- function(v) {{
     Reduce(f = paste(sep='+'), x = v)
 }}
-metadata <- read.table('{metadata}', sep="\\t", header=TRUE) %>% 
+metadata <- read.table('{metadata}', sep="\\t", header=TRUE) %>%
     as.data.frame() %>%
-    select(sample, {main_factor}) %>% 
-    group_by({main_factor}) %>% 
-    filter(n() > 1) %>% 
-    mutate(co_asm = paste(sample, collapse = "+")) %>% 
+    select(sample, {main_factor}) %>%
+    group_by({main_factor}) %>%
+    filter(n() > 1) %>%
+    mutate(co_asm = paste(sample, collapse = "+")) %>%
     select(-sample) %>%
     slice(1) %>%
     mutate({main_factor}=paste0("  ", {main_factor}))
@@ -840,16 +839,16 @@ ___EOF___
 ###############################################################################################
 
 rule qc2_filter_config_yml_mapping:
-    input: 
+    input:
         host_free_fw=expand("{{wd}}/{{omics}}/4-hostfree/{sample}/{sample}.1.fq.gz", sample=ilmn_samples),
-    output: 
+    output:
         config_file="{wd}/{omics}/mapping.yaml"
     resources:
         mem=2
     threads: 2
-    log: 
+    log:
         "{wd}/logs/{omics}/config_yml_mapping.log"
-    shell: 
+    shell:
         """
         cat > {output} <<___EOF___
 ######################
@@ -865,7 +864,7 @@ METADATA: {metadata}
 ######################
 # Program settings
 ######################
-# BWA Alignment 
+# BWA Alignment
 msamtools_filter_length: 50
 alignment_identity: 95
 
@@ -875,7 +874,7 @@ fetchMGs_dir: {minto_dir}/data/fetchMGs-1.2
 
 # Map reads to reference
 map_reference: MAG
-PATH_reference: # path to gene catalog fasta file 
+PATH_reference: # path to gene catalog fasta file
 NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
 
 
@@ -907,4 +906,4 @@ $(for i in {ilmn_samples}; do echo "- $i"; done)
 ___EOF___
 
         echo {ilmn_samples} >& {log}
-        """ 
+        """
