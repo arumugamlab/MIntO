@@ -16,29 +16,19 @@ echo "threads: ${threads}"
 echo "output: ${output}" 
 
 
+gpu_option=""
 if [ $gpu == "yes" ]; then
-    if [ $binner == "vamb_256" ]; then
-        echo "Launching vamb 256"
-        vamb -l 16 -n 256 256  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --cuda --outdir $output/tmp
-    elif [ $binner == "vamb_384" ]; then
-        vamb -l 24 -n 384 384  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --cuda --outdir $output/tmp
-    elif [ $binner == "vamb_512" ]; then
-        vamb -l 32 -n 512 512 --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --cuda --outdir $output/tmp
-    elif [ $binner == "vamb_768" ]; then
-        vamb -l 40 -n 768 786 --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --cuda --outdir $output/tmp
-    else
-        echo "Something went wrong"
-    fi 
-else
-    if [ $binner == "vamb_256" ]; then
-    	vamb -l 16 -n 256 256  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads  --outdir $output/tmp
-   	elif [ $binner == "vamb_384" ]; then
-        vamb -l 24 -n 384 384  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads  --outdir $output/tmp
-    elif [ $binner == "vamb_512" ]; then
-        vamb -l 32 -n 512 512  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads  --outdir $output/tmp
-    elif [ $binner == "vamb_768" ]; then
-        vamb -l 40 -n 768 768  --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads  --outdir $output/tmp
-	else
-       	echo "Something went wrong"
-    fi
+    gpu_option="--cuda"
 fi
+if [ $binner == "vamb_256" ]; then
+    vamb_options="-l 16 -n 256 256"
+elif [ $binner == "vamb_384" ]; then
+    vamb_options="-l 24 -n 384 384"
+elif [ $binner == "vamb_512" ]; then
+    vamb_options="-l 32 -n 512 512"
+elif [ $binner == "vamb_768" ]; then
+    vamb_options="-l 40 -n 768 768"
+else
+    echo "Something went wrong"
+fi
+vamb $vamb_options $gpu_option --fasta $contigs_file --jgi $depth_file -m 2500 -o _ -p $threads --outdir $output/tmp
