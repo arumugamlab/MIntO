@@ -214,9 +214,9 @@ rule run_vamb_vae:
         "{wd}/logs/metaG/mags_generation/run_vamb_vae{vbinner}.log"
     resources:
         mem=config['VAMB_memory'],
-        gpu=1
+        gpu=1 if vamb_gpu == "yes" else 0
     threads:
-        config["VAMB_THREADS"]
+        4 if vamb_gpu == "yes" else config["VAMB_THREADS"]
     conda:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
@@ -238,9 +238,9 @@ rule run_vamb_aae:
         "{wd}/logs/metaG/mags_generation/run_vamb_aae.log"
     resources:
         mem=config['VAMB_memory'],
-        gpu=1
+        gpu=1 if vamb_gpu == "yes" else 0
     threads:
-        config["VAMB_THREADS"]
+        4 if vamb_gpu == "yes" else config["VAMB_THREADS"]
     conda:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
