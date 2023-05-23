@@ -117,6 +117,13 @@ elif type(config['CHECKM_CONTAMINATION']) != int:
 else:
     checkm_batch_size = config['CHECKM_BATCH_SIZE']
 
+if config['CHECKM_DATABASE'] is None:
+   print('ERROR in ', config_path, ': CHECKM_DATABASE variable is empty. Please, complete ', config_path)
+elif path.exists(config['CHECKM_DATABASE']) is False:
+   print('ERROR in ', config_path, ': CHECKM_DATABASE variable path does not exit. Please, complete ', config_path)
+elif path.exists(config['CHECKM_DATABASE']) is True:
+   checkm_db = config["CHECKM_DATABASE"]
+
 if config['COVERM_THREADS'] is None:
     print('ERROR in ', config_path, ': COVERM_THREADS variable is empty. Please, complete ', config_path)
 elif type(config['COVERM_THREADS']) != int:
@@ -354,6 +361,8 @@ rule checkm_batch:
         '{somewhere}/{something}.out/quality_report.tsv'
     log:
         '{somewhere}/{something}.checkM.log'
+    params:
+        checkm_db = checkm_db
     conda:
         config["minto_dir"]+"/envs/checkm2.yml"
     threads: 16
@@ -363,7 +372,7 @@ rule checkm_batch:
         """
         tmp=$(mktemp -d)
         time ( \
-        checkm2 predict --quiet --database_path /scratch/mjq180/databases/checkm2/CheckM2_database/uniref100.KO.1.dmnd -x fna --remove_intermediates --threads {threads} --input {wildcards.somewhere}/{wildcards.something} --tmpdir $tmp -o $(dirname {output}) 
+        checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input {wildcards.somewhere}/{wildcards.something} --tmpdir $tmp -o $(dirname {output}) 
         ) >& {log}
         rm -rf $tmp
         """
