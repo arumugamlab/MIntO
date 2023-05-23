@@ -444,7 +444,7 @@ rule mags_gen_vamb:
     log:
         "{minto_dir}/logs/vamb_env.log"
     conda:
-        config["minto_dir"]+"/envs/vamb.yaml"
+        config["minto_dir"]+"/envs/avamb.yml"
     shell:
         """
         time (
