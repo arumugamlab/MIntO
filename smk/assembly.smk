@@ -185,10 +185,24 @@ rule all:
 ###############################################################################################
 # Correct Illumina reads using SPAdes' spadeshammer
 ###############################################################################################
+
+def get_hq_fastq_files(wildcards):
+    if wildcards.omics == "metaT":
+        return(expand("{wd}/{omics}/5-1-sortmerna/{illumina}/{illumina}.{pair}.fq.gz",
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    illumina = wildcards.illumina,
+                    pair = [1, 2]))
+    else:
+        return(expand("{wd}/{omics}/4-hostfree/{illumina}/{illumina}.{pair}.fq.gz",
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    illumina = wildcards.illumina,
+                    pair = [1, 2]))
+
 rule correct_spadeshammer:
     input: 
-        fwd="{wd}/{omics}/4-hostfree/{illumina}/{illumina}.1.fq.gz",
-        rev="{wd}/{omics}/4-hostfree/{illumina}/{illumina}.2.fq.gz"
+        reads=get_hq_fastq_files
     output: 
         fwd="{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz",
         rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
@@ -207,7 +221,7 @@ rule correct_spadeshammer:
         mkdir -p {params.tmp_dir}
         mkdir -p $(dirname {output.fwd})
         time (\
-            {spades_script} --only-error-correction -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.tmp_dir} --tmp-dir {params.tmp_dir}/tmp --phred-offset {params.qoffset}
+            {spades_script} --only-error-correction -1 {input.reads[0]} -2 {input.reads[1]} -t {threads} -m {resources.mem} -o {params.tmp_dir} --tmp-dir {params.tmp_dir}/tmp --phred-offset {params.qoffset}
             rsync -a {params.tmp_dir}/corrected/{wildcards.illumina}.1.fq.00.0_0.cor.fastq.gz {output.fwd}; rsync -a {params.tmp_dir}/corrected/{wildcards.illumina}.2.fq.00.0_0.cor.fastq.gz {output.rev}
         ) >& {log}
         rm -rf {params.tmp_dir}
@@ -218,8 +232,8 @@ rule correct_spadeshammer:
 ###############################################################################################
 rule illumina_assembly_metaspades:
     input: 
-        fwd="{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz",
-        rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
+        fwd=rules.correct_spadeshammer.output.fwd,
+        rev=rules.correct_spadeshammer.output.rev
     output: 
         "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/contigs.fasta",
         "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/scaffolds.fasta",
@@ -259,8 +273,8 @@ rule illumina_assembly_metaspades:
 ###############################################################################################
 rule hybrid_assembly_metaspades:
     input: 
-        fwd="{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz",
-        rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
+        fwd=rules.correct_spadeshammer.output.fwd,
+        rev=rules.correct_spadeshammer.output.rev,
         ont="{wd}/{omics}/6-corrected/{nanopore}/{nanopore}.nanopore.fq.gz"
     output: 
         "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/contigs.fasta",
