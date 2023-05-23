@@ -645,12 +645,16 @@ RUN_PROKKA: yes
 PROKKA_CPUS: 8
 PROKKA_memory: 5
 
-# PHYLOPHLAN METAGENOMICS settings
+# MAG taxonomy settings
 #
 RUN_TAXONOMY: yes
-TAXONOMY_DATABASE: SGB.Jan20
+TAXONOMY_NAME: phylophlan    # Currently, only phylophlan
 TAXONOMY_CPUS: 8
 TAXONOMY_memory: 5
+
+# PHYLOPHLAN METAGENOMICS settings
+#
+TAXONOMY_DATABASE: SGB.Jan20
 TAXONOMY_DATABASE_FOLDER: {minto_dir}/data" > {output.config_file}
 
 ) >& {log}
