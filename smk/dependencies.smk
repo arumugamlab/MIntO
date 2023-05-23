@@ -12,6 +12,8 @@ import os.path
 from os import path
 import glob
 
+metaphlan_index = 'mpa_vOct22_CHOCOPhlAnSGB_202212'
+
 #args = sys.argv
 #print(args)
 #args_idx = sys.argv.index('--configfile')
@@ -118,8 +120,9 @@ def dbCAN_db_out():
     return(result)
 
 def metaphlan_db_out():
-    result=expand("{minto_dir}/data/mpa_vOct22_CHOCOPhlAnSGB_202212_VSG.fna",
-        minto_dir=minto_dir)
+    result=expand("{minto_dir}/data/metaphlan/{metaphlan_index}_VINFO.csv",
+        minto_dir=minto_dir,
+        metaphlan_index=metaphlan_index)
     return(result)
 
 def motus_db_out():
@@ -335,13 +338,17 @@ rule dbCAN_db:
 
 rule metaphlan_db:
     output:
-        "{minto_dir}/logs/metaphlan_download_db_checkpoint.log"
+        metaphlan_db=expand("{minto_dir}/data/metaphlan/{metaphlan_index}_VINFO.csv",
+                            minto_dir=minto_dir,
+                            metaphlan_index=metaphlan_index),
     resources:
         mem=download_memory
     threads:
         download_threads
     log:
-        "{minto_dir}/logs/metaphlan_download_db.log"
+        expand("{minto_dir}/logs/metaphlan_{metaphlan_index}_download_db.log",
+                minto_dir=minto_dir,
+                metaphlan_index=metaphlan_index)
     conda:
         config["minto_dir"]+"/envs/metaphlan.yml"
     shell:
@@ -349,10 +356,10 @@ rule metaphlan_db:
         mkdir -p {minto_dir}/data/metaphlan/
         time (\
                 metaphlan --version
-                metaphlan --install --bowtie2db {minto_dir}/data/metaphlan/
+                metaphlan --install --index {metaphlan_index} --bowtie2db {minto_dir}/data/metaphlan/
                 if [ $? -eq 0 ]; then
                     echo 'MetaPhlAn database download: OK'
-                    echo OK > {output}
+                    echo "{metaphlan_index}" > {minto_dir}/data/metaphlan/mpa_latest
                 else
                     echo 'MetaPhlAn database download: FAIL'
                 fi) &> {log}

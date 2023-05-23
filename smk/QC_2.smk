@@ -195,6 +195,11 @@ if omics == 'metaT':
     else:
         sortmeRNA_db_idx=config["sortmeRNA_db_idx"]
 
+##############################################
+# Metaphlan DB version
+##############################################
+with open(minto_dir + "/data/metaphlan/mpa_latest", 'r') as file:
+    metaphlan_index = file.read().rstrip()
 
 ##############################################
 # Define all the outputs needed by target 'all'
@@ -534,7 +539,9 @@ rule taxonomic_profile_metaphlan_download_db:
 
 rule metaphlan_tax_profile:
     input:
-        metaphlan_db=ancient("{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir)),
+        metaphlan_db=expand("{minto_dir}/data/metaphlan/{metaphlan_index}_VINFO.csv",
+                            minto_dir=minto_dir,
+                            metaphlan_index=metaphlan_index),
         reads=get_tax_profile_input_files
     output:
         ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan"
@@ -552,7 +559,7 @@ rule metaphlan_tax_profile:
         """
         mkdir -p {params.tmp_taxa_prof}
         remote_dir=$(dirname {output.ra})
-        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}/{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan -t rel_ab_w_read_stats
+        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}/{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan -t rel_ab_w_read_stats --index {metaphlan_index}
         rsync -a {params.tmp_taxa_prof}/* $remote_dir) >& {log}
         rm -rf {params.tmp_taxa_prof}
         """
