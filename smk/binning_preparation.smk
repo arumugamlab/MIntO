@@ -650,7 +650,7 @@ RUN_TAXONOMY: yes
 TAXONOMY_DATABASE: SGB.Jan20
 TAXONOMY_CPUS: 8
 TAXONOMY_memory: 5
-DATABASE_FOLDER: {minto_dir}/data" > {output.config_file}
+TAXONOMY_DATABASE_FOLDER: {minto_dir}/data" > {output.config_file}
 
 ) >& {log}
         """

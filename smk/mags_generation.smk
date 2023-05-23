@@ -177,13 +177,13 @@ if config['TAXONOMY_memory'] is None:
 elif type(config['TAXONOMY_memory']) != int:
     print('ERROR in ', config_path, ': TAXONOMY_memory variable is not an integer. Please, complete ', config_path)
 
-if config['DATABASE_FOLDER'] is None:
-   print('ERROR in ', config_path, ': DATABASE_FOLDER variable is empty. Please, complete ', config_path)
-elif path.exists(config['DATABASE_FOLDER']) is False:
-   print('ERROR in ', config_path, ': DATABASE_FOLDER variable path does not exit. Please, complete ', config_path)
-elif path.exists(config['DATABASE_FOLDER']) is True:
-   db_folder = config["DATABASE_FOLDER"]
-   #print(db_folder)
+if config['TAXONOMY_DATABASE_FOLDER'] is None:
+   print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable is empty. Please, complete ', config_path)
+elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is False:
+   print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable path does not exit. Please, complete ', config_path)
+elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is True:
+   taxonomy_db_folder = config["TAXONOMY_DATABASE_FOLDER"]
+   #print(taxonomy_db_folder)
 
 
 def mags_recovery():
@@ -692,7 +692,7 @@ rule taxonomy_for_genome_collection:
         "{wd}/metaG/8-1-binning/mags_generation_pipeline/taxonomy.log"
     params:
         run_taxonomy = "{run_taxonomy}".format(run_taxonomy = run_taxonomy),
-        database_folder = "{db_folder}".format(db_folder = db_folder),
+        taxonomy_database_folder = "{taxonomy_db_folder}".format(taxonomy_db_folder = taxonomy_db_folder),
         taxonomy_database = config["TAXONOMY_DATABASE"],
     resources:
         mem=config["TAXONOMY_memory"]
@@ -703,5 +703,5 @@ rule taxonomy_for_genome_collection:
     shell:
         """
         cd $(dirname {output})
-        phylophlan_metagenomic -i {input} --nproc {threads} -d {params.taxonomy_database} -o taxonomy --database_folder {params.database_folder}
+        phylophlan_metagenomic -i {input} --nproc {threads} -d {params.taxonomy_database} -o taxonomy --taxonomy_database_folder {params.taxonomy_database_folder}
         """
