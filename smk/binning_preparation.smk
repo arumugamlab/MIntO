@@ -45,11 +45,6 @@ elif path.exists(config['working_dir']) is False:
 else:
     working_dir = config['working_dir']
 
-if config['omics'] in ('metaG'):
-    omics = config['omics']
-else:
-    print('ERROR in ', config_path, ': omics variable is not correct. "omics" variable should be metaG.')
-
 if config['local_dir'] is None:
     prints('ERROR in ', config_path, ': local_dir variable is empty. Please, complete ', config_path)
 else:
@@ -216,10 +211,10 @@ rule all:
     input:
         abundance = "{wd}/{omics}/8-1-binning/scaffolds.2500.abundance.npz".format(
                 wd = working_dir,
-                omics = omics),
+                omics = config['omics']),
         config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
                 wd = working_dir,
-                omics = omics)
+                omics = config['omics'])
 
 ###############################################################################################
 # Filter contigs from
@@ -576,9 +571,7 @@ rule make_abundance_npz:
 
 rule config_yml_binning:
     input:
-        depth=lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.2500.depth.txt",
-                wd = wildcards.wd,
-                omics = wildcards.omics),
+        depth="{wd}/{omics}/8-1-binning/scaffolds.2500.depth.txt"
     output:
         config_file="{wd}/{omics}/mags_generation.yaml",
     resources:
