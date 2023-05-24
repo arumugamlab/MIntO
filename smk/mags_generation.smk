@@ -42,11 +42,6 @@ else:
     working_dir = config['working_dir']
     wdir = config['working_dir']
 
-if config['omics'] in ('metaG'):
-    omics = config['omics']
-else:
-    print('ERROR in ', config_path, ': omics variable is not correct. "omics" variable should be metaG.')
-
 if config['minto_dir'] is None:
     print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
 elif path.exists(config['minto_dir']) is False:
@@ -93,6 +88,11 @@ elif config['VAMB_GPU'] == False:
     print('WARNING in ', config_path, ': MIntO is not using the GPU')
 else:
     print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
+
+if config['MIN_FASTA_LENGTH'] is None:
+    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is empty. Please, complete ', config_path)
+elif type(config['MIN_FASTA_LENGTH']) != int:
+    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is not an integer. Please, complete ', config_path)
 
 if config['MIN_MAG_LENGTH'] is None:
     print('ERROR in ', config_path, ': MIN_MAG_LENGTH variable is empty. Please, complete ', config_path)
@@ -194,11 +194,11 @@ elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is True:
 
 
 def mags_recovery():
-    result = expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt", wd = working_dir)
+    result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt", wd = working_dir, omics = config['omics'])
     if (run_prokka == "yes"):
-        result.append(expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/prokka.done", wd = working_dir))
+        result.append(expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka.done", wd = working_dir, omics = config['omics']))
     if (run_taxonomy == "yes"):
-        result.append(expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/taxonomy.tsv", wd = working_dir))
+        result.append(expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.tsv", wd = working_dir, omics = config['omics']))
     return(result)
 
 rule all:
@@ -210,15 +210,21 @@ rule all:
 ### Run Vamb
 rule run_vamb_vae:
     input:
-        contigs_file = "{wd}/metaG/8-1-binning/scaffolds.2500.fasta",
-        rpkm_file = "{wd}/metaG/8-1-binning/scaffolds.2500.abundance.npz"
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+                                wd = wildcards.wd,
+                                omics = wildcards.omics,
+                                min_fasta_length = config['MIN_FASTA_LENGTH']),
+        rpkm_file    = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.abundance.npz",
+                                wd = wildcards.wd,
+                                omics = wildcards.omics,
+                                min_fasta_length = config['MIN_FASTA_LENGTH'])
     output:
-        tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/vae{vbinner}/vae_clusters.tsv"
+        tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/vae{vbinner}/vae_clusters.tsv"
     params:
         cuda="{}".format("--cuda" if vamb_gpu == "yes" else ""),
         latent=lambda wildcards: int(int(wildcards.vbinner)/16)
     log:
-        "{wd}/logs/metaG/mags_generation/run_vamb_vae{vbinner}.log"
+        "{wd}/logs/{omics}/mags_generation/run_vamb_vae{vbinner}.log"
     resources:
         mem=config['VAMB_memory'],
         gpu=1 if vamb_gpu == "yes" else 0
@@ -234,15 +240,21 @@ rule run_vamb_vae:
 
 rule run_vamb_aae:
     input:
-        contigs_file = "{wd}/metaG/8-1-binning/scaffolds.2500.fasta",
-        rpkm_file = "{wd}/metaG/8-1-binning/scaffolds.2500.abundance.npz"
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+                                wd = wildcards.wd,
+                                omics = wildcards.omics,
+                                min_fasta_length = config['MIN_FASTA_LENGTH']),
+        rpkm_file    = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.abundance.npz",
+                                wd = wildcards.wd,
+                                omics = wildcards.omics,
+                                min_fasta_length = config['MIN_FASTA_LENGTH'])
     output:
-        tsv_y="{wd}/metaG/8-1-binning/mags_generation_pipeline/aae/aae_y_clusters.tsv",
-        tsv_z="{wd}/metaG/8-1-binning/mags_generation_pipeline/aae/aae_z_clusters.tsv"
+        tsv_y="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_y_clusters.tsv",
+        tsv_z="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_z_clusters.tsv"
     params:
         cuda="{}".format("--cuda" if vamb_gpu == "yes" else "")
     log:
-        "{wd}/logs/metaG/mags_generation/run_vamb_aae.log"
+        "{wd}/logs/{omics}/mags_generation/run_vamb_aae.log"
     resources:
         mem=config['VAMB_memory'],
         gpu=1 if vamb_gpu == "yes" else 0
@@ -258,9 +270,9 @@ rule run_vamb_aae:
 
 rule aae_tsv:
     input:
-        tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/aae/aae_{latent_type}_clusters.tsv",
+        tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_{latent_type}_clusters.tsv",
     output:
-        tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/aae{latent_type}_clusters.tsv",
+        tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/aae{latent_type}_clusters.tsv",
     shell:
         """
         cat {input} | sed "s/^aae_{wildcards.latent_type}_//" > {output}
@@ -268,28 +280,31 @@ rule aae_tsv:
 
 rule vae_tsv:
     input:
-        tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/vae{vbinner}/vae_clusters.tsv",
+        tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/vae{vbinner}/vae_clusters.tsv",
     output:
-        tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/vae{vbinner}_clusters.tsv",
+        tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/vae{vbinner}_clusters.tsv",
     shell:
         """
         cat {input} | sed "s/^vae_//" > {output}
         """
 
-### Select MAGs that satisfy min_mag_length criterion
+### Select MAGs that satisfy min_fasta_length criterion
 # this is on vamb, if there are other binners, depending on the output, the bins should be processed differently
 rule make_avamb_mags:
     input:
-        tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}_clusters.tsv",
-        contigs_file = "{wd}/metaG/8-1-binning/scaffolds.2500.fasta"
+        tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}_clusters.tsv",
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+                                wd = wildcards.wd,
+                                omics = wildcards.omics,
+                                min_fasta_length = config['MIN_FASTA_LENGTH']),
     output:
-        discarded_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}_discarded_genomes.txt",
-        bin_folder = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins"),
+        discarded_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}_discarded_genomes.txt",
+        bin_folder = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins"),
     params:
         min_mag_length = config["MIN_MAG_LENGTH"],
         binsplit_char = config["BINSPLIT_CHAR"]
     log:
-        "{wd}/logs/metaG/mags_generation/avamb{binner}.take_all_genomes_for_each_run.log"
+        "{wd}/logs/{omics}/mags_generation/avamb{binner}.take_all_genomes_for_each_run.log"
     resources:
         mem=10
     threads:
@@ -318,7 +333,7 @@ checkpoint prepare_bins_for_checkm:
     input:
         bin_folder = rules.make_avamb_mags.output.bin_folder
     output:
-        checkm_groups = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/checkm")
+        checkm_groups = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/checkm")
     params:
         batch_size = checkm_batch_size
     shell:
@@ -344,9 +359,10 @@ checkpoint prepare_bins_for_checkm:
 def get_checkm_output_for_batches(wildcards):
     #Collect the genome bins from previous step
     checkpoint_output = checkpoints.prepare_bins_for_checkm.get(**wildcards).output[0]
-    result = expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/checkm/{batch}.out/quality_report.tsv",
+    result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/checkm/{batch}.out/quality_report.tsv",
                     wd=wildcards.wd,
                     binner=wildcards.binner,
+                    omics=wildcards.omics,
                     batch=glob_wildcards(os.path.join(checkpoint_output, '{batch}.batch')).batch)
     return(result)
 
@@ -385,9 +401,9 @@ rule merge_checkm_batches:
     input:
         get_checkm_output_for_batches
     output:
-        binner_combined = "{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt"
+        binner_combined = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt"
     log:
-        "{wd}/logs/metaG/mags_generation/{binner}.checkM.merge.log"
+        "{wd}/logs/{omics}/mags_generation/{binner}.checkM.merge.log"
     resources:
         mem=10
     threads:
@@ -406,9 +422,9 @@ rule merge_checkm_batches:
 rule move_bins_after_checkm:
     input:
         checkm_report=rules.merge_checkm_batches.output.binner_combined,
-        fna_folder="{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/checkm/"
+        fna_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/checkm/"
     output:
-        moved="{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/fna.moved",
+        moved="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/fna.moved",
     params:
         batch_size = checkm_batch_size
     shell:
@@ -427,15 +443,17 @@ rule move_bins_after_checkm:
 
 rule copy_genomes_in_all:
     input:
-        bin_folder = lambda wildcards: expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins",
+        bin_folder = lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins",
                                 wd = wildcards.wd,
+                                omics=wildcards.omics,
                                 binner = config['BINNERS']),
-        moved = lambda wildcards: expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/fna.moved",
+        moved = lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/fna.moved",
                                 wd = wildcards.wd,
+                                omics=wildcards.omics,
                                 binner = config['BINNERS'])
     output:
-        all_genomes = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/all"),
-        copied = "{wd}/metaG/8-1-binning/mags_generation_pipeline/copy_genomes_all_finished.txt"
+        all_genomes = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all"),
+        copied = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/copy_genomes_all_finished.txt"
     shell:
         """
         mkdir -p {output.all_genomes}
@@ -451,13 +469,14 @@ rule copy_genomes_in_all:
 
 rule make_comprehensive_table:
     input:
-        lambda wildcards: expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt",
+        lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt",
                                 wd = wildcards.wd,
+                                omics=wildcards.omics,
                                 binner = config['BINNERS'])
     output:
-        checkm_total = "{wd}/metaG/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
+        checkm_total = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
     log:
-        "{wd}/logs/metaG/mags_generation/make_comprehensive_table.log"#.format(wdir = config['working_dir'])
+        "{wd}/logs/{omics}/mags_generation/make_comprehensive_table.log"#.format(wdir = config['working_dir'])
     resources:
         mem=10
     threads:
@@ -479,14 +498,14 @@ rule copy_HQ_genomes:
         checkm_total = rules.make_comprehensive_table.output,
         copied = rules.copy_genomes_in_all.output.copied
     output:
-        HQ_table="{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv",
-        HQ_folder=directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes")
+        HQ_table="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv",
+        HQ_folder=directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes")
     params:
-        all_genomes_folder = "{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/all/",
+        all_genomes_folder = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all/",
         completeness = config["CHECKM_COMPLETENESS"],
         contamination = config["CHECKM_CONTAMINATION"]
     log:
-        "{wd}/logs/metaG/mags_generation/copy_HQ_genomes.log"
+        "{wd}/logs/{omics}/mags_generation/copy_HQ_genomes.log"
     resources:
         mem=10
     threads:
@@ -518,11 +537,11 @@ rule run_coverm:
     input:
         HQ_table=rules.copy_HQ_genomes.output.HQ_table
     output:
-        cluster_tsv="{wd}/metaG/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
+        cluster_tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
     params:
-        HQ_folder="{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes"
+        HQ_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes"
     log:
-        "{wd}/logs/metaG/mags_generation/run_coverm.log"
+        "{wd}/logs/{omics}/mags_generation/run_coverm.log"
     resources:
         mem=config["COVERM_memory"]
     threads:
@@ -540,13 +559,13 @@ rule calculate_score_genomes:
         cluster_tsv = rules.run_coverm.output.cluster_tsv,
         HQ_table = rules.copy_HQ_genomes.output.HQ_table
     output:
-        scored_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
+        scored_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
     params:
-        HQ_folder="{wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes",
+        HQ_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes",
         #calculate_genomes_score="{script_dir}/calculate_genomes_score.py"
         score_method = config["SCORE_METHOD"]
     log:
-        "{wd}/logs/metaG/mags_generation/calculate_score_genomes.log"
+        "{wd}/logs/{omics}/mags_generation/calculate_score_genomes.log"
     resources:
         mem=10
     threads:
@@ -565,10 +584,10 @@ rule find_unique_and_best_genomes:
         scored_genomes = rules.calculate_score_genomes.output,
         coverm = rules.run_coverm.output
     output:
-        scored = "{wd}/metaG/8-1-binning/mags_generation_pipeline/coverm_unique_cluster_scored.tsv",
-        best_unique_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt"
+        scored = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster_scored.tsv",
+        best_unique_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt"
     log:
-        "{wd}/logs/metaG/mags_generation/find_unique_and_best_genomes.log"
+        "{wd}/logs/{omics}/mags_generation/find_unique_and_best_genomes.log"
     resources:
         mem=10
     threads:
@@ -625,11 +644,11 @@ rule find_unique_and_best_genomes:
 ## Run copy the best genomes
 checkpoint copy_best_genomes:
     input:
-        best_unique_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt"
+        best_unique_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt"
     output:
-        genome_dir = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/unique_genomes")
+        genome_dir = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes")
     log:
-        "{wd}/logs/metaG/mags_generation/copy_best_genomes.log"
+        "{wd}/logs/{omics}/mags_generation/copy_best_genomes.log"
     resources:
         mem=10
     threads:
@@ -638,7 +657,7 @@ checkpoint copy_best_genomes:
         """
         time (mkdir -p {output.genome_dir}
         while read line; do
-          cp {wildcards.wd}/metaG/8-1-binning/mags_generation_pipeline/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
+          cp {wildcards.wd}/{wildcards.omics}/8-1-binning/mags_generation_pipeline/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
         done < {input.best_unique_genomes}
         )&> {log}
         """
@@ -649,11 +668,11 @@ checkpoint copy_best_genomes:
 
 rule prokka_for_genome:
     input:
-        "{wd}/metaG/8-1-binning/mags_generation_pipeline/unique_genomes/{mag}.fna"
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes/{mag}.fna"
     output:
-        "{wd}/metaG/8-1-binning/mags_generation_pipeline/prokka/{mag}/{mag}.gbk"
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka/{mag}/{mag}.gbk"
     log:
-        "{wd}/metaG/8-1-binning/mags_generation_pipeline/prokka/{mag}.log"
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka/{mag}.log"
     resources:
         mem=config["PROKKA_memory"]
     threads:
@@ -673,8 +692,9 @@ rule prokka_for_genome:
 def get_hq_mag_prokka_files(wildcards):
     #Collect the genome bins from previous step
     checkpoint_output = checkpoints.copy_best_genomes.get(**wildcards).output[0]
-    result = expand("{wd}/metaG/8-1-binning/mags_generation_pipeline/prokka/{mag}/{mag}.gbk",
+    result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka/{mag}/{mag}.gbk",
                     wd=wildcards.wd,
+                    omics=wildcards.omics,
                     mag=glob_wildcards(os.path.join(checkpoint_output, '{mag}.fna')).mag)
     return(result)
 
@@ -682,7 +702,7 @@ rule check_prokka_output:
     input:
         get_hq_mag_prokka_files
     output:
-        "{wd}/metaG/8-1-binning/mags_generation_pipeline/prokka.done"
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka.done"
     shell:
         """
         touch {output}
@@ -694,11 +714,11 @@ rule check_prokka_output:
 
 rule taxonomy_for_genome_collection:
     input:
-        "{wd}/metaG/8-1-binning/mags_generation_pipeline/unique_genomes"
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes"
     output:
-        "{wd}/metaG/8-1-binning/mags_generation_pipeline/taxonomy.tsv"
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.tsv"
     log:
-        "{wd}/metaG/8-1-binning/mags_generation_pipeline/taxonomy.log"
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.log"
     params:
         run_taxonomy = "{run_taxonomy}".format(run_taxonomy = run_taxonomy),
         taxonomy_database_folder = "{taxonomy_db_folder}".format(taxonomy_db_folder = taxonomy_db_folder),
@@ -712,5 +732,5 @@ rule taxonomy_for_genome_collection:
     shell:
         """
         cd $(dirname {output})
-        phylophlan_metagenomic -i {input} --nproc {threads} -d {params.taxonomy_database} -o taxonomy --taxonomy_database_folder {params.taxonomy_database_folder}
+        phylophlan_metagenomic -i {input} --nproc {threads} -d {params.taxonomy_database} -o taxonomy --database_folder {params.taxonomy_database_folder}
         """
