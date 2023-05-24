@@ -94,10 +94,10 @@ elif config['VAMB_GPU'] == False:
 else:
     print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
 
-if config['MIN_FASTA_LENGTH'] is None:
-    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is empty. Please, complete ', config_path)
-elif type(config['MIN_FASTA_LENGTH']) != int:
-    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is not an integer. Please, complete ', config_path)
+if config['MIN_MAG_LENGTH'] is None:
+    print('ERROR in ', config_path, ': MIN_MAG_LENGTH variable is empty. Please, complete ', config_path)
+elif type(config['MIN_MAG_LENGTH']) != int:
+    print('ERROR in ', config_path, ': MIN_MAG_LENGTH variable is not an integer. Please, complete ', config_path)
 
 if config['CHECKM_COMPLETENESS'] is None:
     print('ERROR in ', config_path, ': CHECKM_COMPLETENESS variable is empty. Please, complete ', config_path)
@@ -276,7 +276,7 @@ rule vae_tsv:
         cat {input} | sed "s/^vae_//" > {output}
         """
 
-### Select MAGs that satisfy min_fasta_length criterion
+### Select MAGs that satisfy min_mag_length criterion
 # this is on vamb, if there are other binners, depending on the output, the bins should be processed differently
 rule make_avamb_mags:
     input:
@@ -286,7 +286,7 @@ rule make_avamb_mags:
         discarded_genomes = "{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}_discarded_genomes.txt",
         bin_folder = directory("{wd}/metaG/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins"),
     params:
-        min_fasta_length = config["MIN_FASTA_LENGTH"],
+        min_mag_length = config["MIN_MAG_LENGTH"],
         binsplit_char = config["BINSPLIT_CHAR"]
     log:
         "{wd}/logs/metaG/mags_generation/avamb{binner}.take_all_genomes_for_each_run.log"
@@ -304,7 +304,7 @@ rule make_avamb_mags:
                     --binsplit_char {params.binsplit_char} \
                     --contigs_file {input.contigs_file} \
                     --assembly_method_name {wildcards.binner} \
-                    --min_fasta_length {params.min_fasta_length} \
+                    --min_fasta_length {params.min_mag_length} \
                     --output_folder {output.bin_folder} \
                     --discarded_genomes_info {output.discarded_genomes}
             ) &> {log}

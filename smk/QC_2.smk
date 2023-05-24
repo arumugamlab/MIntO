@@ -765,6 +765,7 @@ SAMTOOLS_sort_threads: 4
 SAMTOOLS_sort_memory_gb: 20
 
 # Binning preparation settings
+MIN_FASTA_LENGTH: 2500
 CONTIG_MAPPING_BATCH_SIZE: 100
 SPADES_CONTIGS_OR_SCAFFOLDS: scaffolds
 

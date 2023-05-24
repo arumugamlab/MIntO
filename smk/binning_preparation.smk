@@ -69,6 +69,11 @@ elif path.exists(config['METADATA']) is False:
 else:
     metadata=config["METADATA"]
 
+if config['MIN_FASTA_LENGTH'] is None:
+    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is empty. Please, complete ', config_path)
+elif type(config['MIN_FASTA_LENGTH']) != int:
+    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is not an integer. Please, complete ', config_path)
+
 # Scaffold type
 SCAFFOLDS_type = list()
 # Make list of illumina samples, if ILLUMINA in config
@@ -209,9 +214,10 @@ def get_num_batches(assemblies):
 
 rule all:
     input:
-        abundance = "{wd}/{omics}/8-1-binning/scaffolds.2500.abundance.npz".format(
+        abundance = "{wd}/{omics}/8-1-binning/scaffolds.{min_seq_length}.abundance.npz".format(
                 wd = working_dir,
-                omics = config['omics']),
+                omics = config['omics'],
+                min_seq_length = config['MIN_FASTA_LENGTH']),
         config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
                 wd = working_dir,
                 omics = config['omics'])
@@ -570,8 +576,6 @@ rule make_abundance_npz:
 ###############################################################################################
 
 rule config_yml_binning:
-    input:
-        depth="{wd}/{omics}/8-1-binning/scaffolds.2500.depth.txt"
     output:
         config_file="{wd}/{omics}/mags_generation.yaml",
     resources:
@@ -579,6 +583,8 @@ rule config_yml_binning:
     threads: 2
     log:
         "{wd}/logs/{omics}/config_yml_mags_generation.log"
+    params:
+        min_fasta_length=config['MIN_FASTA_LENGTH']
     shell:
         """
         time (echo "######################
@@ -596,7 +602,8 @@ METADATA: {metadata}
 ######################
 # COMMON PARAMETERS
 #
-MIN_FASTA_LENGTH: 500000
+MIN_FASTA_LENGTH: {params.min_fasta_length}
+MIN_MAG_LENGTH: 500000
 BINSPLIT_CHAR: _
 
 # VAMB settings
