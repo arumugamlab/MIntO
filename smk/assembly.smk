@@ -32,9 +32,10 @@ if 'ILLUMINA' in config:
             # Make list of illumina samples, if ILLUMINA in config
             ilmn_samples = list()
             #print("Samples:")
+            location='5-1-sortmerna' if omics=='metaT' else '4-hostfree'
             for ilmn in config['ILLUMINA']:
                 x = str(ilmn)
-                if path.exists(working_dir+'/'+omics+'/4-hostfree/'+ x +'/'+ x +'.1.fq.gz') is True:
+                if path.exists(working_dir+'/'+omics+'/'+location+'/'+ x +'/'+ x +'.1.fq.gz') is True:
                     ilmn_samples.append(x)
                 else:
                     raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
@@ -240,6 +241,7 @@ rule illumina_assembly_metaspades:
     params:
         tmp_asm=lambda wildcards: "{local_dir}/{omics}_{illumina}_assembly_metaspades".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina),
         qoffset=config["METASPADES_qoffset"],
+        asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
         kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
     resources:
@@ -256,7 +258,7 @@ rule illumina_assembly_metaspades:
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
         time (\
-            {spades_script} --meta --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
             rsync -a {params.tmp_asm}/{params.kmer_dir}/* $remote_dir/ 
         ) >& {log}
         rm -rf {params.tmp_asm}/{params.kmer_dir}
@@ -282,6 +284,7 @@ rule hybrid_assembly_metaspades:
     params:
         tmp_asm=lambda wildcards: "{local_dir}/{omics}_{nanopore}-{illumina}_assembly_metaspades".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina, nanopore=wildcards.nanopore),
         qoffset=config["METASPADES_qoffset"],
+        asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
         kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
     resources:
@@ -298,7 +301,7 @@ rule hybrid_assembly_metaspades:
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
         time (\
-            {spades_script} --meta --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
             rsync -a {params.tmp_asm}/{params.kmer_dir}/* $remote_dir/ 
         ) >& {log}
         rm -rf {params.tmp_asm}/{params.kmer_dir}
@@ -310,6 +313,21 @@ rule hybrid_assembly_metaspades:
 ########  Co-assembly 
 # This starts with 11G per sample, but if that fails, it increases by 5G per sample per repeated attempt
 ###############################################################################################
+
+def get_megahit_parameters(wildcards, kk):
+    if (wildcards.assembly_preset == 'rnaspades'):
+        # We assume kk is about 1/2 max-length - see rnaSPAdes recommendation
+        # We will then make kmers=[0.33max, ..., 0.5max] with step 22
+        min_k = 2*int(kk/3)+1 # start at odd number near 1/3 max-length
+        kmers = list(range(min_k, kk-1, 22)) # add more kmers with 22 increment while < max_k
+        kmers.extend([kk])
+        kmer_option = ','.join([str(k) for k in kmers])
+        return "--k-list {}".format(kmer_option)
+    elif (wildcards.assembly_preset in ['meta-large', 'meta-sensitive']):
+        return "--presets {}".format(wildcards.assembly_preset)
+    else:
+        return ""
+
 rule coassembly_megahit:
     input: 
         fwd=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz', wd=working_dir, omics=omics, illumina=config["COASSEMBLY"][wildcards.coassembly].split('+')),
@@ -320,6 +338,7 @@ rule coassembly_megahit:
         tmp_asm=lambda wildcards: "{local_dir}/{omics}_{name}_coassembly_megahit_{assembly_preset}".format(local_dir=local_dir, omics=wildcards.omics, name=wildcards.coassembly, assembly_preset=wildcards.assembly_preset),
         fwd_reads=lambda wildcards, input: ",".join(input.fwd),
         rev_reads=lambda wildcards, input: ",".join(input.rev),
+        asm_params=lambda wildcards: get_megahit_parameters(wildcards, illumina_max_k),
         memory_config=config['MEGAHIT_memory']
     resources:
         mem = lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1))),
@@ -336,7 +355,7 @@ rule coassembly_megahit:
         mkdir -p $tmp_dir
         # Don't create the --out-dir directory as MEGAHIT wants it to not exist before
         time (\
-            megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir $local_dir --tmp-dir $tmp_dir --presets {wildcards.assembly_preset}
+            megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir $local_dir --tmp-dir $tmp_dir {params.asm_params}
         ) >& {log}
         rm -rf $tmp_dir
         cd $local_dir
