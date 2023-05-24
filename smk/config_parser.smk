@@ -62,4 +62,4 @@ if 'ILLUMINA' in config:
     if config['ILLUMINA'] is None:
         print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
 else:
-    print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
+    print('ERROR in ', config_path, ': ILLUMINA list of samples is missing. Please, complete ', config_path)
