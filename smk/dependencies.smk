@@ -170,7 +170,7 @@ rule rRNA_db_download:
         """
         mkdir -p {wildcards.somewhere}/rRNA_databases
         cd {wildcards.somewhere}/rRNA_databases
-        wget https://raw.githubusercontent.com/biocore/sortmerna/master/data/rRNA_databases/{wildcards.something}.fasta
+        wget --quiet https://raw.githubusercontent.com/biocore/sortmerna/master/data/rRNA_databases/{wildcards.something}.fasta
         """
 
 def get_rRNA_db_index_input(wildcards):
