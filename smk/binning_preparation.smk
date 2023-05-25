@@ -392,7 +392,7 @@ rule contigs_depth_batch:
     threads:
         2
     log:
-        "{wd}/log/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.log"
+        "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.log"
     conda:
         config["minto_dir"]+"/envs/mags.yml" #pandas
     shell:
