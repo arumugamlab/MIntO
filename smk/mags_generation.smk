@@ -338,18 +338,10 @@ checkpoint prepare_bins_for_checkm:
         batch_size = checkm_batch_size
     shell:
         """
-        cd {input.bin_folder}
-        files=$(ls *.fna | wc -l)
-        batches=$(($files/{params.batch_size}))
-        batches=$(expr $batches + 1)
-        for i in $(seq -w 1 $batches); do
-          mkdir -p {output.checkm_groups}/$i
-          touch {output.checkm_groups}/$i.batch
-        done
-        for i in $(seq -w 1 $batches); do
-          list=$(ls *.fna | head -{params.batch_size})
-          mv $list {output.checkm_groups}/$i/
-        done
+        mkdir -p {output.checkm_groups}
+        cd {output.checkm_groups}
+        rm -rf batch.*
+        ls {input.bin_folder}/*.fna | split - batch. --lines {params.batch_size} --numeric-suffixes=1
         """
 
 ###############################
@@ -363,7 +355,7 @@ def get_checkm_output_for_batches(wildcards):
                     wd=wildcards.wd,
                     binner=wildcards.binner,
                     omics=wildcards.omics,
-                    batch=glob_wildcards(os.path.join(checkpoint_output, '{batch}.batch')).batch)
+                    batch=glob_wildcards(os.path.join(checkpoint_output, 'batch.{batch}')).batch)
     return(result)
 
 ########################
@@ -372,7 +364,7 @@ def get_checkm_output_for_batches(wildcards):
 
 rule checkm_batch:
     input:
-        '{somewhere}/{something}.batch'
+        '{somewhere}/batch.{something}'
     output:
         '{somewhere}/{something}.out/quality_report.tsv'
     log:
@@ -387,8 +379,9 @@ rule checkm_batch:
     shell:
         """
         tmp=$(mktemp -d)
+        rm -rf $(dirname {output})
         time ( \
-        checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input {wildcards.somewhere}/{wildcards.something} --tmpdir $tmp -o $(dirname {output}) 
+        checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input}) --tmpdir $tmp -o $(dirname {output}) 
         ) >& {log}
         rm -rf $tmp
         """
@@ -443,11 +436,7 @@ rule move_bins_after_checkm:
 
 rule copy_genomes_in_all:
     input:
-        bin_folder = lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins",
-                                wd = wildcards.wd,
-                                omics=wildcards.omics,
-                                binner = config['BINNERS']),
-        moved = lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/fna.moved",
+        checkm_out = lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt",
                                 wd = wildcards.wd,
                                 omics=wildcards.omics,
                                 binner = config['BINNERS'])
@@ -456,9 +445,11 @@ rule copy_genomes_in_all:
         copied = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/copy_genomes_all_finished.txt"
     shell:
         """
-        mkdir -p {output.all_genomes}
-        for i in {input.bin_folder}; do
-          cp $i/*.fna {output.all_genomes}/
+        rm -rf {output.all_genomes}
+        mkdir {output.all_genomes}
+        for i in {input.checkm_out}; do
+          location=$(dirname $i)
+          cp $location/bins/*.fna {output.all_genomes}/
         done
         touch {output.copied}
         """
