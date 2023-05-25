@@ -13,7 +13,7 @@ include: '../scripts/08-common-rules.smk'
 
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
             filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, \
-            link_bam, check_depth_batches, combine_contigs_depth_batches, combine_fasta_batches, \
+            check_depth_batches, combine_contigs_depth_batches, combine_fasta_batches, \
             combine_fasta, check_depths, combine_depth
 
 #
@@ -329,7 +329,7 @@ rule BWA_index_contigs:
         outdir=$(dirname {output})
         mkdir -p $outdir {params.local_loc}
         time (bwa-mem2 index {input.scaffolds} -p {params.local_loc}/$(basename {input})) >& {log}
-        ln -s --force {params.local_loc}/$(basename {input}).* $outdir/
+        rsync -av {params.local_loc}/$(basename {input}).* $outdir/
         """
 
 # Maps reads to contig-set using bwa2
@@ -338,13 +338,14 @@ rule BWA_index_contigs:
 #   Sort: using config values: SAMTOOLS_sort_threads and SAMTOOLS_sort_memory_gb;
 #         e.g. 4 threads and 20GB = 80GB
 # If an attempt fails, 40GB extra for every new attempt
-rule map_contigs_BWA:
+# Once mapping succeeds, run coverM to get contig depth for this bam
+rule map_contigs_BWA_depth_coverM:
     input:
-        bwaindex="{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.bwt.2bit.64",
+        bwaindex=rules.BWA_index_contigs.output.bwaindex,
         fwd='{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz',
         rev='{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz'
     output:
-        bam='{wd}/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.batch{batch}.{min_length}.fasta.sorted.bam'
+        depth="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}.depth.txt"
     params:
         map_threads = config['BWA_threads'],
         sort_threads = config['SAMTOOLS_sort_threads'],
@@ -361,37 +362,23 @@ rule map_contigs_BWA:
     shell:
         """
         mkdir -p $(dirname {output}) {params.local_loc}
-        local_file={params.local_loc}/$(basename {output.bam})
+        local_file={params.local_loc}/$(basename {output.depth})
         db_name=$(echo {input.bwaindex} | sed "s/.bwt.2bit.64//")
         time (bwa-mem2 mem -P -a -t {params.map_threads} $db_name {input.fwd} {input.rev} \
                 | msamtools filter -buS -p 95 -l 45 - \
                 | samtools sort -m {params.sort_mem}G --threads {params.sort_threads} - \
-                > $local_file
+                > $local_file.bam
+              coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {threads} --output-file $local_file.depth --bam-files $local_file.bam
+              rsync -a $local_file.depth {output.depth}
         ) >& {log}
-        ln --force -s $local_file $(dirname {output})/
+        rm $local_file.bam $local_file.depth
         """
 
-# symlink the bam files into a shorter name because the filename is used in the header of the output depth file.
-# Since we map to different contig-sets, and the names of the bam files are thus different, the headers will not
-# look alike for the different contig-sets. We need to ensure that the samples in columns are in the right order
-# in the depth files (see rule 'check_depths') and to make life easier we create symlinks with just sample names
-# so that simple check for the first line in the header file will be enough. However, {min_length}
-# is added purely to propagate them as wildcards to earlier steps.
-rule link_bam:
-    input:
-        rules.map_contigs_BWA.output.bam
-    output:
-        "{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}"
-    shell:
-        """
-        mkdir -p $(dirname {output})
-        ln --force -s {input} {output}
-        """
-
-# Run coverM to get contig depth for each contig-set
+# Combine coverM depths from individual samples
+# I use python code passed from STDIN within "shell" so that I can use conda env.
 rule contigs_depth_batch:
     input:
-        bamlinks = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}",
+        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}.depth.txt",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             scaf_type = wildcards.scaf_type,
@@ -400,20 +387,26 @@ rule contigs_depth_batch:
                                             illumina=ilmn_samples)
     output:
         depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt",
-    params:
-        samples = lambda wildcards, input: [os.path.basename(i) for i in input.bamlinks] # cd to folder and use just filename so that depth header is simple
     resources:
-        mem = 450
+        mem = 40
     threads:
-        len(ilmn_samples)
+        2
     log:
         "{wd}/log/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.log"
     conda:
-        config["minto_dir"]+"/envs/mags.yml" #coverm
+        config["minto_dir"]+"/envs/mags.yml" #pandas
     shell:
         """
-        cd $(dirname {input[0]})
-        time (coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {threads} --output-file {output} --bam-files {params.samples}) >& {log}
+python - {input.depths} << EOF > {output.depths}
+import pandas as pd
+import sys
+df = pd.read_csv(sys.argv[1], header=0, sep = "\\t")
+for filename in sys.argv[2:]:
+    df2 = pd.read_csv(filename, header=0, sep = "\\t")
+    df2 = df2.drop('totalAvgDepth', axis=1)
+    df  = df.merge(df2, on=['contigName', 'contigLen'], how='inner')
+df.to_csv(sys.stdout, sep = "\\t", index = False)
+EOF
         """
 
 ##################################################
