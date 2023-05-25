@@ -130,6 +130,11 @@ def motus_db_out():
         minto_dir=minto_dir)
     return(result)
 
+def checkm2_db_out():
+    result=expand("{minto_dir}/data/CheckM2_database/uniref100.KO.1.dmnd",
+        minto_dir=minto_dir)
+    return(result)
+
 def fetchMGs_out():
     result=expand("{minto_dir}/logs/fetchMGs_download.done",
         minto_dir=minto_dir)
@@ -147,6 +152,7 @@ def all_env_out():
 # Define all the outputs needed by target 'all'
 rule all:
     input:
+        checkm2_db_out(),
         rRNA_db_out(),
         eggnog_db_out(),
         Kofam_db_out(),
@@ -389,6 +395,33 @@ rule motus_db:
                 echo OK > {output}
             else
                 echo 'mOTUs3 database download: FAIL'
+            fi
+            ) &> {log}
+        """
+
+###############################################################################################
+# Download CheckM2 database
+###############################################################################################
+
+rule checkm2_db:
+    output:
+        "{minto_dir}/data/CheckM2_database/uniref100.KO.1.dmnd"
+    resources:
+        mem=download_memory
+    threads:
+        download_threads
+    log:
+        "{minto_dir}/logs/checkm2_download_db.log"
+    conda:
+        config["minto_dir"]+"/envs/checkm2.yml"
+    shell:
+        """
+        time (\
+            checkm2 database --download --path {minto_dir}/data
+            if [ $? -eq 0 ]; then
+                echo 'CheckM2 database download: OK'
+            else
+                echo 'CheckM2 database download: FAIL'
             fi
             ) &> {log}
         """
