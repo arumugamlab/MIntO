@@ -314,6 +314,7 @@ rule make_avamb_mags:
     shell:
         """
         time (\
+                mkdir -p {output.bin_folder}
                 python {script_dir}/take_all_genomes.py \
                     --vamb_cluster_tsv {input.tsv} \
                     --binsplit_char {params.binsplit_char} \

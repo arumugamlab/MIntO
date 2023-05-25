@@ -96,16 +96,6 @@ for i in range(len(cluster_tsv)):
 	else:
 		bins_dictionary[bin_id].append(contig)
 
-###################### Should be handle by snakemake
-# create the folder
-try:
-	os.mkdir(output)
-
-except OSError:
-	print("Could not create the folder for the bins, check it could be already there! ")
-	sys.exit()
-###############
-
 
 # file with discarder genomes that do not agree with the threshold
 to_write = "# minimum threshold {}\nBin_id\tlength\n".format(min_fasta)
