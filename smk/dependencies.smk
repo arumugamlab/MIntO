@@ -13,6 +13,8 @@ from os import path
 import glob
 
 metaphlan_index = 'mpa_vOct22_CHOCOPhlAnSGB_202212'
+metaphlan_version = '4.0.6'
+motus_version = '3.0.3'
 
 #args = sys.argv
 #print(args)
@@ -120,8 +122,9 @@ def dbCAN_db_out():
     return(result)
 
 def metaphlan_db_out():
-    result=expand("{minto_dir}/data/metaphlan/{metaphlan_index}_VINFO.csv",
+    result=expand("{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv",
         minto_dir=minto_dir,
+        metaphlan_version=metaphlan_version,
         metaphlan_index=metaphlan_index)
     return(result)
 
@@ -339,12 +342,12 @@ rule dbCAN_db:
 
 
 ###############################################################################################
-# Download metaphlan database - MetaPhlAn3
+# Download metaphlan database - MetaPhlAn4
 ###############################################################################################
 
 rule metaphlan_db:
     output:
-        metaphlan_db=expand("{minto_dir}/data/metaphlan/{metaphlan_index}_VINFO.csv",
+        metaphlan_db=expand("{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv",
                             minto_dir=minto_dir,
                             metaphlan_index=metaphlan_index),
     resources:
@@ -352,20 +355,21 @@ rule metaphlan_db:
     threads:
         download_threads
     log:
-        expand("{minto_dir}/logs/metaphlan_{metaphlan_index}_download_db.log",
+        expand("{minto_dir}/logs/metaphlan_{metaphlan_version}_{metaphlan_index}_download_db.log",
                 minto_dir=minto_dir,
+                metaphlan_version=metaphlan_version,
                 metaphlan_index=metaphlan_index)
     conda:
         config["minto_dir"]+"/envs/metaphlan.yml"
     shell:
         """
-        mkdir -p {minto_dir}/data/metaphlan/
+        mkdir -p {minto_dir}/data/metaphlan/{metaphlan_version}
         time (\
                 metaphlan --version
-                metaphlan --install --index {metaphlan_index} --bowtie2db {minto_dir}/data/metaphlan/
+                metaphlan --install --index {metaphlan_index} --bowtie2db {minto_dir}/data/metaphlan/{metaphlan_version}/
                 if [ $? -eq 0 ]; then
                     echo 'MetaPhlAn database download: OK'
-                    echo "{metaphlan_index}" > {minto_dir}/data/metaphlan/mpa_latest
+                    echo "{metaphlan_index}" > {minto_dir}/data/metaphlan/{metaphlan_version}/mpa_latest
                 else
                     echo 'MetaPhlAn database download: FAIL'
                 fi) &> {log}
@@ -377,7 +381,7 @@ rule metaphlan_db:
 
 rule motus_db:
     output:
-        "{minto_dir}/logs/motus_download_db_checkpoint.log"
+        "{minto_dir}/data/motus/db.{motus_version}.downloaded"
     resources:
         mem=download_memory
     threads:

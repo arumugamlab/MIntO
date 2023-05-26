@@ -59,6 +59,7 @@ except:
 # Host genome filtering
 ##############################################
 
+host_genome_path=''
 if config['PATH_host_genome'] is None:
     print('ERROR in ', config_path, ': PATH_host_genome variable is empty. Please, complete ', config_path)
 elif path.exists(config['PATH_host_genome']) is False:
@@ -66,6 +67,7 @@ elif path.exists(config['PATH_host_genome']) is False:
 else:
     host_genome_path=config["PATH_host_genome"]
 
+host_genome_name=''
 if config['NAME_host_genome'] is None:
     print('ERROR in ', config_path, ': NAME_host_genome variable is empty. Please, complete ', config_path)
 elif path.exists(host_genome_path+'/BWA_index/'+config['NAME_host_genome']+'.pac') is True:
@@ -75,7 +77,7 @@ elif path.exists(host_genome_path+'/'+config['NAME_host_genome']) is True:
     host_genome_name=config["NAME_host_genome"]
     print('Host genome sequence {dir}/{db} will be used to create BWA db'.format(db=host_genome_name, dir=host_genome_path))
 else:
-    print('ERROR in {}: NAME_host_genome={} does not exist as fasta or BWA db in PATH_host_genome={}. Please, correct!'.format(config_path, NAME_host_genome, PATH_host_genome))
+    print('ERROR in {}: NAME_host_genome={} does not exist as fasta or BWA db in PATH_host_genome={}. Please, correct!'.format(config_path, config['NAME_host_genome'], config['PATH_host_genome']))
 
 ##############################################
 # Minimum read-length trimming
@@ -116,6 +118,7 @@ elif type(config['BWA_host_memory']) != int:
 # taxonomy
 ##############################################
 
+TAXA_threads=1
 if config['TAXA_threads'] is None:
     print('ERROR in ', config_path, ': TAXA_threads variable is empty. Please, complete ', config_path)
 elif type(config['TAXA_threads']) != int:
@@ -123,6 +126,7 @@ elif type(config['TAXA_threads']) != int:
 else:
     TAXA_threads=config["TAXA_threads"]
 
+TAXA_memory=2
 if config['TAXA_memory'] is None:
     print('ERROR in ', config_path, ': TAXA_memory variable is empty. Please, complete ', config_path)
 elif type(config['TAXA_memory']) != int:
@@ -136,6 +140,10 @@ if sum(flags) == 0:
     taxonomy=config["taxa_profile"]
 else:
     print('ERROR in ', config_path, ': taxa_profile variable is not correct. "taxa_profile" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
+
+# TODO: Read this from yaml file and remove hard-coding
+metaphlan_version = "4.0.6"
+motus_version = "3.0.3"
 
 ##############################################
 # metaG - QC plots
@@ -198,7 +206,7 @@ if omics == 'metaT':
 ##############################################
 # Metaphlan DB version
 ##############################################
-with open(minto_dir + "/data/metaphlan/mpa_latest", 'r') as file:
+with open(minto_dir + "/data/metaphlan/" + metaphlan_version + "/mpa_latest", 'r') as file:
     metaphlan_index = file.read().rstrip()
 
 ##############################################
@@ -232,24 +240,33 @@ def filter_host_genome_output():
 
 def taxonomy_plot_output():
     taxonomies = taxonomy.split(",")
+    taxonomies_versioned = []
+    for t in taxonomies:
+        version="unknown"
+        if t.startswith("motus"):
+            version=motus_version
+        elif t.startswith("metaphlan"):
+            version=metaphlan_version
+        taxonomies_versioned.append(t+"."+version)
+
     results = list()
-    profiles = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}",
+    profiles = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
                 wd = working_dir,
                 omics = omics,
                 sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                taxonomy = taxonomies),\
+                taxonomy = taxonomies_versioned),\
             expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
                 wd = working_dir,
                 omics = omics,
-                taxonomy = taxonomies)
+                taxonomy = taxonomies_versioned)
     plots = expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf",
                 wd = working_dir,
                 omics = omics,
-                taxonomy = taxonomies),\
+                taxonomy = taxonomies_versioned),\
             expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf",
                 wd = working_dir,
                 omics = omics,
-                taxonomy = taxonomies)
+                taxonomy = taxonomies_versioned)
     results.append(profiles)
     results.append(plots)
     return(results)
@@ -514,37 +531,22 @@ def get_tax_profile_input_files(wildcards):
                     sample = wildcards.sample,
                     pair = [1, 2]))
 
-rule taxonomic_profile_metaphlan_download_db:
-    output:
-        metaphlan_db="{minto_dir}/logs/metaphlan_download_db_checkpoint.log".format(minto_dir=minto_dir)
-    resources:
-        mem=TAXA_memory #lambda wildcards, input: len(input.host_free_fw) + 2
-    threads:
-        TAXA_threads
-    log:
-        "{wd}/logs/{omics}/6-taxa_profile/metaphlan_download_db.log".format(wd=working_dir, omics = omics)
-    conda:
-        config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
-    shell:
-        """
-        time (metaphlan --version
-        metaphlan --install --bowtie2db {minto_dir}/data/metaphlan/
-        echo 'MetaPhlAn database downloaded'
-        if [ $? -eq 0 ]; then
-        echo OK > {minto_dir}/logs/metaphlan_download_db_checkpoint.log
-        else
-        echo FAIL
-        fi) >& {log}
-        """
+# To enable multiple versions of taxonomy profiles for the same project, we include {version} in taxonomy profile output file name.
+# But changing '{sample}.{taxonomy}' to '{sample}.{taxonomy}.{version}' leads to trouble as metaphlan's combining script infers the
+# sample name by removing the word after the last dot. If we named files as 'D1.metaphlan.4.0.6', then the combined table lists this
+# sample as 'D1.metaphlan.4.0'. This disagrees with the sample metadata and difficult to recover. So we now add '.tsv' extension to
+# profile output, let metaphlan remove the '.tsv', and then remove '{taxonomy}.{version}' ourselves. This is the history behing
+# naming profile outputs as '{sample}.{taxonomy}.{version}.tsv'.
 
 rule metaphlan_tax_profile:
     input:
-        metaphlan_db=expand("{minto_dir}/data/metaphlan/{metaphlan_index}_VINFO.csv",
-                            minto_dir=minto_dir,
-                            metaphlan_index=metaphlan_index),
+        metaphlan_db=lambda wildcards: expand("{minto_dir}/data/metaphlan/{version}/{metaphlan_index}_VINFO.csv",
+                                                minto_dir=minto_dir,
+                                                version=wildcards.version,
+                                                metaphlan_index=metaphlan_index),
         reads=get_tax_profile_input_files
     output:
-        ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan"
+        ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan.{version}.tsv"
     params:
         tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.metaphlan_taxonomic_profile".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
     resources:
@@ -552,45 +554,47 @@ rule metaphlan_tax_profile:
     threads:
         TAXA_threads
     log:
-        "{wd}/logs/{omics}/6-taxa_profile/{sample}.metaphlan.log"
+        "{wd}/logs/{omics}/6-taxa_profile/{sample}.metaphlan.{version}.log"
     conda:
         config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
     shell:
         """
         mkdir -p {params.tmp_taxa_prof}
         remote_dir=$(dirname {output.ra})
-        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/ {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}/{wildcards.sample}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan -t rel_ab_w_read_stats --index {metaphlan_index}
+        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/{wildcards.version} {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan.{wildcards.version}.tsv -t rel_ab_w_read_stats --index {metaphlan_index}
         rsync -a {params.tmp_taxa_prof}/* $remote_dir) >& {log}
         rm -rf {params.tmp_taxa_prof}
         """
 
 rule metaphlan_combine_profiles:
     input:
-        ra=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, sample = ilmn_samples),
+        ra=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = ilmn_samples),
     output:
-        merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table.txt",
-        species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
+        merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
+        species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table_species.txt",
     wildcard_constraints:
         taxonomy='metaphlan'
-
     threads: 1
     log:
-        "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}_combine.log"
+        "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}.{version}_combine.log"
     conda:
         config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
     shell:
         """
         time (\
-                merge_metaphlan_tables.py {input.ra} > {output.merged}
-                grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
+                merge_metaphlan_tables.py {input.ra} | sed 's/\.{wildcards.taxonomy}\.{wildcards.version}//g' > {output.merged}
+                grep -E "s__|clade_name" {output.merged} | grep -v "t__" | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
             ) >& {log}
         """
 
 rule motus_map_db:
     input:
-        reads=get_tax_profile_input_files
+        reads=get_tax_profile_input_files,
+        db=lambda wildcards: expand("{minto_dir}/data/motus/db.{version}.downloaded",
+                                                minto_dir=minto_dir,
+                                                version=wildcards.version)
     output:
-        mgc="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus.mgc",
+        mgc="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus.{version}.mgc"
     params:
         tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.motus.taxonomic_profile".format(local_dir=local_dir, omics = wildcards.omics, sample = wildcards.sample),
     resources:
@@ -598,7 +602,7 @@ rule motus_map_db:
     threads:
         TAXA_threads
     log:
-        "{wd}/logs/{omics}/6-taxa_profile/{sample}.motus.mgc.log"
+        "{wd}/logs/{omics}/6-taxa_profile/{sample}.motus.{version}.mgc.log"
     conda:
         config["minto_dir"]+"/envs/motus_env.yml" #motus3
     shell:
@@ -617,13 +621,13 @@ rule motus_calc_motu:
     input:
         mgc=rules.motus_map_db.output.mgc,
     output:
-        raw="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw",
-        rel="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel"
+        raw="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw.{version}.tsv",
+        rel="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel.{version}.tsv"
     resources:
         mem=TAXA_memory
     threads: 2
     log:
-        "{wd}/logs/{omics}/6-taxa_profile/{sample}.motus.log"
+        "{wd}/logs/{omics}/6-taxa_profile/{sample}.motus.{version}.log"
     conda:
         config["minto_dir"]+"/envs/motus_env.yml" #motus3
     shell:
@@ -636,10 +640,10 @@ rule motus_calc_motu:
 
 rule motus_combine_profiles:
     input:
-        profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, sample = ilmn_samples),
+        profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = ilmn_samples),
     output:
-        merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table.txt",
-        species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
+        merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
+        species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table_species.txt",
     wildcard_constraints:
         taxonomy='motus_(raw|rel)'
     params:
@@ -647,7 +651,7 @@ rule motus_combine_profiles:
         files=lambda wildcards, input: ",".join(input.profiles)
     threads: 1
     log:
-        "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}_combine.log"
+        "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}.{version}_combine.log"
     conda:
         config["minto_dir"]+"/envs/motus_env.yml" #motus3
     shell:
@@ -660,21 +664,21 @@ rule motus_combine_profiles:
 
 rule plot_taxonomic_profile:
     input:
-        merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table.txt",
+        merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
     output:
-        pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf",
-        barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf",
+        pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.PCoA.Bray_Curtis.pdf",
+        barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.Top15genera.pdf",
     params:
         plot_args=plot_args_str
     threads: 1
     log:
-        "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}_plot.log"
+        "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}.{version}_plot.log"
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
         time (\
-                Rscript {script_dir}/plot_6_taxa_profile.R --table {input.merged} --profiler {wildcards.omics}.{wildcards.taxonomy} --metadata {metadata} --outdir $(dirname {output.pcoa}) {params.plot_args}
+                Rscript {script_dir}/plot_6_taxa_profile.R --table {input.merged} --profiler {wildcards.omics}.{wildcards.taxonomy}.{wildcards.version} --metadata {metadata} --outdir $(dirname {output.pcoa}) {params.plot_args}
             ) >& {log}
         """
 
