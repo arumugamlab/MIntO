@@ -82,7 +82,7 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #o
   
   species_table <- as.data.frame(fread(profile_file, header = T), stringsAsFactors = F) %>%
     filter(grepl('s__', clade_name)) %>%
-    mutate(across('clade_name', str_replace, '[kpcofgs]__', '')) %>%
+    mutate(across('clade_name', str_replace_all, '[kpcofgs]__', '')) %>%
     tidyr::separate(clade_name, c("kingdom", "phylum", "class", "order", "family", "genus", "species","strain"), "[\\|]") 
     species_table = species_table[which(is.na(species_table$strain)),-8]
     
