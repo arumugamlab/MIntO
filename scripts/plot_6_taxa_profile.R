@@ -86,7 +86,11 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #o
     mutate(across('clade_name', \(x) str_replace_all(x, '[kpcofgs]__', ''))) %>%
     tidyr::separate(clade_name, c("kingdom", "phylum", "class", "order", "family", "genus", "species"), "[\\|]")
     
-  rownames(species_table) <- paste0(species_table$species)
+  if (profile_param %like% 'motus') {
+    rownames(species_table) <- str_extract(species_table$species, "\\[(\\S+)\\]$", group=1)
+  } else {
+    rownames(species_table) <- paste0(species_table$species)
+  }
   
   #### OTU table
   otu_table <- species_table %>%
