@@ -144,7 +144,7 @@ if (profile_param %like% 'motus_raw') {
 distance_lab = 'bray'
 title_name <- c(paste0("PCoA - Taxonomic profile - ", profile_param), "Bray-Curtis")
 out_name <- paste0(out_dir, '/', profile_param, ".PCoA.Bray_Curtis.pdf")
-title_name_pval <- paste0("Bray-Curtis")
+title_name_pval <- paste0("Metric: Bray-Curtis")
 if(length(unique(metadata_df[[opt$factor]]))>1){
   #**adonis/adonis2, Permutational Multivariate Analysis of Variance Using Distance Matrix**: ####
   library(vegan)
@@ -158,7 +158,7 @@ if(length(unique(metadata_df[[opt$factor]]))>1){
   r2_value <- format(round(adonis_bray_Status$R2[1],3), nsmall = 3)
   p_value <- adonis_bray_Status$`Pr(>F)`[1]
   
-  title_name_pval <- paste0("Bray-Curtis; R2=",r2_value,"; pval=",p_value)
+  title_name_pval <- paste0("Metric: Bray-Curtis; PERMANOVA on ", opt$factor, ": R2=", r2_value, ", pval=", p_value)
 }
 
 #plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, title_name, out_name)
