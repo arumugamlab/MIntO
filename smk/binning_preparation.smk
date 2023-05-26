@@ -208,7 +208,13 @@ def get_num_batches(assemblies):
     batch_count = len(assemblies) / batch_size
     return(math.ceil(batch_count))
 
-#print(SCAFFOLDS_type)
+# Remove assembly types if specified
+
+if 'EXCLUDE_ASSEMBLY_TYPES' in config:
+    if config['EXCLUDE_ASSEMBLY_TYPES'] is not None:
+        for item in config['EXCLUDE_ASSEMBLY_TYPES']:
+            if item in SCAFFOLDS_type:
+                SCAFFOLDS_type.remove(item)
 
 # Define all the outputs needed by target 'all'
 
