@@ -6,9 +6,21 @@ Pre-processing of metaG and metaT data step - quality reads filtering
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
+################################
+# config file name:
+# Getting the configfile's name is simple but just not obvious.
+# See: https://stackoverflow.com/a/72096363
+################################
 config_path = 'configuration yaml file' #args[args_idx+1]
+if '--configfile' in sys.argv:
+    i = sys.argv.index('--configfile')
+    config_path = sys.argv[i+1]
+elif '--configfiles' in sys.argv:
+    i = sys.argv.index('--configfiles')
+    config_path = sys.argv[i+1]
+
 print(" *******************************")
-print(" Reading configuration yaml file: ")#, config_path)
+print(" Reading configuration yaml file: ", config_path)
 print(" *******************************")
 print("  ")
 
