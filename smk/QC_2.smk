@@ -668,6 +668,8 @@ rule plot_taxonomic_profile:
     output:
         pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.PCoA.Bray_Curtis.pdf",
         barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.Top15genera.pdf",
+    wildcard_constraints:
+        taxonomy='motus_(raw|rel)|metaphlan'
     params:
         plot_args=plot_args_str
     threads: 1
