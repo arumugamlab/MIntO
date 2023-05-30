@@ -1,22 +1,12 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 
-#if("dplyr" %in% rownames(installed.packages()) == FALSE) {install.packages("dplyr")}
 library(dplyr)
-#if("data.table" %in% rownames(installed.packages()) == FALSE) {install.packages("data.table")}
 library(data.table)
-#if("tidyr" %in% rownames(installed.packages()) == FALSE) {install.packages("tidyr")}
 library(tidyr) #
-#if("Biostrings" %in% rownames(installed.packages()) == FALSE) {install.packages("Biostrings")}
 library(Biostrings)
-#if("R.utils" %in% rownames(installed.packages()) == FALSE) {install.packages("R.utils")}
-#library(R.utils) #
-#if("stringr" %in% rownames(installed.packages()) == FALSE) {install.packages("stringr")}
 library(stringr) #
-#if("rlang" %in% rownames(installed.packages()) == FALSE) {install.packages("rlang")}
 library(rlang)
-#if("seqinr" %in% rownames(installed.packages()) == FALSE) {install.packages("seqinr")}
-#library(seqinr) #
 
 threads_n <- args[1]
 bed_file <- args[2]
@@ -24,8 +14,6 @@ bed_file_short <- args[3]
 cd_transl_file <- args[4]
 dir_out <- args[5]
 file_name <- args[6]
-#normalization <- args[7]
-out_dir <- args[7]
 
 ##########################  ** Load directories **  ########################## 
 # threads_n <- 8
