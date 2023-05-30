@@ -11,41 +11,10 @@ Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
 import os.path
 from os import path
 
-# args = sys.argv
-# config_path = args[args.index("--configfile") + 1]
-config_path = 'configuration yaml file' #args[args_idx+1]
-print(" *******************************")
-print(" Reading configuration yaml file")#: , config_path)
-print(" *******************************")
-print("  ")
-
-# Variables from configuration yaml file
-
-# some variables
-if config['PROJECT'] is None:
-    print('ERROR in ', config_path, ': PROJECT variable is empty. Please, complete ', config_path)
-else:
-    project_name = config['PROJECT']
-
-if config['working_dir'] is None:
-    print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
-elif path.exists(config['working_dir']) is False:
-    print('ERROR in ', config_path, ': working_dir variable path does not exit. Please, complete ', config_path)
-else:
-    working_dir = config['working_dir']
-
-if config['local_dir'] is None:
-    prints('ERROR in ', config_path, ': local_dir variable is empty. Please, complete ', config_path)
-else:
-    local_dir = config['local_dir']
-
-if config['minto_dir'] is None:
-    print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
-elif path.exists(config['minto_dir']) is False:
-    print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
-else:
-    minto_dir=config["minto_dir"]
-    script_dir=config["minto_dir"]+"/scripts"
+# Get common config variables
+# These are:
+#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+include: 'config_parser.smk'
 
 if config['map_reference'] in ("MAG", "reference_genome"):
     map_reference=config["map_reference"]
@@ -53,8 +22,8 @@ else:
     print('ERROR in ', config_path, ': map_reference variable is not correct. "map_reference" variable should be MAG or reference_genome.')
 
 if map_reference == 'MAG':
-    print('WARNING in ', config_path, ': MIntO is using "'+ working_dir+'/metaG/8-1-binning/mags_generation_pipeline/prokka" as PATH_reference variable')
-    reference_dir="{wd}/metaG/8-1-binning/mags_generation_pipeline/prokka".format(wd=working_dir)
+    reference_dir="{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka".format(wd=working_dir, omics=omics)
+    print('WARNING in ', config_path, ': MIntO is using "' + reference_dir + '" as PATH_reference variable')
 elif map_reference == 'reference_genome':
     reference_dir=config["PATH_reference"]
     print('WARNING in ', config_path, ': MIntO is using "'+ reference_dir+'" as PATH_reference variable')
@@ -88,66 +57,37 @@ else:
 if map_reference == 'MAG':
     post_analysis_dir="9-MAGs-prokka-post-analysis"
     post_analysis_out="MAGs_genes"
-    #reference_dir="{wd}/metaG/8-1-binning/mags_generation_pipeline/prokka".format(wd=working_dir)
-    def merge_genes_output():
-        result = expand("{wd}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),\
-        expand("{wd}/DB/{post_analysis_dir}/genomes_list.txt", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir),\
-        expand("{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),\
-        expand("{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}_names_modif.bed", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),\
-        expand("{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),\
-        expand("{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out)
-        return(result)
-
-if map_reference == 'reference_genome':
+elif map_reference == 'reference_genome':
     post_analysis_dir="9-reference-genes-post-analysis"
     post_analysis_out="reference_genes"
-    #reference_dir=config["reference_dir"]
-    def merge_genes_output():
-        result = expand("{wd}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),\
-        expand("{wd}/DB/{post_analysis_dir}/genomes_list.txt", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir),\
-        expand("{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),\
-        expand("{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}_names_modif.bed", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),\
-        expand("{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),\
-        expand("{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa", 
-                    wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out)
-        return(result)
-
-if map_reference == 'genes_db':
+elif map_reference == 'genes_db':
     post_analysis_dir="9-genes-db-post-analysis"
     post_analysis_out="db_genes"
+
+def merge_genes_output():
+    result = expand("{wd}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa",
+                wd = working_dir,
+                post_analysis_dir = post_analysis_dir,
+                post_analysis_out = post_analysis_out),\
+    expand("{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed",
+                wd = working_dir,
+                post_analysis_dir = post_analysis_dir,
+                post_analysis_out = post_analysis_out),\
+    expand("{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}_names_modif.bed",
+                wd = working_dir,
+                post_analysis_dir = post_analysis_dir,
+                post_analysis_out = post_analysis_out),\
+    expand("{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed",
+                wd = working_dir,
+                post_analysis_dir = post_analysis_dir,
+                post_analysis_out = post_analysis_out),\
+    expand("{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
+                wd = working_dir,
+                post_analysis_dir = post_analysis_dir,
+                post_analysis_out = post_analysis_out)
+    return(result)
+
+if map_reference == 'genes_db':
     def merge_genes_output(): # CHECK THIS PART - do not output anything when map_reference == 'genes_db'
         result = expand()
         return(result)
@@ -179,98 +119,110 @@ rule all:
 ## Combine faa and bed files from the different genomes
 ###############################################################################################
 
-# Convert GFF file into BED file ####
-rule gene_annot_merge:
-    input:
-        in_dir="{reference_dir}/".format(reference_dir=reference_dir),
-        #prova="{wd}"#.format(wd = working_dir)
-    output:
-        fasta_cd_transl_merge="{{wd}}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa".format(post_analysis_dir = post_analysis_dir, post_analysis_out = post_analysis_out), 
-        genomes_list="{{wd}}/DB/{post_analysis_dir}/genomes_list.txt".format(post_analysis_dir = post_analysis_dir), 
-        bed_file="{{wd}}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed".format(post_analysis_dir = post_analysis_dir, post_analysis_out = post_analysis_out),
-        bed_file_header="{{wd}}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.header-modif.coord_correct.bed".format(post_analysis_dir = post_analysis_dir, post_analysis_out = post_analysis_out),
-    params:
-       tmp_reference=lambda wildcards: "{local_dir}/{post_analysis_dir}_{post_analysis_out}_out/".format(local_dir = local_dir, post_analysis_dir = post_analysis_dir, post_analysis_out = post_analysis_out),
+# Get a sorted list of genomes
+
+def get_genomes_from_refdir():
+    genomes = [ f.name for f in os.scandir(reference_dir) if f.is_dir() ]
+    return(sorted(genomes))
+
+# Combine FAA files ####
+
+rule make_cd_transl_faa_for_genome:
+    input: lambda wildcards: "{reference_dir}/{genome}/{genome}.faa".format(reference_dir=reference_dir, genome=wildcards.genome)
+    output: "{wd}/DB/{post_analysis_dir}/CD_transl/{genome}_translated_cds.faa"
     log:
-        "{{wd}}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_out.log".format(post_analysis_dir = post_analysis_dir, post_analysis_out = post_analysis_out)
-    resources:
-        mem=5
-    threads: 4
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.reformat_faa.log"
+    params:
+        pattern = '^>lcl|' if map_reference=='reference_genome' else '^>'
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml" #seqtk
+    shell:
+        """
+        time (seqtk seq -l 0 {input} | sed -e "1,$ s/{params.pattern}/>{wildcards.genome}|/g" > {output}) >& {log}
+        """
+
+def get_genome_cd_transl_faa(wildcards):
+    #Collect the CDS faa files for MAGs
+    genomes = get_genomes_from_refdir()
+    result = expand("{wd}/DB/{post_analysis_dir}/CD_transl/{genome}_translated_cds.faa",
+                    wd=wildcards.wd,
+                    post_analysis_dir=wildcards.post_analysis_dir,
+                    genome=genomes)
+    return(result)
+
+rule make_merged_cds_faa:
+    input: get_genome_cd_transl_faa
+    output:
+        fasta_cd_transl_merge="{wd}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa"
+    shell:
+        """
+        cat {input} > {output}
+        """
+
+# Convert GFF file into BED file ####
+
+rule make_bed_for_genome:
+    input: lambda wildcards: "{reference_dir}/{genome}/{genome}.gff".format(reference_dir=reference_dir, genome=wildcards.genome)
+    output:
+        bed=                      "{wd}/DB/{post_analysis_dir}/GFF/{genome}.bed",
+        bed_hdr_mod=              "{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.bed",
+        bed_hdr_mod_coord_correct="{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.coord_correct.bed"
+    log:
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.make_bed_from_gff.log"
+    params:
+        pattern = '^' if map_reference=='reference_genome' else '^gnl|X|'
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
-    shell: 
+    shell:
         """
-        mkdir -p {params.tmp_reference}CD_transl
-        mkdir -p {params.tmp_reference}GFF
-        time( cd {reference_dir}
-        if [ {map_reference} == 'MAG' ]
-            then echo {map_reference}
-            for file in */*.faa
-                do echo ${{file}}
-                genome=$(dirname "${{file}}")
-                echo ${{genome}}
-                echo ${{genome}} >> {params.tmp_reference}genomes_list.txt
-                awk '{{if(NR==1) {{print $0}} else {{if($0 ~ /^>/) {{print "\\n"$0}} else {{printf $0}}}}}}' ${{file}} > {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa
-                [[ $(tail -c1 {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa) && -f {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa ]]&&echo ''>> {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa
-                sed -e "1,$ s/^>/>${{genome}}|/g" "{params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa" > {params.tmp_reference}CD_transl/${{genome}}_translated_cds.faa
-                rm {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa
-            done
-            for file in {reference_dir}/*/*.gff
-                do echo ${{file}}
-                genome=$(basename "${{file}}" .gff)
-                echo ${{genome}}
-                gff2bed < ${{file}} > {params.tmp_reference}GFF/${{genome}}.bed
-                file_bed={params.tmp_reference}GFF/${{genome}}.bed
-                sed -e "1,$ s/^gnl|X|/${{genome}}|/g" "${{file_bed}}" > {params.tmp_reference}GFF/${{genome}}.header-modif.bed
-            done
-        elif [ {map_reference} == 'reference_genome' ]
-            then echo {map_reference} 
-            for file in */*.faa
-                do echo ${{file}}
-                genome=$(dirname "${{file}}")
-                echo ${{genome}}
-                echo ${{genome}} >> {params.tmp_reference}genomes_list.txt
-                awk '{{if(NR==1) {{print $0}} else {{if($0 ~ /^>/) {{print "\\n"$0}} else {{printf $0}}}}}}' ${{file}} > {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa
-                [[ $(tail -c1 {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa) && -f {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa ]]&&echo ''>> {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa
-                sed -e "1,$ s/^>lcl|/>${{genome}}|/g" "{params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa" > {params.tmp_reference}CD_transl/${{genome}}_translated_cds.faa
-                rm {params.tmp_reference}CD_transl/${{genome}}_translated_cds_int.faa
-            done      
-            for file in {reference_dir}/*/*.gff
-                do echo ${{file}}
-                genome=$(basename "${{file}}" .gff)
-                echo ${{genome}}
-                gff2bed < ${{file}} > {params.tmp_reference}GFF/${{genome}}.bed
-                file_bed={params.tmp_reference}GFF/${{genome}}.bed
-                sed -e "1,$ s/^/${{genome}}|/g" "${{file_bed}}" > {params.tmp_reference}GFF/${{genome}}.header-modif.bed
-            done
-        fi
-        for g in $(cat {params.tmp_reference}genomes_list.txt)
-            do cat {params.tmp_reference}CD_transl/${{g}}_translated_cds.faa >> {params.tmp_reference}{post_analysis_out}_translated_cds.faa
-            cat {params.tmp_reference}GFF/${{g}}.header-modif.bed >> {params.tmp_reference}GFF/{post_analysis_out}.header-modif.bed
-        done
-        awk -v OFS='\\t' '{{$2+=1; print $0}}' {params.tmp_reference}GFF/{post_analysis_out}.header-modif.bed > {params.tmp_reference}GFF/{post_analysis_out}.header-modif.coord_correct.bed
-        awk -F'\\t' '{{gsub(/[;]/, "\\t", $10)}} 1' OFS='\\t' {params.tmp_reference}GFF/{post_analysis_out}.header-modif.coord_correct.bed| cut -f 1-10  > {params.tmp_reference}{post_analysis_out}.bed
-        rsync {params.tmp_reference}CD_transl/* {working_dir}/DB/{post_analysis_dir}/CD_transl/
-        rsync {params.tmp_reference}{post_analysis_out}_translated_cds.faa {output.fasta_cd_transl_merge}
-        rsync {params.tmp_reference}genomes_list.txt {output.genomes_list}
-        rsync {params.tmp_reference}GFF/* {working_dir}/DB/{post_analysis_dir}/GFF/
-        rsync {params.tmp_reference}{post_analysis_out}.bed {output.bed_file}) &> {log}
-        rm -rf {params.tmp_reference}"""
+        time (\
+            gff2bed < {input} > {output.bed}
+            sed -e "1,$ s/{params.pattern}/{wildcards.genome}|/g" {output.bed} > {output.bed_hdr_mod}
+            awk -v OFS='\\t' '{{$2+=1; print $0}}' {output.bed_hdr_mod} > {output.bed_hdr_mod_coord_correct} \
+        ) >& {log}
+        """
+
+def get_genome_bed(wildcards):
+    #Collect the BED files for MAGs
+    genomes = get_genomes_from_refdir()
+    result = expand("{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.coord_correct.bed",
+                    wd=wildcards.wd,
+                    post_analysis_dir=wildcards.post_analysis_dir,
+                    genome=genomes)
+    return(result)
+
+rule make_merged_bed:
+    input: get_genome_bed
+    output:
+        bed_file=       "{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed",
+        bed_file_header="{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.header-modif.coord_correct.bed"
+    log:
+        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}.merge_bed.log"
+    wildcard_constraints:
+        post_analysis_out='MAGs_genes|reference_genes'
+    shell:
+        """
+        time (\
+            cat {input} > {output.bed_file_header}
+            cat {input} \
+                    | awk -F'\\t' '{{gsub(/[;]/, "\\t", $10)}} 1' OFS='\\t' \
+                    | cut -f 1-10 \
+                    > {output.bed_file} \
+        ) >& {log}
+        """
 
 rule gene_annot_subset:
     input:
         bed_file="{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed",
         bed_file_header="{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.header-modif.coord_correct.bed",
         fasta_cd_transl_merge="{wd}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa",
-        genomes_list="{wd}/DB/{post_analysis_dir}/genomes_list.txt", 
     output: 
         bed_modif="{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}_names_modif.bed",
         bed_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed", 
         fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
     params:
-        tmp_subset=lambda wildcards: "{local_dir}/{post_analysis_out}_out_subset/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
     log:
-        "{wd}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_subset_out.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_subset_out.log"
     resources:
         mem=5
     threads: 8
@@ -278,17 +230,10 @@ rule gene_annot_subset:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell: 
         """
-        mkdir -p {params.tmp_subset}/GFF
-        mkdir -p {params.tmp_subset}/CD_transl
         remote_dir={wildcards.wd}/DB/{post_analysis_dir}/
-        time (Rscript {script_dir}/{post_analysis_out}_out_subset.R {threads} {input.bed_file_header} {input.bed_file} {input.fasta_cd_transl_merge} {params.tmp_subset} {post_analysis_out} ${{remote_dir}}
-        if [ {map_reference} == 'reference_genome' ]
-            then rsync {params.tmp_subset}/CD_transl/* ${{remote_dir}}CD_transl/
-        fi
-        rsync {params.tmp_subset}/GFF/* ${{remote_dir}}GFF/
-        rsync {params.tmp_subset}/{post_analysis_out}_SUBSET.bed {output.bed_subset}
-        rsync {params.tmp_subset}/{post_analysis_out}_translated_cds_SUBSET.faa {output.fasta_subset}) &> {log}
-        rm -rf {params.tmp_subset}
+        mkdir -p ${{remote_dir}}/GFF
+        mkdir -p ${{remote_dir}}/CD_transl
+        time (Rscript {script_dir}/{post_analysis_out}_out_subset.R {threads} {input.bed_file_header} {input.bed_file} {input.fasta_cd_transl_merge} ${{remote_dir}} {post_analysis_out}) &> {log}
         """
 
 ################################################################################################
@@ -309,7 +254,7 @@ rule gene_annot_kofamscan:
         prefix="{post_analysis_out}_translated_cds_SUBSET",
         kofam_db=lambda wildcards: "{minto_dir}/data/kofam_db/".format(minto_dir = minto_dir) #config["KOFAM_db"]
     log:
-        "{wd}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_kofamscan.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_kofamscan.log"
     resources:
         mem=10
     threads: 16
@@ -338,7 +283,7 @@ rule gene_annot_dbcan:
         prefix="{post_analysis_out}_translated_cds_SUBSET",
         dbcan_db=lambda wildcards: "{minto_dir}/data/dbCAN_db/".format(minto_dir = minto_dir)
     log:
-        "{wd}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_dbcan.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_dbcan.log"
     resources:
         mem=10
     threads: 16
@@ -364,7 +309,7 @@ rule gene_annot_eggnog:
         prefix="{post_analysis_out}_translated_cds_SUBSET",
         eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
     log:
-        "{wd}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_eggnog.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_eggnog.log"
     resources:
         mem=10
     threads: 16
@@ -408,7 +353,7 @@ rule predicted_gene_annotation_collate:
         #tmp_annot=lambda wildcards: "{local_dir}/{post_analysis_out}_annot/".format(local_dir=local_dir),
         prefix="{post_analysis_out}_translated_cds_SUBSET",
     log:
-        "{wd}/logs/metaG/{post_analysis_dir}/{post_analysis_out}_annot.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_annot.log"
     resources:
         mem=10
     threads: 9
