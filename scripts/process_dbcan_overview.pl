@@ -34,22 +34,21 @@ while (<FILE>){
 			}
 			if ($enz =~ /^CBM/){
 				#push @mod, $enz;
-        	                $mod{$enz} = "";
-                #	} elsif ($entry !~ /^CBM/ && $entry =~ /^\D/){
-                	} else {
-                        	#push @enzymes, $enz;
+				$mod{$enz} = "";
+			} else {
+				#push @enzymes, $enz;
 				$enzymes{$enz} = "";
 			}
 		}
 	}
 	if (%mod){
-		my @mod = keys %mod;
-                $filler[0] = join ",", @mod;
-        }
-        if (%enzymes){
-        	my @enzymes = keys %enzymes;
-                $filler[1] = join ",", @enzymes;
-        }
+		my @mod = sort {$a cmp $b} keys %mod;
+		$filler[0] = join ",", @mod;
+	}
+	if (%enzymes){
+		my @enzymes = sort {$a cmp $b} keys %enzymes;
+		$filler[1] = join ",", @enzymes;
+	}
 	my $myline =  $id."\t".join "\t", @filler;
-        print $myline, "\n";
+	print $myline, "\n";
 }
