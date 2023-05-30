@@ -178,7 +178,7 @@ rule make_bed_for_genome:
         time (\
             gff2bed < {input} > {output.bed}
             sed -e "1,$ s/{params.pattern}/{wildcards.genome}|/g" {output.bed} > {output.bed_hdr_mod}
-            awk -v OFS='\\t' '{{$2+=1; print $0}}' {output.bed_hdr_mod} > {output.bed_hdr_mod_coord_correct} \
+            awk -v FS='\\t' -v OFS='\\t' '{{$2+=1; print $0}}' {output.bed_hdr_mod} > {output.bed_hdr_mod_coord_correct} \
         ) >& {log}
         """
 
