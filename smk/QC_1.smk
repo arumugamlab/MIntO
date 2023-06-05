@@ -12,7 +12,7 @@ Authors: Carmen Saenz, Mani Arumugam
 import os.path
 from os import path
 
-localrules: qc1_check_read_length_merge, qc1_cumulative_read_len_plot, qc1_config_yml_file
+localrules: qc1_check_read_length_merge, qc1_cumulative_read_len_plot, qc2_config_yml_file
 
 # Get common config variables
 # These are:
@@ -375,7 +375,7 @@ rule qc1_cumulative_read_len_plot:
 # Generate configuration yml file for the next step in pre-processing of metaG and metaT data 
 ##########################################################################################################
 
-rule qc1_config_yml_file:
+rule qc2_config_yml_file:
     input: 
         cutoff_file=rules.qc1_cumulative_read_len_plot.output.cutoff_file
     output: 
@@ -384,7 +384,7 @@ rule qc1_config_yml_file:
         trim_threads=config['TRIMMOMATIC_threads'],
         trim_memory=config['TRIMMOMATIC_memory'] 
     log: 
-        "{wd}/logs/{omics}/qc1_config_yml_file.log"
+        "{wd}/logs/{omics}/qc2_config_yml_file.log"
     shell: 
         """
         cat > {output.config_file} <<___EOF___
@@ -470,6 +470,23 @@ taxa_profile: motus_rel
 MAIN_factor:
 PLOT_factor2:
 PLOT_time:
+
+######################
+# Optionally, do you want to merge replicates or make pseudo samples
+# E.g:
+# MERGE_ILLUMINA_SAMPLES:
+#  - merged=rep1+rep2+rep3
+#
+# The above directive will combine 3 samples (rep1, rep2 and rep3)
+# after the last step into a new sample called 'merged'. Now you can remove
+# rep1, rep2 and rep3 from assembly, MAG generation and profiling steps.
+# Please note that METADATA file must have an entry for 'merged' as well,
+# otherwise QC_2 step will fail.
+# Having extra entries in METADATA file does not affect you in any way.
+######################
+
+#MERGE_ILLUMINA_SAMPLES:
+
 
 ######################
 # Input data
