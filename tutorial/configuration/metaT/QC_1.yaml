@@ -1,6 +1,7 @@
 ######################
 # General settings
 ######################
+
 PROJECT: IBD_tutorial
 working_dir: /mypath/IBD_tutorial
 omics: metaT
@@ -14,9 +15,11 @@ raw_reads_dir: /mypath/IBD_tutorial_raw/metaT
 ######################
 # Read quality filtering
 trimmomatic_adaptors: Skip
-perc_remaining_reads: 95 
-TRIMMOMATIC_threads: 4
+TRIMMOMATIC_index_barcodes:
+TRIMMOMATIC_simple_clip_threshold:
+TRIMMOMATIC_threads: 8
 TRIMMOMATIC_memory: 5
+perc_remaining_reads: 95
 
 # Input data
 # ILLUMINA section:
