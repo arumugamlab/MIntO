@@ -818,10 +818,30 @@ BWA_threads: 24
 SAMTOOLS_sort_threads: 4
 SAMTOOLS_sort_memory_gb: 20
 
+###############################
 # Binning preparation settings
-MIN_FASTA_LENGTH: 2500
-CONTIG_MAPPING_BATCH_SIZE: 100
+###############################
+
+# Whether to use contigs or scaffolds from SPAdes
 SPADES_CONTIGS_OR_SCAFFOLDS: scaffolds
+
+# minimum contig/scaffold fasta length
+MIN_FASTA_LENGTH: 2500
+
+# assembly batch size for mapping reads to combined contig sets
+CONTIG_MAPPING_BATCH_SIZE: 100
+
+# Should we exclude any assembly type during MAG generation?
+# E.g., if you make MAGs from metaT, individual sample assemblies
+# will be quite fragmented. If you have several co-assemblies, then
+# ignoring 'illumina_single' might improve your MAG quality. This can
+# be achieved using:
+# ---
+# EXCLUDE_ASSEMBLY_TYPES:
+#     - illumina_single
+# ---
+#
+# EXCLUDE_ASSEMBLY_TYPES:
 
 # Input data
 
@@ -935,11 +955,13 @@ msamtools_filter_length: 50
 alignment_identity: 95
 
 # Normalization approach
+# Could be TPM, MG or comma-delimited combinations
 abundance_normalization: TPM
 fetchMGs_dir: {minto_dir}/data/fetchMGs-1.2
 
 # Map reads to reference
 map_reference: MAG
+MAG_omics: metaG
 PATH_reference: # path to gene catalog fasta file
 NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
 
