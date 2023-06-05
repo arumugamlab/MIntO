@@ -129,8 +129,9 @@ def metaphlan_db_out():
     return(result)
 
 def motus_db_out():
-    result=expand("{minto_dir}/logs/motus_download_db_checkpoint.log",
-        minto_dir=minto_dir)
+    result=expand("{minto_dir}/logs/motus_{motus_version}.download_db.log",
+        minto_dir=minto_dir,
+        motus_version=motus_version)
     return(result)
 
 def checkm2_db_out():
@@ -347,29 +348,24 @@ rule dbCAN_db:
 
 rule metaphlan_db:
     output:
-        metaphlan_db=expand("{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv",
-                            minto_dir=minto_dir,
-                            metaphlan_index=metaphlan_index),
+        "{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv"
     resources:
         mem=download_memory
     threads:
         download_threads
     log:
-        expand("{minto_dir}/logs/metaphlan_{metaphlan_version}_{metaphlan_index}_download_db.log",
-                minto_dir=minto_dir,
-                metaphlan_version=metaphlan_version,
-                metaphlan_index=metaphlan_index)
+        "{minto_dir}/logs/metaphlan_{metaphlan_version}_{metaphlan_index}_download_db.log"
     conda:
         config["minto_dir"]+"/envs/metaphlan.yml"
     shell:
         """
-        mkdir -p {minto_dir}/data/metaphlan/{metaphlan_version}
+        mkdir -p {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}
         time (\
                 metaphlan --version
-                metaphlan --install --index {metaphlan_index} --bowtie2db {minto_dir}/data/metaphlan/{metaphlan_version}/
+                metaphlan --install --index {wildcards.metaphlan_index} --bowtie2db {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/
                 if [ $? -eq 0 ]; then
                     echo 'MetaPhlAn database download: OK'
-                    echo "{metaphlan_index}" > {minto_dir}/data/metaphlan/{metaphlan_version}/mpa_latest
+                    echo "{wildcards.metaphlan_index}" > {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/mpa_latest
                 else
                     echo 'MetaPhlAn database download: FAIL'
                 fi) &> {log}
@@ -387,7 +383,7 @@ rule motus_db:
     threads:
         download_threads
     log:
-        "{minto_dir}/logs/motus_download_db.log"
+        "{minto_dir}/logs/motus_{motus_version}.download_db.log"
     conda:
         config["minto_dir"]+"/envs/motus_env.yml"
     shell:
