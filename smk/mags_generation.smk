@@ -22,33 +22,14 @@ from os import path
 
 localrules: copy_genomes_in_all, copy_best_genomes
 
-# args = sys.argv
-# config_path = args[args.index("--configfile") + 1]
-config_path = 'configuration yaml file' #args[args_idx+1]
-print(" *******************************")
-print(" Reading configuration yaml file: ") #, config_path)
-print(" *******************************")
-print("  ")
+# Get common config variables
+# These are:
+#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+include: 'config_parser.smk'
 
 # Variables from configuration yaml file
 
 # some variables
-
-if config['working_dir'] is None:
-    print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
-elif path.exists(config['working_dir']) is False:
-    print('ERROR in ', config_path, ': working_dir variable path does not exit. Please, complete ', config_path)
-else:
-    working_dir = config['working_dir']
-    wdir = config['working_dir']
-
-if config['minto_dir'] is None:
-    print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
-elif path.exists(config['minto_dir']) is False:
-    print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
-else:
-    minto_dir=config["minto_dir"]
-    script_dir=config["minto_dir"]+"/scripts/"
 
 if 'BINNERS' in config:
     if config['BINNERS'] is None:
@@ -445,7 +426,7 @@ rule make_comprehensive_table:
     output:
         checkm_total = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
     log:
-        "{wd}/logs/{omics}/mags_generation/make_comprehensive_table.log"#.format(wdir = config['working_dir'])
+        "{wd}/logs/{omics}/mags_generation/make_comprehensive_table.log"
     resources:
         mem=10
     threads:
