@@ -9,7 +9,7 @@ MAGs recovery and annotation
 4) Run Coverm on HQ (why coverm, becasue it is easier to add a new binner in the case)
 5) Retrieving the score for the genomes
 6) Retrieving the best and unique set of genomes (with old scored formula)
-7) Run prokka on the genomes (prokka) [separate environment]
+7) Run prokka on the genomes (prokka) [separate environment] [ moved to annotation.smk ]
 8) Run taxonomic label on the genomes (PhylopHlan Metagenomic) [separate environment]
 
 Authors: Eleonora Nigro, Mani Arumugam
@@ -20,7 +20,7 @@ Authors: Eleonora Nigro, Mani Arumugam
 import os.path
 from os import path
 
-localrules: copy_genomes_in_all, copy_best_genomes, check_prokka_output
+localrules: copy_genomes_in_all, copy_best_genomes
 
 # args = sys.argv
 # config_path = args[args.index("--configfile") + 1]
@@ -139,27 +139,6 @@ if config['SCORE_METHOD'] == 'checkm':
 else:
     print('ERROR in ', config_path, ': SCORE_METHOD variable can only be checkm at the moment!')
 
-if config['RUN_PROKKA'] is None:
-    print('ERROR in ', config_path, ': RUN_PROKKA variable is empty. "RUN_PROKKA" variable should be yes or no')
-elif config['RUN_PROKKA'] == True:
-    run_prokka = "yes"
-    print('WARNING in ', config_path, ': MIntO is running Prokka on the unique genomes retrieved.')
-elif config['RUN_PROKKA'] == False:
-    run_prokka = "no"
-    print('WARNING in ', config_path, ': MIntO is not running Prokka on the unique genomes retrieved.')
-else:
-    print('ERROR in ', config_path, ': RUN_PROKKA variable is empty. "RUN_PROKKA" variable should be yes or no')
-
-if config['PROKKA_CPUS'] is None:
-    print('ERROR in ', config_path, ': PROKKA_CPUS variable is empty. Please, complete ', config_path)
-elif type(config['PROKKA_CPUS']) != int:
-    print('ERROR in ', config_path, ': PROKKA_CPUS variable is not an integer. Please, complete ', config_path)
-
-if config['PROKKA_memory'] is None:
-    print('ERROR in ', config_path, ': PROKKA_memory variable is empty. Please, complete ', config_path)
-elif type(config['PROKKA_memory']) != int:
-    print('ERROR in ', config_path, ': PROKKA_memory variable is not an integer. Please, complete ', config_path)
-
 if config['RUN_TAXONOMY'] is None:
     print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
 elif config['RUN_TAXONOMY'] == True:
@@ -195,8 +174,6 @@ elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is True:
 
 def mags_recovery():
     result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt", wd = working_dir, omics = config['omics'])
-    if (run_prokka == "yes"):
-        result.append(expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka.done", wd = working_dir, omics = config['omics']))
     if (run_taxonomy == "yes"):
         result.append(expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.tsv", wd = working_dir, omics = config['omics']))
     return(result)
@@ -652,52 +629,6 @@ checkpoint copy_best_genomes:
           cp {wildcards.wd}/{wildcards.omics}/8-1-binning/mags_generation_pipeline/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
         done < {input.best_unique_genomes}
         )&> {log}
-        """
-
-########################
-# Prokka on a fna file
-########################
-
-rule prokka_for_genome:
-    input:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes/{mag}.fna"
-    output:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka/{mag}/{mag}.gbk"
-    log:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka/{mag}.log"
-    resources:
-        mem=config["PROKKA_memory"]
-    threads:
-        config["PROKKA_CPUS"]
-    conda:
-        config["minto_dir"]+"/envs/mags.yml"
-    shell:
-        """
-        rm -rf $(dirname {output})
-        prokka --outdir $(dirname {output}) --prefix {wildcards.mag} --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
-        """
-
-###############################
-# Get prokka output list for all MAGs in checkpoint above
-###############################
-
-def get_hq_mag_prokka_files(wildcards):
-    #Collect the genome bins from previous step
-    checkpoint_output = checkpoints.copy_best_genomes.get(**wildcards).output[0]
-    result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka/{mag}/{mag}.gbk",
-                    wd=wildcards.wd,
-                    omics=wildcards.omics,
-                    mag=glob_wildcards(os.path.join(checkpoint_output, '{mag}.fna')).mag)
-    return(result)
-
-rule check_prokka_output:
-    input:
-        get_hq_mag_prokka_files
-    output:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka.done"
-    shell:
-        """
-        touch {output}
         """
 
 ########################

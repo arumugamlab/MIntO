@@ -8,7 +8,7 @@ Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
 
 # configuration yaml file
 # import sys
-import os.path
+import pathlib
 from os import path
 
 # Get common config variables
@@ -22,15 +22,16 @@ else:
     print('ERROR in ', config_path, ': map_reference variable is not correct. "map_reference" variable should be MAG or reference_genome.')
 
 if map_reference == 'MAG':
-    reference_dir="{wd}/{omics}/8-1-binning/mags_generation_pipeline/prokka".format(wd=working_dir, omics=omics)
+    reference_dir="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd=working_dir, omics=omics)
     print('WARNING in ', config_path, ': MIntO is using "' + reference_dir + '" as PATH_reference variable')
 elif map_reference == 'reference_genome':
+    if config['PATH_reference'] is None:
+        print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
     reference_dir=config["PATH_reference"]
     print('WARNING in ', config_path, ': MIntO is using "'+ reference_dir+'" as PATH_reference variable')
-elif config['PATH_reference'] is None:
-    print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
-elif path.exists(config['PATH_reference']) is False:
-    print('ERROR in ', config_path, ': PATH_reference variable path does not exit. Please, complete ', config_path)
+
+if path.exists(reference_dir) is False:
+    print('ERROR in ', config_path, ': reference genome path ', reference_dir, ' does not exit. Please, complete ', config_path)
 
 if 'ANNOTATION' in config:
     if config['ANNOTATION'] is None:
@@ -55,49 +56,18 @@ else:
 # Define all the outputs needed by target 'all'
 
 if map_reference == 'MAG':
-    post_analysis_dir="9-MAGs-prokka-post-analysis"
-    post_analysis_out="MAGs_genes"
+    post_analysis_dir="9-MAG-genes-post-analysis"
+    post_analysis_out="MAG-genes"
 elif map_reference == 'reference_genome':
-    post_analysis_dir="9-reference-genes-post-analysis"
-    post_analysis_out="reference_genes"
+    post_analysis_dir="9-refgenome-genes-post-analysis"
+    post_analysis_out="refgenome-genes"
 elif map_reference == 'genes_db':
-    post_analysis_dir="9-genes-db-post-analysis"
-    post_analysis_out="db_genes"
-
-def merge_genes_output():
-    result = expand("{wd}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa",
-                wd = working_dir,
-                post_analysis_dir = post_analysis_dir,
-                post_analysis_out = post_analysis_out),\
-    expand("{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed",
-                wd = working_dir,
-                post_analysis_dir = post_analysis_dir,
-                post_analysis_out = post_analysis_out),\
-    expand("{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}_names_modif.bed",
-                wd = working_dir,
-                post_analysis_dir = post_analysis_dir,
-                post_analysis_out = post_analysis_out),\
-    expand("{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed",
-                wd = working_dir,
-                post_analysis_dir = post_analysis_dir,
-                post_analysis_out = post_analysis_out),\
-    expand("{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
-                wd = working_dir,
-                post_analysis_dir = post_analysis_dir,
-                post_analysis_out = post_analysis_out)
-    return(result)
+    post_analysis_dir="9-db-genes-post-analysis"
+    post_analysis_out="db-genes"
 
 if map_reference == 'genes_db':
     def merge_genes_output(): # CHECK THIS PART - do not output anything when map_reference == 'genes_db'
         result = expand()
-        return(result)
-
-def predicted_genes_annot_out():
-        result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_{annot}.tsv",
-                        wd = working_dir,
-                        post_analysis_dir = post_analysis_dir,
-                        post_analysis_out = post_analysis_out,
-                        annot = config["ANNOTATION"] if "ANNOTATION" in config else []),
         return(result)
 
 def predicted_genes_collate_out():
@@ -109,42 +79,61 @@ def predicted_genes_collate_out():
 
 rule all:
     input: 
-        merge_genes_output(),
-        predicted_genes_annot_out(),
         predicted_genes_collate_out()
 
 
 ###############################################################################################
-# Prepare predicted genes/ publicly available genes for annotation
+# Prepare predicted genes for annotation
 ## Combine faa and bed files from the different genomes
 ###############################################################################################
 
 # Get a sorted list of genomes
 
-def get_genomes_from_refdir():
-    genomes = [ f.name for f in os.scandir(reference_dir) if f.is_dir() ]
+def get_genomes_from_refdir(ref_dir):
+    genomes = [ pathlib.Path(f).stem for f in os.scandir(ref_dir) if f.is_file() and f.name.endswith('.fna') ]
     return(sorted(genomes))
+
+########################
+# Prokka on a fna file in reference_dir
+########################
+
+rule prokka_for_genome:
+    input: lambda wildcards: "{reference_dir}/{genome}.fna".format(reference_dir=reference_dir, genome=wildcards.genome)
+    output:
+        fna="{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.fna",
+        faa="{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.faa",
+        gff="{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.gff",
+    log:
+        "{wd}/logs/DB/{post_analysis_dir}/prokka/{genome}.log"
+    resources:
+        mem=10
+    threads: 8
+    conda:
+        config["minto_dir"]+"/envs/mags.yml"
+    shell:
+        """
+        rm -rf $(dirname {output})
+        prokka --outdir $(dirname {output.fna}) --prefix {wildcards.genome} --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
+        """
 
 # Combine FAA files ####
 
 rule make_cd_transl_faa_for_genome:
-    input: lambda wildcards: "{reference_dir}/{genome}/{genome}.faa".format(reference_dir=reference_dir, genome=wildcards.genome)
-    output: "{wd}/DB/{post_analysis_dir}/CD_transl/{genome}_translated_cds.faa"
+    input: rules.prokka_for_genome.output.faa
+    output: "{wd}/DB/{post_analysis_dir}/CD_transl/{genome}.faa"
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.reformat_faa.log"
-    params:
-        pattern = '^>lcl|' if map_reference=='reference_genome' else '^>'
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #seqtk
     shell:
         """
-        time (seqtk seq -l 0 {input} | sed -e "1,$ s/{params.pattern}/>{wildcards.genome}|/g" > {output}) >& {log}
+        time (seqtk seq -l 0 {input} | sed -e "s/^>/>{wildcards.genome}|/g" > {output}) >& {log}
         """
 
 def get_genome_cd_transl_faa(wildcards):
     #Collect the CDS faa files for MAGs
-    genomes = get_genomes_from_refdir()
-    result = expand("{wd}/DB/{post_analysis_dir}/CD_transl/{genome}_translated_cds.faa",
+    genomes = get_genomes_from_refdir(reference_dir)
+    result = expand("{wd}/DB/{post_analysis_dir}/CD_transl/{genome}.faa",
                     wd=wildcards.wd,
                     post_analysis_dir=wildcards.post_analysis_dir,
                     genome=genomes)
@@ -153,7 +142,9 @@ def get_genome_cd_transl_faa(wildcards):
 rule make_merged_cds_faa:
     input: get_genome_cd_transl_faa
     output:
-        fasta_cd_transl_merge="{wd}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa"
+        merged_cds="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds.faa"
+    wildcard_constraints:
+        post_analysis_out='MAG-genes|refgenome-genes'
     shell:
         """
         cat {input} > {output}
@@ -162,29 +153,27 @@ rule make_merged_cds_faa:
 # Convert GFF file into BED file ####
 
 rule make_bed_for_genome:
-    input: lambda wildcards: "{reference_dir}/{genome}/{genome}.gff".format(reference_dir=reference_dir, genome=wildcards.genome)
+    input: rules.prokka_for_genome.output.gff
     output:
         bed=                      "{wd}/DB/{post_analysis_dir}/GFF/{genome}.bed",
         bed_hdr_mod=              "{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.bed",
         bed_hdr_mod_coord_correct="{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.coord_correct.bed"
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.make_bed_from_gff.log"
-    params:
-        pattern = '^' if map_reference=='reference_genome' else '^gnl|X|'
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
     shell:
         """
         time (\
             gff2bed < {input} > {output.bed}
-            sed -e "1,$ s/{params.pattern}/{wildcards.genome}|/g" {output.bed} > {output.bed_hdr_mod}
+            sed -e "s/^gnl|X|/{wildcards.genome}|/g" {output.bed} > {output.bed_hdr_mod}
             awk -v FS='\\t' -v OFS='\\t' '{{$2+=1; print $0}}' {output.bed_hdr_mod} > {output.bed_hdr_mod_coord_correct} \
         ) >& {log}
         """
 
 def get_genome_bed(wildcards):
     #Collect the BED files for MAGs
-    genomes = get_genomes_from_refdir()
+    genomes = get_genomes_from_refdir(reference_dir)
     result = expand("{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.coord_correct.bed",
                     wd=wildcards.wd,
                     post_analysis_dir=wildcards.post_analysis_dir,
@@ -194,12 +183,12 @@ def get_genome_bed(wildcards):
 rule make_merged_bed:
     input: get_genome_bed
     output:
-        bed_file=       "{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed",
-        bed_file_header="{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.header-modif.coord_correct.bed"
+        bed_file=       "{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed",
+        bed_file_header="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.header-modif.coord_correct.bed"
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}.merge_bed.log"
     wildcard_constraints:
-        post_analysis_out='MAGs_genes|reference_genes'
+        post_analysis_out='MAG-genes|refgenome-genes'
     shell:
         """
         time (\
@@ -213,14 +202,13 @@ rule make_merged_bed:
 
 rule gene_annot_subset:
     input:
-        bed_file="{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.bed",
-        bed_file_header="{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}.header-modif.coord_correct.bed",
-        fasta_cd_transl_merge="{wd}/DB/{post_analysis_dir}/CD_transl/{post_analysis_out}_translated_cds.faa",
+        bed_file=       rules.make_merged_bed.output.bed_file,
+        bed_file_header=rules.make_merged_bed.output.bed_file_header,
+        merged_cds=     rules.make_merged_cds_faa.output.merged_cds
     output: 
-        bed_modif="{wd}/DB/{post_analysis_dir}/GFF/{post_analysis_out}_names_modif.bed",
+        bed_modif="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_names_modif.bed",
         bed_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed", 
         fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
-    params:
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_subset_out.log"
     resources:
@@ -231,9 +219,7 @@ rule gene_annot_subset:
     shell: 
         """
         remote_dir={wildcards.wd}/DB/{post_analysis_dir}/
-        mkdir -p ${{remote_dir}}/GFF
-        mkdir -p ${{remote_dir}}/CD_transl
-        time (Rscript {script_dir}/{post_analysis_out}_out_subset.R {threads} {input.bed_file_header} {input.bed_file} {input.fasta_cd_transl_merge} ${{remote_dir}} {post_analysis_out}) &> {log}
+        time (Rscript {script_dir}/MAGs_genes_out_subset.R {threads} {input.bed_file_header} {input.bed_file} {input.merged_cds} ${{remote_dir}} {post_analysis_out}) &> {log}
         """
 
 ################################################################################################
@@ -241,12 +227,11 @@ rule gene_annot_subset:
 ## KEGG
 ## eggNOG
 ## dbCAN
-## Pfam
 ################################################################################################
 
 rule gene_annot_kofamscan:
     input: 
-        fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
+        fasta_subset=rules.gene_annot_subset.output.fasta_subset
     output: 
         kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
     params:
@@ -275,7 +260,7 @@ rule gene_annot_kofamscan:
 
 rule gene_annot_dbcan:
     input: 
-        fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
+        fasta_subset=rules.gene_annot_subset.output.fasta_subset
     output: 
         dbcan_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
     params:
@@ -301,7 +286,7 @@ rule gene_annot_dbcan:
 
 rule gene_annot_eggnog:
     input: 
-        fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
+        fasta_subset=rules.gene_annot_subset.output.fasta_subset
     output: 
         eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_eggNOG.tsv",
     params:
@@ -343,14 +328,10 @@ rule gene_annot_eggnog:
 
 rule predicted_gene_annotation_collate:
     input: 
-        #kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
-        #dbcan_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
-        #eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.eggNOG5.annotations",
         annot_out=expand("{{wd}}/DB/{{post_analysis_dir}}/annot/{{post_analysis_out}}_translated_cds_SUBSET_{annot}.tsv", annot=annot_list)
     output: 
         annot_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.annotations.tsv",
     params:
-        #tmp_annot=lambda wildcards: "{local_dir}/{post_analysis_out}_annot/".format(local_dir=local_dir),
         prefix="{post_analysis_out}_translated_cds_SUBSET",
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_annot.log"
