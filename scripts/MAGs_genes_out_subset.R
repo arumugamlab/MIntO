@@ -3,9 +3,9 @@ args = commandArgs(trailingOnly=TRUE)
 
 library(dplyr)
 library(data.table)
-library(tidyr) #
+library(tidyr)
 library(Biostrings)
-library(stringr) #
+library(stringr)
 library(rlang)
 
 threads_n <- args[1]
@@ -51,10 +51,10 @@ bed_info <- c("chr","start","stop","name","score","strand","source","feature","f
 
 genomes_sub_df <- subset(genomes_df, select=bed_info)
 
-write.table(genomes_sub_df,paste0(dir_out,"/GFF/", file_name,"_names_modif.bed"),sep="\t",row.names=FALSE, col.names = F, quote = F)
+write.table(genomes_sub_df,paste0(dir_out,"/", file_name,"_names_modif.bed"),sep="\t",row.names=FALSE, col.names = F, quote = F)
 
 ## Keep all antiSMASH and macrel genes
-genomes_df <- as.data.frame(fread(paste0(dir_out, "/GFF/", file_name, "_names_modif.bed"), header=F), stringsAsFactors = F)
+genomes_df <- as.data.frame(fread(paste0(dir_out, "/", file_name, "_names_modif.bed"), header=F), stringsAsFactors = F)
 bed_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
 names(genomes_df) <- bed_info
 
