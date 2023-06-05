@@ -20,7 +20,10 @@ from os import path
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
 include: 'config_parser.smk'
 
-localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, metaphlan_combine_profiles, motus_combine_profiles, plot_taxonomic_profile, motus_calc_motu
+localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
+            merge_fastqs_for_composite_samples, \
+            metaphlan_combine_profiles, motus_combine_profiles, motus_calc_motu, \
+            plot_taxonomic_profile, \
 
 ##############################################
 # Get sample list
@@ -54,6 +57,20 @@ try:
     n_samples=len(ilmn_samples)+3
 except:
     print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
+
+##############################################
+# Handle composite samples
+##############################################
+
+# Make list of illumina coassemblies, if MERGE_ILLUMINA_SAMPLES in config
+merged_illumina_samples = list()
+if 'MERGE_ILLUMINA_SAMPLES' in config:
+    if config['MERGE_ILLUMINA_SAMPLES'] is None:
+        print('WARNING in ', config_path, ': MERGE_ILLUMINA_SAMPLES list of samples is empty. Skipping sample-merging.')
+    else:
+        for m in config['MERGE_ILLUMINA_SAMPLES']:
+            #print(" "+m)
+            merged_illumina_samples.append(m)
 
 ##############################################
 # Host genome filtering
@@ -210,6 +227,15 @@ with open(minto_dir + "/data/metaphlan/" + metaphlan_version + "/mpa_latest", 'r
     metaphlan_index = file.read().rstrip()
 
 ##############################################
+# Clarify where the final QC_2 reads are located
+##############################################
+def get_final_qc2_read_location(omics):
+    if omics == 'metaT':
+        return '5-1-sortmerna'
+    elif omics == 'metaG':
+        return '4-hostfree'
+
+##############################################
 # Define all the outputs needed by target 'all'
 ##############################################
 
@@ -271,11 +297,20 @@ def taxonomy_plot_output():
     results.append(plots)
     return(results)
 
+def merged_sample_output():
+    result = expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
+                    wd = working_dir,
+                    omics = omics,
+                    location = get_final_qc2_read_location(omics),
+                    sample = merged_illumina_samples,
+                    pair = ['1', '2'])
+    return(result)
+
 def next_step_config_yml_output():
     result = expand("{wd}/{omics}/assembly.yaml",
                 wd = working_dir,
                 omics = omics),\
-    expand("{wd}/{omics}/mapping.yaml",
+             expand("{wd}/{omics}/mapping.yaml",
                 wd = working_dir,
                 omics = omics)
     return(result)
@@ -308,6 +343,7 @@ rule all:
     input:
         #filter_trim_length_output(),
         #filter_host_genome_output(),
+        merged_sample_output(),
         taxonomy_plot_output(),
         extra_output(),
         next_step_config_yml_output()
@@ -513,23 +549,35 @@ rule qc2_filter_rRNA:
         rm -rf {params.tmp_sortmerna}
         """
 
+ruleorder: merge_fastqs_for_composite_samples > qc2_host_filter
+ruleorder: merge_fastqs_for_composite_samples > qc2_filter_rRNA
+
+rule merge_fastqs_for_composite_samples:
+    input:
+        fastq=lambda wildcards: expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                location = wildcards.location,
+                sample = config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+'),
+                pair = wildcards.pair),
+    output:
+        fastq="{wd}/{omics}/{location}/{merged_sample}/{merged_sample}.{pair}.fq.gz"
+    shell:
+        """
+        cat {input.fastq} > {output.fastq}
+        """
+
 ###############################################################################################
 # Assembly-free taxonomy profiling
 ###############################################################################################
 
 def get_tax_profile_input_files(wildcards):
-    if wildcards.omics == "metaT":
-        return(expand("{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.{pair}.fq.gz",
-                    wd = wildcards.wd,
-                    omics = wildcards.omics,
-                    sample = wildcards.sample,
-                    pair = [1, 2]))
-    else:
-        return(expand("{wd}/{omics}/4-hostfree/{sample}/{sample}.{pair}.fq.gz",
-                    wd = wildcards.wd,
-                    omics = wildcards.omics,
-                    sample = wildcards.sample,
-                    pair = [1, 2]))
+    return(expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                location = get_final_qc2_read_location(wildcards.omics),
+                sample = wildcards.sample,
+                pair = [1, 2]))
 
 # To enable multiple versions of taxonomy profiles for the same project, we include {version} in taxonomy profile output file name.
 # But changing '{sample}.{taxonomy}' to '{sample}.{taxonomy}.{version}' leads to trouble as metaphlan's combining script infers the
@@ -568,7 +616,7 @@ rule metaphlan_tax_profile:
 
 rule metaphlan_combine_profiles:
     input:
-        ra=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = ilmn_samples),
+        ra=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = ilmn_samples + merged_illumina_samples),
     output:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table_species.txt",
@@ -640,7 +688,7 @@ rule motus_calc_motu:
 
 rule motus_combine_profiles:
     input:
-        profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = ilmn_samples),
+        profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = ilmn_samples + merged_illumina_samples),
     output:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table_species.txt",
