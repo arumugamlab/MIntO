@@ -1,0 +1,14 @@
+33,34c33,34
+< PATH_host_genome:
+< NAME_host_genome:
+---
+> PATH_host_genome: <__TEST_DIR__>/IBD_tutorial
+> NAME_host_genome: build_hg18_subset.fna
+62c62
+< MAIN_factor:
+---
+> MAIN_factor: participant_ID2
+64c64
+< PLOT_time:
+---
+> PLOT_time: week_n

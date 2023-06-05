@@ -1,0 +1,43 @@
+######################
+# General settings
+######################
+
+PROJECT: IBD_tutorial
+working_dir: <__TEST_DIR__>/IBD_tutorial
+omics: metaG
+local_dir: <__LOCAL_DIR__>
+minto_dir: <__MINTO_DIR__>
+METADATA: <__TEST_DIR__>/IBD_tutorial/tutorial_metadata.txt
+raw_reads_dir: <__TEST_DIR__>/IBD_tutorial_raw/metaG
+
+######################
+# Program settings
+######################
+# Read quality filtering
+trimmomatic_adaptors: Skip
+TRIMMOMATIC_index_barcodes:
+TRIMMOMATIC_simple_clip_threshold:
+TRIMMOMATIC_threads: 8
+TRIMMOMATIC_memory: 5
+perc_remaining_reads: 95
+
+# Input data
+# ILLUMINA section:
+# -----------------
+# List of illumina samples that will be filtered by quality.
+#
+# E.g.:
+# - I1
+# - I2
+#
+ILLUMINA:
+- CD136
+- CD138
+- CD140
+- CD142
+- CD146
+- CD237
+- CD238
+- CD240
+- CD242
+- CD244
