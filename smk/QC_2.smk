@@ -298,13 +298,17 @@ def taxonomy_plot_output():
     return(results)
 
 def merged_sample_output():
-    result = expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
-                    wd = working_dir,
-                    omics = omics,
-                    location = get_final_qc2_read_location(omics),
-                    sample = merged_illumina_samples,
-                    pair = ['1', '2'])
-    return(result)
+    return()
+
+if 'MERGE_ILLUMINA_SAMPLES' in config:
+    def merged_sample_output():
+        result = expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
+                        wd = working_dir,
+                        omics = omics,
+                        location = get_final_qc2_read_location(omics),
+                        sample = merged_illumina_samples,
+                        pair = ['1', '2'])
+        return(result)
 
 def next_step_config_yml_output():
     result = expand("{wd}/{omics}/assembly.yaml",
@@ -558,7 +562,7 @@ rule merge_fastqs_for_composite_samples:
                 wd = wildcards.wd,
                 omics = wildcards.omics,
                 location = wildcards.location,
-                sample = config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+'),
+                sample = config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+') if 'MERGE_ILLUMINA_SAMPLES' in config else None,
                 pair = wildcards.pair),
     output:
         fastq="{wd}/{omics}/{location}/{merged_sample}/{merged_sample}.{pair}.fq.gz"
