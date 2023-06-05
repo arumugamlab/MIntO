@@ -524,7 +524,7 @@ rule calculate_score_genomes:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
         """
-        time (python {script_dir}calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}) &> {log}
+        time (python {script_dir}/calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}) &> {log}
         """
 
 
