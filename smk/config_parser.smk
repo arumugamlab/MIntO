@@ -38,10 +38,10 @@ elif path.exists(config['working_dir']) is False:
 else:
     working_dir = config['working_dir']
 
-if config['omics'] in ('metaG', 'metaT'):
+if config['omics'] in ('metaG', 'metaT', 'metaG_metaT'):
     omics = config['omics']
 else:
-    print('ERROR in ', config_path, ': omics variable is not correct. "omics" variable should be metaG or metaT.')
+    print('ERROR in ', config_path, ': omics variable is not correct. "omics" variable should be metaG, metaT or metaG_metaT.')
 
 if config['local_dir'] is None:
     print('ERROR in ', config_path, ': local_dir variable is empty. Please, complete ', config_path)
@@ -74,4 +74,4 @@ if 'ILLUMINA' in config:
     if config['ILLUMINA'] is None:
         print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
 else:
-    print('ERROR in ', config_path, ': ILLUMINA list of samples is missing. Please, complete ', config_path)
+    print('WARNING in ', config_path, ': ILLUMINA list of samples is missing. Proceed with caution.')
