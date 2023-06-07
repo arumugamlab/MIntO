@@ -666,7 +666,7 @@ METADATA: {metadata}
 # Program settings
 ######################
 alignment_identity: {identity}
-abundance_normalization: {normalization}
+abundance_normalization: MG
 map_reference: {map_reference}
 MIN_mapped_reads: {params.mapped_reads_threshold}
 
@@ -679,7 +679,7 @@ ANNOTATION_file:
 
 # List annotation IDs matching to generate function profiles. 
 # If map_reference= 'MAG' or 'reference_genome', this list correspond to:
-# 'eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_Module','PFAMs','dbCAN.mod' and 'dbCAN.enzclass. 
+# 'eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_KO','PFAMs','dbCAN.mod' and 'dbCAN.enzclass.
 # The names should match the ANNOTATION_file column names.
 #   E.g.:
 # - eggNOG_OGs
@@ -687,6 +687,9 @@ ANNOTATION_file:
 ANNOTATION_ids:
  - eggNOG_OGs
  - KEGG_Pathway
+ - KEGG_Module
+ - KEGG_KO
+ - PFAMs
  - dbCAN.mod
  - dbCAN.enzclass
 " > {params.tmp_integration_yaml}data_integration.yaml
