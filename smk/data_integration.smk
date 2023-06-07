@@ -11,53 +11,12 @@ Authors: Carmen Saenz
 import os.path
 from os import path
 
-# args = sys.argv
-# config_path = args[args.index("--configfile") + 1]
-config_path = 'configuration yaml file' #args[args_idx+1]
-print(" *******************************")
-print(" Reading configuration yaml file")#: ", config_path)
-print(" *******************************")
-print("  ")
-
-# Variables from configuration yaml file
+# Get common config variables
+# These are:
+#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+include: 'config_parser.smk'
 
 # some variables
-if config['working_dir'] is None:
-    print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
-elif path.exists(config['working_dir']) is False:
-    print('ERROR in ', config_path, ': working_dir variable path does not exit. Please, complete ', config_path)
-else:
-    working_dir = config['working_dir']
-
-if config['local_dir'] is None:
-    prints('ERROR in ', config_path, ': local_dir variable is empty. Please, complete ', config_path)
-else:
-    local_dir = config['local_dir']
-
-if config['omics'] in ('metaG','metaT', 'metaG_metaT'):
-    omics = config['omics']
-else:
-    print('ERROR in ', config_path, ': omics variable is not correct. "omics" variable should be metaG, metaT or metaG_metaT.')
-
-if config['minto_dir'] is None:
-    print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
-elif path.exists(config['minto_dir']) is False:
-    print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
-else:
-    minto_dir=config["minto_dir"]
-    script_dir=config["minto_dir"]+"/scripts"
-
-if config['METADATA'] is None:
-    print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
-    metadata_file=config["METADATA"]
-elif config['METADATA'] == "None":
-    print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
-    metadata_file=config["METADATA"]
-elif path.exists(config['METADATA']) is False:
-    print('ERROR in ', config_path, ': METADATA variable path does not exit. Please, complete ', config_path)
-else:
-    metadata_file=config["METADATA"]
-
 
 if config['map_reference'] in ("MAG", "reference_genome","genes_db"):
     map_reference=config["map_reference"]
@@ -97,11 +56,6 @@ if map_reference == 'genes_db':
         print('ERROR in ', config_path, ': ANNOTATION_file variable path does not exit. Please, complete ', config_path)
     elif path.exists(config['ANNOTATION_file']) is True:
         annot_file=config['ANNOTATION_file']
-elif map_reference == 'MAG':
-    print('WARNING in ', config_path, ': MIntO is using "'+ working_dir+'/DB/9-MAGs-prokka-post-analysis/annot/MAGs_genes_translated_cds_SUBSET.annotations.tsv" as ANNOTATION_file variable.')
-elif map_reference == 'reference_genome':
-    print('WARNING in ', config_path, ': MIntO is using "'+ working_dir+'/DB/9-reference-genes-post-analysis/annot/reference_genes_translated_cds_SUBSET.annotations.tsv" as ANNOTATION_file variable.')
-    "{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv"
 
 if map_reference in ('MAG', 'reference_genome'):
     #print('WARNING in ', config_path, ': MIntO is using eggNOG_OGs, KEGG_Pathway, KEGG_Module, KEGG_KO, PFAMs, dbCAN.mod and dbCAN.enzclass as ANNOTATION_ids variable.')
@@ -119,41 +73,32 @@ elif map_reference in ('genes_db'):
 if omics == 'metaG':
     omics_opt='metaG'
     omics_prof='A'
-    #gene_abund="{wd}/{omics_opt}/6-mapping-profiles/BWA_reads-{post_analysis_out}/genes_abundances.p{identity}.{normalization}.csv".format(wd = working_dir, omics_opt = omics_opt, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
-    #gene_abund_file="metaG/6-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv"
 elif omics == 'metaT':
     omics_opt='metaT'
     omics_prof='T'
-    #gene_abund_file="metaT/6-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv"
 elif omics == 'metaG_metaT':
     omics_opt=['metaG','metaT']
     omics_prof=['A','T','E']
-    #gene_abund_file="metaG/6-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
-    #"metaT/6-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv"
 
 if map_reference == 'MAG':
-    post_analysis_dir="9-MAGs-prokka-post-analysis"
-    post_analysis_out="MAGs_genes"
-    post_analysis_genome="MAGs_genes"
+    post_analysis_dir="9-MAG-genes-post-analysis"
+    post_analysis_out="MAG-genes"
+    post_analysis_genome="MAG-genes"
     annot_file="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir, post_analysis_genome = post_analysis_genome)
-    #funct_opt=('eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')
-    #funct_opt_list = ','.join(['"' + id + '"' for id in ('eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')])
     funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 elif map_reference == 'reference_genome':
-    post_analysis_dir="9-reference-genes-post-analysis"
-    post_analysis_out="reference_genes"
-    post_analysis_genome="reference_genes"
+    post_analysis_dir="9-refgenome-genes-post-analysis"
+    post_analysis_out="refgenome_genes"
+    post_analysis_genome="refgenome_genes"
     annot_file="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir, post_analysis_genome = post_analysis_genome)
-    #funct_opt=('eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')
-    #funct_opt_list = ','.join(['"' + id + '"' for id in ('eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_KO','PFAMs','dbCAN.mod','dbCAN.enzclass')])
     funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 elif map_reference == 'genes_db':
-    post_analysis_dir="9-genes-db-post-analysis"
-    post_analysis_out="db_genes"
+    post_analysis_dir="9-db-genes-post-analysis"
+    post_analysis_out="db-genes"
     post_analysis_genome="None"
-    #annot_file=config['ANNOTATION_file']
-    #funct_opt=config['ANNOTATION_ids']
     funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
+
+print('WARNING in ', config_path, ': MIntO is using "' + annot_file + '" as ANNOTATION_file variable.')
 
 if normalization == 'TPM' and (map_reference == 'MAG' or map_reference == 'reference_genome'):
     post_analysis_TPM=post_analysis_out
@@ -161,15 +106,6 @@ if normalization == 'TPM' and (map_reference == 'MAG' or map_reference == 'refer
 else:
     post_analysis_TPM="None"
     post_analysis_other=post_analysis_out
-
-#for id in funct_opt:
-#            print(id)
-#            funct_opt_list.append(id)
-#print(funct_opt_list)
-# if normalization == 'MG' and (map_reference == 'MAG' or map_reference == 'reference_genome'):
-#     post_analysis_MG=post_analysis_out
-# else:
-#     post_analysis_MG="None"
 
 def integration_merge_profiles():
     result = expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv",
@@ -236,7 +172,7 @@ rule all:
     input:
         integration_merge_profiles(),
         integration_gene_profiles(),
-        #integration_function_profiles()
+        integration_function_profiles()
 
 
 ###############################################################################################
@@ -245,7 +181,7 @@ rule all:
 ###############################################################################################
 rule integration_merge_profiles:
     input:
-        gene_abund = lambda wildcards: expand("{wd}/{omics_individual}/6-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
+        gene_abund = lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
                                             wd = wildcards.wd,
                                             omics_individual = wildcards.omics.split("_"),
                                             map_reference = wildcards.map_reference,
@@ -263,7 +199,7 @@ rule integration_merge_profiles:
     shell:
         """
         remote_dir=$(dirname {output.gene_abund_merge})
-        time (if [ {omics} == 'metaG_metaT' ]
+        time (if [ {wildcards.omics} == 'metaG_metaT' ]
         then python3 {script_dir}/gene_abundances_merge_profiles.py {wildcards.map_reference} {output.gene_abund_merge} {input.gene_abund}
         else
         rsync {input.gene_abund} {output.gene_abund_merge}
@@ -279,7 +215,7 @@ rule integration_gene_profiles:
     input:
         gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv".format(wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
         #gene_abund="{input_dir}/".format(input_dir=gene_abund_file),
-        #gene_abund="{wd}/{omics}/6-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
+        #gene_abund="{wd}/{omics}/9-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
     output:
         gene_abund_prof=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}.csv", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization, omics_prof = omics_prof),
         gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization, omics_prof = omics_prof),
@@ -298,9 +234,9 @@ rule integration_gene_profiles:
         """
         time ( echo 'integration of gene profiles'
         if [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]]
-        then Rscript {script_dir}/gene_expression_profile_genome_based.R {threads} $(dirname {output.gene_abund_prof[0]}) {omics} {params.annot_file} {metadata_file} {input.gene_abund_merge} {params.funct_opt}
+        then Rscript {script_dir}/gene_expression_profile_genome_based.R {threads} $(dirname {output.gene_abund_prof[0]}) {omics} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
         elif [[ {map_reference} == 'genes_db' ]]
-        then Rscript {script_dir}/gene_expression_profile_gene_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata_file} {input.gene_abund_merge} {params.funct_opt}
+        then Rscript {script_dir}/gene_expression_profile_gene_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
         fi ) &> {log}
         """
 
@@ -310,7 +246,7 @@ rule integration_gene_profiles:
 rule merge_absolute_counts_TPM:
     input:
         gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv".format(wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
-        absolute_counts = expand("{wd}/{omics_opt}/6-mapping-profiles/BWA_reads-{post_analysis_TPM}/genes_abundances.p{identity}.bed", wd = working_dir, omics_opt = omics_opt, post_analysis_TPM = post_analysis_TPM, identity = identity),
+        absolute_counts = expand("{wd}/{omics_opt}/9-mapping-profiles/BWA_reads-{post_analysis_TPM}/genes_abundances.p{identity}.bed", wd = working_dir, omics_opt = omics_opt, post_analysis_TPM = post_analysis_TPM, identity = identity),
     output:
         absolute_counts_merge="{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.bed".format(wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity),
     log:
@@ -346,7 +282,7 @@ rule integration_function_profiles_TPM:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/function_expression_profile_genome_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_TPM} {normalization} {identity} {params.annot_file} {metadata_file} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}) &> {log}
+        time (Rscript {script_dir}/function_expression_profile_genome_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_TPM} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}) &> {log}
         """
 
 rule integration_function_profiles_MG_TPM:
@@ -371,8 +307,8 @@ rule integration_function_profiles_MG_TPM:
             """
             time ( echo 'integration of function profiles'
             if ( [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]] ) && [[ {normalization} == 'MG' ]]
-            then Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata_file} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
+            then Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
             elif [[ {map_reference} == 'genes_db' ]] && [[ {normalization} == 'TPM' ]]
-            then Rscript {script_dir}/function_expression_profile_gene_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata_file} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
+            then Rscript {script_dir}/function_expression_profile_gene_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
             fi) &> {log}
             """
