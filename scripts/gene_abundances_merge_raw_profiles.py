@@ -6,13 +6,9 @@ Merge gene abundances raw profiles and exclude not present and not expressed gen
 Authors: Carmen Saenz
 '''
 
-#from Bio import SeqIO
-#import os, sys
-#from glob import glob
 import sys
 import pandas as pd
 import csv
-#import resource
 
 threads_n = sys.argv[1]
 memory_lim = sys.argv[2]
@@ -24,17 +20,11 @@ identity = sys.argv[7]
 
 #soft, hard = 10**7, 10**7
 
-# wd = '/emc/cbmr/users/rzv923/ibdmdb'
-# omics = 'metaG_metaT'
-# map_reference = 'MAGs_genes'
-# normalization = 'TPM'
-# identity = '95'
-
 tpm_profile_all = pd.read_csv(wd + '/output/data_integration/' + map_reference + '/' + omics + '.genes_abundances.p' + identity + '.' + normalization + '.csv',sep='\t')
 
 if omics == 'metaG_metaT':
-    metaG_file_raw = pd.read_csv(wd + '/metaG/6-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.bed',sep='\t')
-    metaT_file_raw = pd.read_csv(wd + '/metaT/6-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.bed',sep='\t')
+    metaG_file_raw = pd.read_csv(wd + '/metaG/9-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.bed',sep='\t')
+    metaT_file_raw = pd.read_csv(wd + '/metaT/9-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.bed',sep='\t')
     #################################
     tpm_profile_all_sub = tpm_profile_all[['chr','start','stop','name','score','strand','source','feature','frame','info']]
     metaG_new_names = [(i,'metaG.'+i) for i in metaG_file_raw.iloc[:, 10:].columns.values]
@@ -46,7 +36,7 @@ if omics == 'metaG_metaT':
 
     tpm_profile_raw_all.to_csv(wd + '/output/data_integration/' + map_reference + '/' + omics + '.genes_abundances.p' + identity + '.bed', index=False, encoding='utf-8', sep="\t", quoting=csv.QUOTE_NONE)
 else:
-    omics_file_raw = pd.read_csv(wd + '/' + omics +'/6-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.bed',sep='\t')
+    omics_file_raw = pd.read_csv(wd + '/' + omics +'/9-mapping-profiles/BWA_reads-' + map_reference + '/genes_abundances.p' + identity + '.bed',sep='\t')
     #################################
     tpm_profile_all_sub = tpm_profile_all[['chr','start','stop','name','score','strand','source','feature','frame','info']]
     omics_new_names = [(i, omics+'.'+i) for i in omics_file_raw.iloc[:, 10:].columns.values]

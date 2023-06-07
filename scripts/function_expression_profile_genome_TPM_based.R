@@ -140,7 +140,7 @@ if (omics == 'metaG_metaT'){
   print('#################################### DB profiles ####################################')
   tpm_profile_df = as.data.frame(fread(profiles_tpm, header=T), stringsAsFactors = F)
   tpm_profile_df$coord <- paste0(tpm_profile_df$chr, '_',tpm_profile_df$start, '_', tpm_profile_df$stop)
-  tpm_profile_df$coord <- gsub('\\-','\\_', tpm_profile_df$coord)
+  #tpm_profile_df$coord <- gsub('\\-','\\_', tpm_profile_df$coord)
   tpm_profile_df$gene_length <- abs(tpm_profile_df$stop- tpm_profile_df$start) +1
   tpm_profile_df <- as.data.frame(tpm_profile_df %>%
                                     dplyr::select(coord, chr,start,stop,name,score,strand,source,feature,frame,info,gene_length , everything()))
@@ -218,7 +218,7 @@ if (omics == 'metaG_metaT'){
   gene_info <- c("coord","chr","start","stop", "name", "source","feature")
   ## Gene abundances
   tpm_profile_bed_df$coord <- paste0(tpm_profile_bed_df$chr, '_',tpm_profile_bed_df$start, '_', tpm_profile_bed_df$stop)
-  tpm_profile_bed_df$coord <- gsub('-', '_', tpm_profile_bed_df$coord)
+  #tpm_profile_bed_df$coord <- gsub('-', '_', tpm_profile_bed_df$coord)
   tpm_profile_bed_df$source2 <- unlist(lapply(strsplit(as.character(tpm_profile_bed_df$source),'\\,'), `[`, 1))
   tpm_profile_bed_df$name2 <- unlist(lapply(strsplit(as.character(tpm_profile_bed_df$name),'\\;'), `[`, 1))
   tpm_profile_bed_df$genome <- unlist(lapply(strsplit(as.character(tpm_profile_bed_df$chr),'\\|'), `[`, 1))
@@ -313,7 +313,7 @@ if (omics == 'metaG_metaT'){
   
   profiles_annot_tpm_df_sub <- profiles_annot_tpm_df_sub[profiles_annot_tpm_df_sub$coord %in% metaG_tpm_profile_rowsum_not_0$coord,]
   mappings_ncol <- ncol(profiles_annot_tpm_df_sub)
-  for(db in colnames(profiles_annot_tpm_df_sub)[4:mappings_ncol]){#change it deppending on the number of selectedMappings columns
+  for(db in colnames(profiles_annot_tpm_df_sub)[4:mappings_ncol]){ #change it deppending on the number of selectedMappings columns
     print(db)
     message(Sys.time(), ": Running ", db)
     dbMap <- profiles_annot_tpm_df_sub[,c("coord", "ID_gene","name",db)]
@@ -796,7 +796,7 @@ if (omics == 'metaG_metaT'){
   print('#################################### DB profiles ####################################')
   tpm_profile_df = as.data.frame(fread(profiles_tpm, header=T), stringsAsFactors = F)
   tpm_profile_df$coord <- paste0(tpm_profile_df$chr, '_',tpm_profile_df$start, '_', tpm_profile_df$stop)
-  tpm_profile_df$coord <- gsub('\\-','\\_', tpm_profile_df$coord)
+  #tpm_profile_df$coord <- gsub('\\-','\\_', tpm_profile_df$coord)
   tpm_profile_df$gene_length <- abs(tpm_profile_df$stop- tpm_profile_df$start) +1
   tpm_profile_df <- as.data.frame(tpm_profile_df %>%
                                     dplyr::select(coord, chr,start,stop,name,score,strand,source,feature,frame,info,gene_length , everything()))
@@ -870,7 +870,7 @@ if (omics == 'metaG_metaT'){
   gene_info <- c("coord","chr","start","stop", "name", "source","feature")
   ## Gene abundances
   tpm_profile_bed_df$coord <- paste0(tpm_profile_bed_df$chr, '_',tpm_profile_bed_df$start, '_', tpm_profile_bed_df$stop)
-  tpm_profile_bed_df$coord <- gsub('-', '_', tpm_profile_bed_df$coord)
+  #tpm_profile_bed_df$coord <- gsub('-', '_', tpm_profile_bed_df$coord)
   tpm_profile_bed_df$source2 <- unlist(lapply(strsplit(as.character(tpm_profile_bed_df$source),'\\,'), `[`, 1))
   tpm_profile_bed_df$name2 <- unlist(lapply(strsplit(as.character(tpm_profile_bed_df$name),'\\;'), `[`, 1))
   tpm_profile_bed_df$genome <- unlist(lapply(strsplit(as.character(tpm_profile_bed_df$chr),'\\|'), `[`, 1))
