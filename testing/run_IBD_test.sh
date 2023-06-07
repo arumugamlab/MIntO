@@ -8,7 +8,7 @@ SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --con
 
 # Get MIntO
 
-#git clone https://github.com/arumugamlab/MIntO.git
+git clone https://github.com/arumugamlab/MIntO.git
 
 # Download dependencies
 
