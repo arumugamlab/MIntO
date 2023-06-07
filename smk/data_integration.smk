@@ -181,7 +181,7 @@ rule all:
 ###############################################################################################
 rule integration_merge_profiles:
     input:
-        gene_abund = lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
+        gene_abund = lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
                                             wd = wildcards.wd,
                                             omics_individual = wildcards.omics.split("_"),
                                             map_reference = wildcards.map_reference,
@@ -215,7 +215,7 @@ rule integration_gene_profiles:
     input:
         gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv".format(wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
         #gene_abund="{input_dir}/".format(input_dir=gene_abund_file),
-        #gene_abund="{wd}/{omics}/9-mapping-profiles/BWA_reads-{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
+        #gene_abund="{wd}/{omics}/9-mapping-profiles/{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
     output:
         gene_abund_prof=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}.csv", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization, omics_prof = omics_prof),
         gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization, omics_prof = omics_prof),
@@ -246,7 +246,7 @@ rule integration_gene_profiles:
 rule merge_absolute_counts_TPM:
     input:
         gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv".format(wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
-        absolute_counts = expand("{wd}/{omics_opt}/9-mapping-profiles/BWA_reads-{post_analysis_TPM}/genes_abundances.p{identity}.bed", wd = working_dir, omics_opt = omics_opt, post_analysis_TPM = post_analysis_TPM, identity = identity),
+        absolute_counts = expand("{wd}/{omics_opt}/9-mapping-profiles/{post_analysis_TPM}/genes_abundances.p{identity}.bed", wd = working_dir, omics_opt = omics_opt, post_analysis_TPM = post_analysis_TPM, identity = identity),
     output:
         absolute_counts_merge="{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.bed".format(wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity),
     log:
