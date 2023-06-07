@@ -950,7 +950,7 @@ alignment_identity: 95
 
 # Normalization approach
 # Could be TPM, MG or comma-delimited combinations
-abundance_normalization: TPM
+abundance_normalization: TPM,MG
 fetchMGs_dir: {minto_dir}/data/fetchMGs-1.2
 
 # Map reads to reference
