@@ -1,28 +1,31 @@
 ######################
 # General settings
 ######################
-PROJECT: 
-working_dir: 
-omics: 
-local_dir: 
-minto_dir: 
-METADATA: 
+PROJECT: IBD_tutorial
+working_dir: /mypath/IBD_tutorial
+omics: metaG
+local_dir: /tmp/user/
+minto_dir: /mypath/MIntO
+METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 
 ######################
 # Program settings
 ######################
-# BWA Alignment 
+# BWA Alignment
 msamtools_filter_length: 50
 alignment_identity: 95
 
 # Normalization approach
-abundance_normalization: TPM
-fetchMGs_dir:
+# Could be TPM, MG or comma-delimited combinations
+abundance_normalization: TPM,MG
+fetchMGs_dir: /mypath/MIntO/data/fetchMGs-1.2
 
 # Map reads to reference
 map_reference: MAG
-PATH_reference: # path to gene catalog fasta file 
+MAG_omics: metaG
+PATH_reference: # path to gene catalog fasta file
 NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+
 
 # List of databases used to performe the genome annotation:
 # - dbCAN
@@ -30,12 +33,14 @@ NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa 
 # - eggNOG
 ANNOTATION:
  - dbCAN
- 
-BWAindex_threads:
-BWAindex_memory:
-BWA_threads:
-BWA_memory:
-MIN_mapped_reads:
+ - KEGG
+ - eggNOG
+
+BWAindex_threads: 4
+BWAindex_memory: 10
+BWA_threads: 24
+BWA_memory: 20
+MIN_mapped_reads: 2
 
 # Input data
 
@@ -48,4 +53,13 @@ MIN_mapped_reads:
 # - I2
 #
 ILLUMINA:
-
+- CD136
+- CD138
+- CD140
+- CD142
+- CD146
+- CD237
+- CD238
+- CD240
+- CD242
+- CD244

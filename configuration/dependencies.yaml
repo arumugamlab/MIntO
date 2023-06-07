@@ -1,8 +1,8 @@
 ######################
 # General settings
 ######################
-local_dir: 
-minto_dir: 
+local_dir: /tmp/user/
+minto_dir: /mypath/MIntO
 
 download_memory: 5
 download_threads: 2

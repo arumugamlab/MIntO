@@ -1,69 +1,69 @@
 ######################
 # General settings
 ######################
-PROJECT: 
-working_dir: 
-omics: 
-local_dir: 
-minto_dir: 
-METADATA: 
+PROJECT: IBD_tutorial
+working_dir: /mypath/IBD_tutorial
+omics: metaG
+local_dir: /tmp/user/
+minto_dir: /mypath/MIntO
+METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 
 ######################
 # Program settings
 ######################
 # COMMON PARAMETERS
 #
-MIN_FASTA_LENGTH: 500000
+MIN_FASTA_LENGTH: 2500
+MIN_MAG_LENGTH: 500000
+BINSPLIT_CHAR: _
 
 # VAMB settings
 #
 BINNERS:
-- vamb_256
-- vamb_384
-- vamb_512
-- vamb_768
+- aaey
+- aaez
+- vae384
 
-VAMB_THREADS:
-VAMB_memory:
+VAMB_THREADS: 24
+VAMB_memory: 20
 
 # Use GPU in VAMB:
-# could be yes or not
-VAMB_GPU: 
+# could be yes or no
+VAMB_GPU: no
 
 
 # CHECKM settings
 #
-CHECKM_THREADS: 
-CHECKM_memory: 
-
-# checkm threshold
-CHECKM_COMPLETENESS: 90  #higher than this
+CHECKM_COMPLETENESS: 90  # higher than this
 CHECKM_CONTAMINATION: 5  # lower than this
-
-# Clean up checkm files?
-CLEAN_CHECKM:  # can be yes or not
+CHECKM_BATCH_SIZE: 50    # Process MAGs with this batch size
+CHECKM_DATABASE: /mypath/MIntO/data/CheckM2_database/uniref100.KO.1.dmnd
 
 # COVERM settings
 #
-COVERM_THREADS: 
-COVERM_memory: 
+COVERM_THREADS: 8
+COVERM_memory: 5
 
 # SCORING THE BEST GENOMES settings
 #
 # this could be checkm or genome
-SCORE_METHOD: checkm 
+SCORE_METHOD: checkm
 
 
 # PROKKA settings
 #
-RUN_PROKKA: 
-PROKKA_CPUS: 
-PROKKA_memory: 
+RUN_PROKKA: yes
+PROKKA_CPUS: 8
+PROKKA_memory: 5
+
+# MAG taxonomy settings
+#
+RUN_TAXONOMY: yes
+TAXONOMY_NAME: phylophlan    # Currently, only phylophlan
+TAXONOMY_CPUS: 8
+TAXONOMY_memory: 5
 
 # PHYLOPHLAN METAGENOMICS settings
 #
-RUN_TAXONOMY: 
-TAXONOMY_DATABASE: 
-TAXONOMY_CPUS: 
-TAXONOMY_memory: 
-DATABASE_FOLDER:
+TAXONOMY_DATABASE: SGB.Jan20
+TAXONOMY_DATABASE_FOLDER: /mypath/MIntO/data
