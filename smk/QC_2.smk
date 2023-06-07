@@ -326,22 +326,12 @@ if omics == 'metaT':
     def extra_output():
         result = expand("{sortmeRNA_db_idx}",
                     sortmeRNA_db_idx=sortmeRNA_db_idx),\
-        expand("{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.log",
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else []),\
-        expand("{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.{group}.fq.gz",
+                expand("{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.{group}.fq.gz",
                     wd = working_dir,
                     omics = omics,
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     group=['1', '2'])
         return(result)
-    def next_step_config_yml_output():
-        result = expand("{wd}/{omics}/mapping.yaml",
-                    wd = working_dir,
-                    omics = omics)
-        return(result)
-
 
 rule all:
     input:
@@ -976,6 +966,8 @@ NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa 
 # - eggNOG
 ANNOTATION:
  - dbCAN
+ - KEGG
+ - eggNOG
 
 BWAindex_threads: 4
 BWAindex_memory: 10
