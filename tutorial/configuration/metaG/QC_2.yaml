@@ -1,39 +1,89 @@
 ######################
 # General settings
 ######################
+
 PROJECT: IBD_tutorial
 working_dir: /mypath/IBD_tutorial
 omics: metaG
-local_dir: /scratch/johndoe/IBD_tutorial
-minto_dir: /server/apps/MIntO
+local_dir: /tmp/user/
+minto_dir: /mypath/MIntO
 METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 
-######################
+########################################
 # Program settings
-######################
-# Read length filtering
-TRIMMOMATIC_threads: 5
-TRIMMOMATIC_memory: 4
-TRIMMOMATIC_minlen: 134
+########################################
 
+#########################
+# Read length filtering
+#########################
+
+READ_minlen: 134
+
+#########################
 # Host genome filtering
+#########################
+
+# bwa-mem2 index files will be stored at: <PATH_host_genome>/BWA_index/<NAME_host_genome>.*
+# If it already exists, then it will be used directly.
+# If not, a fasta file should exist as: <PATH_host_genome>/<NAME_host_genome>
+# This will be build into index files using:
+#    bwa-mem2 index -p <PATH_host_genome>/BWA_index/<NAME_host_genome> <PATH_host_genome>/<NAME_host_genome>
+# Please do not use '.fasta' or '.fa' or '.fna' extension for the fasta file. Name it without extension.
+
 PATH_host_genome: /mypath/IBD_tutorial
 NAME_host_genome: build_hg18_subset.fna
 BWA_index_host_memory: 40
 BWA_host_threads: 8
 BWA_host_memory: 40
 
+##################################
 # Assembly-free taxonomy profiling
+##################################
+
+# Following values for 'taxa_profile' are supported: 
+#    1. metaphlan - relative abundance using MetaPhlAn
+#    2. motus_raw - read counts using mOTUs
+#    3. motus_rel - relative abundance using mOTUs
+# Comma-delimited combination of multiple options also supported
+# Eg:
+#    taxa_profile: metaphlan,motus_rel
 TAXA_threads: 8
 TAXA_memory: 10
-taxa_profile: motus_rel
+taxa_profile: motus_rel 
 
+#####################
 # Analysis parameters
+#####################
+
+# MAIN_factor  - the main factor in the metadata file to differentiate in visualization (using color)
+# PLOT_factor2 - the second factor in the metadata file to differentiate in visualization (using shape)
+# PLOT_time    - name of the factor in the metadata file denoting time (e.g. hour, day)
+
 MAIN_factor: participant_ID2
 PLOT_factor2:
 PLOT_time: week_n
 
+######################
+# Optionally, do you want to merge replicates or make pseudo samples
+# E.g:
+# MERGE_ILLUMINA_SAMPLES:
+#  - merged=rep1+rep2+rep3
+#
+# The above directive will combine 3 samples (rep1, rep2 and rep3)
+# after the last step into a new sample called 'merged'. Now you can remove
+# rep1, rep2 and rep3 from assembly, MAG generation and profiling steps.
+# Please note that METADATA file must have an entry for 'merged' as well,
+# otherwise QC_2 step will fail.
+# Having extra entries in METADATA file does not affect you in any way.
+######################
+
+#MERGE_ILLUMINA_SAMPLES:
+
+
+######################
 # Input data
+######################
+
 # ILLUMINA section:
 # -----------------
 # List of illumina samples that will be filtered by read length.

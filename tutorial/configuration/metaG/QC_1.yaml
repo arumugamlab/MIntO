@@ -5,8 +5,8 @@
 PROJECT: IBD_tutorial
 working_dir: /mypath/IBD_tutorial
 omics: metaG
-local_dir: /scratch/johndoe/IBD_tutorial
-minto_dir: /server/apps/MIntO
+local_dir: /tmp/user/
+minto_dir: /mypath/MIntO
 METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 raw_reads_dir: /mypath/IBD_tutorial_raw/metaG
 

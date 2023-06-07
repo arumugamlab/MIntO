@@ -4,31 +4,38 @@
 PROJECT: IBD_tutorial
 working_dir: /mypath/IBD_tutorial
 omics: metaG_metaT
-local_dir: /scratch/johndoe/IBD_tutorial
-minto_dir: /server/apps/MIntO
+local_dir: /tmp/user/
+minto_dir: /mypath/MIntO
 METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 
 ######################
 # Program settings
 ######################
 alignment_identity: 95
-abundance_normalization: TPM
+abundance_normalization: MG
 map_reference: MAG
+MIN_mapped_reads: 2
 
 MERGE_threads: 4
 MERGE_memory: 5
 
-ANNOTATION_file:
+MAG_omics: metaG
 
+ANNOTATION_file:
 
 # List annotation IDs matching to generate function profiles. 
 # If map_reference= 'MAG' or 'reference_genome', this list correspond to:
-# 'eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_Module','PFAMs','dbCAN.mod' and 'dbCAN.enzclass. 
+# 'eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_KO','PFAMs','dbCAN.mod' and 'dbCAN.enzclass.
 # The names should match the ANNOTATION_file column names.
 #   E.g.:
 # - eggNOG_OGs
 # - KEGG_Pathway
 ANNOTATION_ids:
+ - eggNOG_OGs
+ - KEGG_Pathway
+ - KEGG_Module
+ - KEGG_KO
+ - PFAMs
  - dbCAN.mod
  - dbCAN.enzclass
 

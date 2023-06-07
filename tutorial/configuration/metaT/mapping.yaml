@@ -2,27 +2,30 @@
 # General settings
 ######################
 PROJECT: IBD_tutorial
-working_dir: /mypath/IBD_tutorial_output
+working_dir: /mypath/IBD_tutorial
 omics: metaT
-local_dir: /mypath/tmp/IBD_tutorial_metaT
+local_dir: /tmp/user/
 minto_dir: /mypath/MIntO
-METADATA: /mypath/MIntO/tutorial/metadata/tutorial_metadata.txt
+METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 
 ######################
 # Program settings
 ######################
-# BWA Alignment 
+# BWA Alignment
 msamtools_filter_length: 50
 alignment_identity: 95
 
 # Normalization approach
-abundance_normalization: TPM
-fetchMGs_dir:
+# Could be TPM, MG or comma-delimited combinations
+abundance_normalization: TPM,MG
+fetchMGs_dir: /mypath/MIntO/data/fetchMGs-1.2
 
 # Map reads to reference
 map_reference: MAG
-PATH_reference: # path to gene catalog fasta file 
+MAG_omics: metaG
+PATH_reference: # path to gene catalog fasta file
 NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+
 
 # List of databases used to performe the genome annotation:
 # - dbCAN
@@ -30,11 +33,13 @@ NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa 
 # - eggNOG
 ANNOTATION:
  - dbCAN
- 
+ - KEGG
+ - eggNOG
+
 BWAindex_threads: 4
 BWAindex_memory: 10
-BWA_threads: 4
-BWA_memory: 5
+BWA_threads: 24
+BWA_memory: 20
 MIN_mapped_reads: 2
 
 # Input data
