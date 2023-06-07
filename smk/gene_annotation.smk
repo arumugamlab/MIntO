@@ -109,7 +109,7 @@ rule prokka_for_genome:
         mem=10
     threads: 8
     conda:
-        config["minto_dir"]+"/envs/mags.yml"
+        config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
         rm -rf $(dirname {output})
