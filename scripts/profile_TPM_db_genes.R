@@ -21,8 +21,6 @@ gene_abund_txt_df <- as.data.frame(fread(gene_abund_txt, header=T), stringsAsFac
 gene_abund_txt_coord_df <- gene_abund_txt_df
 #gene_abund_txt_coord_df[,2:ncol(gene_abund_txt_coord_df)][gene_abund_txt_coord_df[,2:ncol(gene_abund_txt_coord_df)] <=read_n] <- 0
 
-#gene_abund_txt<- "/emc/cbmr/users/rzv923/ibdmdb_test/metaG/6-mapping-profiles/BWA_reads-db_genes/genes_abundances.p95.TPM.csv"
-#read_length_out <- "/emc/cbmr/users/rzv923/Databases/IGC/output_count_fasta_v2.txt"
 # Read file with length of fasta sequences 
 read_length_df <- as.data.frame(fread(read_length_out, header=F, fill=T, stringsAsFactors = F, check.names = F, strip.white = T, sep = ''), stringsAsFactors = F)
 read_length_df <- data.frame(do.call('rbind', str_split(string = read_length_df$V1, pattern = '__')))
