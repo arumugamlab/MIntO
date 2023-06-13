@@ -6,14 +6,19 @@ MINTO_DIR="$TEST_DIR/MIntO"
 CONDA_DIR="$TEST_DIR/conda_env"
 SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --jobs 16 --cores 160 --resources mem=1700"
 
-# Get MIntO
+# Get MIntO or pull the latest if it already exists
 
-git clone https://github.com/arumugamlab/MIntO.git
+if [ -d "MIntO" ]; then
+  cd MIntO
+  git pull
+else
+  git clone https://github.com/arumugamlab/MIntO.git
+fi
 
 # Download dependencies
 
 cat $MINTO_DIR/testing/dependencies.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__LOCAL_DIR__>@$LOCAL_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > dependencies.yaml
-snakemake --snakefile $MINTO_DIR/smk/dependencies.smk --configfile dependencies.yaml $SNAKE_PARAMS
+time (snakemake --snakefile $MINTO_DIR/smk/dependencies.smk --configfile dependencies.yaml $SNAKE_PARAMS >& dependencies.log && echo "OK")
 
 # Download raw data
 
