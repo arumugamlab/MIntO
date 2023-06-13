@@ -62,13 +62,11 @@ if map_reference in ('MAG', 'reference_genome'):
         print('ERROR in ', config_path, ': ANNOTATION_ids variable in configuration yaml file is empty. Please, complete ', config_path)
     else:
         funct_opt=config['ANNOTATION_ids']
-        print('NOTE: MIntO is using ', func_opt, ' as ANNOTATION_ids variable.')
 elif map_reference in ('genes_db'):
     if config['ANNOTATION_ids'] is None:
         print('ERROR in ', config_path, ': ANNOTATION_ids variable in configuration yaml file is empty. Please, complete ', config_path)
     else:
         funct_opt=config['ANNOTATION_ids']
-        print('NOTE: MIntO is using ', func_opt, ' as ANNOTATION_ids variable.')
 
 
 if omics == 'metaG':
@@ -86,20 +84,20 @@ if map_reference == 'MAG':
     post_analysis_out="MAG-genes"
     post_analysis_genome="MAG-genes"
     annot_file="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir, post_analysis_genome = post_analysis_genome)
-    funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 elif map_reference == 'reference_genome':
     post_analysis_dir="9-refgenome-genes-post-analysis"
-    post_analysis_out="refgenome_genes"
-    post_analysis_genome="refgenome_genes"
+    post_analysis_out="refgenome-genes"
+    post_analysis_genome="refgenome-genes"
     annot_file="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir, post_analysis_genome = post_analysis_genome)
-    funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 elif map_reference == 'genes_db':
     post_analysis_dir="9-db-genes-post-analysis"
     post_analysis_out="db-genes"
     post_analysis_genome="None"
-    funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 
 print('NOTE: MIntO is using "' + annot_file + '" as ANNOTATION_file variable.')
+
+funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
+print('NOTE: MIntO is using ', funct_opt, ' as ANNOTATION_ids variable.')
 
 if normalization == 'TPM' and (map_reference == 'MAG' or map_reference == 'reference_genome'):
     post_analysis_TPM=post_analysis_out
