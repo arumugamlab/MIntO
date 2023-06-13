@@ -761,8 +761,8 @@ METADATA: {metadata}
 # MetaSPAdes settings
 #
 METASPADES_qoffset: auto
-METASPADES_threads: 16
-METASPADES_memory: 8
+METASPADES_threads: 10
+METASPADES_memory: 16
 METASPADES_hybrid_max_k: 99
 METASPADES_illumina_max_k: 99
 
@@ -804,13 +804,14 @@ METAFLYE_presets:
 # BWA settings
 # Used when mapping reads back to contigs
 #
-BWA_threads: 24
+BWA_threads: 10
+BWA_memory: 45
 
 # samtools settings
 # Used when sorting bam files
-#
-SAMTOOLS_sort_threads: 4
-SAMTOOLS_sort_memory_gb: 20
+# memory listed below is PER-THREAD.
+SAMTOOLS_sort_threads: 2
+SAMTOOLS_sort_memory_gb: 10
 
 ###############################
 # Binning preparation settings
@@ -969,10 +970,10 @@ ANNOTATION:
  - KEGG
  - eggNOG
 
-BWAindex_threads: 4
+BWAindex_threads: 2
 BWAindex_memory: 10
-BWA_threads: 24
-BWA_memory: 20
+BWA_threads: 10
+BWA_memory: 45
 MIN_mapped_reads: 2
 
 # Input data
