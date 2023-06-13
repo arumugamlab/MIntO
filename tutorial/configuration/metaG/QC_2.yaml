@@ -40,16 +40,16 @@ BWA_host_memory: 40
 # Assembly-free taxonomy profiling
 ##################################
 
-# Following values for 'taxa_profile' are supported: 
+# Following values for 'TAXA_profiler' are supported: 
 #    1. metaphlan - relative abundance using MetaPhlAn
 #    2. motus_raw - read counts using mOTUs
 #    3. motus_rel - relative abundance using mOTUs
 # Comma-delimited combination of multiple options also supported
 # Eg:
-#    taxa_profile: metaphlan,motus_rel
+#    TAXA_profiler: metaphlan,motus_rel
 TAXA_threads: 8
 TAXA_memory: 10
-taxa_profile: motus_rel 
+TAXA_profiler: motus_rel 
 
 #####################
 # Analysis parameters

@@ -33,7 +33,7 @@ include: 'config_parser.smk'
 
 if 'BINNERS' in config:
     if config['BINNERS'] is None:
-        print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 and/or vamb_768. Please, complete ', config_path)
+        print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete ', config_path)
     else:
         try:
             if 'BINNERS' in config:
@@ -42,11 +42,11 @@ if 'BINNERS' in config:
                     if bin in ('vae256', 'vae384', 'vae512', 'vae768', 'aaey', 'aaez'):
                         pass
                     else:
-                        raise TypeError('BINNERS variable is not correct. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 or vamb_768. Please, complete ', config_path)
+                        raise TypeError('BINNERS variable is not correct. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete ', config_path)
         except:
-            print('ERROR in ', config_path, ': BINNERS variable is not correct. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 or vamb_768.')
+            print('ERROR in ', config_path, ': BINNERS variable is not correct. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez.')
 else:
-    print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be vamb_256, vamb_384, vamb_512 and/or vamb_768. Please, complete', config_path)
+    print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete', config_path)
 
 
 if config['VAMB_THREADS'] is None:
@@ -63,10 +63,10 @@ if config['VAMB_GPU'] is None:
     print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
 elif config['VAMB_GPU'] == True:
     vamb_gpu = "yes"
-    print('WARNING in ', config_path, ': MIntO is using the GPU')
+    print('NOTE: MIntO is using the GPU')
 elif config['VAMB_GPU'] == False:
     vamb_gpu = "no"
-    print('WARNING in ', config_path, ': MIntO is not using the GPU')
+    print('NOTE: MIntO is not using the GPU')
 else:
     print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
 
@@ -123,16 +123,13 @@ else:
 if config['RUN_TAXONOMY'] is None:
     print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
 elif config['RUN_TAXONOMY'] == True:
-    print('WARNING in ', config_path, ': MIntO is running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
+    print('NOTE: MIntO is running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
     run_taxonomy = "yes"
 elif config['RUN_TAXONOMY'] == False:
     run_taxonomy = "no"
-    print('WARNING in ', config_path, ': MIntO is not running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
+    print('NOTE: MIntO is not running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
 else:
     print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
-
-if config['TAXONOMY_DATABASE'] is None:
-    print('ERROR in ', config_path, ': TAXONOMY_DATABASE variable is empty. Please, complete ', config_path)
 
 if config['TAXONOMY_CPUS'] is None:
     print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is empty. Please, complete ', config_path)
@@ -150,8 +147,11 @@ elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is False:
    print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable path does not exit. Please, complete ', config_path)
 elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is True:
    taxonomy_db_folder = config["TAXONOMY_DATABASE_FOLDER"]
-   #print(taxonomy_db_folder)
 
+if config['TAXONOMY_DATABASE'] is None:
+    print('ERROR in ', config_path, ': TAXONOMY_DATABASE variable is empty. Please, complete ', config_path)
+else:
+    print('NOTE: MIntO is using ', config['TAXONOMY_DATABASE'], ' from ', taxonomy_db_folder)
 
 def mags_recovery():
     result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt", wd = working_dir, omics = config['omics'])

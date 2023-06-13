@@ -34,12 +34,12 @@ if config['TRIMMOMATIC_memory'] is None:
 elif type(config['TRIMMOMATIC_memory']) != int:
     print('ERROR in ', config_path, ': TRIMMOMATIC_memory variable is not an integer. Please, complete ', config_path)
 
-if config['trimmomatic_adaptors'] in ('Skip', 'Quality'):
+if config['TRIMMOMATIC_adaptors'] in ('Skip', 'Quality'):
     pass
-elif config['trimmomatic_adaptors'] is None:
-    print('ERROR in ', config_path, ': trimmomatic_adaptors variable is empty. Please, complete ', config_path)
-elif path.exists(config['trimmomatic_adaptors']) is False:
-    print('ERROR in ', config_path, ': trimmomatic_adaptors variable path does not exit. Please, complete ', config_path)
+elif config['TRIMMOMATIC_adaptors'] is None:
+    print('ERROR in ', config_path, ': TRIMMOMATIC_adaptors variable is empty. Please, complete ', config_path)
+elif path.exists(config['TRIMMOMATIC_adaptors']) is False:
+    print('ERROR in ', config_path, ': TRIMMOMATIC_adaptors variable path does not exit. Please, complete ', config_path)
 
 trimmomatic_simple_clip_threshold = 10
 if 'TRIMMOMATIC_simple_clip_threshold' in config:
@@ -171,7 +171,7 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
     rule qc1_make_custom_adapter_file:
         input:
             barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
-            template=config['trimmomatic_adaptors']
+            template=config['TRIMMOMATIC_adaptors']
         output: 
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
         conda: 
@@ -195,14 +195,14 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
 # No index barcodes but adaptor trimming needed
 ##########
 
-elif config['trimmomatic_adaptors'] != 'Skip':
+elif config['TRIMMOMATIC_adaptors'] != 'Skip':
 
     localrules: qc1_copy_fixed_adapter_file
 
     # Symlink standard file if there is no index_barcode file
     rule qc1_copy_fixed_adapter_file:
         input:
-            template=config['trimmomatic_adaptors']
+            template=config['TRIMMOMATIC_adaptors']
         output: 
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
         shell: 
@@ -217,7 +217,7 @@ elif config['trimmomatic_adaptors'] != 'Skip':
 # If there is adapter file, then priority is to use it
 ruleorder: qc1_trim_quality_and_adapter > qc1_trim_quality
 
-if config['trimmomatic_adaptors'] == 'Skip':
+if config['TRIMMOMATIC_adaptors'] == 'Skip':
 
     localrules: qc1_trim_quality
 
@@ -296,7 +296,7 @@ rule qc1_trim_quality_and_adapter:
         summary="{wd}/{omics}/1-trimmed/{sample}/{sample}.trim.summary"
     params:
         tmp_quality=lambda wildcards: "{local_dir}/{omics}_{sample}_qc1_trim_quality/".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
-        adapters=config['trimmomatic_adaptors'],
+        adapters=config['TRIMMOMATIC_adaptors'],
         simple_clip_threshold=trimmomatic_simple_clip_threshold
     log: 
         "{wd}/logs/{omics}/1-trimmed/{sample}_qc1_trim_quality.log"
@@ -448,16 +448,16 @@ ___EOF___
 # Assembly-free taxonomy profiling
 ##################################
 
-# Following values for 'taxa_profile' are supported: 
+# Following values for 'TAXA_profiler' are supported:
 #    1. metaphlan - relative abundance using MetaPhlAn
 #    2. motus_raw - read counts using mOTUs
 #    3. motus_rel - relative abundance using mOTUs
 # Comma-delimited combination of multiple options also supported
 # Eg:
-#    taxa_profile: metaphlan,motus_rel
+#    TAXA_profiler: metaphlan,motus_rel
 TAXA_threads: 8
 TAXA_memory: 10
-taxa_profile: motus_rel 
+TAXA_profiler: motus_rel
 
 #####################
 # Analysis parameters

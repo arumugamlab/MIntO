@@ -14,7 +14,7 @@ raw_reads_dir: <__TEST_DIR__>/IBD_tutorial_raw/metaG
 # Program settings
 ######################
 # Read quality filtering
-trimmomatic_adaptors: Skip
+TRIMMOMATIC_adaptors: Skip
 TRIMMOMATIC_index_barcodes:
 TRIMMOMATIC_simple_clip_threshold:
 TRIMMOMATIC_threads: 8

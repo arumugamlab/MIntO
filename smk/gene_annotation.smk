@@ -23,12 +23,12 @@ else:
 
 if map_reference == 'MAG':
     reference_dir="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd=working_dir, omics=omics)
-    print('WARNING in ', config_path, ': MIntO is using "' + reference_dir + '" as PATH_reference variable')
+    print('NOTE: MIntO is using "' + reference_dir + '" as PATH_reference variable')
 elif map_reference == 'reference_genome':
     if config['PATH_reference'] is None:
         print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
     reference_dir=config["PATH_reference"]
-    print('WARNING in ', config_path, ': MIntO is using "'+ reference_dir+'" as PATH_reference variable')
+    print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
 
 if path.exists(reference_dir) is False:
     print('ERROR in ', config_path, ': reference genome path ', reference_dir, ' does not exit. Please, complete ', config_path)

@@ -79,7 +79,7 @@ if map_reference == 'MAG':
     mag_omics = 'metaG'
     if 'MAG_omics' in config and config['MAG_omics'] != None:
         mag_omics = config['MAG_omics']
-    print('WARNING in ', config_path, ': MIntO is using "'+ working_dir+'/'+mag_omics+'/8-1-binning/mags_generation_pipeline/prokka" as PATH_reference variable')
+    print('NOTE: MIntO is using "'+ working_dir+'/'+mag_omics+'/8-1-binning/mags_generation_pipeline/prokka" as PATH_reference variable')
 else:
     if config['PATH_reference'] is None:
         print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
@@ -87,11 +87,11 @@ else:
         print('ERROR in ', config_path, ': PATH_reference variable path does not exit. Please, complete ', config_path)
     else:
         if map_reference == 'reference_genome':
-            print('WARNING in ', config_path, ': MIntO is using "'+ config['PATH_reference']+'" as PATH_reference variable')
+            print('NOTE: MIntO is using "'+ config['PATH_reference']+'" as PATH_reference variable')
             reference_dir=config["PATH_reference"]
         elif map_reference == 'genes_db':
             if path.exists(config['PATH_reference']+'/'+config['NAME_reference']) is True:
-                print('WARNING in ', config_path, ': MIntO is using "'+ config['PATH_reference']+'/'+config['NAME_reference']+'" as PATH_reference and NAME_reference variables.')
+                print('NOTE: MIntO is using "'+ config['PATH_reference']+'/'+config['NAME_reference']+'" as PATH_reference and NAME_reference variables.')
                 gene_catalog_db=config["PATH_reference"]
                 gene_catalog_name=config["NAME_reference"]
             else:

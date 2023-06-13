@@ -152,11 +152,11 @@ else:
     TAXA_memory=config["TAXA_memory"]
 
 allowed = ('metaphlan', 'motus_rel', 'motus_raw')
-flags = [0 if x in allowed else 1 for x in config['taxa_profile'].split(",")]
+flags = [0 if x in allowed else 1 for x in config['TAXA_profiler'].split(",")]
 if sum(flags) == 0:
-    taxonomy=config["taxa_profile"]
+    taxonomy=config["TAXA_profiler"]
 else:
-    print('ERROR in ', config_path, ': taxa_profile variable is not correct. "taxa_profile" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
+    print('ERROR in ', config_path, ': TAXA_profiler variable is not correct. "TAXA_profiler" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
 
 # TODO: Read this from yaml file and remove hard-coding
 metaphlan_version = "4.0.6"

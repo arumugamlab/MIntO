@@ -637,13 +637,6 @@ COVERM_memory: 5
 # this could be checkm or genome
 SCORE_METHOD: "checkm"
 
-
-# PROKKA settings
-#
-RUN_PROKKA: yes
-PROKKA_CPUS: 8
-PROKKA_memory: 5
-
 # MAG taxonomy settings
 #
 RUN_TAXONOMY: yes

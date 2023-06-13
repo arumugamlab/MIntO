@@ -58,16 +58,17 @@ if map_reference == 'genes_db':
         annot_file=config['ANNOTATION_file']
 
 if map_reference in ('MAG', 'reference_genome'):
-    #print('WARNING in ', config_path, ': MIntO is using eggNOG_OGs, KEGG_Pathway, KEGG_Module, KEGG_KO, PFAMs, dbCAN.mod and dbCAN.enzclass as ANNOTATION_ids variable.')
     if config['ANNOTATION_ids'] is None:
         print('ERROR in ', config_path, ': ANNOTATION_ids variable in configuration yaml file is empty. Please, complete ', config_path)
     else:
         funct_opt=config['ANNOTATION_ids']
+        print('NOTE: MIntO is using ', func_opt, ' as ANNOTATION_ids variable.')
 elif map_reference in ('genes_db'):
     if config['ANNOTATION_ids'] is None:
         print('ERROR in ', config_path, ': ANNOTATION_ids variable in configuration yaml file is empty. Please, complete ', config_path)
     else:
         funct_opt=config['ANNOTATION_ids']
+        print('NOTE: MIntO is using ', func_opt, ' as ANNOTATION_ids variable.')
 
 
 if omics == 'metaG':
@@ -98,7 +99,7 @@ elif map_reference == 'genes_db':
     post_analysis_genome="None"
     funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 
-print('WARNING in ', config_path, ': MIntO is using "' + annot_file + '" as ANNOTATION_file variable.')
+print('NOTE: MIntO is using "' + annot_file + '" as ANNOTATION_file variable.')
 
 if normalization == 'TPM' and (map_reference == 'MAG' or map_reference == 'reference_genome'):
     post_analysis_TPM=post_analysis_out
