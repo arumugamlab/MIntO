@@ -323,7 +323,8 @@ rule gene_abund_bwa_raw:
         tmp_bwa=lambda wildcards: "{local_dir}/{omics}_{sample}_{post_analysis_out}_bwa_raw/".format(local_dir=local_dir, omics=wildcards.omics, sample=wildcards.sample, post_analysis_out=wildcards.post_analysis_out),
         length=config["msamtools_filter_length"],
         prefix="{sample}.p{identity}.filtered",
-        memory=lambda wildcards, resources: resources.mem - 1,
+        sort_threads=lambda wildcards, threads, resources: int(1+threads/4),
+        sort_memory=lambda wildcards, threads, resources: int(resources.mem/int(1+threads/4)),
         mapped_reads_threshold=config["MIN_mapped_reads"]
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.p{identity}_bwa.log"
@@ -340,7 +341,7 @@ rule gene_abund_bwa_raw:
         remote_dir=$(dirname {output.sort})
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_dir}}/{post_analysis_out} {input.hq_reads_fw} {input.hq_reads_rv}| \
                 msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > {params.tmp_bwa}{params.prefix}.bam) >& {params.tmp_bwa}{params.prefix}.log
-        samtools sort {params.tmp_bwa}{params.prefix}.bam -o {params.tmp_bwa}{params.prefix}.sorted.bam -@ {threads} -m {params.memory}G --output-fmt=BAM 
+        samtools sort {params.tmp_bwa}{params.prefix}.bam -o {params.tmp_bwa}{params.prefix}.sorted.bam -@ {params.sort_threads} -m {params.sort_memory}G --output-fmt=BAM
         samtools index {params.tmp_bwa}{params.prefix}.sorted.bam {params.tmp_bwa}{params.prefix}.sorted.bam.bai -@ {threads}
         total_reads="$(grep Processed {params.tmp_bwa}{params.prefix}.log | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         echo $total_reads
@@ -655,7 +656,7 @@ rule gene_abund_profiling_merge:
 # Generate configuration yml file for data integration - gene and function profiles
 ###############################################################################################
 rule config_yml_integration:
-    input: "{wd}/mapping.yaml"
+    input: lambda wildcards: "{wd}/{mag_omics}/mapping.yaml".format(wd=wildcards.wd, mag_omics=mag_omics)
     output: 
         config_file="{wd}/data_integration.yaml"
     params: 
