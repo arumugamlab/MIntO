@@ -45,11 +45,13 @@ fi
 
 # Download dependencies
 
+echo -n "Downloading dependencies: "
 cat $MINTO_DIR/testing/dependencies.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__LOCAL_DIR__>@$LOCAL_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > dependencies.yaml
 time (snakemake --snakefile $MINTO_DIR/smk/dependencies.smk --configfile dependencies.yaml $SNAKE_PARAMS >& dependencies.log && echo "OK")
 
 # Download raw data
 
+echo "Downloading tutorial data"
 if [ ! -d "IBD_tutorial_raw" ]; then
   wget https://zenodo.org/record/6369313/files/IBD_tutorial_raw.tar.gz
   tar xfz IBD_tutorial_raw.tar.gz
@@ -68,31 +70,31 @@ for OMICS in metaG metaT; do
   echo "Processing $OMICS:"
   mkdir -p $OMICS
   cd $OMICS
-  echo "QC_1:"
+  echo -n "QC_1: "
   cat $MINTO_DIR/testing/QC_1.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__LOCAL_DIR__>@$LOCAL_DIR@;s@<__TEST_DIR__>@$TEST_DIR@;s@<__OMICS__>@$OMICS@;" > QC_1.yaml
   time (snakemake --snakefile $MINTO_DIR/smk/QC_1.smk --configfile QC_1.yaml $SNAKE_PARAMS >& QC_1.log && echo "OK")
   if [ ! -f "QC_2.yaml.fixed" ]; then
     patch QC_2.yaml $MINTO_DIR/testing/QC_2.patch -o - | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__LOCAL_DIR__>@$LOCAL_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > QC_2.yaml.fixed
   fi
-  echo "QC_2:"
+  echo -n "QC_2: "
   time (snakemake --snakefile $MINTO_DIR/smk/QC_2.smk --configfile QC_2.yaml.fixed $SNAKE_PARAMS >& QC_2.log && echo "OK")
-  echo "ASSEMBLY:"
+  echo -n "ASSEMBLY: "
   time (snakemake --snakefile $MINTO_DIR/smk/assembly.smk --configfile assembly.yaml $SNAKE_PARAMS >& assembly.log && echo "OK")
-  echo "BINNING_PREP:"
+  echo -n "BINNING_PREP: "
   time (snakemake --snakefile $MINTO_DIR/smk/binning_preparation.smk --configfile assembly.yaml $SNAKE_PARAMS >& binning_prep.log && echo "OK")
-  echo "BINNING:"
+  echo -n "BINNING: "
   time (snakemake --snakefile $MINTO_DIR/smk/mags_generation.smk --configfile mags_generation.yaml $SNAKE_PARAMS >& mags.log && echo "OK")
-  echo "GENE_ANNOTATION:"
+  echo -n "GENE_ANNOTATION: "
   time (snakemake --snakefile $MINTO_DIR/smk/gene_annotation.smk --configfile mapping.yaml $SNAKE_PARAMS >& annotation.log && echo "OK")
-  echo "GENE_ABUNDANCE:"
+  echo -n "GENE_ABUNDANCE: "
   time (snakemake --snakefile $MINTO_DIR/smk/gene_abundance.smk --configfile mapping.yaml $SNAKE_PARAMS >& abundance.log && echo "OK")
   cd ..
 done
 
 # Run integration
 
-echo "DATA_INTEGRATION - TPM:"
+echo -n "DATA_INTEGRATION - TPM: "
 time (snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml $SNAKE_PARAMS >& integration.TPM.metaGT.log && echo "OK")
 sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml > data_integration.yaml.TPM
-echo "DATA_INTEGRATION - MG:"
+echo -n "DATA_INTEGRATION - MG: "
 time (snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml.TPM $SNAKE_PARAMS >& integration.MG.metaGT.log && echo "OK")
