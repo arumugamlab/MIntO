@@ -68,7 +68,10 @@ cp $MINTO_DIR/tutorial/build_hg18_subset.fna .
 
 OMICS="metaG"
 for OMICS in metaG metaT; do
+  echo ""
+  echo "------------------"
   echo "Processing $OMICS:"
+  echo "------------------"
   mkdir -p $OMICS
   cd $OMICS
   echo -n "QC_1: "
