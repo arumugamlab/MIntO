@@ -51,10 +51,11 @@ time (snakemake --snakefile $MINTO_DIR/smk/dependencies.smk --configfile depende
 
 # Download raw data
 
-echo "Downloading tutorial data"
 if [ ! -d "IBD_tutorial_raw" ]; then
+  echo -n "Downloading tutorial data: "
   wget https://zenodo.org/record/6369313/files/IBD_tutorial_raw.tar.gz
   tar xfz IBD_tutorial_raw.tar.gz
+  echo "OK"
 fi
 
 # Get data
