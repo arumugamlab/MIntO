@@ -777,7 +777,7 @@ METASPADES_illumina_max_k: 99
 #     until it succeeds or reaches max_attempts from snakemake.
 #     Please make sure that there is enough RAM on the server.
 MEGAHIT_memory: 10
-MEGAHIT_threads: 32
+MEGAHIT_threads: 40
 MEGAHIT_presets:
  - meta-sensitive
  - meta-large
@@ -805,13 +805,13 @@ METAFLYE_presets:
 # Used when mapping reads back to contigs
 #
 BWA_threads: 10
-BWA_memory: 45
+BWA_memory: 25
 
 # samtools settings
 # Used when sorting bam files
 # memory listed below is PER-THREAD.
 SAMTOOLS_sort_threads: 2
-SAMTOOLS_sort_memory_gb: 10
+SAMTOOLS_sort_perthread_memgb: 10
 
 ###############################
 # Binning preparation settings

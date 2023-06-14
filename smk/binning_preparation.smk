@@ -133,15 +133,20 @@ if config['BWA_threads'] is None:
 elif type(config['BWA_threads']) != int:
     print('ERROR in ', config_path, ': BWA_threads variable is not an integer. Please, complete ', config_path)
 
+if config['BWA_memory'] is None:
+    print('ERROR in ', config_path, ': BWA_memory variable is empty. Please, complete ', config_path)
+elif type(config['BWA_memory']) != int:
+    print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)
+
 if config['SAMTOOLS_sort_threads'] is None:
     print('ERROR in ', config_path, ': SAMTOOLS_sort_threads variable is empty. Please, complete ', config_path)
 elif type(config['SAMTOOLS_sort_threads']) != int:
     print('ERROR in ', config_path, ': SAMTOOLS_sort_threads variable is not an integer. Please, complete ', config_path)
 
-if config['SAMTOOLS_sort_memory_gb'] is None:
-    print('ERROR in ', config_path, ': SAMTOOLS_sort_memory_gb variable is empty. Please, complete ', config_path)
-elif type(config['SAMTOOLS_sort_memory_gb']) != int:
-    print('ERROR in ', config_path, ': SAMTOOLS_sort_memory_gb variable is not an integer. Please, complete ', config_path)
+if config['SAMTOOLS_sort_perthread_memgb'] is None:
+    print('ERROR in ', config_path, ': SAMTOOLS_sort_perthread_memgb variable is empty. Please, complete ', config_path)
+elif type(config['SAMTOOLS_sort_perthread_memgb']) != int:
+    print('ERROR in ', config_path, ': SAMTOOLS_sort_perthread_memgb variable is not an integer. Please, complete ', config_path)
 
 # Make list of nanopore assemblies, if NANOPORE in config
 nanopore_assemblies = list()
@@ -340,10 +345,10 @@ rule BWA_index_contigs:
 
 # Maps reads to contig-set using bwa2
 # Baseline memory usage is:
-#   Main: 240GB
-#   Sort: using config values: SAMTOOLS_sort_threads and SAMTOOLS_sort_memory_gb;
-#         e.g. 4 threads and 20GB = 80GB
-# If an attempt fails, 40GB extra for every new attempt
+#   Main: BWA_memory 25GB
+#   Sort: using config values: SAMTOOLS_sort_threads and SAMTOOLS_sort_perthread_memgb;
+#   E.g. 25GB for BWA, 2 sort threads and 10GB per-thread = 45GB
+# If an attempt fails, 40GB extra for every new attempt, and this mostly affects non-sort processes.
 # Once mapping succeeds, run coverM to get contig depth for this bam
 rule map_contigs_BWA_depth_coverM:
     input:
@@ -355,12 +360,12 @@ rule map_contigs_BWA_depth_coverM:
     params:
         map_threads = config['BWA_threads'],
         sort_threads = config['SAMTOOLS_sort_threads'],
-        sort_mem = config['SAMTOOLS_sort_memory_gb'],
+        sort_mem = config['SAMTOOLS_sort_perthread_memgb'],
         local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/{illumina}/{scaf_type}/{batch}/".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina, scaf_type=wildcards.scaf_type, batch=wildcards.batch)
     log:
         "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.batch{batch}.{min_length}.bwa2.log"
     resources:
-        mem = lambda wildcards, attempt: 50 + config['SAMTOOLS_sort_threads']*config['SAMTOOLS_sort_memory_gb'] + 40*attempt
+        mem = lambda wildcards, attempt: config['BWA_memory'] + config['SAMTOOLS_sort_threads']*config['SAMTOOLS_sort_perthread_memgb'] + 40*(attempt-1)
     threads:
         config['BWA_threads']
     conda:
@@ -612,8 +617,8 @@ BINNERS:
 - aaez
 - vae384
 
-VAMB_THREADS: 24
-VAMB_memory: 20
+VAMB_THREADS: 20
+VAMB_memory: 40
 
 # Use GPU in VAMB:
 # could be "yes" or "no"
