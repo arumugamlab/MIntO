@@ -74,12 +74,12 @@ elif type(config['msamtools_filter_length']) != int:
 if config['NAME_reference'] is None and map_reference == 'genes_db':
     print('ERROR in ', config_path, ': NAME_reference variable does not exit. Please, complete ', config_path)
 
-mag_omics = ''
+mag_omics = 'metaG'
 if map_reference == 'MAG':
-    mag_omics = 'metaG'
     if 'MAG_omics' in config and config['MAG_omics'] != None:
         mag_omics = config['MAG_omics']
-    print('NOTE: MIntO is using "'+ working_dir+'/'+mag_omics+'/8-1-binning/mags_generation_pipeline/prokka" as PATH_reference variable')
+    reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd = working_dir, mag_omics = mag_omics)
+    print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
 else:
     if config['PATH_reference'] is None:
         print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
@@ -133,12 +133,10 @@ if 'MG' in normalization_modes and map_reference in ("genes_db"):
 if map_reference == 'MAG':
     post_analysis_out="MAG-genes"
     post_analysis_dir="9-MAG-genes-post-analysis"
-    reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd = working_dir, mag_omics = mag_omics)
 
 if map_reference == 'reference_genome':
     post_analysis_out="refgenome-genes"
     post_analysis_dir="9-refgenome-genes-post-analysis"
-    reference_dir=config["PATH_reference"]
 
 gene_catalog_db="None"
 gene_catalog_name="None"
@@ -702,9 +700,6 @@ ANNOTATION_file:
 # - KEGG_Pathway
 ANNOTATION_ids:
  - eggNOG_OGs
- - KEGG_Pathway
- - KEGG_Module
- - KEGG_KO
  - PFAMs
  - dbCAN.mod
  - dbCAN.enzclass
