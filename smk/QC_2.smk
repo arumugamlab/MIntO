@@ -967,7 +967,6 @@ NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa 
 # - eggNOG
 ANNOTATION:
  - dbCAN
- - KEGG
  - eggNOG
 
 BWAindex_threads: 2
