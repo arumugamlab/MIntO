@@ -297,7 +297,7 @@ rule gene_annot_eggnog:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_eggnog.log"
     resources:
         mem=10
-    threads: 16
+    threads: 24
     conda:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
@@ -310,16 +310,17 @@ rule gene_annot_eggnog:
             do [[ -f /dev/shm/eggnog_data/$e ]] || cp data/$e /dev/shm/eggnog_data/
         done
         emapper.py --data_dir /dev/shm/eggnog_data/ -o {params.prefix} \
---no_annot --no_file_comments --report_no_hits --override --output_dir {params.tmp_eggnog} -m diamond -i {input.fasta_subset} --cpu {threads}
+                   --no_annot --no_file_comments --report_no_hits --override --output_dir {params.tmp_eggnog} -m diamond -i {input.fasta_subset} --cpu {threads}
         emapper.py --annotate_hits_table {params.tmp_eggnog}/{params.prefix}.emapper.seed_orthologs \
---data_dir /dev/shm/eggnog_data/ -m no_search --no_file_comments --override -o {params.prefix} --output_dir {params.tmp_eggnog} --cpu {threads}
+                   --data_dir /dev/shm/eggnog_data/ -m no_search --no_file_comments --override -o {params.prefix} --output_dir {params.tmp_eggnog} --cpu {threads}
         cut -f 1,5,12,13,14,21 {params.tmp_eggnog}/{params.prefix}.emapper.annotations > {params.tmp_eggnog}/{params.prefix}.eggNOG5
         {script_dir}/process_eggNOG_OGs.pl {params.tmp_eggnog}/{params.prefix}.eggNOG5 > {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
         rm {params.tmp_eggnog}/{params.prefix}.eggNOG5
         sed -i 's/\#query/ID/' {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
         sed -i 's/ko\://g' {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
-        rsync {params.tmp_eggnog}* {wildcards.wd}/DB/{post_analysis_dir}/annot/)&> {log}
+        rsync {params.tmp_eggnog}/* {wildcards.wd}/DB/{post_analysis_dir}/annot/)&> {log}
         rm -rf {params.tmp_eggnog}
+        rm -rf /dev/shm/eggnog_data
         """
 
 ################################################################################################
