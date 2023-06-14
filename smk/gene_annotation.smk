@@ -21,8 +21,11 @@ if config['map_reference'] in ("MAG", "reference_genome"):
 else:
     print('ERROR in ', config_path, ': map_reference variable is not correct. "map_reference" variable should be MAG or reference_genome.')
 
+mag_omics = 'metaG'
 if map_reference == 'MAG':
-    reference_dir="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd=working_dir, omics=omics)
+    if 'MAG_omics' in config and config['MAG_omics'] != None:
+        mag_omics = config['MAG_omics']
+    reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd=working_dir, mag_omics=mag_omics)
     print('NOTE: MIntO is using "' + reference_dir + '" as PATH_reference variable')
 elif map_reference == 'reference_genome':
     if config['PATH_reference'] is None:
