@@ -53,7 +53,7 @@ time (snakemake --snakefile $MINTO_DIR/smk/dependencies.smk --configfile depende
 
 if [ ! -d "IBD_tutorial_raw" ]; then
   echo -n "Downloading tutorial data: "
-  wget https://zenodo.org/record/6369313/files/IBD_tutorial_raw.tar.gz
+  wget --quiet https://zenodo.org/record/6369313/files/IBD_tutorial_raw.tar.gz
   tar xfz IBD_tutorial_raw.tar.gz
   echo "OK"
 fi
@@ -97,8 +97,8 @@ done
 
 # Run integration
 
-echo -n "DATA_INTEGRATION - TPM: "
-time (snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml $SNAKE_PARAMS >& integration.TPM.metaGT.log && echo "OK")
-sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml > data_integration.yaml.TPM
 echo -n "DATA_INTEGRATION - MG: "
-time (snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml.TPM $SNAKE_PARAMS >& integration.MG.metaGT.log && echo "OK")
+time (snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml $SNAKE_PARAMS >& integration.MG.metaGT.log && echo "OK")
+sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml > data_integration.yaml.TPM
+echo -n "DATA_INTEGRATION - TPM: "
+time (snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml.TPM $SNAKE_PARAMS >& integration.TPM.metaGT.log && echo "OK")
