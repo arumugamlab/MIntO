@@ -457,7 +457,7 @@ ___EOF___
 #    TAXA_profiler: metaphlan,motus_rel
 TAXA_threads: 8
 TAXA_memory: 10
-TAXA_profiler: motus_rel
+TAXA_profiler: motus_rel,metaphlan
 
 #####################
 # Analysis parameters
