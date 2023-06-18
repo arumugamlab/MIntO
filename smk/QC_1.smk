@@ -41,6 +41,10 @@ elif config['TRIMMOMATIC_adaptors'] is None:
 elif path.exists(config['TRIMMOMATIC_adaptors']) is False:
     print('ERROR in ', config_path, ': TRIMMOMATIC_adaptors variable path does not exit. Please, complete ', config_path)
 
+if 'TRIMMOMATIC_palindrome' in config and config['TRIMMOMATIC_palindrome'] is not None:
+    if path.exists(config['TRIMMOMATIC_palindrome']) is False:
+        print('ERROR in ', config_path, ': TRIMMOMATIC_palindrome variable path does not exit. Please, complete ', config_path)
+
 trimmomatic_simple_clip_threshold = 10
 if 'TRIMMOMATIC_simple_clip_threshold' in config:
     trimmomatic_simple_clip_threshold = config['TRIMMOMATIC_simple_clip_threshold']
@@ -108,8 +112,8 @@ def qc1_config_yml_output():
 
 rule all:
     input:
-        qc1_trim_quality_output(),
-        qc1_check_read_length_output(),
+        #qc1_trim_quality_output(),
+        #qc1_check_read_length_output(),
         qc1_read_length_cutoff_output(),
         qc1_config_yml_output()
 
@@ -130,7 +134,8 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
     # If there is a global index file for all samples given in config['TRIMMOMATIC_index_barcodes'], use it
     # If it does not exist, then infer from fastq file
 
-    localrules: qc1_get_index_barcode, qc1_make_custom_adapter_file
+    localrules: qc1_get_index_barcode, qc1_make_custom_adapter_file, qc1_make_custom_adapter_file_with_palindrome
+    ruleorder: qc1_make_custom_adapter_file_with_palindrome > qc1_make_custom_adapter_file
 
     if config['TRIMMOMATIC_index_barcodes'].lower() == "infer":
         # Infer from fastq file
@@ -168,6 +173,37 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
                 """
 
     # Create a custom adapter file to be used in Trimmomatic, given the custom index file above
+    rule qc1_make_custom_adapter_file_with_palindrome:
+        input:
+            barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
+            palindrome=config['TRIMMOMATIC_palindrome'],
+            template=config['TRIMMOMATIC_adaptors']
+        output: 
+            adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
+        conda: 
+            config["minto_dir"]+"/envs/MIntO_base.yml" # seqkit
+        shell: 
+            """
+            # Get the 1st part of the adapter pair
+            barcode1=$(cat {input.barcodes} | sed "s/;/+/" | cut -f1 -d'+')
+            # Get reverse complement
+            #barcode1=$(echo $barcode1 | tr 'ATGC' 'TACG' | rev)
+
+            # Get the 2nd part of adapter pair
+            barcode2=$(cat {input.barcodes} | sed "s/;/+/" | cut -f2 -d'+')
+            # Get reverse complement
+            barcode2=$(echo $barcode2 | tr 'ATGC' 'TACG' | rev)
+
+            # Make custom adapters for this sample using its index sequences
+            #  1. Make palindromes
+            cat {input.template} | seqkit grep --quiet -n -f {input.palindrome} -w 1000 -o - | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | sed "s^Adapter.*/^PrefixPE-Ad/^" > {output.adapter}
+            #  2. Make 5-prime adapters
+            cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" >> {output.adapter}
+            #  3. Make 3-prime adapters
+            cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | tr -s '12' '21' | sed "s^/^_rc/^" >> {output.adapter}
+            """
+
+    # Create a custom adapter file to be used in Trimmomatic, given the custom index file above
     rule qc1_make_custom_adapter_file:
         input:
             barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
@@ -175,19 +211,23 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
         output: 
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
         conda: 
-            config["minto_dir"]+"/envs/MIntO_base.yml"#mseqtools
+            config["minto_dir"]+"/envs/MIntO_base.yml" # seqkit
         shell: 
             """
-            # Get reverse complement of the 1st part of the adapter pair
-            barcode1=$(cat {input.barcodes} | sed "s/;/+/" | cut -f1 -d'+' | tr 'ATGC' 'TACG' | rev)
+            # Get the 1st part of the adapter pair
+            barcode1=$(cat {input.barcodes} | sed "s/;/+/" | cut -f1 -d'+')
+            # Get reverse complement
+            #barcode1=$(echo $barcode1 | tr 'ATGC' 'TACG' | rev)
+
             # Get the 2nd part of adapter pair
-            barcode2=$(cat {input.barcodes} | sed "s/;/+/" | cut -f2 -d'+' | tr 'ATGC' 'TACG' | rev)
+            barcode2=$(cat {input.barcodes} | sed "s/;/+/" | cut -f2 -d'+')
+            # Get reverse complement
+            barcode2=$(echo $barcode2 | tr 'ATGC' 'TACG' | rev)
+
             # Make custom adapters for this sample using its index sequences
-            #  1. Make palindromes
-            cat {input.template} | seqkit grep --quiet -n -f {wildcards.wd}/{wildcards.omics}/palindrome.list -w 1000 -o - | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | sed "s^Adapter.*/^PrefixPE-Ad/^" > {output.adapter}
-            #  2. Make 5-prime adapters
-            cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" >> {output.adapter}
-            #  3. Make 3-prime adapters
+            #  1. Make 5-prime adapters
+            cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" > {output.adapter}
+            #  2. Make 3-prime adapters
             cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | tr -s '12' '21' | sed "s^/^_rc/^" >> {output.adapter}
             """
 
@@ -228,20 +268,14 @@ if config['TRIMMOMATIC_adaptors'] == 'Skip':
             read_rv = lambda wildcards: '{raw_dir}/{sample}/{sample}.2.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample),
         output: 
             pairead1="{wd}/{omics}/1-trimmed/{sample}/{sample}.1.paired.fq.gz", 
-            singleread1="{wd}/{omics}/1-trimmed/{sample}/{sample}.1.single.fq.gz", 
             pairead2="{wd}/{omics}/1-trimmed/{sample}/{sample}.2.paired.fq.gz", 
-            singleread2="{wd}/{omics}/1-trimmed/{sample}/{sample}.2.single.fq.gz", 
-            summary="{wd}/{omics}/1-trimmed/{sample}/{sample}.trim.summary"
         log: 
             "{wd}/logs/{omics}/1-trimmed/{sample}_qc1_trim_quality.log"
         shell: 
             """
-            cat {input.read_fw} > {output.pairead1}
-            touch {output.singleread1}
-            cat {input.read_rv} > {output.pairead2}
-            touch {output.singleread2}
-            touch {output.summary}
-            echo "Skipped trimming and linked raw files to trimmed files." {log}
+            (ln -s --force {input.read_fw} {output.pairead1}
+            ln -s --force {input.read_rv} {output.pairead2}
+            echo "Skipped trimming and linked raw files to trimmed files.") >& {log}
             """
 
 else:
@@ -313,6 +347,7 @@ rule qc1_trim_quality_and_adapter:
         time ( \
             trimmomatic PE -threads {threads} \
                 -summary {output.summary} \
+                -trimlog {output.summary}.log \
                 -phred33 \
                 {input.read_fw} {input.read_rv} \
                 {params.tmp_quality}1-trimmed/{wildcards.sample}.1.paired.fq.gz {params.tmp_quality}1-trimmed/{wildcards.sample}.1.single.fq.gz \
@@ -341,7 +376,7 @@ rule qc1_check_read_length:
 
 rule qc1_check_read_length_merge:
     input: 
-        length=expand("{{wd}}/{{omics}}/1-trimmed/{sample}/{sample}.{group}.read_length.txt", sample=ilmn_samples, group=['1', '2'])
+        length=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt", wd=wildcards.wd, omics=wildcards.omics, sample=ilmn_samples, group=['1', '2'])
     output: 
         readlen_dist="{wd}/{omics}/1-trimmed/samples_read_length.txt", 
     log: 
