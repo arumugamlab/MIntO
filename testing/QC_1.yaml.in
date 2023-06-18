@@ -15,6 +15,7 @@ raw_reads_dir: <__TEST_DIR__>/IBD_tutorial_raw/<__OMICS__>
 ######################
 # Read quality filtering
 TRIMMOMATIC_adaptors: Skip
+TRIMMOMATIC_palindrome:
 TRIMMOMATIC_index_barcodes:
 TRIMMOMATIC_simple_clip_threshold:
 TRIMMOMATIC_threads: 8
