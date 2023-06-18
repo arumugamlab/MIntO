@@ -196,11 +196,11 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
 
             # Make custom adapters for this sample using its index sequences
             #  1. Make palindromes
-            cat {input.template} | seqkit grep --quiet -n -f {input.palindrome} -w 1000 -o - | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | sed "s^Adapter.*/^PrefixPE-Ad/^" > {output.adapter}
+            cat {input.template} | seqkit grep --quiet -n -f {input.palindrome} -w 1000 -o - | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | sed "s^Adapter.*/^PrefixPE-Ad/^" > {output.adapter}
             #  2. Make 5-prime adapters
-            cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" >> {output.adapter}
+            cat {input.template} | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" >> {output.adapter}
             #  3. Make 3-prime adapters
-            cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | tr -s '12' '21' | sed "s^/^_rc/^" >> {output.adapter}
+            cat {input.template} | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | tr -s '12' '21' | sed "s^/^_rc/^" >> {output.adapter}
             """
 
     # Create a custom adapter file to be used in Trimmomatic, given the custom index file above
@@ -226,9 +226,9 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
 
             # Make custom adapters for this sample using its index sequences
             #  1. Make 5-prime adapters
-            cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" > {output.adapter}
+            cat {input.template} | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" > {output.adapter}
             #  2. Make 3-prime adapters
-            cat {input.template} | sed "s/N\{{6,10\}}/${{barcode1}}/;s/X\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | tr -s '12' '21' | sed "s^/^_rc/^" >> {output.adapter}
+            cat {input.template} | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | tr -s '12' '21' | sed "s^/^_rc/^" >> {output.adapter}
             """
 
 ##########
