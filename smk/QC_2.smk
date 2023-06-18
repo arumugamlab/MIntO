@@ -957,8 +957,10 @@ fetchMGs_dir: {minto_dir}/data/fetchMGs-1.2
 # Map reads to reference
 map_reference: MAG
 MAG_omics: metaG
-PATH_reference: # path to gene catalog fasta file
-NAME_reference: # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+# path to gene catalog fasta file
+PATH_reference:
+# file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+NAME_reference:
 
 
 # List of databases used to performe the genome annotation:
