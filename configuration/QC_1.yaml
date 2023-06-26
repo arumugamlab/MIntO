@@ -14,6 +14,7 @@ raw_reads_dir: /mypath/IBD_tutorial_raw/metaG
 # Program settings
 ######################
 # Read quality filtering
+MULTIPLEX_TECH: TruSeq
 TRIMMOMATIC_adaptors: Skip
 TRIMMOMATIC_index_barcodes:
 TRIMMOMATIC_simple_clip_threshold:
