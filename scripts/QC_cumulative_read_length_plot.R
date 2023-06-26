@@ -84,13 +84,13 @@ read_len_df_plot$fwd_rv <- 'Fwd'
 read_len_df_plot$fwd_rv[read_len_df_plot$sample_pair == "2"]<- 'Rev'
 
 # Plot cumulative reads distribution per bp per sample
-title = "Read lengths after trimming"
-read_len_plot = (ggplot(data=read_len_df_plot, aes(x=len_reads, y=cumsum_total_perc, group = sample_name, color=sample_name)) + 
-                    geom_line()  + 
+title = "Read length distribution after trimming"
+read_len_plot = (ggplot(data=read_len_df_plot, aes(x=len_reads, y=cumsum_total_perc, group=len_reads)) + 
+                    geom_boxplot()  + 
                     scale_y_continuous(minor_breaks = seq(80, 100, 5), breaks = seq(0, 100, 20)) +
                     theme_bw() + 
                     theme(axis.text = element_text(size = 9.5), legend.position = 'none') + 
-                    labs(x ="read bp (length cutoff)", y="fraction remaining (%)", title = title) + 
+                    labs(x ="read length (bp)", y="fraction above given length (%)", title = title) + 
                     facet_grid(fwd_rv~.))
 
 # Calculate MINLEN parameter in Trimmomatic to keep the % of forward-reverse reads specified in the config file
@@ -106,15 +106,14 @@ read_len_df_plot_filter2 <- as.data.frame(read_len_df_plot_filter %>%
                                             dplyr::filter(cumsum_total_perc %in% min(cumsum_total_perc)) %>% 
                                             dplyr::filter(len_reads %in% max(len_reads)))
 
+# MINLEN parameter in Trimmomatic
 
 min_len_read = min(as.numeric(read_len_df_plot_filter2$len_reads))
+print(paste0('Estimated trimming length cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp'))
 if (min_len_read < 50){
   min_len_read = 50
-} else{
-  min_len_read=min_len_read
 }
 
-# MINLEN parameter in Trimmomatic
 print(paste0('Recommended trimming length cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp'))
 cat(min_len_read, file=output_file, sep="\n")
 
