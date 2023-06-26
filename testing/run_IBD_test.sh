@@ -62,6 +62,10 @@ if [ ! -d "IBD_tutorial_raw" ]; then
   echo "OK"
 fi
 
+# Extract ref-genome
+
+tar xfz $MINTO_DIR/tutorial/genomes.tar.gz
+
 # Get data
 mkdir -p IBD_tutorial
 cd IBD_tutorial
