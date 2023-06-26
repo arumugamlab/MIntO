@@ -80,17 +80,18 @@ read_len_df_plot <- read_len_df_plot %>% dplyr::group_by(sample) %>% tidyr::fill
 # Prepare data to plot
 read_len_df_plot$sample_name = gsub('(.*)\\_(.*)',"\\1",read_len_df_plot$sample)
 read_len_df_plot$sample_pair  = gsub('(.*)\\_(.*)',"\\2",read_len_df_plot$sample)
-read_len_df_plot$fwd_rv <- 'Fwd'
-read_len_df_plot$fwd_rv[read_len_df_plot$sample_pair == "2"]<- 'Rev'
+read_len_df_plot$fwd_rv <- 'Forward reads'
+read_len_df_plot$fwd_rv[read_len_df_plot$sample_pair == "2"]<- 'Reverse reads'
 
 # Plot cumulative reads distribution per bp per sample
 title = "Read length distribution after trimming"
-read_len_plot = (ggplot(data=read_len_df_plot, aes(x=len_reads, y=cumsum_total_perc, group=len_reads)) + 
-                    geom_boxplot()  + 
+read_len_plot = (ggplot(data=read_len_df_plot, aes(x=len_reads, y=cumsum_total_perc, group=len_reads)) +
+                    geom_boxplot(outlier.colour="grey", outlier.shape=16, outlier.size=0.5, color="grey") +
                     scale_y_continuous(minor_breaks = seq(80, 100, 5), breaks = seq(0, 100, 20)) +
-                    theme_bw() + 
-                    theme(axis.text = element_text(size = 9.5), legend.position = 'none') + 
-                    labs(x ="read length (bp)", y="fraction above given length (%)", title = title) + 
+                    ylim(40, 100) +
+                    theme_bw() +
+                    theme(axis.text = element_text(size = 9.5), legend.position = 'none') +
+                    labs(x ="read trim length (bp)", y="fraction remaining after trimming (%)", title = title) +
                     facet_grid(fwd_rv~.))
 
 # Calculate MINLEN parameter in Trimmomatic to keep the % of forward-reverse reads specified in the config file
