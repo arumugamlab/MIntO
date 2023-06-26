@@ -24,6 +24,12 @@ if config['raw_reads_dir'] is None:
 else:
     raw_dir = config['raw_reads_dir']
 
+multiplex_tech = 'TruSeq'
+if config['MULTIPLEX_TECH'] is None:
+    print('ERROR in ', config_path, ': MULTIPLEX_TECH variable in configuration yaml file is empty. Please, complete ', config_path)
+else:
+    multiplex_tech = config['MULTIPLEX_TECH']
+
 if config['TRIMMOMATIC_threads'] is None:
     print('ERROR in ', config_path, ': TRIMMOMATIC_threads variable is empty. Please, complete ', config_path)
 elif type(config['TRIMMOMATIC_threads']) != int:
@@ -180,23 +186,25 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
             template=config['TRIMMOMATIC_adaptors']
         output: 
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
+        params:
+            multiplex=multiplex_tech
         conda: 
             config["minto_dir"]+"/envs/MIntO_base.yml" # seqkit
         shell: 
             """
             # Get the 1st part of the adapter pair
             barcode1=$(cat {input.barcodes} | sed "s/;/+/" | cut -f1 -d'+')
-            # Get reverse complement
-            #barcode1=$(echo $barcode1 | tr 'ATGC' 'TACG' | rev)
-
             # Get the 2nd part of adapter pair
             barcode2=$(cat {input.barcodes} | sed "s/;/+/" | cut -f2 -d'+')
-            # Get reverse complement
-            barcode2=$(echo $barcode2 | tr 'ATGC' 'TACG' | rev)
+
+            # For MGI, revcomp barcode2
+            if [ "{params.multiplex}" == "MGIEasy" ]; then
+                barcode2=$(echo $barcode2 | tr 'ATGC' 'TACG' | rev)
+            fi
 
             # Make custom adapters for this sample using its index sequences
             #  1. Make palindromes
-            cat {input.template} | seqkit grep --quiet -n -f {input.palindrome} -w 1000 -o - | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | sed "s^Adapter.*/^PrefixPE-Ad/^" > {output.adapter}
+            cat {input.template} | seqkit grep --quiet -n -f {input.palindrome} -w 1000 -o - | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | sed "s^>.*/^>PrefixPE-Ad/^" | tr -s '12' '21' > {output.adapter}
             #  2. Make 5-prime adapters
             cat {input.template} | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" >> {output.adapter}
             #  3. Make 3-prime adapters
@@ -210,24 +218,26 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
             template=config['TRIMMOMATIC_adaptors']
         output: 
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
+        params:
+            multiplex=multiplex_tech
         conda: 
             config["minto_dir"]+"/envs/MIntO_base.yml" # seqkit
         shell: 
             """
             # Get the 1st part of the adapter pair
             barcode1=$(cat {input.barcodes} | sed "s/;/+/" | cut -f1 -d'+')
-            # Get reverse complement
-            #barcode1=$(echo $barcode1 | tr 'ATGC' 'TACG' | rev)
-
             # Get the 2nd part of adapter pair
             barcode2=$(cat {input.barcodes} | sed "s/;/+/" | cut -f2 -d'+')
-            # Get reverse complement
-            barcode2=$(echo $barcode2 | tr 'ATGC' 'TACG' | rev)
+
+            # For MGI, revcomp barcode2
+            if [ "{params.multiplex}" == "MGIEasy" ]; then
+                barcode2=$(echo $barcode2 | tr 'ATGC' 'TACG' | rev)
+            fi
 
             # Make custom adapters for this sample using its index sequences
-            #  1. Make 5-prime adapters
+            #  2. Make 5-prime adapters
             cat {input.template} | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" > {output.adapter}
-            #  2. Make 3-prime adapters
+            #  3. Make 3-prime adapters
             cat {input.template} | sed "s/>\{{6,10\}}/${{barcode1}}/;s/<\{{6,10\}}/${{barcode2}}/" | seqtk seq -r - | tr -s '12' '21' | sed "s^/^_rc/^" >> {output.adapter}
             """
 
