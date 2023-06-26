@@ -451,7 +451,7 @@ METADATA: {metadata}
 # Read length filtering
 #########################
 
-$(cat {input.cutoff_file})
+READ_minlen: $(cat {input.cutoff_file})
 
 #########################
 # Host genome filtering

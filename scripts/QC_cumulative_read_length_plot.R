@@ -116,7 +116,7 @@ if (min_len_read < 50){
 
 # MINLEN parameter in Trimmomatic
 print(paste0('Recommended trimming length cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp'))
-cat(paste0("READ_minlen: ", min_len_read), file=output_file, sep="\n")
+cat(min_len_read, file=output_file, sep="\n")
 
 # Output plot
 read_len_plot_out <- (read_len_plot + 
