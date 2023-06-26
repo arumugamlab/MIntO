@@ -357,7 +357,6 @@ rule qc1_trim_quality_and_adapter:
         time ( \
             trimmomatic PE -threads {threads} \
                 -summary {output.summary} \
-                -trimlog {output.summary}.log \
                 -phred33 \
                 {input.read_fw} {input.read_rv} \
                 {params.tmp_quality}1-trimmed/{wildcards.sample}.1.paired.fq.gz {params.tmp_quality}1-trimmed/{wildcards.sample}.1.single.fq.gz \
@@ -376,9 +375,9 @@ rule qc1_check_read_length:
     log: 
         "{wd}/logs/{omics}/1-trimmed/{sample}.{group}.check_read_length.log"
     resources:
-        mem=config['TRIMMOMATIC_memory']
+        mem=4
     threads:
-        config['TRIMMOMATIC_threads'] 
+        2
     shell: 
         """
         time (sh -c 'gzip -cd {input.pairead} | awk -v f="{wildcards.sample}_{wildcards.group}" "{{if(NR%4==2) print length(\$1),f}}" | sort -n | uniq -c > {output.length}') >& {log}
