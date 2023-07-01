@@ -11,7 +11,8 @@ Authors: Carmen Saenz
 from os import path
 import pathlib
 
-localrules: modify_cds_faa_header_for_fetchMG, make_merged_genome_fna, make_genome_def, merge_MG_tables,
+localrules: modify_cds_faa_header_for_fetchMG, make_merged_genome_fna, make_genome_def, merge_MG_tables, merge_individual_profiles, \
+        modify_genome_fasta_header, config_yml_integration, gene_abund_profiling_merge, read_map_stats
 
 # Get common config variables
 # These are:
@@ -134,22 +135,26 @@ if map_reference == 'MAG':
     post_analysis_out="MAG-genes"
     post_analysis_dir="9-MAG-genes-post-analysis"
 
-if map_reference == 'reference_genome':
+elif map_reference == 'reference_genome':
     post_analysis_out="refgenome-genes"
     post_analysis_dir="9-refgenome-genes-post-analysis"
+
+elif map_reference == 'genes_db':
+    post_analysis_dir="9-genes-db-post-analysis"
+    post_analysis_out="db_genes"
 
 gene_catalog_db="None"
 gene_catalog_name="None"
 bwaindex_db="DB/{analysis_dir}/BWA_index/{analysis_name}".format(analysis_dir=post_analysis_dir, analysis_name=post_analysis_out)
 
-def gene_abundances_bwa_out():
-    result = expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.{extension}",
+def combined_genome_profiles():
+    result = expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/Combined.p{identity}.profile.{extension}",
                 wd = working_dir,
                 omics = omics,
                 post_analysis_out = post_analysis_out,
-                sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                 identity = identity,
-                extension = ['sorted.bam.bai', 'log', 'profile.abund.prop.txt.gz', 'profile.abund.prop.genome.txt.gz', 'profile.relabund.prop.genome.txt.gz'])
+                extension = ['abund.prop.txt', 'abund.prop.genome.txt', 'relabund.prop.genome.txt']
+                )
     return(result)
 
 def gene_abundances_normalization_out():
@@ -162,9 +167,10 @@ def gene_abundances_normalization_out():
     return(result)
 
 if map_reference == 'genes_db':
-    post_analysis_dir="9-genes-db-post-analysis"
-    post_analysis_out="db_genes"
     reference_dir="{wd}"
+    def combined_genome_profiles():
+        return()
+
     def gene_abundances_bwa_out(): # CHECK THIS PART - do not generate bwa index, normalization in a different way
         result = expand("{gene_catalog_path}/BWA_index/{gene_catalog_name}.pac", 
                     gene_catalog_path=gene_catalog_db, 
@@ -220,6 +226,7 @@ def config_yaml():
 rule all:
     input: 
         #gene_abundances_bwa_out(),
+        combined_genome_profiles(),
         gene_abundances_normalization_out(),
         gene_abundances_map_prof(),
         config_yaml()
@@ -281,78 +288,100 @@ rule genome_bwaindex:
     input: 
         fasta_merge=rules.make_merged_genome_fna.output.fasta_merge
     output: 
-        bwaindex="{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.pac"
-    params:
-        tmp_bwaindex=lambda wildcards: "{local_dir}/{post_analysis_out}_bwaindex".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
-        indexprefix=post_analysis_out
+        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.0123",
+        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.amb",
+        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.ann",
+        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.bwt.2bit.64",
+        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.pac",
+    shadow:
+        "minimal"
     log:
         "{wd}/logs/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_bwaindex.log"
-    threads: config["BWAindex_threads"]
+    threads:
+        config["BWAindex_threads"]
     resources:
         mem=config["BWAindex_memory"]
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        rm -rf {params.tmp_bwaindex}
-        mkdir -p {params.tmp_bwaindex}/BWA_index/
         time (\
-                bwa-mem2 index {input} -p {params.tmp_bwaindex}/BWA_index/{params.indexprefix}
-                rsync {params.tmp_bwaindex}/BWA_index/* $(dirname {output.bwaindex})/
-                rm -rf {params.tmp_bwaindex} \
-            ) &> {log}
+                bwa-mem2 index {input} -p {wildcards.post_analysis_out}
+                ls {wildcards.post_analysis_out}.*
+                rsync -a {wildcards.post_analysis_out}.* $(dirname {output[0]})/
+            ) >& {log}
         """
 
 rule gene_abund_bwa_raw:
     input:
-        bwaindex=rules.genome_bwaindex.output.bwaindex,
+        bwaindex=rules.genome_bwaindex.output,
         genome_def=rules.make_genome_def.output.genome_def,
         hq_reads_fw=lambda wildcards: '{wd}/{omics}/{hq_dir}/{sample}/{sample}.1.fq.gz'.format(wd = wildcards.wd,omics=wildcards.omics, hq_dir=hq_dir, sample=wildcards.sample),
         hq_reads_rv=lambda wildcards: '{wd}/{omics}/{hq_dir}/{sample}/{sample}.2.fq.gz'.format(wd = wildcards.wd,omics=wildcards.omics, hq_dir=hq_dir, sample=wildcards.sample),
     output:
-        sort="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
+        sorted="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
         index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
         bwa_log="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.log",
-        profile_raw="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",
-        map_profile="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
-        map_mag_profile="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz",
-        map_mag_profile_rel="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz",
+        raw_all_seq="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
+        raw_prop_seq="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",
+        raw_prop_genome="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz",
+        rel_prop_genome="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz",
+    shadow:
+        "minimal"
     params:
-        tmp_bwa=lambda wildcards: "{local_dir}/{omics}_{sample}_{post_analysis_out}_bwa_raw/".format(local_dir=local_dir, omics=wildcards.omics, sample=wildcards.sample, post_analysis_out=wildcards.post_analysis_out),
         length=config["msamtools_filter_length"],
-        prefix="{sample}.p{identity}.filtered",
         sort_threads=lambda wildcards, threads, resources: int(1+threads/4),
         sort_memory=lambda wildcards, threads, resources: int(resources.mem/int(1+threads/4)),
         mapped_reads_threshold=config["MIN_mapped_reads"]
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.p{identity}_bwa.log"
-    threads: config["BWA_threads"]
+    threads:
+        config["BWA_threads"]
     resources:
         mem=config["BWA_memory"]
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl
     shell:
         """
-        rm -rf {params.tmp_bwa}
-        mkdir -p {params.tmp_bwa}
-        bwaindex_dir=$(dirname {input.bwaindex})
-        remote_dir=$(dirname {output.sort})
-        (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_dir}}/{post_analysis_out} {input.hq_reads_fw} {input.hq_reads_rv}| \
-                msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > {params.tmp_bwa}{params.prefix}.bam) >& {params.tmp_bwa}{params.prefix}.log
-        samtools sort {params.tmp_bwa}{params.prefix}.bam -o {params.tmp_bwa}{params.prefix}.sorted.bam -@ {params.sort_threads} -m {params.sort_memory}G --output-fmt=BAM
-        samtools index {params.tmp_bwa}{params.prefix}.sorted.bam {params.tmp_bwa}{params.prefix}.sorted.bam.bai -@ {threads}
-        total_reads="$(grep Processed {params.tmp_bwa}{params.prefix}.log | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
-        echo $total_reads
+        bwaindex_prefix={input.bwaindex[0]}
+        bwaindex_prefix=${{bwaindex_prefix%.0123}}
+        (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} {input.hq_reads_fw} {input.hq_reads_rv} | \
+                msamtools filter -S -b -l {params.length} -p {identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
+        samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m {params.sort_memory}G --output-fmt=BAM
+        samtools index sorted.bam sorted.bam.bai -@ {threads}
+        rsync -a sorted.bam {output.sorted}
+        rsync -a sorted.bam.bai {output.index}
+        total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
+        #echo $total_reads
         common_args="--label {wildcards.omics}.{wildcards.sample} --total=$total_reads --mincount={params.mapped_reads_threshold}"
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam $common_args -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.txt.gz --multi=prop --unit=abund --nolen
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam $common_args -o {params.tmp_bwa}{params.prefix}.profile.abund.all.txt.gz  --multi=all  --unit=abund --nolen
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam $common_args -o {params.tmp_bwa}{params.prefix}.profile.abund.prop.genome.txt.gz --multi=prop --unit=abund --nolen --genome {input.genome_def}
-        msamtools profile {params.tmp_bwa}{params.prefix}.bam $common_args -o {params.tmp_bwa}{params.prefix}.profile.relabund.prop.genome.txt.gz --multi=prop --unit=rel --genome {input.genome_def}
-        rm {params.tmp_bwa}{params.prefix}.bam
-        
-        rsync {params.tmp_bwa}* ${{remote_dir}}
-        rm -rf {params.tmp_bwa}) >& {log}
+        msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=all  --unit=abund --nolen
+        msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
+        msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
+        msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=prop --unit=rel           --genome {input.genome_def}
+        ) >& {log}
         """
+
+rule merge_individual_profiles:
+    input:
+        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                post_analysis_out = wildcards.post_analysis_out,
+                identity = wildcards.identity,
+                type = wildcards.type,
+                sample = ilmn_samples)
+    output:
+        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/Combined.p{identity}.profile.{type}.txt"
+    params:
+        samples = ilmn_samples,
+        skip_lines = 10 # number of header lines in msamtools profile output, including the sample ID
+    run:
+        import pandas as pd
+        df = pd.read_csv(input.single[0], names=['ID', wildcards.omics+'.'+params.samples[0]], index_col='ID', skiprows=params.skip_lines, sep = "\t")
+        for i in range(1, len(params.samples)):
+            df2 = pd.read_csv(input.single[i], names=['ID', wildcards.omics+'.'+params.samples[i]], index_col='ID', skiprows=params.skip_lines, sep = "\t")
+            df  = df.join(df2, how='outer')
+        df.to_csv(output.combined, sep = "\t", index = True)
 
 ###############################################################################################
 # Prepare genes for mapping to gene-database
@@ -431,7 +460,7 @@ msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthi
 
 rule gene_abund_compute:
     input: 
-        sort=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
+        sorted=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
                     wd = wildcards.wd,
                     omics = wildcards.omics,
                     post_analysis_out = wildcards.post_analysis_out,
@@ -464,7 +493,7 @@ rule gene_abund_compute:
         echo -e 'chr\\tstart\\tstop\\tname\\tscore\\tstrand\\tsource\\tfeature\\tframe\\tinfo' > {params.tmp_bwa}column_names
         cat {params.tmp_bwa}filename_list >> {params.tmp_bwa}column_names; cat {params.tmp_bwa}column_names| tr '\\n' '\\t' > {params.tmp_bwa}column_names2
         sed 's/\t$//' {params.tmp_bwa}column_names2 >> {params.tmp_bwa}{params.prefix}; echo '' >> {params.tmp_bwa}{params.prefix}
-        bedtools multicov -bams {input.sort} -bed {input.bed_subset} >> {params.tmp_bwa}{params.prefix}
+        bedtools multicov -bams {input.sorted} -bed {input.bed_subset} >> {params.tmp_bwa}{params.prefix}
         rsync {params.tmp_bwa}{params.prefix} {output.absolute_counts}) &> {log}
         rm -rf {params.tmp_bwa}
         """
@@ -609,9 +638,6 @@ rule gene_abund_tpm_merge:
 
 ###############################################################################################
 # Merge map stats files
-## Mappability rate
-## Mappability stats
-## Multimapping read count
 ###############################################################################################
 rule gene_abund_profiling_merge:
     input: 
@@ -623,18 +649,15 @@ rule gene_abund_profiling_merge:
                                             sample=ilmn_samples)
     output: 
         map_profile_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.filtered.profile.abund.all.txt",
-        maprate="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.filtered.profile.abund.all.maprate.txt",
-        mapstats="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.filtered.profile.abund.all.mapstats.txt",
-        multimap="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.filtered.profile.abund.all.multimap.txt"
     params:
         tmp_prof_merge=lambda wildcards: "{local_dir}/{omics}_{identity}.gene_abund_profiling_merge/".format(local_dir=local_dir, omics=omics, identity=identity),
         map_profile_list=lambda wildcards, input: ",".join(input.map_profile),
         prefix="all.p{identity}.filtered.profile.abund.all"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.gene_abund_profiling_merge_log"
-    threads: config["BWA_threads"]
+    threads: 2
     resources:
-        mem=config["BWA_memory"]
+        mem=2
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
@@ -642,12 +665,53 @@ rule gene_abund_profiling_merge:
         rm -rf {params.tmp_prof_merge}
         mkdir -p {params.tmp_prof_merge}
         time (sh {script_dir}/msamtools_merge_profiles.sh {input.map_profile[0]} '{params.map_profile_list}' genome_abund {params.tmp_prof_merge} {params.prefix}.txt
-        sh {script_dir}/msamtools_stats.sh '{params.map_profile_list}' {identity} {params.prefix} {params.tmp_prof_merge}
-        rsync {params.tmp_prof_merge}{params.prefix}.maprate.txt {output.maprate}
-        rsync {params.tmp_prof_merge}{params.prefix}.mapstats.txt {output.mapstats}
-        rsync {params.tmp_prof_merge}{params.prefix}.multimap.txt {output.multimap}
         rsync {params.tmp_prof_merge}{params.prefix}.txt {output.map_profile_all}) &> {log}
         rm -rf {params.tmp_prof_merge}
+        """
+
+###############################################################################################
+## Mappability rate
+## Mappability stats
+## Multimapping read count
+###############################################################################################
+rule read_map_stats:
+    input:
+        map_profile=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.{prof_type}.txt.gz",
+                                            wd = wildcards.wd,
+                                            omics = wildcards.omics,
+                                            post_analysis_out = wildcards.post_analysis_out,
+                                            identity = wildcards.identity,
+                                            prof_type = wildcards.prof_type,
+                                            sample=ilmn_samples)
+    output:
+        maprate="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.{prof_type}.maprate.txt",
+        mapstats="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.{prof_type}.mapstats.txt",
+        multimap="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.{prof_type}.multimap.txt"
+    params:
+        map_profile_list=lambda wildcards, input: ",".join(input.map_profile),
+    log:
+        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.{prof_type}.read_map_stats.log"
+    wildcard_constraints:
+        identity='\d+'
+    threads: 1
+    resources:
+        mem=2
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
+    shell:
+        """
+        # Init empty files
+        true > {output.maprate}; true > {output.mapstats}; true > {output.multimap}
+
+        # Generate content
+        time (
+        for file in {input.map_profile}; do
+            sample=$(basename $file); sample=${{sample%%.p{wildcards.identity}*}}
+            (echo -e -n "$sample\\t"; zcat $file | head | grep "Mapped inserts" | cut -f2 -d'(' | sed "s/%.*//")  >> {output.maprate}
+            (echo -e -n "$sample\\t"; zcat $file | head | grep "Mapped inserts" | cut -f2 -d':' | sed "s/^ //")   >> {output.mapstats}
+            (echo -e -n "$sample\\t"; zcat $file | head | grep "Multiple mapped" | cut -f2 -d'(' | sed "s/%.*//") >> {output.multimap}
+        done
+        ) &> {log}
         """
 
 ###############################################################################################
