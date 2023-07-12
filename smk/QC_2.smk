@@ -806,6 +806,7 @@ METAFLYE_presets:
 #
 BWA_threads: 10
 BWA_memory: 25
+BWA_index_memory: 50
 
 # samtools settings
 # Used when sorting bam files
