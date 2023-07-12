@@ -14,7 +14,7 @@ include: '../scripts/08-common-rules.smk'
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
             filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, \
             check_depth_batches, combine_contigs_depth_batches, combine_fasta_batches, \
-            combine_fasta, check_depths, combine_depth
+            combine_fasta, check_depths, combine_depth, config_yml_binning
 
 #
 # configuration yaml file
@@ -137,6 +137,11 @@ if config['BWA_memory'] is None:
     print('ERROR in ', config_path, ': BWA_memory variable is empty. Please, complete ', config_path)
 elif type(config['BWA_memory']) != int:
     print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)
+
+if config['BWA_index_memory'] is None:
+    print('ERROR in ', config_path, ': BWA_index_memory variable is empty. Please, complete ', config_path)
+elif type(config['BWA_index_memory']) != int:
+    print('ERROR in ', config_path, ': BWA_index_memory variable is not an integer. Please, complete ', config_path)
 
 if config['SAMTOOLS_sort_threads'] is None:
     print('ERROR in ', config_path, ': SAMTOOLS_sort_threads variable is empty. Please, complete ', config_path)
@@ -290,7 +295,6 @@ rule filter_contigs_illumina_single:
                 contig_or_scaffold = spades_contigs_or_scaffolds)
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
-        #"{wd}/{omics}/8-1-binning/{project}_scaffolds_{scaf_type}.{min_length}.fasta"
     wildcard_constraints:
         scaf_type = 'illumina_single'
     resources:
@@ -325,22 +329,26 @@ rule BWA_index_contigs:
     input:
         scaffolds="{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     output:
-        bwaindex="{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.bwt.2bit.64"
+        "{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.0123",
+        "{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.amb",
+        "{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.ann",
+        "{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.bwt.2bit.64",
+    shadow:
+        "minimal"
     log:
         "{wd}/logs/{omics}/6-mapping/scaffolds_{scaf_type}/batch{batch}.{min_length}.BWA_index.log"
-    params:
-        local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}".format(local_dir=local_dir, omics=wildcards.omics, scaf_type=wildcards.scaf_type)
     resources:
-        mem = 450
+        mem = lambda wildcards, attempt: config['BWA_index_memory'] + 40*(attempt-1)
     threads: 4
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
     shell:
         """
-        outdir=$(dirname {output})
-        mkdir -p $outdir {params.local_loc}
-        time (bwa-mem2 index {input.scaffolds} -p {params.local_loc}/$(basename {input})) >& {log}
-        rsync -av {params.local_loc}/$(basename {input}).* $outdir/
+        outdir=$(dirname {output[0]})
+        mkdir -p $outdir
+        prefix=$(basename {input})
+        time (bwa-mem2 index {input.scaffolds} -p $prefix) >& {log}
+        rsync -a $prefix.* $outdir/
         """
 
 # Maps reads to contig-set using bwa2
@@ -352,44 +360,45 @@ rule BWA_index_contigs:
 # Once mapping succeeds, run coverM to get contig depth for this bam
 rule map_contigs_BWA_depth_coverM:
     input:
-        bwaindex=rules.BWA_index_contigs.output.bwaindex,
+        bwaindex=rules.BWA_index_contigs.output,
         fwd='{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz',
         rev='{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz'
     output:
-        depth="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}.depth.txt"
+        depth="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}.depth.txt.gz"
+    shadow:
+        "minimal"
     params:
         map_threads = config['BWA_threads'],
         sort_threads = config['SAMTOOLS_sort_threads'],
         sort_mem = config['SAMTOOLS_sort_perthread_memgb'],
-        local_loc = lambda wildcards: "{local_dir}/{omics}/6-mapping/{illumina}/{scaf_type}/{batch}/".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina, scaf_type=wildcards.scaf_type, batch=wildcards.batch)
     log:
         "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.batch{batch}.{min_length}.bwa2.log"
     resources:
         mem = lambda wildcards, attempt: config['BWA_memory'] + config['SAMTOOLS_sort_threads']*config['SAMTOOLS_sort_perthread_memgb'] + 40*(attempt-1)
     threads:
+        #config['BWA_threads'] + config['SAMTOOLS_sort_threads']
         config['BWA_threads']
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
     shell:
         """
-        mkdir -p $(dirname {output}) {params.local_loc}
-        local_file={params.local_loc}/$(basename {output.depth})
-        db_name=$(echo {input.bwaindex} | sed "s/.bwt.2bit.64//")
+        mkdir -p $(dirname {output})
+        db_name=$(echo {input.bwaindex[0]} | sed "s/.0123//")
         time (bwa-mem2 mem -P -a -t {params.map_threads} $db_name {input.fwd} {input.rev} \
                 | msamtools filter -buS -p 95 -l 45 - \
                 | samtools sort -m {params.sort_mem}G --threads {params.sort_threads} - \
-                > $local_file.bam
-              coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {threads} --output-file $local_file.depth --bam-files $local_file.bam
-              rsync -a $local_file.depth {output.depth}
-        ) >& {log}
-        rm $local_file.bam $local_file.depth
+                > {wildcards.illumina}.bam
+              coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {threads} --output-file sorted.depth --bam-files {wildcards.illumina}.bam
+              gzip sorted.depth
+              rsync -a sorted.depth.gz {output.depth}
+             ) >& {log}
         """
 
 # Combine coverM depths from individual samples
 # I use python code passed from STDIN within "shell" so that I can use conda env.
 rule contigs_depth_batch:
     input:
-        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}.depth.txt",
+        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}.depth.txt.gz",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             scaf_type = wildcards.scaf_type,
@@ -397,28 +406,21 @@ rule contigs_depth_batch:
                                             min_length = wildcards.min_length,
                                             illumina=ilmn_samples)
     output:
-        depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt",
+        depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt.gz",
     resources:
         mem = 40
     threads:
         2
     log:
         "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.log"
-    conda:
-        config["minto_dir"]+"/envs/mags.yml" #pandas
-    shell:
-        """
-python - {input.depths} << EOF > {output.depths}
-import pandas as pd
-import sys
-df = pd.read_csv(sys.argv[1], header=0, sep = "\\t")
-for filename in sys.argv[2:]:
-    df2 = pd.read_csv(filename, header=0, sep = "\\t")
-    df2 = df2.drop('totalAvgDepth', axis=1)
-    df  = df.merge(df2, on=['contigName', 'contigLen'], how='inner')
-df.to_csv(sys.stdout, sep = "\\t", index = False)
-EOF
-        """
+    run:
+        import pandas as pd
+        df = pd.read_csv(input.depths[0], header=0, sep = "\t")
+        for i in range(1, len(input.depths)):
+            df2 = pd.read_csv(input.depths[i], header=0, sep = "\t")
+            df2 = df2.drop('totalAvgDepth', axis=1)
+            df  = df.merge(df2, on=['contigName', 'contigLen'], how='inner')
+        df.to_csv(output.depths, sep = "\t", index = False)
 
 ##################################################
 # Combining across batches within a scaffold_type
@@ -427,7 +429,7 @@ EOF
 # Sanity check to ensure that the order of sample-depths in the depth file is the same. Otherwise binning will be wrong!
 rule check_depth_batches:
     input:
-        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt",
+        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt.gz",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             scaf_type = wildcards.scaf_type,
@@ -435,10 +437,12 @@ rule check_depth_batches:
                                             min_length = wildcards.min_length)
     output:
         ok="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batches.{min_length}.ok"
+    log:
+        "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}/batches.{min_length}.check_depth.log"
     shell:
         """
         rm --force {output}
-        uniq_headers=$(for file in {input.depths}; do head -1 $file; done | sort -u | wc -l)
+        uniq_headers=$(for file in {input.depths}; do bash -c "zcat $file | head -1"; done | sort -u | wc -l)
         if [ "$uniq_headers" == "1" ]; then
             touch {output}
         else
@@ -450,7 +454,7 @@ rule check_depth_batches:
 
 rule combine_contigs_depth_batches:
     input:
-        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt",
+        depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.txt.gz",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             scaf_type = wildcards.scaf_type,
@@ -465,8 +469,8 @@ rule combine_contigs_depth_batches:
         1
     shell:
         """
-        head -1 {input.depths[0]} > {output}
-        (for file in {input.depths}; do tail -n +2 $file; done) >> {output}
+        bash -c "zcat {input.depths[0]} | head -1" > {output.depths}
+        (for file in {input.depths}; do zcat $file | tail -n +2; done) >> {output.depths}
         """
 
 
