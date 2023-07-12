@@ -9,7 +9,6 @@ dependencies:
   - bwa-mem2=2.2.1
   - coverm=0.6.1
   - megahit=1.2.9
-  - metabat2=2.12.1
   - msamtools=1.1.2
   - samtools=1.14
   - seqtk=1.3
