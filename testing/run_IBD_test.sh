@@ -137,10 +137,19 @@ done
 
 # Run integration
 
-echo -n "DATA_INTEGRATION - MG: "
-cmd="snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml $SNAKE_PARAMS >& integration.MG.metaGT.log"
+echo -n "DATA_INTEGRATION - MAG, MG: "
+cmd="snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml $SNAKE_PARAMS >& integration.MAG.MG.metaGT.log"
 time (eval $cmd && echo "OK")
 sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml > data_integration.yaml.TPM
-echo -n "DATA_INTEGRATION - TPM: "
-cmd="snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml.TPM $SNAKE_PARAMS >& integration.TPM.metaGT.log"
+echo -n "DATA_INTEGRATION - MAG, TPM: "
+cmd="snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml.TPM $SNAKE_PARAMS >& integration.MAG.TPM.metaGT.log"
+time (eval $cmd && echo "OK")
+
+echo -n "DATA_INTEGRATION - refgenome, MG: "
+sed "s/map_reference: MAG/map_reference: reference_genome/" data_integration.yaml > data_integration.yaml.refgenome
+cmd="snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome $SNAKE_PARAMS >& integration.refgenome.MG.metaGT.log"
+time (eval $cmd && echo "OK")
+sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.refgenome > data_integration.yaml.refgenome.TPM
+echo -n "DATA_INTEGRATION - refgenome, TPM: "
+cmd="snakemake --snakefile $MINTO_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.TPM $SNAKE_PARAMS >& integration.refgenome.TPM.metaGT.log"
 time (eval $cmd && echo "OK")
