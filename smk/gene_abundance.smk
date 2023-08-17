@@ -353,7 +353,7 @@ rule gene_abund_bwa_raw:
         rsync -a sorted.bam.bai {output.index}
         total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         #echo $total_reads
-        common_args="--label {wildcards.omics}.{wildcards.sample} --total=$total_reads --mincount={params.mapped_reads_threshold}"
+        common_args="--label {wildcards.omics}.{wildcards.sample} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
         msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=all  --unit=abund --nolen
         msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
         msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
@@ -372,14 +372,11 @@ rule merge_individual_profiles:
                 sample = ilmn_samples)
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/Combined.p{identity}.profile.{type}.txt"
-    params:
-        samples = ilmn_samples,
-        skip_lines = 10 # number of header lines in msamtools profile output, including the sample ID
     run:
         import pandas as pd
-        df = pd.read_csv(input.single[0], names=['ID', wildcards.omics+'.'+params.samples[0]], index_col='ID', skiprows=params.skip_lines, sep = "\t")
-        for i in range(1, len(params.samples)):
-            df2 = pd.read_csv(input.single[i], names=['ID', wildcards.omics+'.'+params.samples[i]], index_col='ID', skiprows=params.skip_lines, sep = "\t")
+        df = pd.read_csv(input.single[0], comment='#', header=0, index_col='ID', sep = "\t")
+        for i in range(1, len(input.single)):
+            df2 = pd.read_csv(input.single[i], comment='#', header=0, index_col='ID', sep = "\t")
             df  = df.join(df2, how='outer')
         df.to_csv(output.combined, sep = "\t", index = True)
 
