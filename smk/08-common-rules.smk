@@ -163,35 +163,3 @@ rule bam_sort:
         """
         samtools sort -@ {threads} -m 40G {input} > {output}
         """
-
-# Index a bam file
-rule bam_index:
-    input:
-        '{something}.bam'
-    output:
-        '{something}.bam.bai'
-    threads: 8
-    shell:
-        """
-        samtools index -@ {threads} {input}
-        """
-
-# Filter multiple files by length and output to one file
-def filter_fasta_list_by_length(infile_list, outfile, min_length=2500):
-
-    import os
-    from pathlib import Path
-
-    # Create the output folder
-    if not os.path.exists(os.path.dirname(outfile)):
-        os.mkdir(os.path.dirname(outfile))
-
-    # Open the output file
-    with open(outfile, 'w') as out:
-        for infile in infile_list:
-        # Go through the fasta file
-            fiter = fasta_iter(infile)
-            for entry in fiter:
-                header, seq = entry
-                if len(seq) >= int(min_length):
-                    out.write(f'>{header}\n{seq}\n')
