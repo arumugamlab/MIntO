@@ -8,7 +8,7 @@ Authors: Carmen Saenz, Mani Arumugam
 
 import snakemake
 
-include: '07-common-rules.smk'
+include: 'fasta_bam_helpers.smk'
 include: '08-common-rules.smk'
 
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
