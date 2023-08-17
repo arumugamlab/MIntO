@@ -8,8 +8,8 @@ Authors: Carmen Saenz, Mani Arumugam
 
 import snakemake
 
-include: '../scripts/07-common-rules.smk'
-include: '../scripts/08-common-rules.smk'
+include: '07-common-rules.smk'
+include: '08-common-rules.smk'
 
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
             filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, \
