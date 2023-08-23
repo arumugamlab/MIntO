@@ -88,7 +88,7 @@ def rRNA_db_out():
     return(result)
 
 def eggnog_db_out():
-    files = ["download_eggnog_data.py",
+    files = [
                 "data/eggnog.db",
                 "data/eggnog_proteins.dmnd",
                 "data/eggnog.taxa.db",
@@ -228,7 +228,6 @@ rule rRNA_db_index:
 
 rule eggnog_db:
     output:
-        eggnog_py="{minto_dir}/data/eggnog_data/download_eggnog_data.py",
         eggnog_db1="{minto_dir}/data/eggnog_data/data/eggnog.db",
         eggnog_db2="{minto_dir}/data/eggnog_data/data/eggnog_proteins.dmnd",
         eggnog_db3="{minto_dir}/data/eggnog_data/data/eggnog.taxa.db",
@@ -236,7 +235,7 @@ rule eggnog_db:
         eggnog_db5=directory("{minto_dir}/data/eggnog_data/data/mmseqs"),
         eggnog_db6=directory("{minto_dir}/data/eggnog_data/data/pfam"),
     params:
-        eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
+        eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/".format(minto_dir = minto_dir)
     resources: mem=download_memory
     threads: download_threads
     log:
@@ -246,9 +245,8 @@ rule eggnog_db:
     shell:
         """
         mkdir -p {minto_dir}/data/eggnog_data/data
-        time (cd {minto_dir}/data/eggnog_data/
-        wget https://raw.githubusercontent.com/eggnogdb/eggnog-mapper/master/download_eggnog_data.py
-        printf "y\\ny\\ny\\ny\\ny\\n" |python3 {minto_dir}/data/eggnog_data/download_eggnog_data.py --data_dir {minto_dir}/data/eggnog_data/data -P -M -f
+        time (
+        download_eggnog_data.py -y --data_dir {minto_dir}/data/eggnog_data/data -P -M -f
         echo 'eggNOG database downloaded') &> {log}
         """
 
