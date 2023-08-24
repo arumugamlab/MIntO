@@ -6,7 +6,7 @@ Assembling metagenomes from combinations of illumina/bgi-seq and nanopore sequen
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-include: '../scripts/07-common-rules.smk'
+include: 'fasta_bam_helpers.smk'
 
 localrules: mark_circular_metaspades_contigs, mark_circular_flye_contigs, rename_megahit_contigs
 
