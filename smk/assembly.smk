@@ -21,6 +21,15 @@ from os import path
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
 include: 'config_parser.smk'
 
+##############################################
+# Clarify where the final QC_2 reads are located
+##############################################
+def get_final_qc2_read_location(omics):
+    if omics == 'metaT':
+        return '5-1-sortmerna'
+    elif omics == 'metaG':
+        return '4-hostfree'
+
 # Variables from configuration yaml file
 
 # Make list of illumina samples, if ILLUMINA in config
@@ -35,7 +44,7 @@ if 'ILLUMINA' in config:
             location='5-1-sortmerna' if omics=='metaT' else '4-hostfree'
             for ilmn in config['ILLUMINA']:
                 x = str(ilmn)
-                if path.exists(working_dir+'/'+omics+'/'+location+'/'+ x +'/'+ x +'.1.fq.gz') is True:
+                if path.exists("{}/{}/{}/{}".format(working_dir, omics, get_final_qc2_read_location(omics), x)) is True:
                     ilmn_samples.append(x)
                 else:
                     raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
@@ -188,44 +197,76 @@ rule all:
 ###############################################################################################
 
 def get_hq_fastq_files(wildcards):
-    if wildcards.omics == "metaT":
-        return(expand("{wd}/{omics}/5-1-sortmerna/{illumina}/{illumina}.{pair}.fq.gz",
-                    wd = wildcards.wd,
-                    omics = wildcards.omics,
-                    illumina = wildcards.illumina,
-                    pair = [1, 2]))
-    else:
-        return(expand("{wd}/{omics}/4-hostfree/{illumina}/{illumina}.{pair}.fq.gz",
-                    wd = wildcards.wd,
-                    omics = wildcards.omics,
-                    illumina = wildcards.illumina,
-                    pair = [1, 2]))
+    return(expand("{wd}/{omics}/{location}/{illumina}/{run}.{pair}.fq.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                location=get_final_qc2_read_location(wildcards.omics), 
+                illumina = wildcards.illumina,
+                run = wildcards.run,
+                pair = [1, 2]))
 
 rule correct_spadeshammer:
     input: 
         reads=get_hq_fastq_files
     output: 
-        fwd="{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz",
-        rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
+        fwd=temp("{wd}/{omics}/6-corrected/{illumina}/{run}.1.fq.gz"),
+        rev=temp("{wd}/{omics}/6-corrected/{illumina}/{run}.2.fq.gz"),
+    shadow:
+        "minimal"
     params:
-        tmp_dir=lambda wildcards: "{local_dir}/{omics}_{illumina}_correction_metaspades/".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina),
         qoffset=config["METASPADES_qoffset"]
     resources:
         mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
     log:
-        "{wd}/logs/{omics}/6-corrected/{illumina}/{illumina}_spadeshammer.log"
+        "{wd}/logs/{omics}/6-corrected/{illumina}/{run}_spadeshammer.log"
     threads: config['METASPADES_threads']
     conda: 
         config["minto_dir"]+"/envs/MIntO_base.yml" #METASPADES
     shell:
         """ 
-        mkdir -p {params.tmp_dir}
         mkdir -p $(dirname {output.fwd})
         time (\
-            {spades_script} --only-error-correction -1 {input.reads[0]} -2 {input.reads[1]} -t {threads} -m {resources.mem} -o {params.tmp_dir} --tmp-dir {params.tmp_dir}/tmp --phred-offset {params.qoffset}
-            rsync -a {params.tmp_dir}/corrected/{wildcards.illumina}.1.fq.00.0_0.cor.fastq.gz {output.fwd}; rsync -a {params.tmp_dir}/corrected/{wildcards.illumina}.2.fq.00.0_0.cor.fastq.gz {output.rev}
+            {spades_script} --only-error-correction -1 {input.reads[0]} -2 {input.reads[1]} -t {threads} -m {resources.mem} -o {wildcards.run} --phred-offset {params.qoffset}
+            rsync -a {wildcards.run}/corrected/{wildcards.run}.1.fq.00.0_0.cor.fastq.gz {output.fwd}; rsync -a {wildcards.run}/corrected/{wildcards.run}.2.fq.00.0_0.cor.fastq.gz {output.rev}
         ) >& {log}
-        rm -rf {params.tmp_dir}
+        """
+
+# Get a sorted list of runs for a sample
+
+def get_runs_for_sample(wildcards):
+    sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
+            wd=wildcards.wd, 
+            omics=wildcards.omics, 
+            location=get_final_qc2_read_location(wildcards.omics), 
+            illumina=wildcards.illumina)
+    runs = [ re.sub("\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
+    return(sorted(runs))
+
+rule merge_runs:
+    input:
+        files=lambda wildcards: expand("{wd}/{omics}/6-corrected/{illumina}/{run}.{pair}.fq.gz",
+                                        wd = wildcards.wd,
+                                        omics = wildcards.omics,
+                                        illumina = wildcards.illumina,
+                                        run = get_runs_for_sample(wildcards),
+                                        pair = wildcards.pair)
+    output: 
+        combined="{wd}/{omics}/6-corrected/{illumina}/{illumina}.{pair}.fq.gz"
+    shadow:
+        "minimal"
+    params:
+        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no"
+    shell:
+        """
+        if [ "{params.multiple_runs}" == "yes" ]; then
+            cat {input} > combined.fq.gz
+            rsync -a combined.fq.gz {output}
+        else
+            mv {input} {output}
+            touch {input}
+            sleep 2
+            touch {output}
+        fi
         """
 
 ###############################################################################################
@@ -233,13 +274,14 @@ rule correct_spadeshammer:
 ###############################################################################################
 rule illumina_assembly_metaspades:
     input: 
-        fwd=rules.correct_spadeshammer.output.fwd,
-        rev=rules.correct_spadeshammer.output.rev
+        fwd="{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz",
+        rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
     output: 
         "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/contigs.fasta",
         "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/scaffolds.fasta",
+    shadow:
+        "minimal"
     params:
-        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{illumina}_assembly_metaspades".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina),
         qoffset=config["METASPADES_qoffset"],
         asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
@@ -254,16 +296,12 @@ rule illumina_assembly_metaspades:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """ 
-        mkdir -p {params.tmp_asm}
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
         time (\
-            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
-            rsync -a {params.tmp_asm}/{params.kmer_dir}/* $remote_dir/ 
+            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            rsync -a {params.kmer_dir}/* $remote_dir/ 
         ) >& {log}
-        rm -rf {params.tmp_asm}/{params.kmer_dir}
-        rm -rf {params.tmp_asm}/tmp
-        rmdir {params.tmp_asm}
         """
 
 ###############################################################################################
@@ -281,8 +319,9 @@ rule hybrid_assembly_metaspades:
     output: 
         "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/contigs.fasta",
         "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/scaffolds.fasta",
+    shadow:
+        "minimal"
     params:
-        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{nanopore}-{illumina}_assembly_metaspades".format(local_dir=local_dir, omics=wildcards.omics, illumina=wildcards.illumina, nanopore=wildcards.nanopore),
         qoffset=config["METASPADES_qoffset"],
         asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
@@ -297,16 +336,12 @@ rule hybrid_assembly_metaspades:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """ 
-        mkdir -p {params.tmp_asm}
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
         time (\
-            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.tmp_asm}/{params.kmer_dir} --tmp-dir {params.tmp_asm}/tmp --phred-offset {params.qoffset} -k {params.kmer_option}
-            rsync -a {params.tmp_asm}/{params.kmer_dir}/* $remote_dir/ 
+            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            rsync -a {params.kmer_dir}/* $remote_dir/ 
         ) >& {log}
-        rm -rf {params.tmp_asm}/{params.kmer_dir}
-        rm -rf {params.tmp_asm}/tmp
-        rmdir {params.tmp_asm}
         """
 
 ###############################################################################################
@@ -334,8 +369,9 @@ rule coassembly_megahit:
         rev=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz', wd=working_dir, omics=omics, illumina=config["COASSEMBLY"][wildcards.coassembly].split('+'))
     output: 
         coassemblies= "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa" 
+    shadow:
+        "minimal"
     params:
-        tmp_asm=lambda wildcards: "{local_dir}/{omics}_{name}_coassembly_megahit_{assembly_preset}".format(local_dir=local_dir, omics=wildcards.omics, name=wildcards.coassembly, assembly_preset=wildcards.assembly_preset),
         fwd_reads=lambda wildcards, input: ",".join(input.fwd),
         rev_reads=lambda wildcards, input: ",".join(input.rev),
         asm_params=lambda wildcards: get_megahit_parameters(wildcards, illumina_max_k),
@@ -350,23 +386,15 @@ rule coassembly_megahit:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        local_dir="{params.tmp_asm}/{wildcards.assembly_preset}"
-        tmp_dir="{params.tmp_asm}/tmp-{wildcards.assembly_preset}"
-        mkdir -p $tmp_dir
         # Don't create the --out-dir directory as MEGAHIT wants it to not exist before
         time (\
-            megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir $local_dir --tmp-dir $tmp_dir {params.asm_params}
+            megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir assembly {params.asm_params}
         ) >& {log}
-        rm -rf $tmp_dir
-        cd $local_dir
+        cd assembly 
         tar cfz intermediate_contigs.tar.gz intermediate_contigs && rm -rf intermediate_contigs
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
-        rsync -a $local_dir/* $remote_dir/
-        cd {params.tmp_asm}
-        cd ..
-        rm -rf $local_dir
-        rmdir {params.tmp_asm}
+        rsync -a * $remote_dir/
         """
 
 ###############################################################################################

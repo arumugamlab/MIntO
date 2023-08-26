@@ -12,7 +12,7 @@ Authors: Carmen Saenz, Mani Arumugam
 
 # configuration yaml file
 # import sys
-import os.path
+import re
 from os import path
 
 # Get common config variables
@@ -21,9 +21,12 @@ from os import path
 include: 'config_parser.smk'
 
 localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
-            merge_fastqs_for_composite_samples, \
             metaphlan_combine_profiles, motus_combine_profiles, motus_calc_motu, \
             plot_taxonomic_profile, \
+
+taxonomies_versioned = list()
+ilmn_samples = list()
+merged_illumina_samples = list()
 
 ##############################################
 # Get sample list
@@ -32,29 +35,19 @@ localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
 # Make list of illumina samples, if ILLUMINA in config
 try:
     # Make list of illumina samples, if ILLUMINA in config
-    ilmn_samples = list()
     if 'ILLUMINA' in config:
         #print("Samples:")
         for ilmn in config["ILLUMINA"]:
             file_found = False
-            for loc in ['5-1-sortmerna', '4-hostfree']:
-                fwd = "{}/{}/{}/{}/{}.1.fq.gz".format(working_dir, omics, loc, ilmn, ilmn)
-                rev = "{}/{}/{}/{}/{}.2.fq.gz".format(working_dir, omics, loc, ilmn, ilmn)
-                if (path.exists(fwd) is True) and \
-                   (path.exists(rev) is True):
-                       file_found = True
-            for loc in ['3-minlength', '1-trimmed']:
-                fwd = "{}/{}/{}/{}/{}.1.paired.fq.gz".format(working_dir, omics, loc, ilmn, ilmn)
-                rev = "{}/{}/{}/{}/{}.2.paired.fq.gz".format(working_dir, omics, loc, ilmn, ilmn)
-                if (path.exists(fwd) is True) and \
-                   (path.exists(rev) is True):
+            for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
+                location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
+                if (path.exists(location) is True):
                        file_found = True
             if file_found == True:
                 #print(ilmn)
                 ilmn_samples.append(ilmn)
             else:
-                raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
-    n_samples=len(ilmn_samples)+3
+                raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
 except:
     print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
 
@@ -63,7 +56,6 @@ except:
 ##############################################
 
 # Make list of illumina coassemblies, if MERGE_ILLUMINA_SAMPLES in config
-merged_illumina_samples = list()
 if 'MERGE_ILLUMINA_SAMPLES' in config:
     if config['MERGE_ILLUMINA_SAMPLES'] is None:
         print('WARNING in ', config_path, ': MERGE_ILLUMINA_SAMPLES list of samples is empty. Skipping sample-merging.')
@@ -162,6 +154,15 @@ else:
 metaphlan_version = "4.0.6"
 motus_version = "3.0.3"
 
+taxonomies = taxonomy.split(",")
+for t in taxonomies:
+    version="unknown"
+    if t.startswith("motus"):
+        version=motus_version
+    elif t.startswith("metaphlan"):
+        version=metaphlan_version
+    taxonomies_versioned.append(t+"."+version)
+
 ##############################################
 # metaG - QC plots
 ##############################################
@@ -239,47 +240,13 @@ def get_final_qc2_read_location(omics):
 # Define all the outputs needed by target 'all'
 ##############################################
 
-def filter_trim_length_output():
-    result = expand("{wd}/{omics}/3-minlength/{sample}/{sample}.{group}.{out}.fq.gz",
-                    wd = working_dir,
-                    omics = omics,
-                    group = ['1', '2'],
-                    out = ['single', 'paired'],
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else []),\
-            expand("{wd}/{omics}/3-minlength/{sample}/{sample}.trim.summary",
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [])
-    return(result)
-
-def filter_host_genome_output():
-    result = expand("{wd}/{omics}/4-hostfree/{sample}/{sample}.{group}.fq.gz",
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    group = ['1', '2']),\
-            expand("{wd}/{omics}/4-hostfree/{sample}/{sample}.host.reads",
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [])
-    return(result)
-
 def taxonomy_plot_output():
-    taxonomies = taxonomy.split(",")
-    taxonomies_versioned = []
-    for t in taxonomies:
-        version="unknown"
-        if t.startswith("motus"):
-            version=motus_version
-        elif t.startswith("metaphlan"):
-            version=metaphlan_version
-        taxonomies_versioned.append(t+"."+version)
 
     results = list()
     profiles = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
                 wd = working_dir,
                 omics = omics,
-                sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
+                sample = ilmn_samples,
                 taxonomy = taxonomies_versioned),\
             expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
                 wd = working_dir,
@@ -319,28 +286,19 @@ def next_step_config_yml_output():
                 omics = omics)
     return(result)
 
-def extra_output():
-    return()
-
-if omics == 'metaT':
-    def extra_output():
-        result = expand("{sortmeRNA_db_idx}",
-                    sortmeRNA_db_idx=sortmeRNA_db_idx),\
-                expand("{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.{group}.fq.gz",
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    group=['1', '2'])
-        return(result)
-
 rule all:
     input:
-        #filter_trim_length_output(),
-        #filter_host_genome_output(),
         merged_sample_output(),
         taxonomy_plot_output(),
-        extra_output(),
         next_step_config_yml_output()
+
+# Get a sorted list of runs for a sample
+
+def get_runs_for_sample(wildcards):
+    sample_dir = '{wd}/{omics}/1-trimmed/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, sample=wildcards.sample)
+    runs = [ re.sub("\.1\.paired\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.paired.fq.gz') ]
+    #print(runs)
+    return(sorted(runs))
 
 ###############################################################################################
 # Pre-processing of metaG and metaT data step
@@ -351,17 +309,18 @@ rule all:
 # This is because the next step "seqkit pair" uses extension to decide whether to compress using pigz or not.
 rule qc2_length_filter:
     input:
-        read_fw='{wd}/{omics}/1-trimmed/{sample}/{sample}.1.paired.fq.gz',
-        read_rv='{wd}/{omics}/1-trimmed/{sample}/{sample}.2.paired.fq.gz',
+        read_fw='{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz',
+        read_rv='{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz',
     output:
-        paired1="{wd}/{omics}/3-minlength/{sample}/{sample}.1.fq.gz",
-        paired2="{wd}/{omics}/3-minlength/{sample}/{sample}.2.fq.gz",
-        summary="{wd}/{omics}/3-minlength/{sample}/{sample}.trim.summary"
+        paired1="{wd}/{omics}/3-minlength/{sample}/{run}.1.fq.gz",
+        paired2="{wd}/{omics}/3-minlength/{sample}/{run}.2.fq.gz",
+        summary="{wd}/{omics}/3-minlength/{sample}/{run}.trim.summary"
+    shadow:
+        "minimal"
     params:
-        tmp_trim_len=lambda wildcards: "{local_dir}/{omics}_{sample}filter_trim_length".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
         read_length_cutoff=read_min_len
     log:
-        "{wd}/logs/{omics}/3-minlength/{sample}.log"
+        "{wd}/logs/{omics}/3-minlength/{sample}_{run}.log"
     resources:
         mem=20
     threads:
@@ -370,19 +329,15 @@ rule qc2_length_filter:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        mkdir -p {params.tmp_trim_len}
         remote_dir=$(dirname {output.paired1})
-        cd {params.tmp_trim_len}
         time (
-            mkfifo {wildcards.sample}.1.fq.gz
-            mkfifo {wildcards.sample}.2.fq.gz
-            seqkit seq {input.read_fw} -m {params.read_length_cutoff} | seqkit replace -p '/1' -r '' > {wildcards.sample}.1.fq.gz &
-            seqkit seq {input.read_rv} -m {params.read_length_cutoff} | seqkit replace -p '/2' -r '' > {wildcards.sample}.2.fq.gz &
-            seqkit pair -1 {wildcards.sample}.1.fq.gz -2 {wildcards.sample}.2.fq.gz -O result -u >& {output.summary}
-            rsync -a result/{wildcards.sample}.* $remote_dir/
+            mkfifo {wildcards.run}.1.fq.gz
+            mkfifo {wildcards.run}.2.fq.gz
+            seqkit seq {input.read_fw} -m {params.read_length_cutoff} | seqkit replace -p '/1' -r '' > {wildcards.run}.1.fq.gz &
+            seqkit seq {input.read_rv} -m {params.read_length_cutoff} | seqkit replace -p '/2' -r '' > {wildcards.run}.2.fq.gz &
+            seqkit pair -1 {wildcards.run}.1.fq.gz -2 {wildcards.run}.2.fq.gz -O result -u >& {output.summary}
+            rsync -a result/{wildcards.run}.* $remote_dir/
         ) >& {log}
-        cd {local_dir}
-        rm -rf {params.tmp_trim_len}
         """
 
 ###############################################################################################
@@ -399,8 +354,8 @@ rule bwaindex_host_genome:
         '{somewhere}/BWA_index/{genome}.ann',
         '{somewhere}/BWA_index/{genome}.bwt.2bit.64',
         '{somewhere}/BWA_index/{genome}.pac',
-    params:
-        tmp_bwaindex=lambda wildcards: "{local_dir}/{genome}_bwaindex".format(local_dir=local_dir, genome=wildcards.genome),
+    shadow:
+        "minimal"
     log:
         "{somewhere}/{genome}_BWAindex.log"
     resources:
@@ -409,11 +364,9 @@ rule bwaindex_host_genome:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
     shell:
         """
-        mkdir -p {params.tmp_bwaindex}
         time (\
-                bwa-mem2 index {input} -p {params.tmp_bwaindex}/{wildcards.genome}
-                rsync -a {params.tmp_bwaindex}/* {wildcards.somewhere}/BWA_index/
-                rm -rf {params.tmp_bwaindex}
+                bwa-mem2 index {input} -p {wildcards.genome}
+                rsync -a {wildcards.genome}.* {wildcards.somewhere}/BWA_index/
             ) &> {log}
         """
 
@@ -423,13 +376,14 @@ rule qc2_host_filter:
         pairead_rv=rules.qc2_length_filter.output.paired2,
         bwaindex=lambda wildcards: ancient(expand('{somewhere}/BWA_index/{genome}.{ext}', somewhere=host_genome_path, genome=host_genome_name, ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac']))
     output:
-        host_free_fw="{wd}/{omics}/4-hostfree/{sample}/{sample}.1.fq.gz",
-        host_free_rv="{wd}/{omics}/4-hostfree/{sample}/{sample}.2.fq.gz",
+        host_free_fw="{wd}/{omics}/4-hostfree/{sample}/{run}.1.fq.gz",
+        host_free_rv="{wd}/{omics}/4-hostfree/{sample}/{run}.2.fq.gz",
+    shadow:
+        "minimal"
     params:
-        tmp_bwa=lambda wildcards: "{local_dir}/{omics}_{sample}_filter_host_genome".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
         bwaindex="{host_genome_path}/BWA_index/{host_genome_name}".format(host_genome_path=host_genome_path, host_genome_name=host_genome_name),
     log:
-        "{wd}/logs/{omics}/4-hostfree/{sample}_filter_host_genome_BWA.log"
+        "{wd}/logs/{omics}/4-hostfree/{sample}_{run}_filter_host_genome_BWA.log"
     resources:
         mem=config['BWA_host_memory']
     threads:
@@ -438,15 +392,13 @@ rule qc2_host_filter:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2, msamtools>=1.1.1, samtools
     shell:
         """
-        mkdir -p {params.tmp_bwa}
         remote_dir=$(dirname {output.host_free_fw})
         time (\
                 bwa-mem2 mem -t {threads} -v 3 {params.bwaindex} {input.pairead_fw} {input.pairead_rv} \
                   | msamtools filter -S -l 30 --invert --keep_unmapped -bu - \
-                  | samtools fastq -1 {params.tmp_bwa}/$(basename {output.host_free_fw}) -2 {params.tmp_bwa}/$(basename {output.host_free_rv}) -s /dev/null -c 6 -N -
-                rsync -a {params.tmp_bwa}/* $remote_dir/
+                  | samtools fastq -1 $(basename {output.host_free_fw}) -2 $(basename {output.host_free_rv}) -s /dev/null -c 6 -N -
+                rsync -a * $remote_dir/
             ) >& {log}
-        rm -rf {params.tmp_bwa}
         """
 
 ###############################################################################################
@@ -472,9 +424,8 @@ rule qc2_filter_rRNA_index:
     output:
         rRNA_db_index_file = "{sortmeRNA_db_idx}/rRNA_db_index.log".format(sortmeRNA_db_idx=sortmeRNA_db_idx),
         rRNA_db_index = directory(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
-    params:
-        tmp_working_dir=lambda wildcards: "{local_dir}/{omics}.rRNA_index".format(local_dir=local_dir, omics = omics),
-        #sortmeRNA_db_idx = sortmeRNA_db_idx
+    shadow:
+        "minimal"
     resources:
         mem=sortmeRNA_memory
     threads:
@@ -485,9 +436,8 @@ rule qc2_filter_rRNA_index:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell:
         """
-        mkdir -p {params.tmp_working_dir}idx/
         time (\
-            sortmerna --workdir {params.tmp_working_dir}/ --idx-dir {params.tmp_working_dir}/idx/ -index 1 \
+            sortmerna --workdir . --idx-dir ./idx/ -index 1 \
                 --ref {input.rRNA_db[0]} \
                 --ref {input.rRNA_db[1]} \
                 --ref {input.rRNA_db[2]} \
@@ -496,10 +446,9 @@ rule qc2_filter_rRNA_index:
                 --ref {input.rRNA_db[5]} \
                 --ref {input.rRNA_db[6]} \
                 --ref {input.rRNA_db[7]}
-            rsync -a {params.tmp_working_dir}/idx/* {output.rRNA_db_index}
+            rsync -a ./idx/* {output.rRNA_db_index}
             echo 'SortMeRNA indexed rRNA_databases done' > {sortmeRNA_db_idx}/rRNA_db_index.log
             ) >& {log}
-        rm -rf {params.tmp_working_dir}
         """
 
 rule qc2_filter_rRNA:
@@ -508,11 +457,12 @@ rule qc2_filter_rRNA:
         host_free_rv=rules.qc2_host_filter.output.host_free_rv,
         rRNA_db_index=ancient(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
     output:
-        rRNA_out="{wd}/{omics}/5-1-sortmerna/{sample}/out/aligned.log",
-        rRNA_free_fw="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.1.fq.gz",
-        rRNA_free_rv="{wd}/{omics}/5-1-sortmerna/{sample}/{sample}.2.fq.gz"
+        rRNA_out="{wd}/{omics}/5-1-sortmerna/{sample}/out/{run}.aligned.log",
+        rRNA_free_fw="{wd}/{omics}/5-1-sortmerna/{sample}/{run}.1.fq.gz",
+        rRNA_free_rv="{wd}/{omics}/5-1-sortmerna/{sample}/{run}.2.fq.gz"
+    shadow:
+        "minimal"
     params:
-        tmp_sortmerna=lambda wildcards: "{local_dir}/{omics}_{sample}.filter_rRNA".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
         db_idx_dir=sortmeRNA_db_idx,
         db_dir=sortmeRNA_db,
     resources:
@@ -520,14 +470,12 @@ rule qc2_filter_rRNA:
     threads:
         sortmeRNA_threads
     log:
-        "{wd}/logs/{omics}/5-1-sortmerna/{sample}.log"
+        "{wd}/logs/{omics}/5-1-sortmerna/{sample}_{run}.log"
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell:
         """
-        mkdir -p {params.tmp_sortmerna}
-        remote_dir=$(dirname {output.rRNA_free_fw})
-        (time sortmerna --paired_in --fastx --out2 --other --threads {threads} --no-best --num_alignments 1 --workdir {params.tmp_sortmerna} --idx-dir {params.db_idx_dir}/ \
+        (time sortmerna --paired_in --fastx --out2 --other --threads {threads} --no-best --num_alignments 1 --workdir . --idx-dir {params.db_idx_dir}/ \
 --ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
 --ref {params.db_dir}/rfam-5s-database-id98.fasta \
 --ref {params.db_dir}/silva-arc-16s-id95.fasta \
@@ -537,41 +485,60 @@ rule qc2_filter_rRNA:
 --ref {params.db_dir}/silva-euk-18s-id95.fasta \
 --ref {params.db_dir}/silva-euk-28s-id98.fasta \
 --reads {input.host_free_fw} --reads {input.host_free_rv}
-        rsync -a {params.tmp_sortmerna}/out/other_fwd.fq.gz {output.rRNA_free_fw}
-        rsync -a {params.tmp_sortmerna}/out/other_rev.fq.gz {output.rRNA_free_rv}
-        rsync -a {params.tmp_sortmerna}/out/aligned.log {output.rRNA_out} ) >& {log}
-        rm -rf {params.tmp_sortmerna}
+        rsync -a out/other_fwd.fq.gz {output.rRNA_free_fw}
+        rsync -a out/other_rev.fq.gz {output.rRNA_free_rv}
+        rsync -a out/aligned.log {output.rRNA_out} ) >& {log}
         """
 
-ruleorder: merge_fastqs_for_composite_samples > qc2_host_filter
-ruleorder: merge_fastqs_for_composite_samples > qc2_filter_rRNA
+if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != None:
 
-rule merge_fastqs_for_composite_samples:
-    input:
-        fastq=lambda wildcards: expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = wildcards.location,
-                sample = config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+') if 'MERGE_ILLUMINA_SAMPLES' in config else None,
-                pair = wildcards.pair),
-    output:
-        fastq="{wd}/{omics}/{location}/{merged_sample}/{merged_sample}.{pair}.fq.gz"
-    shell:
-        """
-        cat {input.fastq} > {output.fastq}
-        """
+    localrules: merge_fastqs_for_composite_samples
+    ruleorder: merge_fastqs_for_composite_samples > qc2_host_filter
+    ruleorder: merge_fastqs_for_composite_samples > qc2_filter_rRNA
+
+    rule merge_fastqs_for_composite_samples:
+        input:
+            fastq=lambda wildcards: expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    location = wildcards.location,
+                    sample = config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+'),
+                    pair = wildcards.pair),
+        output:
+            fastq="{wd}/{omics}/{location}/{merged_sample}/{merged_sample}.{pair}.fq.gz"
+        shadow:
+            "minimal"
+        wildcard_constraints:
+            location='5-1-sortmerna|4-hostfree'
+        shell:
+            """
+            cat {input.fastq} > combined.fq.gz
+            rsync -a combined.fq.gz {output.fastq}
+            """
 
 ###############################################################################################
 # Assembly-free taxonomy profiling
 ###############################################################################################
 
-def get_tax_profile_input_files(wildcards):
-    return(expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
+def get_tax_profile_input_files_fwd_only(wildcards):
+    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
                 location = get_final_qc2_read_location(wildcards.omics),
                 sample = wildcards.sample,
-                pair = [1, 2]))
+                run = get_runs_for_sample(wildcards),
+                pair = '1')
+    return(files)
+
+def get_tax_profile_input_files_rev_only(wildcards):
+    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                location = get_final_qc2_read_location(wildcards.omics),
+                sample = wildcards.sample,
+                run = get_runs_for_sample(wildcards),
+                pair = '2')
+    return(files)
 
 # To enable multiple versions of taxonomy profiles for the same project, we include {version} in taxonomy profile output file name.
 # But changing '{sample}.{taxonomy}' to '{sample}.{taxonomy}.{version}' leads to trouble as metaphlan's combining script infers the
@@ -580,17 +547,23 @@ def get_tax_profile_input_files(wildcards):
 # profile output, let metaphlan remove the '.tsv', and then remove '{taxonomy}.{version}' ourselves. This is the history behing
 # naming profile outputs as '{sample}.{taxonomy}.{version}.tsv'.
 
+# MetaPhlAn cannot take multiple runs per sample.
+# So named pipes will be used to combine runs into one fastq file.
+
 rule metaphlan_tax_profile:
     input:
         metaphlan_db=lambda wildcards: expand("{minto_dir}/data/metaphlan/{version}/{metaphlan_index}_VINFO.csv",
                                                 minto_dir=minto_dir,
                                                 version=wildcards.version,
                                                 metaphlan_index=metaphlan_index),
-        reads=get_tax_profile_input_files
+        fwd=get_tax_profile_input_files_fwd_only,
+        rev=get_tax_profile_input_files_rev_only,
     output:
         ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan.{version}.tsv"
+    shadow:
+        "minimal"
     params:
-        tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.metaphlan_taxonomic_profile".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
+        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no"
     resources:
         mem=TAXA_memory
     threads:
@@ -601,11 +574,21 @@ rule metaphlan_tax_profile:
         config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
     shell:
         """
-        mkdir -p {params.tmp_taxa_prof}
         remote_dir=$(dirname {output.ra})
-        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/{wildcards.version} {input.reads[0]},{input.reads[1]} --input_type fastq --bowtie2out {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 --nproc {threads} -o {params.tmp_taxa_prof}/{wildcards.sample}.metaphlan.{wildcards.version}.tsv -t rel_ab_w_read_stats --index {metaphlan_index}
-        rsync -a {params.tmp_taxa_prof}/* $remote_dir) >& {log}
-        rm -rf {params.tmp_taxa_prof}
+
+        # Make named pipes if needed
+        if [ "{params.multiple_runs}" == "yes" ]; then
+            mkfifo {wildcards.sample}.1.fq.gz
+            mkfifo {wildcards.sample}.2.fq.gz
+            cat {input.fwd} > {wildcards.sample}.1.fq.gz &
+            cat {input.rev} > {wildcards.sample}.2.fq.gz &
+            input_files="{wildcards.sample}.1.fq.gz,{wildcards.sample}.2.fq.gz"
+        else
+            input_files="{input.fwd},{input.rev}"
+        fi
+
+        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/{wildcards.version} $input_files --input_type fastq --bowtie2out {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 --nproc {threads} -o {wildcards.sample}.metaphlan.{wildcards.version}.tsv -t rel_ab_w_read_stats --index {metaphlan_index}
+        rsync -a {wildcards.sample}.metaphlan.* $remote_dir) >& {log}
         """
 
 rule metaphlan_combine_profiles:
@@ -629,16 +612,22 @@ rule metaphlan_combine_profiles:
             ) >& {log}
         """
 
+# motus can take in multiple runs as comma-separated files. 
+# So we just construct it in {params}.
 rule motus_map_db:
     input:
-        reads=get_tax_profile_input_files,
         db=lambda wildcards: expand("{minto_dir}/data/motus/db.{version}.downloaded",
                                                 minto_dir=minto_dir,
-                                                version=wildcards.version)
+                                                version=wildcards.version),
+        fwd=get_tax_profile_input_files_fwd_only,
+        rev=get_tax_profile_input_files_rev_only
     output:
         mgc="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus.{version}.mgc"
+    shadow:
+        "minimal"
     params:
-        tmp_taxa_prof=lambda wildcards: "{local_dir}/{omics}_{sample}.motus.taxonomic_profile".format(local_dir=local_dir, omics = wildcards.omics, sample = wildcards.sample),
+        fwd_files = lambda wildcards, input: ",".join(get_tax_profile_input_files_fwd_only(wildcards)),
+        rev_files = lambda wildcards, input: ",".join(get_tax_profile_input_files_rev_only(wildcards))
     resources:
         mem=TAXA_memory
     threads:
@@ -649,14 +638,11 @@ rule motus_map_db:
         config["minto_dir"]+"/envs/motus_env.yml" #motus3
     shell:
         """
-        mkdir -p {params.tmp_taxa_prof}
         time (\
-            motus map_tax   -t {threads}          -f {input.reads[0]} -r {input.reads[1]}       -o {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam -b
-            motus calc_mgc  -n {wildcards.sample} -i {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam -o {params.tmp_taxa_prof}/{wildcards.sample}.motus.mgc
-            rm {params.tmp_taxa_prof}/{wildcards.sample}.motus.bam
-            rsync -a {params.tmp_taxa_prof}/{wildcards.sample}.motus.mgc {output.mgc}
+            motus map_tax   -t {threads} -f {params.fwd_files} -r {params.rev_files} -o {wildcards.sample}.motus.bam -b
+            motus calc_mgc  -n {wildcards.sample} -i {wildcards.sample}.motus.bam -o {wildcards.sample}.motus.mgc
+            rsync -a {wildcards.sample}.motus.mgc {output.mgc}
             ) >& {log}
-        rm -rf {params.tmp_taxa_prof}
         """
 
 rule motus_calc_motu:
@@ -732,7 +718,11 @@ rule plot_taxonomic_profile:
 
 rule qc2_filter_config_yml_assembly:
     input:
-        host_free_fw=expand("{{wd}}/{{omics}}/4-hostfree/{sample}/{sample}.1.fq.gz", sample=ilmn_samples),
+        expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
+                wd = working_dir,
+                omics = omics,
+                sample = ilmn_samples,
+                taxonomy = taxonomies_versioned)
     output:
         config_file="{wd}/{omics}/assembly.yaml"
     resources:
@@ -897,9 +887,6 @@ ___EOF___
 
         R --vanilla --silent --no-echo >> {output} <<___EOF___
 library(dplyr)
-concat <- function(v) {{
-    Reduce(f = paste(sep='+'), x = v)
-}}
 metadata <- read.table('{metadata}', sep="\\t", header=TRUE) %>%
     as.data.frame() %>%
     select(sample, {main_factor}) %>%
@@ -922,7 +909,11 @@ ___EOF___
 
 rule qc2_filter_config_yml_mapping:
     input:
-        host_free_fw=expand("{{wd}}/{{omics}}/4-hostfree/{sample}/{sample}.1.fq.gz", sample=ilmn_samples),
+        expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
+                wd = working_dir,
+                omics = omics,
+                sample = ilmn_samples,
+                taxonomy = taxonomies_versioned)
     output:
         config_file="{wd}/{omics}/mapping.yaml"
     resources:

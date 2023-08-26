@@ -9,7 +9,7 @@ Authors: Carmen Saenz, Mani Arumugam
 #
 # configuration yaml file
 # import sys
-import os.path
+import re
 from os import path
 
 localrules: qc1_check_read_length_merge, qc1_cumulative_read_len_plot, qc2_config_yml_file
@@ -65,33 +65,17 @@ try:
     if 'ILLUMINA' in config:
         #print("Samples:")
         for ilmn in config["ILLUMINA"]:
-            fwd = "{}/{}/{}.1.fq.gz".format(raw_dir, ilmn, ilmn)
-            if path.exists(fwd) is True:
+            location = "{}/{}".format(raw_dir, ilmn)
+            if path.exists(location) is True:
                 #print(fwd)
                 ilmn_samples.append(ilmn)
             else:
-                raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
+                raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
 except: 
-    print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
+    print('ERROR in', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete', config_path)
 
 
 # Define all the outputs needed by target 'all'
-def qc1_trim_quality_output():
-    result = expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.paired.fq.gz", 
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    group=['1', '2']),\
-            expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.single.fq.gz", 
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    group=['1', '2']),\
-            expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.trim.summary", 
-                    wd = working_dir,
-                    omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [])
-    return(result)
 
 def qc1_check_read_length_output():
     result = expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt", 
@@ -129,6 +113,37 @@ rule all:
 # Filter reads by quality
 ###############################################################################################    
 
+# Get a sorted list of runs for a sample
+
+def get_runs_for_sample(sample):
+    sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
+    runs = [ re.sub(".1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('1.fq.gz') ]
+    #print(runs)
+    return(sorted(runs))
+
+# Get files for a run
+
+def get_raw_reads_for_sample_run(wildcards):
+    prefix = '{raw_dir}/{sample}/{run}'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
+    if path.exists(prefix+'.1.fq.gz'):
+        return {
+                'read_fw': '{raw_dir}/{sample}/{run}.1.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run),
+                'read_rv': '{raw_dir}/{sample}/{run}.2.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
+                }
+    elif path.exists(prefix+'_1.fq.gz'):
+        return {
+                'read_fw': '{raw_dir}/{sample}/{run}_1.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run),
+                'read_rv': '{raw_dir}/{sample}/{run}_2.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
+                }
+
+# Get file for infering index
+
+def get_example_to_infer_index(sample):
+    sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
+    runs = [ os.path.normpath(f) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('1.fq.gz') ]
+    #print(runs)
+    return(runs[0])
+
 ##########
 # Index barcodes should be used for adaptor trimming
 ##########
@@ -147,7 +162,7 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
         # Infer from fastq file
         rule qc1_get_index_barcode:
             input:
-                read_fw = lambda wildcards: '{raw_dir}/{sample}/{sample}.1.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample),
+                read_fw=lambda wildcards: get_example_to_infer_index(wildcards.sample),
             output: 
                 barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
             shell: 
@@ -189,7 +204,7 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
         params:
             multiplex=multiplex_tech
         conda: 
-            config["minto_dir"]+"/envs/MIntO_base.yml" # seqkit
+            config["minto_dir"]+"/envs/MIntO_base.yml" # seqtk
         shell: 
             """
             # Get the 1st part of the adapter pair
@@ -221,7 +236,7 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
         params:
             multiplex=multiplex_tech
         conda: 
-            config["minto_dir"]+"/envs/MIntO_base.yml" # seqkit
+            config["minto_dir"]+"/envs/MIntO_base.yml" # seqtk
         shell: 
             """
             # Get the 1st part of the adapter pair
@@ -266,7 +281,7 @@ elif config['TRIMMOMATIC_adaptors'] != 'Skip':
 
 # If there is adapter file, then priority is to use it
 ruleorder: qc1_trim_quality_and_adapter > qc1_trim_quality
-
+    
 if config['TRIMMOMATIC_adaptors'] == 'Skip':
 
     localrules: qc1_trim_quality
@@ -274,13 +289,12 @@ if config['TRIMMOMATIC_adaptors'] == 'Skip':
     # Fake a trim
     rule qc1_trim_quality:
         input:
-            read_fw = lambda wildcards: '{raw_dir}/{sample}/{sample}.1.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample),
-            read_rv = lambda wildcards: '{raw_dir}/{sample}/{sample}.2.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample),
+            unpack(get_raw_reads_for_sample_run)
         output: 
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{sample}.1.paired.fq.gz", 
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{sample}.2.paired.fq.gz", 
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz", 
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz", 
         log: 
-            "{wd}/logs/{omics}/1-trimmed/{sample}_qc1_trim_quality.log"
+            "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
         shell: 
             """
             (ln -s --force {input.read_fw} {output.pairead1}
@@ -291,18 +305,17 @@ if config['TRIMMOMATIC_adaptors'] == 'Skip':
 else:
     rule qc1_trim_quality:
         input:
-            read_fw = lambda wildcards: '{raw_dir}/{sample}/{sample}.1.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample),
-            read_rv = lambda wildcards: '{raw_dir}/{sample}/{sample}.2.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample),
+            unpack(get_raw_reads_for_sample_run)
         output: 
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{sample}.1.paired.fq.gz", 
-            singleread1="{wd}/{omics}/1-trimmed/{sample}/{sample}.1.single.fq.gz", 
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{sample}.2.paired.fq.gz", 
-            singleread2="{wd}/{omics}/1-trimmed/{sample}/{sample}.2.single.fq.gz", 
-            summary="{wd}/{omics}/1-trimmed/{sample}/{sample}.trim.summary"
-        params:
-            tmp_quality=lambda wildcards: "{local_dir}/{omics}_{sample}_qc1_trim_quality/".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz", 
+            singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz", 
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz", 
+            singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz", 
+            summary="{wd}/{omics}/1-trimmed/{sample}/{run}.trim.summary"
+        shadow:
+            "minimal"
         log: 
-            "{wd}/logs/{omics}/1-trimmed/{sample}_qc1_trim_quality.log"
+            "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
         resources:
             mem=config['TRIMMOMATIC_memory']
         threads:
@@ -311,39 +324,36 @@ else:
             config["minto_dir"]+"/envs/MIntO_base.yml"#trimmomatic
         shell: 
             """
-            mkdir -p {params.tmp_quality}1-trimmed/
             remote_dir=$(dirname {output.pairead1})
             time ( \
                 trimmomatic PE -threads {threads} \
                     -summary {output.summary} \
                     -phred33 \
                     {input.read_fw} {input.read_rv} \
-                    {params.tmp_quality}1-trimmed/{wildcards.sample}.1.paired.fq.gz {params.tmp_quality}1-trimmed/{wildcards.sample}.1.single.fq.gz \
-                    {params.tmp_quality}1-trimmed/{wildcards.sample}.2.paired.fq.gz {params.tmp_quality}1-trimmed/{wildcards.sample}.2.single.fq.gz \
+                    {wildcards.run}.1.paired.fq.gz {wildcards.run}.1.single.fq.gz \
+                    {wildcards.run}.2.paired.fq.gz {wildcards.run}.2.single.fq.gz \
                     TRAILING:20 LEADING:5 SLIDINGWINDOW:4:20 \
-                && rsync {params.tmp_quality}1-trimmed/* $remote_dir
+                && rsync -a * $remote_dir/
             ) >& {log}
-            rm -rf {params.tmp_quality}
             """
 
 # Trim with Trimmomatic
 rule qc1_trim_quality_and_adapter:
     input:
-        read_fw = lambda wildcards: '{raw_dir}/{sample}/{sample}.1.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample),
-        read_rv = lambda wildcards: '{raw_dir}/{sample}/{sample}.2.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample),
-        adapter='{wd}/{omics}/1-trimmed/{sample}/adapters.fa',
+        unpack(get_raw_reads_for_sample_run),
+        adapter='{wd}/{omics}/1-trimmed/{sample}/adapters.fa'
     output: 
-        pairead1="{wd}/{omics}/1-trimmed/{sample}/{sample}.1.paired.fq.gz", 
-        singleread1="{wd}/{omics}/1-trimmed/{sample}/{sample}.1.single.fq.gz", 
-        pairead2="{wd}/{omics}/1-trimmed/{sample}/{sample}.2.paired.fq.gz", 
-        singleread2="{wd}/{omics}/1-trimmed/{sample}/{sample}.2.single.fq.gz", 
-        summary="{wd}/{omics}/1-trimmed/{sample}/{sample}.trim.summary"
+        pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz", 
+        singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz", 
+        pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz", 
+        singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz", 
+        summary="{wd}/{omics}/1-trimmed/{sample}/{run}.trim.summary"
+    shadow:
+        "minimal"
     params:
-        tmp_quality=lambda wildcards: "{local_dir}/{omics}_{sample}_qc1_trim_quality/".format(local_dir=local_dir, omics = omics, sample = wildcards.sample),
-        adapters=config['TRIMMOMATIC_adaptors'],
         simple_clip_threshold=trimmomatic_simple_clip_threshold
     log: 
-        "{wd}/logs/{omics}/1-trimmed/{sample}_qc1_trim_quality.log"
+        "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
     resources:
         mem=config['TRIMMOMATIC_memory']
     threads:
@@ -352,24 +362,29 @@ rule qc1_trim_quality_and_adapter:
         config["minto_dir"]+"/envs/MIntO_base.yml"#trimmomatic
     shell: 
         """
-        mkdir -p {params.tmp_quality}1-trimmed/
         remote_dir=$(dirname {output.pairead1})
         time ( \
             trimmomatic PE -threads {threads} \
                 -summary {output.summary} \
                 -phred33 \
                 {input.read_fw} {input.read_rv} \
-                {params.tmp_quality}1-trimmed/{wildcards.sample}.1.paired.fq.gz {params.tmp_quality}1-trimmed/{wildcards.sample}.1.single.fq.gz \
-                {params.tmp_quality}1-trimmed/{wildcards.sample}.2.paired.fq.gz {params.tmp_quality}1-trimmed/{wildcards.sample}.2.single.fq.gz \
-                TRAILING:20 LEADING:5 SLIDINGWINDOW:4:20 ILLUMINACLIP:{input.adapter}:2:30:{params.simple_clip_threshold}:1:TRUE \
-            && rsync {params.tmp_quality}1-trimmed/* $remote_dir
+                {wildcards.run}.1.paired.fq.gz {wildcards.run}.1.single.fq.gz \
+                {wildcards.run}.2.paired.fq.gz {wildcards.run}.2.single.fq.gz \
+                TRAILING:20 LEADING:5 SLIDINGWINDOW:4:20 \
+                ILLUMINACLIP:{input.adapter}:2:30:{params.simple_clip_threshold}:1:TRUE \
+            && rsync -a * $remote_dir/
         ) >& {log}
-        rm -rf {params.tmp_quality}
         """
  
 rule qc1_check_read_length:
     input: 
-        pairead="{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.paired.fq.gz"
+        pairead=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{run}.{group}.paired.fq.gz",
+                                            wd=wildcards.wd,
+                                            omics=wildcards.omics,
+                                            sample=wildcards.sample,
+                                            run=get_runs_for_sample(wildcards.sample),
+                                            group=wildcards.group
+                                            )
     output: 
         length="{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt"
     log: 
