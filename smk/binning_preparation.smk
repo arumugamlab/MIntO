@@ -9,7 +9,6 @@ Authors: Carmen Saenz, Mani Arumugam
 import snakemake
 
 include: 'fasta_bam_helpers.smk'
-include: '08-common-rules.smk'
 
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
             filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, \
@@ -196,27 +195,46 @@ if 'COASSEMBLY' in config:
 else:
     print('WARNING in ', config_path, ': COASSEMBLY list of samples is empty. Skipping co-assembly.')
 
+# Initialize some variables
+
+possible_assembly_types = ['illumina_single_nanopore', 'nanopore', 'illumina_coas', 'illumina_single']
+
+# List of assemblies per type
+assemblies = {}
+assemblies['illumina_single_nanopore'] = hybrid_assemblies
+assemblies['nanopore']                 = nanopore_assemblies
+assemblies['illumina_coas']            = co_assemblies
+assemblies['illumina_single']          = ilmn_samples
+
+# Assembly counts per type
+assembly_count = {}
+for t in possible_assembly_types:
+    assembly_count[t] = len(assemblies[t])
+
+# Batch counts per type
+batch_count = {}
+for t in possible_assembly_types:
+    batch_count[t] = math.ceil(assembly_count[t] / batch_size)
+
+# Batches per type
+batches = {}
+for t in possible_assembly_types:
+    b = []
+    asm   = assemblies[t]
+    num   = batch_count[t]
+    for i in range(1, num+1):
+        start = (int(i)-1)*batch_size
+        end   = start + batch_size
+        if end > assembly_count[t]:
+            end = assembly_count[t] + 1
+        b.append(asm[start:end])
+    batches[t] = b
 
 # Useful functions
-def get_assemblies(scaffolds_type):
-    if scaffolds_type == 'illumina_single_nanopore':
-        return(hybrid_assemblies)
-    elif scaffolds_type == 'nanopore':
-        return(nanopore_assemblies)
-    elif scaffolds_type == 'illumina_coas':
-        return(co_assemblies)
-    elif scaffolds_type == 'illumina_single':
-        return(ilmn_samples)
 
-def get_batch(assemblies, batch_no):
-    start = (int(batch_no)-1)*batch_size
-    end   = start + batch_size
-    return(assemblies[start:end])
-
-
-def get_num_batches(assemblies):
-    batch_count = len(assemblies) / batch_size
-    return(math.ceil(batch_count))
+def get_batch(scaf_type, batch_no):
+    batch = batches[scaf_type]
+    return(batch[int(batch_no)-1])
 
 # Remove assembly types if specified
 
@@ -252,11 +270,12 @@ rule filter_contigs_nanopore:
         lambda wildcards: expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                sample = get_batch(nanopore_assemblies, wildcards.batch),
+                sample = get_batch(wildcards.scaf_type, wildcards.batch),
                 assembly_preset = config['METAFLYE_presets'])
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
+        batch = '\d+',
         scaf_type = 'nanopore'
     resources:
         mem = 5
@@ -271,12 +290,13 @@ rule filter_contigs_illumina_single_nanopore:
         lambda wildcards: expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.{contig_or_scaffold}.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                assembly = get_batch(hybrid_assemblies, wildcards.batch),
+                assembly = get_batch(wildcards.scaf_type, wildcards.batch),
                 kmer_dir = "k21-" + str(hybrid_max_k),
                 contig_or_scaffold = spades_contigs_or_scaffolds)
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
+        batch = '\d+',
         scaf_type = 'illumina_single_nanopore'
     resources:
         mem = 5
@@ -290,12 +310,13 @@ rule filter_contigs_illumina_single:
         lambda wildcards: expand("{wd}/{omics}/7-assembly/{illumina}/{kmer_dir}/{illumina}.{contig_or_scaffold}.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                illumina = get_batch(ilmn_samples, wildcards.batch),
-                kmer_dir = "k21-" + str(hybrid_max_k),
+                illumina = get_batch(wildcards.scaf_type, wildcards.batch),
+                kmer_dir = "k21-" + str(illumina_max_k),
                 contig_or_scaffold = spades_contigs_or_scaffolds)
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
+        batch = '\d+',
         scaf_type = 'illumina_single'
     resources:
         mem = 5
@@ -309,11 +330,12 @@ rule filter_contigs_illumina_coas:
         lambda wildcards: expand("{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                coassembly = get_batch(co_assemblies, wildcards.batch),
+                coassembly = get_batch(wildcards.scaf_type, wildcards.batch),
                 assembly_preset = config['MEGAHIT_presets'])
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
+        batch = '\d+',
         scaf_type = 'illumina_coas'
     resources:
         mem = 5
@@ -370,11 +392,12 @@ rule map_contigs_BWA_depth_coverM:
     params:
         map_threads = config['BWA_threads'],
         sort_threads = config['SAMTOOLS_sort_threads'],
-        sort_mem = config['SAMTOOLS_sort_perthread_memgb'],
+        coverm_threads = min(int(config['BWA_threads']), 8),
     log:
         "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.batch{batch}.{min_length}.bwa2.log"
     resources:
-        mem = lambda wildcards, attempt: config['BWA_memory'] + config['SAMTOOLS_sort_threads']*config['SAMTOOLS_sort_perthread_memgb'] + 40*(attempt-1)
+        mem = lambda wildcards, attempt: config['BWA_memory'] + config['SAMTOOLS_sort_threads']*(config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1)),
+        sort_mem = lambda wildcards, attempt: config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1)
     threads:
         #config['BWA_threads'] + config['SAMTOOLS_sort_threads']
         config['BWA_threads']
@@ -386,9 +409,9 @@ rule map_contigs_BWA_depth_coverM:
         db_name=$(echo {input.bwaindex[0]} | sed "s/.0123//")
         time (bwa-mem2 mem -P -a -t {params.map_threads} $db_name {input.fwd} {input.rev} \
                 | msamtools filter -buS -p 95 -l 45 - \
-                | samtools sort -m {params.sort_mem}G --threads {params.sort_threads} - \
+                | samtools sort -m {resources.sort_mem}G --threads {params.sort_threads} - \
                 > {wildcards.illumina}.bam
-              coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {threads} --output-file sorted.depth --bam-files {wildcards.illumina}.bam
+              coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {params.coverm_threads} --output-file sorted.depth --bam-files {wildcards.illumina}.bam
               gzip sorted.depth
               rsync -a sorted.depth.gz {output.depth}
              ) >& {log}
@@ -396,7 +419,7 @@ rule map_contigs_BWA_depth_coverM:
 
 # Combine coverM depths from individual samples
 # I use python code passed from STDIN within "shell" so that I can use conda env.
-rule contigs_depth_batch:
+rule combine_contig_depths_for_batch:
     input:
         depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}/{illumina}.{min_length}.depth.txt.gz",
                                             wd = wildcards.wd,
@@ -433,7 +456,7 @@ rule check_depth_batches:
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             scaf_type = wildcards.scaf_type,
-                                            batch = list(range(1, 1+get_num_batches(get_assemblies(wildcards.scaf_type)))),
+                                            batch = list(range(1, 1+batch_count[wildcards.scaf_type])),
                                             min_length = wildcards.min_length)
     output:
         ok="{wd}/{omics}/8-1-binning/depth_{scaf_type}/batches.{min_length}.ok"
@@ -458,7 +481,7 @@ rule combine_contigs_depth_batches:
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             scaf_type = wildcards.scaf_type,
-                                            batch = list(range(1, 1+get_num_batches(get_assemblies(wildcards.scaf_type)))),
+                                            batch = list(range(1, 1+batch_count[wildcards.scaf_type])),
                                             min_length = wildcards.min_length),
         ok = rules.check_depth_batches.output.ok
     output:
@@ -481,7 +504,7 @@ rule combine_fasta_batches:
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             scaf_type = wildcards.scaf_type,
-                                            batch = list(range(1, 1+get_num_batches(get_assemblies(wildcards.scaf_type)))),
+                                            batch = list(range(1, 1+batch_count[wildcards.scaf_type])),
                                             min_length = wildcards.min_length)
     output:
         fasta_combined="{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/combined.{min_length}.fasta"
