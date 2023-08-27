@@ -262,10 +262,8 @@ rule merge_runs:
             cat {input} > combined.fq.gz
             rsync -a combined.fq.gz {output}
         else
-            mv {input} {output}
-            touch {input}
-            sleep 2
-            touch {output}
+            cd $(dirname {output})
+            ln -s --force $(basename {input}) $(basename {output})
         fi
         """
 
