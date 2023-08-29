@@ -19,6 +19,7 @@ from os import path
 # These are:
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
 include: 'config_parser.smk'
+include: 'include/locations.smk'
 
 localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
             metaphlan_combine_profiles, motus_combine_profiles, motus_calc_motu, \
@@ -228,15 +229,6 @@ with open(minto_dir + "/data/metaphlan/" + metaphlan_version + "/mpa_latest", 'r
     metaphlan_index = file.read().rstrip()
 
 ##############################################
-# Clarify where the final QC_2 reads are located
-##############################################
-def get_final_qc2_read_location(omics):
-    if omics == 'metaT':
-        return '5-1-sortmerna'
-    elif omics == 'metaG':
-        return '4-hostfree'
-
-##############################################
 # Define all the outputs needed by target 'all'
 ##############################################
 
@@ -272,7 +264,7 @@ if 'MERGE_ILLUMINA_SAMPLES' in config:
         result = expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
                         wd = working_dir,
                         omics = omics,
-                        location = get_final_qc2_read_location(omics),
+                        location = get_qc2_output_location(omics),
                         sample = merged_illumina_samples,
                         pair = ['1', '2'])
         return(result)
@@ -520,26 +512,6 @@ if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != No
 # Assembly-free taxonomy profiling
 ###############################################################################################
 
-def get_tax_profile_input_files_fwd_only(wildcards):
-    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = get_final_qc2_read_location(wildcards.omics),
-                sample = wildcards.sample,
-                run = get_runs_for_sample(wildcards),
-                pair = '1')
-    return(files)
-
-def get_tax_profile_input_files_rev_only(wildcards):
-    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = get_final_qc2_read_location(wildcards.omics),
-                sample = wildcards.sample,
-                run = get_runs_for_sample(wildcards),
-                pair = '2')
-    return(files)
-
 # To enable multiple versions of taxonomy profiles for the same project, we include {version} in taxonomy profile output file name.
 # But changing '{sample}.{taxonomy}' to '{sample}.{taxonomy}.{version}' leads to trouble as metaphlan's combining script infers the
 # sample name by removing the word after the last dot. If we named files as 'D1.metaphlan.4.0.6', then the combined table lists this
@@ -556,8 +528,8 @@ rule metaphlan_tax_profile:
                                                 minto_dir=minto_dir,
                                                 version=wildcards.version,
                                                 metaphlan_index=metaphlan_index),
-        fwd=get_tax_profile_input_files_fwd_only,
-        rev=get_tax_profile_input_files_rev_only,
+        fwd=get_qc2_output_files_fwd_only,
+        rev=get_qc2_output_files_rev_only,
     output:
         ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan.{version}.tsv"
     shadow:
@@ -612,22 +584,22 @@ rule metaphlan_combine_profiles:
             ) >& {log}
         """
 
-# motus can take in multiple runs as comma-separated files. 
+# motus can take in multiple runs as comma-separated files.
 # So we just construct it in {params}.
 rule motus_map_db:
     input:
         db=lambda wildcards: expand("{minto_dir}/data/motus/db.{version}.downloaded",
                                                 minto_dir=minto_dir,
                                                 version=wildcards.version),
-        fwd=get_tax_profile_input_files_fwd_only,
-        rev=get_tax_profile_input_files_rev_only
+        fwd=get_qc2_output_files_fwd_only,
+        rev=get_qc2_output_files_rev_only
     output:
         mgc="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus.{version}.mgc"
     shadow:
         "minimal"
     params:
-        fwd_files = lambda wildcards, input: ",".join(get_tax_profile_input_files_fwd_only(wildcards)),
-        rev_files = lambda wildcards, input: ",".join(get_tax_profile_input_files_rev_only(wildcards))
+        fwd_files = lambda wildcards, input: ",".join(get_qc2_output_files_fwd_only(wildcards)),
+        rev_files = lambda wildcards, input: ",".join(get_qc2_output_files_rev_only(wildcards))
     resources:
         mem=TAXA_memory
     threads:
