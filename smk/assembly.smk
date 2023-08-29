@@ -6,8 +6,6 @@ Assembling metagenomes from combinations of illumina/bgi-seq and nanopore sequen
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-include: 'fasta_bam_helpers.smk'
-
 localrules: mark_circular_metaspades_contigs, mark_circular_flye_contigs, rename_megahit_contigs
 
 #
@@ -20,15 +18,8 @@ from os import path
 # These are:
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
 include: 'config_parser.smk'
-
-##############################################
-# Clarify where the final QC_2 reads are located
-##############################################
-def get_final_qc2_read_location(omics):
-    if omics == 'metaT':
-        return '5-1-sortmerna'
-    elif omics == 'metaG':
-        return '4-hostfree'
+include: 'include/locations.smk'
+include: 'fasta_bam_helpers.smk'
 
 # Variables from configuration yaml file
 
@@ -44,7 +35,7 @@ if 'ILLUMINA' in config:
             location='5-1-sortmerna' if omics=='metaT' else '4-hostfree'
             for ilmn in config['ILLUMINA']:
                 x = str(ilmn)
-                if path.exists("{}/{}/{}/{}".format(working_dir, omics, get_final_qc2_read_location(omics), x)) is True:
+                if path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), x)) is True:
                     ilmn_samples.append(x)
                 else:
                     raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
@@ -200,7 +191,7 @@ def get_hq_fastq_files(wildcards):
     return(expand("{wd}/{omics}/{location}/{illumina}/{run}.{pair}.fq.gz",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                location=get_final_qc2_read_location(wildcards.omics), 
+                location=get_qc2_output_location(wildcards.omics),
                 illumina = wildcards.illumina,
                 run = wildcards.run,
                 pair = [1, 2]))
@@ -237,7 +228,7 @@ def get_runs_for_sample(wildcards):
     sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
             wd=wildcards.wd, 
             omics=wildcards.omics, 
-            location=get_final_qc2_read_location(wildcards.omics), 
+            location=get_qc2_output_location(wildcards.omics),
             illumina=wildcards.illumina)
     runs = [ re.sub("\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
     return(sorted(runs))
