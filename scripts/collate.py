@@ -15,6 +15,10 @@ import sys
 mydir = sys.argv[1]
 name = sys.argv[2]
 
+eggnog = pd.DataFrame()
+dbcan  = pd.DataFrame()
+kofam  = pd.DataFrame()
+
 eggnogfile = mydir+"/"+name+"_eggNOG.tsv"
 if os.path.exists(eggnogfile):
     eggnog = pd.read_csv(eggnogfile, sep="\t", index_col=False)
@@ -27,14 +31,14 @@ if os.path.exists(dbcanfile):
     dbcan.set_index("ID", inplace=True)
     df = dbcan 
 
-kofamfile = mydir+"/"+name+"_kofam.tsv"
+kofamfile = mydir+"/"+name+"_KEGG.tsv"
 if os.path.exists(kofamfile):
     kofam = pd.read_csv(kofamfile, sep="\t", index_col=False)
     kofam.set_index("ID", inplace=True)
     df = kofam 
 
 # eggnog and kofam
-if ('eggnog' and 'kofam' in locals()):
+if (not eggnog.empty and not kofam.empty):
     KOdf = pd.merge(eggnog,kofam, on="ID", how="outer").fillna("-")
     kegglist = KOdf['KEGG_ko'].tolist()
     kofamlist = KOdf['kofam_KO'].tolist()
@@ -61,20 +65,20 @@ if ('eggnog' and 'kofam' in locals()):
     del KOdf['kofam_KO']
     df = KOdf   
 # eggnog and dbcan, no kofam
-elif (('eggnog' in locals()) and ('dbcan' in locals()) and not ('kofam' in locals())):
+elif (not eggnog.empty and not dbcan.empty and kofam.empty):
     del df
     eggnog["KEGG_KO"] = eggnog['KEGG_ko']
     del eggnog['KEGG_ko']
     df = pd.merge(eggnog,dbcan, on="ID", how="outer").fillna("-")
 # kofam and dbcan, no eggnog
-elif (('kofam' in locals()) and ('dbcan' in locals()) and not ('eggnog' in locals())):
+elif (not kofam.empty and not dbcan.empty and eggnog.empty):
     del df
     kofam["KEGG_KO"] = kofam['kofam_KO']
     del kofam['kofam_KO']
-    df = pd.merge(kofam,dbcan, on="ID", how="outer").fillna("-")
+    df = pd.merge(dbcan,kofam, on="ID", how="outer").fillna("-")
 
 # eggnog, kofam and dbcan
-if all(var in locals() for var in ('eggnog', 'kofam', 'dbcan')):
+if (not eggnog.empty and not kofam.empty and not dbcan.empty):
     del df
     df = pd.merge(KOdf,dbcan, on="ID", how="outer").fillna("-")
 
