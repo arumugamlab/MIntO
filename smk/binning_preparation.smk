@@ -8,7 +8,7 @@ Authors: Carmen Saenz, Mani Arumugam
 
 import snakemake
 
-include: 'fasta_bam_helpers.smk'
+include: 'include/fasta_bam_helpers.smk'
 
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
             filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, \

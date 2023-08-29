@@ -19,7 +19,7 @@ from os import path
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
 include: 'config_parser.smk'
 include: 'include/locations.smk'
-include: 'fasta_bam_helpers.smk'
+include: 'include/fasta_bam_helpers.smk'
 
 # Variables from configuration yaml file
 
