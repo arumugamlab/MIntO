@@ -204,8 +204,8 @@ rule rRNA_db_index:
     output:
         rRNA_db_index_file = "{somewhere}/data/rRNA_databases/idx/rRNA_db_index.log",
         rRNA_db_index = directory("{somewhere}/data/rRNA_databases/idx")
-    params:
-        tmp_sortmerna_index=lambda wildcards: "{local_dir}/MIntO.rRNA_index".format(local_dir=local_dir),
+    shadow:
+        "minimal"
     resources: mem=index_memory
     threads: index_threads
     log:
@@ -214,12 +214,11 @@ rule rRNA_db_index:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell:
         """
-        mkdir -p {params.tmp_sortmerna_index}/idx/
+        mkdir -p sortmerna/idx/
         dboption=$(echo {input} | sed "s/ / --ref /g")
-        time (sortmerna --workdir {params.tmp_sortmerna_index} --idx-dir {params.tmp_sortmerna_index}/idx/ --index 1 --ref $dboption --threads {threads}
-        rsync {params.tmp_sortmerna_index}/idx/* {output.rRNA_db_index}
+        time (sortmerna --workdir sortmerna --idx-dir sortmerna/idx/ --index 1 --ref $dboption --threads {threads}
+        rsync sortmerna/idx/* {output.rRNA_db_index}
         echo 'SortMeRNA indexed rRNA_databases done' > {output.rRNA_db_index_file}) >& {log}
-        rm -rf {params.tmp_sortmerna_index}
         """
 
 ###############################################################################################

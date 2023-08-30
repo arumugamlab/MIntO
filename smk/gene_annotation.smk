@@ -237,9 +237,9 @@ rule gene_annot_kofamscan:
         fasta_subset=rules.gene_annot_subset.output.fasta_subset
     output:
         kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
+    shadow:
+        "minimal"
     params:
-        tmp_kofamscan=lambda wildcards: "{local_dir}/{post_analysis_out}_kofamscan/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
-        prefix="{post_analysis_out}_translated_cds_SUBSET",
         kofam_db=lambda wildcards: "{minto_dir}/data/kofam_db/".format(minto_dir = minto_dir) #config["KOFAM_db"]
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_kofamscan.log"
@@ -250,15 +250,12 @@ rule gene_annot_kofamscan:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        mkdir -p {params.tmp_kofamscan}tmp
         remote_dir=$(dirname {output.kofam_out})
-        time (exec_annotation -k {params.kofam_db}/ko_list -p {params.kofam_db}/profiles/prokaryote.hal --tmp-dir {params.tmp_kofamscan}tmp --create-alignment -f mapper --cpu {threads} -o {params.tmp_kofamscan}{params.prefix}_kofam_mapper.txt {input.fasta_subset}
-        {script_dir}/kofam_hits.pl {params.tmp_kofamscan}{params.prefix}_kofam_mapper.txt > {params.tmp_kofamscan}{params.prefix}_KEGG.tsv
-        sed -i 's/\\;K/\\,K/g' {params.tmp_kofamscan}{params.prefix}_KEGG.tsv
-        rm -rf {params.tmp_kofamscan}tmp
+        time (exec_annotation -k {params.kofam_db}/ko_list -p {params.kofam_db}/profiles/prokaryote.hal --tmp-dir tmp --create-alignment -f mapper --cpu {threads} -o kofam_mapper.txt {input.fasta_subset}
+        {script_dir}/kofam_hits.pl kofam_mapper.txt > KEGG.tsv
+        sed -i 's/\\;K/\\,K/g' KEGG.tsv
         mkdir -p ${{remote_dir}}
-        rsync {params.tmp_kofamscan}{params.prefix}_KEGG.tsv {output.kofam_out}) &> {log}
-        rm -rf {params.tmp_kofamscan}
+        rsync -a KEGG.tsv {output.kofam_out}) &> {log}
         """
 
 rule gene_annot_dbcan:
@@ -266,8 +263,9 @@ rule gene_annot_dbcan:
         fasta_subset=rules.gene_annot_subset.output.fasta_subset
     output:
         dbcan_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
+    shadow:
+        "minimal"
     params:
-        tmp_dbcan=lambda wildcards: "{local_dir}/{post_analysis_out}_dbcan/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
         prefix="{post_analysis_out}_translated_cds_SUBSET",
         dbcan_db=lambda wildcards: "{minto_dir}/data/dbCAN_db/".format(minto_dir = minto_dir)
     log:
@@ -279,12 +277,9 @@ rule gene_annot_dbcan:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        mkdir -p {params.tmp_dbcan}
-        time (run_dbcan.py {input.fasta_subset} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre {params.prefix}_ --out_dir {params.tmp_dbcan}
-        {script_dir}/process_dbcan_overview.pl {params.tmp_dbcan}/{params.prefix}_overview.txt > {params.tmp_dbcan}/{params.prefix}_dbCAN.tsv
-        rsync {params.tmp_dbcan}* {wildcards.wd}/DB/{post_analysis_dir}/annot/
-        rm -rf Hotpep)&> {log}
-        rm -rf {params.tmp_dbcan}
+        time (run_dbcan.py {input.fasta_subset} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre {params.prefix}_ --out_dir out
+        {script_dir}/process_dbcan_overview.pl out/{params.prefix}_overview.txt > out/{params.prefix}_dbCAN.tsv
+        rsync out/* {wildcards.wd}/DB/{post_analysis_dir}/annot/ )&> {log}
         """
 
 rule gene_annot_eggnog:
@@ -292,8 +287,9 @@ rule gene_annot_eggnog:
         fasta_subset=rules.gene_annot_subset.output.fasta_subset
     output:
         eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_eggNOG.tsv",
+    shadow:
+        "minimal"
     params:
-        tmp_eggnog=lambda wildcards: "{local_dir}/{post_analysis_out}_eggnog/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
         prefix="{post_analysis_out}_translated_cds_SUBSET",
         eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
     log:
@@ -305,24 +301,23 @@ rule gene_annot_eggnog:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        mkdir -p {params.tmp_eggnog}
         time (cd {params.eggnog_db}
         [[ -d /dev/shm/eggnog_data ]] || mkdir /dev/shm/eggnog_data
         eggnogdata=(eggnog.db eggnog_proteins.dmnd eggnog.taxa.db eggnog.taxa.db.traverse.pkl)
         for e in "${{eggnogdata[@]}}"
             do [[ -f /dev/shm/eggnog_data/$e ]] || cp data/$e /dev/shm/eggnog_data/
         done
+        mkdir out
         emapper.py --data_dir /dev/shm/eggnog_data/ -o {params.prefix} \
-                   --no_annot --no_file_comments --report_no_hits --override --output_dir {params.tmp_eggnog} -m diamond -i {input.fasta_subset} --cpu {threads}
-        emapper.py --annotate_hits_table {params.tmp_eggnog}/{params.prefix}.emapper.seed_orthologs \
-                   --data_dir /dev/shm/eggnog_data/ -m no_search --no_file_comments --override -o {params.prefix} --output_dir {params.tmp_eggnog} --cpu {threads}
-        cut -f 1,5,12,13,14,21 {params.tmp_eggnog}/{params.prefix}.emapper.annotations > {params.tmp_eggnog}/{params.prefix}.eggNOG5
-        {script_dir}/process_eggNOG_OGs.pl {params.tmp_eggnog}/{params.prefix}.eggNOG5 > {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
-        rm {params.tmp_eggnog}/{params.prefix}.eggNOG5
-        sed -i 's/\#query/ID/' {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
-        sed -i 's/ko\://g' {params.tmp_eggnog}/{params.prefix}_eggNOG.tsv
-        rsync {params.tmp_eggnog}/* {wildcards.wd}/DB/{post_analysis_dir}/annot/)&> {log}
-        rm -rf {params.tmp_eggnog}
+                   --no_annot --no_file_comments --report_no_hits --override --output_dir out -m diamond -i {input.fasta_subset} --cpu {threads}
+        emapper.py --annotate_hits_table out/{params.prefix}.emapper.seed_orthologs \
+                   --data_dir /dev/shm/eggnog_data/ -m no_search --no_file_comments --override -o {params.prefix} --output_dir out --cpu {threads}
+        cut -f 1,5,12,13,14,21 out/{params.prefix}.emapper.annotations > out/{params.prefix}.eggNOG5
+        {script_dir}/process_eggNOG_OGs.pl out/{params.prefix}.eggNOG5 > out/{params.prefix}_eggNOG.tsv
+        rm out/{params.prefix}.eggNOG5
+        sed -i 's/\#query/ID/' out/{params.prefix}_eggNOG.tsv
+        sed -i 's/ko\://g' out/{params.prefix}_eggNOG.tsv
+        rsync out/* {wildcards.wd}/DB/{post_analysis_dir}/annot/)&> {log}
         rm -rf /dev/shm/eggnog_data
         """
 
