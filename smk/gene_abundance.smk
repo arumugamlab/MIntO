@@ -16,7 +16,8 @@ localrules: modify_cds_faa_header_for_fetchMG, make_merged_genome_fna, make_geno
 
 # Get common config variables
 # These are:
-#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+#   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 
@@ -758,7 +759,6 @@ rule config_yml_integration:
 PROJECT: {project_id}
 working_dir: {wildcards.wd}
 omics: metaG_metaT
-local_dir: {local_dir}
 minto_dir: {minto_dir}
 METADATA: {metadata}
 

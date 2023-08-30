@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-Pre-processing of metaG and metaT data step - quality reads filtering
+Config file parser
 
 Authors: Carmen Saenz, Mani Arumugam
 '''
@@ -42,11 +42,6 @@ if config['omics'] in ('metaG', 'metaT', 'metaG_metaT'):
     omics = config['omics']
 else:
     print('ERROR in ', config_path, ': omics variable is not correct. "omics" variable should be metaG, metaT or metaG_metaT.')
-
-if config['local_dir'] is None:
-    print('ERROR in ', config_path, ': local_dir variable is empty. Please, complete ', config_path)
-else:
-    local_dir = config['local_dir']
 
 if config['minto_dir'] is None:
     print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)

@@ -16,7 +16,8 @@ from os import path
 
 # Get common config variables
 # These are:
-#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+#   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 include: 'include/fasta_bam_helpers.smk'

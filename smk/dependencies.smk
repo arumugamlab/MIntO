@@ -12,6 +12,8 @@ import os.path
 from os import path
 import glob
 
+include: 'include/cmdline_validator.smk'
+
 metaphlan_index = 'mpa_vOct22_CHOCOPhlAnSGB_202212'
 metaphlan_version = '4.0.6'
 motus_version = '3.0.3'
@@ -35,12 +37,6 @@ elif path.exists(config['minto_dir']) is False:
     print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
 else:
     minto_dir=config["minto_dir"]
-
-if config['local_dir'] is None:
-    #print('ERROR in ')
-    print('ERROR in ', config_path, ': local_dir variable is empty. Please, complete ', config_path)
-else:
-    local_dir = config['local_dir']
 
 if config['download_threads'] is None:
     print('ERROR in ', config_path, ': download_threads variable is empty. Please, complete ', config_path)

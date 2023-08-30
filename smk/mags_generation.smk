@@ -3,14 +3,14 @@
 '''
 MAGs recovery and annotation
 
-1) Run the binning program  (vamb in different option)
-2) Run Checkm on all the data
+1) Run the binning program  (avamb in VAE and AAE modes
+2) Run CheckM2 on all the data
 3) Copy the HQ genomes in a folder
-4) Run Coverm on HQ (why coverm, becasue it is easier to add a new binner in the case)
-5) Retrieving the score for the genomes
-6) Retrieving the best and unique set of genomes (with old scored formula)
+4) Run Coverm on HQ (why coverm, because it is easier to add a new binner in the case)
+5) Retrieve the score for the genomes
+6) Retrieve the best and unique set of genomes (with old scored formula)
 7) Run prokka on the genomes (prokka) [separate environment] [ moved to annotation.smk ]
-8) Run taxonomic label on the genomes (PhylopHlan Metagenomic) [separate environment]
+8) Run taxonomic label on the genomes (PhyloPhlAn Metagenomic) [separate environment]
 
 Authors: Eleonora Nigro, Mani Arumugam
 '''
@@ -24,7 +24,8 @@ localrules: copy_genomes_in_all, copy_best_genomes
 
 # Get common config variables
 # These are:
-#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+#   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
 # Variables from configuration yaml file

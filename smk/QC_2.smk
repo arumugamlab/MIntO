@@ -17,7 +17,8 @@ from os import path
 
 # Get common config variables
 # These are:
-#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+#   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 
@@ -713,7 +714,6 @@ rule qc2_filter_config_yml_assembly:
 PROJECT: {project_id}
 working_dir: {wildcards.wd}
 omics: {wildcards.omics}
-local_dir: {local_dir}
 minto_dir: {minto_dir}
 METADATA: {metadata}
 
@@ -902,7 +902,6 @@ rule qc2_filter_config_yml_mapping:
 PROJECT: {project_id}
 working_dir: {wildcards.wd}
 omics: {wildcards.omics}
-local_dir: {local_dir}
 minto_dir: {minto_dir}
 METADATA: {metadata}
 

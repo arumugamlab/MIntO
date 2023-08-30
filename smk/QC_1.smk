@@ -16,7 +16,8 @@ localrules: qc1_check_read_length_merge, qc1_cumulative_read_len_plot, qc2_confi
 
 # Get common config variables
 # These are:
-#   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
+#   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
 if config['raw_reads_dir'] is None:
@@ -454,7 +455,6 @@ rule qc2_config_yml_file:
 PROJECT: {project_id}
 working_dir: {wildcards.wd}
 omics: {wildcards.omics}
-local_dir: {local_dir}
 minto_dir: {minto_dir}
 METADATA: {metadata}
 

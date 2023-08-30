@@ -8,6 +8,7 @@ Authors: Carmen Saenz, Mani Arumugam
 
 import snakemake
 
+include: 'include/cmdline_validator.smk'
 include: 'include/fasta_bam_helpers.smk'
 
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
@@ -43,11 +44,6 @@ elif path.exists(config['working_dir']) is False:
     print('ERROR in ', config_path, ': working_dir variable path does not exit. Please, complete ', config_path)
 else:
     working_dir = config['working_dir']
-
-if config['local_dir'] is None:
-    prints('ERROR in ', config_path, ': local_dir variable is empty. Please, complete ', config_path)
-else:
-    local_dir = config['local_dir']
 
 if config['minto_dir'] is None:
     print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
@@ -647,7 +643,6 @@ rule config_yml_binning:
 PROJECT: {project_name}
 working_dir: {wildcards.wd}
 omics: {wildcards.omics}
-local_dir: {local_dir}
 minto_dir: {minto_dir}
 METADATA: {metadata}
 
