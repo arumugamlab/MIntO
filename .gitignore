@@ -7,15 +7,7 @@ data/metaphlan/
 data/rRNA_databases/
 tmp/
 logs/
-envs/prokka_try_MIntO_4.yaml
-envs/vamb_2021.yaml
 ._.DS_Store
 .DS_Store
-configuration/._QC_1.yaml
-configuration/._QC_2.yaml
-envs/._prokka_try_MIntO_4.yaml
-envs/._prokka.yaml
-smk/._binning_preparation.smk
-smk/._data_integration.smk
-smk/._dependencies.smk
 tutorial/BWA_index
+.Rproj.user
