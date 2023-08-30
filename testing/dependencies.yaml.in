@@ -1,7 +1,6 @@
 ######################
 # General settings
 ######################
-local_dir: <__LOCAL_DIR__>
 minto_dir: <__MINTO_DIR__>
 
 download_memory: 5

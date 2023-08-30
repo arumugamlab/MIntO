@@ -11,10 +11,10 @@ MINTO_STABLE_VERSION="main"
 
 if [ ! -z "$COMPUTEROME_PROJ" ]; then
   # Danish computerome resource
-  LOCAL_DIR="/home/projects/$COMPUTEROME_PROJ/scratch/$USER/MIntO/"
+  SHADOWDIR="/home/projects/$COMPUTEROME_PROJ/scratch/$USER/MIntO/"
   MINTO_DIR="/home/projects/$COMPUTEROME_PROJ/apps/MIntO"
 else
-  LOCAL_DIR="/scratch/$USER/tmp/MIntO/"
+  SHADOWDIR="/scratch/$USER/tmp/MIntO/"
   MINTO_DIR="$(pwd)/MIntO"
 fi
 CONDA_DIR="$MINTO_DIR/conda_env"
@@ -47,7 +47,7 @@ COMMAND_LOG='commands.txt'
 
 # Snakemake options
 if [ ! -z "$COMPUTEROME_PROJ" ]; then
-  SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $LOCAL_DIR --jobs 16 --default-resources gpu=0 mem=4 --cluster 'qsub -d $(pwd) -W group_list=$COMPUTEROME_PROJ -A $COMPUTEROME_PROJ -N {name} -l nodes=1:thinnode:ppn={threads},mem={resources.mem}gb,walltime=7200 -V -v TMPDIR=$LOCAL_DIR' --local-cores 4"
+  SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --default-resources gpu=0 mem=4 --cluster 'qsub -d $(pwd) -W group_list=$COMPUTEROME_PROJ -A $COMPUTEROME_PROJ -N {name} -l nodes=1:thinnode:ppn={threads},mem={resources.mem}gb,walltime=7200 -V -v TMPDIR=$SHADOWDIR' --local-cores 4"
 else
   # Computerome thin nodes
   #SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --jobs 16 --cores 40 --resources mem=188"
@@ -56,7 +56,7 @@ else
 fi
 
 echo -n "Downloading dependencies: "
-cat $MINTO_DIR/testing/dependencies.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__LOCAL_DIR__>@$LOCAL_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > dependencies.yaml
+cat $MINTO_DIR/testing/dependencies.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > dependencies.yaml
 cmd="snakemake --snakefile $MINTO_DIR/smk/dependencies.smk --configfile dependencies.yaml $SNAKE_PARAMS >& dependencies.log"
 echo $cmd > $COMMAND_LOG
 time (eval $cmd && echo "OK")
@@ -92,13 +92,13 @@ for OMICS in metaG metaT; do
   cd $OMICS
 
   echo -n "QC_1: "
-  cat $MINTO_DIR/testing/QC_1.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__LOCAL_DIR__>@$LOCAL_DIR@;s@<__TEST_DIR__>@$TEST_DIR@;s@<__OMICS__>@$OMICS@;" > QC_1.yaml
+  cat $MINTO_DIR/testing/QC_1.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__TEST_DIR__>@$TEST_DIR@;s@<__OMICS__>@$OMICS@;" > QC_1.yaml
   cmd="snakemake --snakefile $MINTO_DIR/smk/QC_1.smk --configfile QC_1.yaml $SNAKE_PARAMS >& QC_1.log"
   echo $cmd >> $COMMAND_LOG
   time (eval $cmd && echo "OK")
 
   if [ ! -f "QC_2.yaml.fixed" ]; then
-    patch QC_2.yaml $MINTO_DIR/testing/QC_2.patch -o - | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__LOCAL_DIR__>@$LOCAL_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > QC_2.yaml.fixed
+    patch QC_2.yaml $MINTO_DIR/testing/QC_2.patch -o - | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > QC_2.yaml.fixed
   fi
 
   echo -n "QC_2: "

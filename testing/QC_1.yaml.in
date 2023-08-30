@@ -5,7 +5,6 @@
 PROJECT: IBD_tutorial
 working_dir: <__TEST_DIR__>/IBD_tutorial
 omics: <__OMICS__>
-local_dir: <__LOCAL_DIR__>
 minto_dir: <__MINTO_DIR__>
 METADATA: <__TEST_DIR__>/IBD_tutorial/tutorial_metadata.txt
 raw_reads_dir: <__TEST_DIR__>/IBD_tutorial_raw/<__OMICS__>

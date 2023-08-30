@@ -1,7 +1,6 @@
 ######################
 # General settings
 ######################
-local_dir: /tmp/user/
 minto_dir: /mypath/MIntO
 
 download_memory: 5

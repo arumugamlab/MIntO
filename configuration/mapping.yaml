@@ -4,7 +4,6 @@
 PROJECT: IBD_tutorial
 working_dir: /mypath/IBD_tutorial
 omics: metaG
-local_dir: /tmp/user/
 minto_dir: /mypath/MIntO
 METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 
