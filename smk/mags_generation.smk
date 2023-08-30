@@ -25,7 +25,7 @@ localrules: copy_genomes_in_all, copy_best_genomes
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
-include: 'config_parser.smk'
+include: 'include/config_parser.smk'
 
 # Variables from configuration yaml file
 

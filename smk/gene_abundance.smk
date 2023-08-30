@@ -17,7 +17,7 @@ localrules: modify_cds_faa_header_for_fetchMG, make_merged_genome_fna, make_geno
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
-include: 'config_parser.smk'
+include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 
 if omics == 'metaG':

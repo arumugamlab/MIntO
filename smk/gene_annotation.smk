@@ -14,7 +14,7 @@ from os import path
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
-include: 'config_parser.smk'
+include: 'include/config_parser.smk'
 
 if config['map_reference'] in ("MAG", "reference_genome"):
     map_reference=config["map_reference"]

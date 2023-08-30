@@ -17,7 +17,7 @@ localrules: qc1_check_read_length_merge, qc1_cumulative_read_len_plot, qc2_confi
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, local_dir, minto_dir, script_dir, metadata
-include: 'config_parser.smk'
+include: 'include/config_parser.smk'
 
 if config['raw_reads_dir'] is None:
     print('ERROR in ', config_path, ': raw_reads_dir variable in configuration yaml file is empty. Please, complete ', config_path)
