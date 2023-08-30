@@ -196,6 +196,7 @@ rule run_vamb_vae:
         rmdir $(dirname {output.tsv})
         vamb --fasta {input.contigs_file} \
                 --rpkm {input.rpkm_file} \
+                --seed 1234 \
                 -p {threads} \
                 {params.cuda} \
                 --outdir $(dirname {output.tsv}) \
@@ -233,6 +234,7 @@ rule run_vamb_aae:
         rmdir $(dirname {output.tsv_y})
         vamb --fasta {input.contigs_file} \
                 --rpkm {input.rpkm_file} \
+                --seed 1234 \
                 -p {threads} \
                 {params.cuda} \
                 --outdir $(dirname {output.tsv_y}) \
