@@ -33,13 +33,13 @@ rule bam_idx:
 
 rule faidx:
     #index a .fasta file
-    input: 
+    input:
         '{something}.f{asta}'
-    output: 
+    output:
         '{something}.f{asta}.fai'
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
-    shell: 
+    shell:
         """
         if [ -s {input[0]} ] #if the input is nonempty...
         then
@@ -55,9 +55,9 @@ rule get_fasta_length:
     output:
         '{something}.f{asta}.len'
     shell:
-        """ 
+        """
         cut -f1,2 {input} | sort -k2,2nr > {output}
-        """ 
+        """
 
 def fasta_iter(infile):
     """

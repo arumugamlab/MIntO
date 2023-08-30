@@ -352,7 +352,7 @@ rule checkm_batch:
         tmp=$(mktemp -d)
         rm -rf $(dirname {output})
         time ( \
-        checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input}) --tmpdir $tmp -o $(dirname {output}) 
+        checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input}) --tmpdir $tmp -o $(dirname {output})
         ) >& {log}
         rm -rf $tmp
         """

@@ -51,7 +51,7 @@ if 'ANNOTATION' in config:
                         pass
                     else:
                         raise TypeError('ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete ', config_path)
-        except: 
+        except:
             print('ERROR in ', config_path, ': ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG.')
 else:
     print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete', config_path)
@@ -81,7 +81,7 @@ def predicted_genes_collate_out():
     return(result)
 
 rule all:
-    input: 
+    input:
         predicted_genes_collate_out()
 
 
@@ -208,9 +208,9 @@ rule gene_annot_subset:
         bed_file=       rules.make_merged_bed.output.bed_file,
         bed_file_header=rules.make_merged_bed.output.bed_file_header,
         merged_cds=     rules.make_merged_cds_faa.output.merged_cds
-    output: 
+    output:
         bed_modif="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_names_modif.bed",
-        bed_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed", 
+        bed_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed",
         fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_subset_out.log"
@@ -219,7 +219,7 @@ rule gene_annot_subset:
     threads: 8
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
-    shell: 
+    shell:
         """
         remote_dir={wildcards.wd}/DB/{post_analysis_dir}/
         time (Rscript {script_dir}/MAGs_genes_out_subset.R {threads} {input.bed_file_header} {input.bed_file} {input.merged_cds} ${{remote_dir}} {post_analysis_out}) &> {log}
@@ -233,9 +233,9 @@ rule gene_annot_subset:
 ################################################################################################
 
 rule gene_annot_kofamscan:
-    input: 
+    input:
         fasta_subset=rules.gene_annot_subset.output.fasta_subset
-    output: 
+    output:
         kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
     params:
         tmp_kofamscan=lambda wildcards: "{local_dir}/{post_analysis_out}_kofamscan/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
@@ -262,9 +262,9 @@ rule gene_annot_kofamscan:
         """
 
 rule gene_annot_dbcan:
-    input: 
+    input:
         fasta_subset=rules.gene_annot_subset.output.fasta_subset
-    output: 
+    output:
         dbcan_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
     params:
         tmp_dbcan=lambda wildcards: "{local_dir}/{post_analysis_out}_dbcan/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
@@ -288,9 +288,9 @@ rule gene_annot_dbcan:
         """
 
 rule gene_annot_eggnog:
-    input: 
+    input:
         fasta_subset=rules.gene_annot_subset.output.fasta_subset
-    output: 
+    output:
         eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_eggNOG.tsv",
     params:
         tmp_eggnog=lambda wildcards: "{local_dir}/{post_analysis_out}_eggnog/".format(local_dir=local_dir, post_analysis_out=post_analysis_out),
@@ -331,9 +331,9 @@ rule gene_annot_eggnog:
 ################################################################################################
 
 rule predicted_gene_annotation_collate:
-    input: 
+    input:
         annot_out=expand("{{wd}}/DB/{{post_analysis_dir}}/annot/{{post_analysis_out}}_translated_cds_SUBSET_{annot}.tsv", annot=annot_list)
-    output: 
+    output:
         annot_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.annotations.tsv",
     params:
         prefix="{post_analysis_out}_translated_cds_SUBSET",

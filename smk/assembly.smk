@@ -134,7 +134,7 @@ elif type(config['MEGAHIT_memory']) == int:
 # Define all the outputs needed by target 'all'
 
 def illumina_single_assembly_output():
-    result = expand("{wd}/{omics}/7-assembly/{sample}/{kmer_dir}/{sample}.{sequence}.fasta.len", 
+    result = expand("{wd}/{omics}/7-assembly/{sample}/{kmer_dir}/{sample}.{sequence}.fasta.len",
                     wd = working_dir,
                     omics = omics,
                     sample = ilmn_samples,
@@ -151,7 +151,7 @@ def illumina_co_assembly_output():
     return(result)
 
 def nanopore_single_assembly_output():
-    result = expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.fasta.len", 
+    result = expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.fasta.len",
                     wd = working_dir,
                     omics = omics,
                     sample = config["NANOPORE"] if "NANOPORE" in config else [],
@@ -159,7 +159,7 @@ def nanopore_single_assembly_output():
     return(result)
 
 def hybrid_assembly_output():
-    result = expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.{sequence}.fasta.len", 
+    result = expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.{sequence}.fasta.len",
                     wd = working_dir,
                     omics = omics,
                     assembly = hybrid_assemblies,
@@ -177,7 +177,7 @@ def get_metaspades_kmer_option(kk):
     return(kmer_option)
 
 rule all:
-    input: 
+    input:
         illumina_single_assembly_output(),
         illumina_co_assembly_output(),
         nanopore_single_assembly_output(),
@@ -197,9 +197,9 @@ def get_hq_fastq_files(wildcards):
                 pair = [1, 2]))
 
 rule correct_spadeshammer:
-    input: 
+    input:
         reads=get_hq_fastq_files
-    output: 
+    output:
         fwd="{wd}/{omics}/6-corrected/{illumina}/{run}.1.fq.gz",
         rev="{wd}/{omics}/6-corrected/{illumina}/{run}.2.fq.gz",
     shadow:
@@ -211,10 +211,10 @@ rule correct_spadeshammer:
     log:
         "{wd}/logs/{omics}/6-corrected/{illumina}/{run}_spadeshammer.log"
     threads: config['METASPADES_threads']
-    conda: 
+    conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #METASPADES
     shell:
-        """ 
+        """
         mkdir -p $(dirname {output.fwd})
         time (\
             {spades_script} --only-error-correction -1 {input.reads[0]} -2 {input.reads[1]} -t {threads} -m {resources.mem} -o {wildcards.run} --phred-offset {params.qoffset}
@@ -226,8 +226,8 @@ rule correct_spadeshammer:
 
 def get_runs_for_sample(wildcards):
     sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
-            wd=wildcards.wd, 
-            omics=wildcards.omics, 
+            wd=wildcards.wd,
+            omics=wildcards.omics,
             location=get_qc2_output_location(wildcards.omics),
             illumina=wildcards.illumina)
     runs = [ re.sub("\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
@@ -241,7 +241,7 @@ rule merge_runs:
                                         illumina = wildcards.illumina,
                                         run = get_runs_for_sample(wildcards),
                                         pair = wildcards.pair)
-    output: 
+    output:
         combined="{wd}/{omics}/6-corrected/{illumina}/{illumina}.{pair}.fq.gz"
     shadow:
         "minimal"
@@ -262,10 +262,10 @@ rule merge_runs:
 ########  Individual assembly of illumina samples
 ###############################################################################################
 rule illumina_assembly_metaspades:
-    input: 
+    input:
         fwd="{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz",
         rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
-    output: 
+    output:
         "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/contigs.fasta",
         "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/scaffolds.fasta",
     shadow:
@@ -279,17 +279,17 @@ rule illumina_assembly_metaspades:
         mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
     log:
         "{wd}/logs/{omics}/7-assembly/{illumina}/k21-{maxk}/{illumina}_metaspades.log"
-    threads: 
+    threads:
         config['METASPADES_threads']
-    conda: 
+    conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
-        """ 
+        """
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
         time (\
             {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
-            rsync -a {params.kmer_dir}/* $remote_dir/ 
+            rsync -a {params.kmer_dir}/* $remote_dir/
         ) >& {log}
         """
 
@@ -301,11 +301,11 @@ rule illumina_assembly_metaspades:
 # Until then, changes have to be made in both!
 ###############################################################################################
 rule hybrid_assembly_metaspades:
-    input: 
+    input:
         fwd=rules.correct_spadeshammer.output.fwd,
         rev=rules.correct_spadeshammer.output.rev,
         ont="{wd}/{omics}/6-corrected/{nanopore}/{nanopore}.nanopore.fq.gz"
-    output: 
+    output:
         "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/contigs.fasta",
         "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/scaffolds.fasta",
     shadow:
@@ -319,22 +319,22 @@ rule hybrid_assembly_metaspades:
         mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
     log:
         "{wd}/logs/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/{nanopore}-{illumina}_metaspades.log"
-    threads: 
+    threads:
         config['METASPADES_threads']
-    conda: 
+    conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
-        """ 
+        """
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
         time (\
             {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
-            rsync -a {params.kmer_dir}/* $remote_dir/ 
+            rsync -a {params.kmer_dir}/* $remote_dir/
         ) >& {log}
         """
 
 ###############################################################################################
-########  Co-assembly 
+########  Co-assembly
 # This starts with 11G per sample, but if that fails, it increases by 5G per sample per repeated attempt
 ###############################################################################################
 
@@ -353,11 +353,11 @@ def get_megahit_parameters(wildcards, kk):
         return ""
 
 rule coassembly_megahit:
-    input: 
+    input:
         fwd=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz', wd=working_dir, omics=omics, illumina=config["COASSEMBLY"][wildcards.coassembly].split('+')),
         rev=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz', wd=working_dir, omics=omics, illumina=config["COASSEMBLY"][wildcards.coassembly].split('+'))
-    output: 
-        coassemblies= "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa" 
+    output:
+        coassemblies= "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa"
     shadow:
         "minimal"
     params:
@@ -367,11 +367,11 @@ rule coassembly_megahit:
         memory_config=config['MEGAHIT_memory']
     resources:
         mem = lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1))),
-        mem_bytes=lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1)))*1024*1024*1024 
+        mem_bytes=lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1)))*1024*1024*1024
     log:
         "{wd}/logs/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}_{assembly_preset}_coassembly_megahit.log"
     threads: config['MEGAHIT_threads']
-    conda: 
+    conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
@@ -379,7 +379,7 @@ rule coassembly_megahit:
         time (\
             megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir assembly {params.asm_params}
         ) >& {log}
-        cd assembly 
+        cd assembly
         tar cfz intermediate_contigs.tar.gz intermediate_contigs && rm -rf intermediate_contigs
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
@@ -392,7 +392,7 @@ rule coassembly_megahit:
 rule nanopore_assembly_metaflye:
     input:
         ont="{wd}/{omics}/6-corrected/{nanopore}/{nanopore}.nanopore.fq.gz"
-    output: 
+    output:
         "{wd}/{omics}/7-assembly/{nanopore}/{assembly_preset}/assembly.fasta",
         "{wd}/{omics}/7-assembly/{nanopore}/{assembly_preset}/assembly_info.txt"
     log:
@@ -477,9 +477,9 @@ rule rename_megahit_contigs:
         "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa"
     output:
         "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta"
-    conda: 
+    conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
-        """ 
+        """
         perl -ne 's/^>k(\d+)_(\d+) (.*)len=(\d+)/>MEGAHIT.{wildcards.assembly_preset}.{wildcards.coassembly}_NODE_$2_length_$4_k_$1/ if m/^>/; print $_;' < {input} > {output}
-        """ 
+        """

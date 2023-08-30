@@ -71,14 +71,14 @@ try:
                 ilmn_samples.append(ilmn)
             else:
                 raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
-except: 
+except:
     print('ERROR in', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete', config_path)
 
 
 # Define all the outputs needed by target 'all'
 
 def qc1_check_read_length_output():
-    result = expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt", 
+    result = expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt",
                     wd = working_dir,
                     omics = omics,
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
@@ -89,13 +89,13 @@ def qc1_check_read_length_output():
     return(result)
 
 def qc1_read_length_cutoff_output():
-    result = expand("{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf", 
+    result = expand("{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf",
                     wd = working_dir,
                     omics = omics)
     return(result)
 
 def qc1_config_yml_output():
-    result = expand("{wd}/{omics}/QC_2.yaml", 
+    result = expand("{wd}/{omics}/QC_2.yaml",
                     wd = working_dir,
                     omics = omics)
     return(result)
@@ -109,9 +109,9 @@ rule all:
 
 
 ###############################################################################################
-# Pre-processing of metaG and metaT data 
+# Pre-processing of metaG and metaT data
 # Filter reads by quality
-###############################################################################################    
+###############################################################################################
 
 # Get a sorted list of runs for a sample
 
@@ -163,9 +163,9 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
         rule qc1_get_index_barcode:
             input:
                 read_fw=lambda wildcards: get_example_to_infer_index(wildcards.sample),
-            output: 
+            output:
                 barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
-            shell: 
+            shell:
                 """
                 outdir=$(dirname {output.barcodes})
                 mkdir -p $outdir
@@ -181,9 +181,9 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
         rule qc1_get_index_barcode:
             input:
                 barcodes=config['TRIMMOMATIC_index_barcodes'],
-            output: 
+            output:
                 barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
-            shell: 
+            shell:
                 """
                 outdir=$(dirname {output.barcodes})
                 mkdir -p $outdir
@@ -199,13 +199,13 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
             barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
             palindrome=config['TRIMMOMATIC_palindrome'],
             template=config['TRIMMOMATIC_adaptors']
-        output: 
+        output:
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
         params:
             multiplex=multiplex_tech
-        conda: 
+        conda:
             config["minto_dir"]+"/envs/MIntO_base.yml" # seqtk
-        shell: 
+        shell:
             """
             # Get the 1st part of the adapter pair
             barcode1=$(cat {input.barcodes} | sed "s/;/+/" | cut -f1 -d'+')
@@ -231,13 +231,13 @@ if 'TRIMMOMATIC_index_barcodes' in config and config['TRIMMOMATIC_index_barcodes
         input:
             barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
             template=config['TRIMMOMATIC_adaptors']
-        output: 
+        output:
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
         params:
             multiplex=multiplex_tech
-        conda: 
+        conda:
             config["minto_dir"]+"/envs/MIntO_base.yml" # seqtk
-        shell: 
+        shell:
             """
             # Get the 1st part of the adapter pair
             barcode1=$(cat {input.barcodes} | sed "s/;/+/" | cut -f1 -d'+')
@@ -268,9 +268,9 @@ elif config['TRIMMOMATIC_adaptors'] != 'Skip':
     rule qc1_copy_fixed_adapter_file:
         input:
             template=config['TRIMMOMATIC_adaptors']
-        output: 
+        output:
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
-        shell: 
+        shell:
             """
             ln -s --force {input.template} {output.adapter}
             """
@@ -281,7 +281,7 @@ elif config['TRIMMOMATIC_adaptors'] != 'Skip':
 
 # If there is adapter file, then priority is to use it
 ruleorder: qc1_trim_quality_and_adapter > qc1_trim_quality
-    
+
 if config['TRIMMOMATIC_adaptors'] == 'Skip':
 
     localrules: qc1_trim_quality
@@ -290,12 +290,12 @@ if config['TRIMMOMATIC_adaptors'] == 'Skip':
     rule qc1_trim_quality:
         input:
             unpack(get_raw_reads_for_sample_run)
-        output: 
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz", 
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz", 
-        log: 
+        output:
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+        log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
-        shell: 
+        shell:
             """
             (ln -s --force {input.read_fw} {output.pairead1}
             ln -s --force {input.read_rv} {output.pairead2}
@@ -306,23 +306,23 @@ else:
     rule qc1_trim_quality:
         input:
             unpack(get_raw_reads_for_sample_run)
-        output: 
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz", 
-            singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz", 
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz", 
-            singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz", 
+        output:
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
+            singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+            singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz",
             summary="{wd}/{omics}/1-trimmed/{sample}/{run}.trim.summary"
         shadow:
             "minimal"
-        log: 
+        log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
         resources:
             mem=config['TRIMMOMATIC_memory']
         threads:
-            config['TRIMMOMATIC_threads']      
-        conda: 
+            config['TRIMMOMATIC_threads']
+        conda:
             config["minto_dir"]+"/envs/MIntO_base.yml"#trimmomatic
-        shell: 
+        shell:
             """
             remote_dir=$(dirname {output.pairead1})
             time ( \
@@ -342,25 +342,25 @@ rule qc1_trim_quality_and_adapter:
     input:
         unpack(get_raw_reads_for_sample_run),
         adapter='{wd}/{omics}/1-trimmed/{sample}/adapters.fa'
-    output: 
-        pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz", 
-        singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz", 
-        pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz", 
-        singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz", 
+    output:
+        pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
+        singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz",
+        pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+        singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz",
         summary="{wd}/{omics}/1-trimmed/{sample}/{run}.trim.summary"
     shadow:
         "minimal"
     params:
         simple_clip_threshold=trimmomatic_simple_clip_threshold
-    log: 
+    log:
         "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
     resources:
         mem=config['TRIMMOMATIC_memory']
     threads:
-        config['TRIMMOMATIC_threads']      
-    conda: 
+        config['TRIMMOMATIC_threads']
+    conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"#trimmomatic
-    shell: 
+    shell:
         """
         remote_dir=$(dirname {output.pairead1})
         time ( \
@@ -375,9 +375,9 @@ rule qc1_trim_quality_and_adapter:
             && rsync -a * $remote_dir/
         ) >& {log}
         """
- 
+
 rule qc1_check_read_length:
-    input: 
+    input:
         pairead=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{run}.{group}.paired.fq.gz",
                                             wd=wildcards.wd,
                                             omics=wildcards.omics,
@@ -385,66 +385,66 @@ rule qc1_check_read_length:
                                             run=get_runs_for_sample(wildcards.sample),
                                             group=wildcards.group
                                             )
-    output: 
+    output:
         length="{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt"
-    log: 
+    log:
         "{wd}/logs/{omics}/1-trimmed/{sample}.{group}.check_read_length.log"
     resources:
         mem=4
     threads:
         2
-    shell: 
+    shell:
         """
         time (sh -c 'gzip -cd {input.pairead} | awk -v f="{wildcards.sample}_{wildcards.group}" "{{if(NR%4==2) print length(\$1),f}}" | sort -n | uniq -c > {output.length}') >& {log}
         """
 
 rule qc1_check_read_length_merge:
-    input: 
+    input:
         length=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt", wd=wildcards.wd, omics=wildcards.omics, sample=ilmn_samples, group=['1', '2'])
-    output: 
-        readlen_dist="{wd}/{omics}/1-trimmed/samples_read_length.txt", 
-    log: 
+    output:
+        readlen_dist="{wd}/{omics}/1-trimmed/samples_read_length.txt",
+    log:
         "{wd}/logs/{omics}/1-trimmed/qc1_check_read_length_merge.log"
     threads: 1
-    shell: 
+    shell:
         """
         time (cat {input.length} > {output.readlen_dist}) >& {log}
         """
-    
+
 rule qc1_cumulative_read_len_plot:
     input:
         readlen_dist=rules.qc1_check_read_length_merge.output.readlen_dist
     output:
-        plot="{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf", 
+        plot="{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf",
         cutoff_file="{wd}/{omics}/1-trimmed/QC_1_min_len_read_cutoff.txt"
-    params: 
-        cutoff=config["perc_remaining_reads"], 
-    log: 
+    params:
+        cutoff=config["perc_remaining_reads"],
+    log:
         "{wd}/logs/{omics}/1-trimmed/plot_cumulative_read_len.log"
     resources:
         mem=config['TRIMMOMATIC_memory']
-    conda: 
+    conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
         time (Rscript {script_dir}/QC_cumulative_read_length_plot.R --input {input.readlen_dist} --frac {params.cutoff} --out_plot {output.plot} --out_cutoff {output.cutoff_file}) >& {log}
         """
-            
+
 ##########################################################################################################
-# Generate configuration yml file for the next step in pre-processing of metaG and metaT data 
+# Generate configuration yml file for the next step in pre-processing of metaG and metaT data
 ##########################################################################################################
 
 rule qc2_config_yml_file:
-    input: 
+    input:
         cutoff_file=rules.qc1_cumulative_read_len_plot.output.cutoff_file
-    output: 
+    output:
         config_file="{wd}/{omics}/QC_2.yaml"
-    params: 
+    params:
         trim_threads=config['TRIMMOMATIC_threads'],
-        trim_memory=config['TRIMMOMATIC_memory'] 
-    log: 
+        trim_memory=config['TRIMMOMATIC_memory']
+    log:
         "{wd}/logs/{omics}/qc2_config_yml_file.log"
-    shell: 
+    shell:
         """
         cat > {output.config_file} <<___EOF___
 ######################
@@ -564,4 +564,4 @@ $(for i in {ilmn_samples}; do echo "- $i"; done)
 ___EOF___
 
         echo {ilmn_samples} >& {log}
-        """ 
+        """

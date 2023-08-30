@@ -42,7 +42,7 @@ if 'ILLUMINA' in config:
                     else:
                         raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
             n_samples=len(ilmn_samples)+3
-        except: 
+        except:
             print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
 else:
     print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
@@ -117,7 +117,7 @@ elif type(config['BWA_threads']) != int:
 if config['BWA_memory'] is None:
     print('ERROR in ', config_path, ': BWA_memory variable is empty. Please, complete ', config_path)
 elif type(config['BWA_memory']) != int:
-    print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)   
+    print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)
 
 fetchMGs_dir=None
 if 'MG' in normalization_modes and map_reference in ("MAG", "reference_genome"):
@@ -174,8 +174,8 @@ if map_reference == 'genes_db':
         return()
 
     def gene_abundances_bwa_out(): # CHECK THIS PART - do not generate bwa index, normalization in a different way
-        result = expand("{gene_catalog_path}/BWA_index/{gene_catalog_name}.pac", 
-                    gene_catalog_path=gene_catalog_db, 
+        result = expand("{gene_catalog_path}/BWA_index/{gene_catalog_name}.pac",
+                    gene_catalog_path=gene_catalog_db,
                     gene_catalog_name=gene_catalog_name),\
         expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.bam",
                     wd = working_dir,
@@ -212,7 +212,7 @@ def config_yaml():
     return(result)
 
 rule all:
-    input: 
+    input:
         #gene_abundances_bwa_out(),
         combined_genome_profiles(),
         combined_gene_abundance_profiles(),
@@ -310,9 +310,9 @@ rule make_genome_def:
         """
 
 rule genome_bwaindex:
-    input: 
+    input:
         fasta_merge=rules.make_merged_genome_fna.output.fasta_merge
-    output: 
+    output:
         "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.0123",
         "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.amb",
         "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.ann",
@@ -443,13 +443,13 @@ rule merge_individual_msamtools_profiles:
 # Prepare genes for mapping to gene-database
 ## First, the index has to be generated
 ## Mapping, computation of read counts and TPM normalization is done in the same rule
-## TPM normalization: sequence depth and genes’ length 
+## TPM normalization: sequence depth and genes’ length
 ###############################################################################################
 
 rule gene_catalog_bwaindex:
     input:
         genes="{gene_catalog_path}/{gene_catalog_name}"
-    output: 
+    output:
         "{gene_catalog_path}/BWA_index/{gene_catalog_name}.0123",
         "{gene_catalog_path}/BWA_index/{gene_catalog_name}.amb",
         "{gene_catalog_path}/BWA_index/{gene_catalog_name}.ann",
@@ -459,7 +459,7 @@ rule gene_catalog_bwaindex:
         "minimal"
     log:
         genes="{gene_catalog_path}/{gene_catalog_name}.bwaindex.log"
-    threads: 
+    threads:
         config["BWAindex_threads"]
     resources:
         mem=config["BWAindex_memory"]
@@ -471,7 +471,7 @@ rule gene_catalog_bwaindex:
         ls {wildcards.wildcards.gene_catalog_name}.*
         rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/ ) &> {log}
         """
-        
+
 rule gene_catalog_mapping_profiling:
     input:
         bwaindex=expand("{gene_catalog_path}/BWA_index/{gene_catalog_name}.{ext}",
@@ -493,7 +493,7 @@ rule gene_catalog_mapping_profiling:
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/db_genes/{sample}.p{identity}_bwa.log"
-    threads: 
+    threads:
         config["BWA_threads"]
     resources:
         mem=config["BWA_memory"]
@@ -522,7 +522,7 @@ rule gene_catalog_mapping_profiling:
         msamtools profile aligned.bam $common_args -o profile_TPM.txt.gz --multi prop --unit tpm
         msamtools profile aligned.bam $common_args -o profile.abund.all.txt.gz --multi all --unit abund --nolen
 
-        rsync -a aligned.bam {output.filtered} 
+        rsync -a aligned.bam {output.filtered}
         rsync -a profile_TPM.txt.gz {output.profile_tpm}
         rsync -a profile.abund.all.txt.gz {output.map_profile}
         ) >& {log}
@@ -533,7 +533,7 @@ rule gene_catalog_mapping_profiling:
 ###############################################################################################
 
 rule gene_abund_compute:
-    input: 
+    input:
         sorted=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
                     wd = wildcards.wd,
                     omics = wildcards.omics,
@@ -547,7 +547,7 @@ rule gene_abund_compute:
                     identity = wildcards.identity,
                     sample=ilmn_samples),
         bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_SUBSET.bed"
-    output: 
+    output:
         absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed"
     shadow:
         "minimal"
@@ -556,7 +556,7 @@ rule gene_abund_compute:
     threads: config["BWA_threads"]
     resources:
         mem=config["BWA_memory"]
-    conda: 
+    conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bedtools
     shell:
         """
@@ -571,7 +571,7 @@ rule gene_abund_compute:
 
 ###############################################################################################
 # Normalization of read counts to 10 marker genes (MG normalization)
-## fetchMGs identifies 10 universal single-copy phylogenetic MGs 
+## fetchMGs identifies 10 universal single-copy phylogenetic MGs
 ## (COG0012, COG0016, COG0018, COG0172, COG0215, COG0495, COG0525, COG0533, COG0541, and COG0552)
 ###############################################################################################
 
@@ -585,7 +585,7 @@ rule modify_cds_faa_header_for_fetchMG:
 
 # Run fetchMGs
 rule fetchMG_genome_cds_faa:
-    input: 
+    input:
         cds_faa='{wd}/DB/{post_analysis_dir}/CD_transl/{genome}_SUBSET.faa',
         fetchMGs_dir=str(fetchMGs_dir)
     output: '{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}_SUBSET.all.marker_genes_scores.table'
@@ -595,7 +595,7 @@ rule fetchMG_genome_cds_faa:
     threads: 8
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
-    shell: 
+    shell:
         """
         {input.fetchMGs_dir}/fetchMGs.pl -outdir {wildcards.genome} -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction {input.cds_faa} >& {log}
         rm -rf {wildcards.genome}/temp
@@ -640,7 +640,7 @@ rule gene_abund_normalization_MG:
         mem=config["BWA_memory"]
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
-    shell: 
+    shell:
         """
         time (Rscript {script_dir}/profile_MG.R --normalize MG --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} --MG {input.genomes_marker_genes} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
         """
@@ -741,16 +741,16 @@ rule read_map_stats:
 ###############################################################################################
 rule config_yml_integration:
     input: lambda wildcards: "{wd}/{mag_omics}/mapping.yaml".format(wd=wildcards.wd, mag_omics=mag_omics)
-    output: 
+    output:
         config_file="{wd}/data_integration.yaml"
-    params: 
+    params:
         mapped_reads_threshold=config["MIN_mapped_reads"],
     resources:
         mem=2
     threads: 2
-    log: 
+    log:
         "{wd}/logs/config_yml_integration.log"
-    shell: 
+    shell:
         """
         time (echo "######################
 # General settings
@@ -777,7 +777,7 @@ MAG_omics: {mag_omics}
 
 ANNOTATION_file:
 
-# List annotation IDs matching to generate function profiles. 
+# List annotation IDs matching to generate function profiles.
 # If map_reference= 'MAG' or 'reference_genome', this list correspond to:
 # 'eggNOG_OGs','KEGG_Pathway','KEGG_Module','KEGG_KO','PFAMs','dbCAN.mod' and 'dbCAN.enzclass.
 # The names should match the ANNOTATION_file column names.
