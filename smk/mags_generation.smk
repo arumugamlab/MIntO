@@ -121,6 +121,7 @@ if config['SCORE_METHOD'] == 'checkm':
 else:
     print('ERROR in ', config_path, ': SCORE_METHOD variable can only be checkm at the moment!')
 
+run_taxonomy="no"
 if config['RUN_TAXONOMY'] is None:
     print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
 elif config['RUN_TAXONOMY'] == True:
@@ -132,27 +133,28 @@ elif config['RUN_TAXONOMY'] == False:
 else:
     print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
 
-if config['TAXONOMY_CPUS'] is None:
-    print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is empty. Please, complete ', config_path)
-elif type(config['TAXONOMY_CPUS']) != int:
-    print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is not an integer. Please, complete ', config_path)
+if run_taxonomy == "yes":
+    if config['TAXONOMY_CPUS'] is None:
+        print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is empty. Please, complete ', config_path)
+    elif type(config['TAXONOMY_CPUS']) != int:
+        print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is not an integer. Please, complete ', config_path)
 
-if config['TAXONOMY_memory'] is None:
-    print('ERROR in ', config_path, ': TAXONOMY_memory variable is empty. Please, complete ', config_path)
-elif type(config['TAXONOMY_memory']) != int:
-    print('ERROR in ', config_path, ': TAXONOMY_memory variable is not an integer. Please, complete ', config_path)
+    if config['TAXONOMY_memory'] is None:
+        print('ERROR in ', config_path, ': TAXONOMY_memory variable is empty. Please, complete ', config_path)
+    elif type(config['TAXONOMY_memory']) != int:
+        print('ERROR in ', config_path, ': TAXONOMY_memory variable is not an integer. Please, complete ', config_path)
 
-if config['TAXONOMY_DATABASE_FOLDER'] is None:
-   print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable is empty. Please, complete ', config_path)
-elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is False:
-   print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable path does not exit. Please, complete ', config_path)
-elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is True:
-   taxonomy_db_folder = config["TAXONOMY_DATABASE_FOLDER"]
+    if config['TAXONOMY_DATABASE_FOLDER'] is None:
+       print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable is empty. Please, complete ', config_path)
+    elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is False:
+       print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable path does not exit. Please, complete ', config_path)
+    elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is True:
+       taxonomy_db_folder = config["TAXONOMY_DATABASE_FOLDER"]
 
-if config['TAXONOMY_DATABASE'] is None:
-    print('ERROR in ', config_path, ': TAXONOMY_DATABASE variable is empty. Please, complete ', config_path)
-else:
-    print('NOTE: MIntO is using ', config['TAXONOMY_DATABASE'], ' from ', taxonomy_db_folder)
+    if config['TAXONOMY_DATABASE'] is None:
+        print('ERROR in ', config_path, ': TAXONOMY_DATABASE variable is empty. Please, complete ', config_path)
+    else:
+        print('NOTE: MIntO is using ', config['TAXONOMY_DATABASE'], ' from ', taxonomy_db_folder)
 
 def mags_recovery():
     result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt", wd = working_dir, omics = config['omics'])
