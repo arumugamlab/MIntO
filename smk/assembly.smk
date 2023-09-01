@@ -62,16 +62,17 @@ if 'HYBRID' in config:
                 #print(" "+nano+"-"+ilmn)
                 hybrid_assemblies.append(nano+"-"+ilmn)
 
-# Make list of illumina coassemblies, if COASSEMBLY in config
+# Make list of illumina coassemblies, if enable_COASSEMBLY is set to "yes" in config
 co_assemblies = list()
-if 'COASSEMBLY' in config:
-    if config['COASSEMBLY'] is None:
-        print('WARNING in ', config_path, ': COASSEMBLY list of samples is empty. Skipping co-assembly.')
-    else:
-        #print("Coassemblies:")
-        for co in config["COASSEMBLY"]:
-            #print(" "+co)
-            co_assemblies.append(co)
+if 'enable_COASSEMBLY' in config and config['enable_COASSEMBLY'] is not None and config['enable_COASSEMBLY'] is True:
+    if 'COASSEMBLY' in config:
+        if config['COASSEMBLY'] is None:
+            print('WARNING in', config_path, ': COASSEMBLY list of samples is empty. Skipping co-assembly.')
+        else:
+            #print("Coassemblies:")
+            for co in config["COASSEMBLY"]:
+                #print(" "+co)
+                co_assemblies.append(co)
 
 if config['METASPADES_qoffset'] in ('auto', '33', '64'):
     pass

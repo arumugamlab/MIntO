@@ -846,13 +846,14 @@ $(for i in {ilmn_samples}; do echo "- $i"; done)
 
 # COASSEMBLY section:
 # -------------------
-# MEGAHIT coassembly will be performed using the following definitions.
+# If enable_COASSEMBLY is "yes", MEGAHIT coassembly will be performed using the following definitions.
 # Each coassembly is named in the LHS, and corresponding illumina sample(s) are in RHS (delimited by '+').
 # One coassembly will be performed for each line.
 # E.g. 'Subject1: I3+I4' will result in 1 coassembly: 'Subject1' using I3 and I4 data.
 # Memory per coassembly is calculated to be 10G per sample in the coassembly.
 # Please make sure that there is enough RAM on the server.
 #
+enable_COASSEMBLY: no
 COASSEMBLY:
   Full: $(echo {ilmn_samples} | sed 's/ /+/g')
 ___EOF___
