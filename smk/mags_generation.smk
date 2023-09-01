@@ -99,12 +99,16 @@ elif type(config['CHECKM_CONTAMINATION']) != int:
 else:
     checkm_batch_size = config['CHECKM_BATCH_SIZE']
 
+checkm_db = None
 if config['CHECKM_DATABASE'] is None:
    print('ERROR in', config_path, ': CHECKM_DATABASE variable is empty. Please, complete', config_path)
 elif path.exists(config['CHECKM_DATABASE']) is False:
    print('ERROR in', config_path, ': CHECKM_DATABASE variable path does not exit. Please, complete', config_path)
 elif path.exists(config['CHECKM_DATABASE']) is True:
    checkm_db = config["CHECKM_DATABASE"]
+
+if checkm_db is None:
+    raise Exception("CheckM2 database needs to be provided via CHECKM_DATABASE")
 
 if config['COVERM_THREADS'] is None:
     print('ERROR in ', config_path, ': COVERM_THREADS variable is empty. Please, complete ', config_path)
