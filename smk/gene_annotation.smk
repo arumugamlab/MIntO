@@ -98,7 +98,9 @@ def get_genomes_from_refdir(ref_dir):
     return(sorted(genomes))
 
 ########################
-# Prokka on a fna file in reference_dir
+# Prokka on an fna file in reference_dir.
+# To make it reproducible, we assign locus_tag based on the name of the MAG/genome.
+# This makes testing and benchmarking easier.
 ########################
 
 rule prokka_for_genome:
@@ -117,7 +119,8 @@ rule prokka_for_genome:
     shell:
         """
         rm -rf $(dirname {output})
-        prokka --outdir $(dirname {output.fna}) --prefix {wildcards.genome} --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
+        locus_tag=$(echo "{genome}" | md5sum | cut -f1 -d' ' | tr -s '0-9' 'G-P' | tr -s 'a-z' 'A-Z' | cut -c1-10)
+        prokka --outdir $(dirname {output.fna}) --prefix {wildcards.genome} --locustag $locus_tag --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
         """
 
 # Combine FAA files ####
