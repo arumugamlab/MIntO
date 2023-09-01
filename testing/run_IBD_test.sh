@@ -50,9 +50,9 @@ if [ ! -z "$COMPUTEROME_PROJ" ]; then
   SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --default-resources gpu=0 mem=4 --cluster 'qsub -d $(pwd) -W group_list=$COMPUTEROME_PROJ -A $COMPUTEROME_PROJ -N {name} -l nodes=1:thinnode:ppn={threads},mem={resources.mem}gb,walltime=7200 -V -v TMPDIR=$SHADOWDIR' --local-cores 4"
 else
   # Computerome thin nodes
-  #SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --jobs 16 --cores 40 --resources mem=188"
+  #SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --cores 40 --resources mem=188"
   # Default
-  SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --jobs 16 --cores 96 --resources mem=700"
+  SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --cores 96 --resources mem=700"
 fi
 
 echo -n "Downloading dependencies: "
@@ -107,12 +107,13 @@ for OMICS in metaG metaT; do
   time (eval $cmd && echo "OK")
 
   echo -n "ASSEMBLY: "
-  cmd="snakemake --snakefile $MINTO_DIR/smk/assembly.smk --configfile assembly.yaml $SNAKE_PARAMS >& assembly.log"
+  sed "s@enable_COASSEMBLY: no@enable_COASSEMBLY: yes@;" assembly.yaml > assembly.yaml.fixed
+  cmd="snakemake --snakefile $MINTO_DIR/smk/assembly.smk --configfile assembly.yaml.fixed $SNAKE_PARAMS >& assembly.log"
   echo $cmd >> $COMMAND_LOG
   time (eval $cmd && echo "OK")
 
   echo -n "BINNING_PREP: "
-  cmd="snakemake --snakefile $MINTO_DIR/smk/binning_preparation.smk --configfile assembly.yaml $SNAKE_PARAMS >& binning_prep.log"
+  cmd="snakemake --snakefile $MINTO_DIR/smk/binning_preparation.smk --configfile assembly.yaml.fixed $SNAKE_PARAMS >& binning_prep.log"
   echo $cmd >> $COMMAND_LOG
   time (eval $cmd && echo "OK")
 
