@@ -20,7 +20,7 @@ Authors: Eleonora Nigro, Mani Arumugam
 import os.path
 from os import path
 
-localrules: copy_genomes_in_all, copy_best_genomes
+localrules: collect_genomes_from_all_binners, copy_best_genomes, prepare_bins_for_checkm, collect_HQ_genomes
 
 # Get common config variables
 # These are:
@@ -100,9 +100,9 @@ else:
     checkm_batch_size = config['CHECKM_BATCH_SIZE']
 
 if config['CHECKM_DATABASE'] is None:
-   print('ERROR in ', config_path, ': CHECKM_DATABASE variable is empty. Please, complete ', config_path)
+   print('ERROR in', config_path, ': CHECKM_DATABASE variable is empty. Please, complete', config_path)
 elif path.exists(config['CHECKM_DATABASE']) is False:
-   print('ERROR in ', config_path, ': CHECKM_DATABASE variable path does not exit. Please, complete ', config_path)
+   print('ERROR in', config_path, ': CHECKM_DATABASE variable path does not exit. Please, complete', config_path)
 elif path.exists(config['CHECKM_DATABASE']) is True:
    checkm_db = config["CHECKM_DATABASE"]
 
@@ -122,13 +122,13 @@ else:
     print('ERROR in ', config_path, ': SCORE_METHOD variable can only be checkm at the moment!')
 
 if config['RUN_TAXONOMY'] is None:
-    print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
+    print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
 elif config['RUN_TAXONOMY'] == True:
-    print('NOTE: MIntO is running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
+    print('NOTE: MIntO is running taxonomy labelling of the unique MAGs using PhyloPhlAn3.')
     run_taxonomy = "yes"
 elif config['RUN_TAXONOMY'] == False:
     run_taxonomy = "no"
-    print('NOTE: MIntO is not running taxonomy labelling of the unique set of genomes using PhyloPhlAn3.')
+    print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs using PhyloPhlAn3.')
 else:
     print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
 
@@ -315,7 +315,10 @@ checkpoint prepare_bins_for_checkm:
         mkdir -p {output.checkm_groups}
         cd {output.checkm_groups}
         rm -rf batch.*
-        ls {input.bin_folder}/*.fna | split - batch. --lines {params.batch_size} --numeric-suffixes=1
+        files=$(find {input.bin_folder}/ -name "*.fna"  | wc -l)
+        batches=$(( $files/{params.batch_size} + 1 ))
+        suffix_len=$(echo -n $batches | wc -c)
+        find {input.bin_folder}/ -name "*.fna" | split - batch. --lines {params.batch_size} --suffix-length=$suffix_len --numeric-suffixes=1
         """
 
 ###############################
@@ -408,7 +411,14 @@ rule move_bins_after_checkm:
         touch {output.moved}
         """
 
-rule copy_genomes_in_all:
+# Collect genomes from multiple binners into one location.
+# Copying using 'cp location/*.fna' might fail if string consisting list of fna files goes over bash limit for argument length (ARG_MAX).
+# ARG_MAX on our system was 2^21, and with our projects we hit it around 12,000 files.
+# Therefore, we make the list of files using 'find' and process in batches of 5000 so that ARG_MAX is not reached.
+# If this rule fails in your hands with 'cp: Argument list too long', that means that your file paths are longer than 2000 characters.
+# It is strange, but not wrong. In that case, please reduce params.batch_size=5000 below and you should be fine.
+
+rule collect_genomes_from_all_binners:
     input:
         checkm_out = lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt",
                                 wd = wildcards.wd,
@@ -416,16 +426,26 @@ rule copy_genomes_in_all:
                                 binner = config['BINNERS'])
     output:
         all_genomes = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all"),
-        copied = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/copy_genomes_all_finished.txt"
+        collected = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/collect_genomes.done"
+    log:
+        collected = "{wd}/logs/{omics}/mags_generation/collect_genomes.log"
+    params:
+        batch_size=5000
     shell:
         """
         rm -rf {output.all_genomes}
         mkdir {output.all_genomes}
+        time (
         for i in {input.checkm_out}; do
           location=$(dirname $i)
-          cp $location/bins/*.fna {output.all_genomes}/
+          echo "Collecting $(basename $location) in batches of {params.batch_size}"
+          find $location/bins/ -name "*.fna" |
+                  while readarray -t -n {params.batch_size} FILES && ((${{#FILES[@]}})); do
+                      ln -s ${{FILES[@]}} {output.all_genomes}/
+                  done
         done
-        touch {output.copied}
+        ) > & {log}
+        touch {output.collected}
         """
 
 ########################
@@ -458,10 +478,10 @@ rule make_comprehensive_table:
         all_checkm_output.to_csv("{}".format(output.checkm_total), sep = "\t", index = False)
 
 ## Copy HQ genomes inside HQ_genomes folder
-rule copy_HQ_genomes:
+rule collect_HQ_genomes:
     input:
         checkm_total = rules.make_comprehensive_table.output,
-        copied = rules.copy_genomes_in_all.output.copied
+        collected = rules.collect_genomes_from_all_binners.output.collected
     output:
         HQ_table="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv",
         HQ_folder=directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes")
@@ -470,7 +490,7 @@ rule copy_HQ_genomes:
         completeness = config["CHECKM_COMPLETENESS"],
         contamination = config["CHECKM_CONTAMINATION"]
     log:
-        "{wd}/logs/{omics}/mags_generation/copy_HQ_genomes.log"
+        "{wd}/logs/{omics}/mags_generation/collect_HQ_genomes.log"
     resources:
         mem=10
     threads:
@@ -494,13 +514,13 @@ rule copy_HQ_genomes:
             for bin_id in hq_bins:
                 source_file = params.all_genomes_folder +"/{}.fna".format(bin_id)
                 destination_file = output.HQ_folder  + "/{}.fna".format(bin_id)
-                print("[rule copy_HQ_genomes] Copying {} to {}".format(source_file, destination_file), file=f)
-                subprocess.call(["cp", source_file, destination_file])
+                print("[rule collect_HQ_genomes] Copying {} to {}".format(source_file, destination_file), file=f)
+                subprocess.call(["ln", "-s", source_file, destination_file])
 
 ## Run coverm on HQ genomes to create the .tsv file
 rule run_coverm:
     input:
-        HQ_table=rules.copy_HQ_genomes.output.HQ_table
+        HQ_table=rules.collect_HQ_genomes.output.HQ_table
     output:
         cluster_tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
     params:
@@ -522,7 +542,7 @@ rule run_coverm:
 rule calculate_score_genomes:
     input:
         cluster_tsv = rules.run_coverm.output.cluster_tsv,
-        HQ_table = rules.copy_HQ_genomes.output.HQ_table
+        HQ_table = rules.collect_HQ_genomes.output.HQ_table
     output:
         scored_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
     params:
@@ -622,7 +642,7 @@ checkpoint copy_best_genomes:
         """
         time (mkdir -p {output.genome_dir}
         while read line; do
-          cp {wildcards.wd}/{wildcards.omics}/8-1-binning/mags_generation_pipeline/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
+          cp --dereference {wildcards.wd}/{wildcards.omics}/8-1-binning/mags_generation_pipeline/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
         done < {input.best_unique_genomes}
         )&> {log}
         """
