@@ -662,6 +662,8 @@ rule taxonomy_for_genome_collection:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes"
     output:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.tsv"
+    shadow:
+        "minimal"
     log:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.log"
     params:
@@ -676,6 +678,8 @@ rule taxonomy_for_genome_collection:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
         """
-        cd $(dirname {output})
+        time (
         phylophlan_metagenomic -i {input} --nproc {threads} -d {params.taxonomy_database} -o taxonomy --database_folder {params.taxonomy_database_folder}
+        ) >& {log}
+        rsync -a taxonomy.tsv {output}
         """
