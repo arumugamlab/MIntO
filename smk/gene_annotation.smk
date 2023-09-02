@@ -305,11 +305,11 @@ rule gene_annot_eggnog:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        time (cd {params.eggnog_db}
+        time (
         [[ -d /dev/shm/eggnog_data ]] || mkdir /dev/shm/eggnog_data
         eggnogdata=(eggnog.db eggnog_proteins.dmnd eggnog.taxa.db eggnog.taxa.db.traverse.pkl)
         for e in "${{eggnogdata[@]}}"
-            do [[ -f /dev/shm/eggnog_data/$e ]] || cp data/$e /dev/shm/eggnog_data/
+            do [[ -f /dev/shm/eggnog_data/$e ]] || cp {params.eggnog_db}/data/$e /dev/shm/eggnog_data/
         done
         mkdir out
         emapper.py --data_dir /dev/shm/eggnog_data/ -o {params.prefix} \
