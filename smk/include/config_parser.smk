@@ -24,6 +24,10 @@ print(" Reading configuration yaml file: ", config_path)
 print(" *******************************")
 print("  ")
 
+# Set script_dir relative to calling snakemake script
+
+script_dir=workflow.basedir+"/../scripts"
+
 # Variables from configuration yaml file
 if config['PROJECT'] is None:
     print('ERROR in ', config_path, ': PROJECT variable is empty. Please, complete ', config_path)
@@ -49,7 +53,6 @@ elif path.exists(config['minto_dir']) is False:
     print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
 else:
     minto_dir=config["minto_dir"]
-    script_dir=config["minto_dir"]+"/scripts"
 
 if config['METADATA'] is None:
     print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
