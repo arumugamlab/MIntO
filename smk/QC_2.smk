@@ -763,19 +763,6 @@ METAFLYE_presets:
   tres-o3000-3x: --min-overlap 3000 --iterations 3
   #metaflye-default: ""
 
-# BWA settings
-# Used when mapping reads back to contigs
-#
-BWA_threads: 10
-BWA_memory: 25
-BWA_index_memory: 50
-
-# samtools settings
-# Used when sorting bam files
-# memory listed below is PER-THREAD.
-SAMTOOLS_sort_threads: 2
-SAMTOOLS_sort_perthread_memgb: 10
-
 ###############################
 # Binning preparation settings
 ###############################
@@ -801,7 +788,22 @@ CONTIG_MAPPING_BATCH_SIZE: 100
 #
 # EXCLUDE_ASSEMBLY_TYPES:
 
+# Contig-depth: bwa-mem2 settings
+# Used when mapping reads back to contigs
+#
+BWA_threads: 10
+BWA_memory: 25
+BWA_index_memory: 50
+
+# Contig-depth: samtools sort settings
+# Used when sorting bam files
+# memory listed below is PER-THREAD.
+SAMTOOLS_sort_threads: 2
+SAMTOOLS_sort_perthread_memgb: 10
+
+###############################
 # Input data
+###############################
 
 # HYBRID section:
 # ---------------
@@ -844,8 +846,10 @@ CONTIG_MAPPING_BATCH_SIZE: 100
 ILLUMINA:
 $(for i in {ilmn_samples}; do echo "- $i"; done)
 
+###############################
 # COASSEMBLY section:
-# -------------------
+###############################
+
 # If enable_COASSEMBLY is "yes", MEGAHIT coassembly will be performed using the following definitions.
 # Each coassembly is named in the LHS, and corresponding illumina sample(s) are in RHS (delimited by '+').
 # One coassembly will be performed for each line.
