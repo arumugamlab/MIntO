@@ -190,8 +190,7 @@ def get_genome_bed(wildcards):
 rule make_merged_bed:
     input: get_genome_bed
     output:
-        bed_file=       "{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed",
-        bed_file_header="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.header-modif.coord_correct.bed"
+        bed_file="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed",
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}.merge_bed.log"
     wildcard_constraints:
@@ -199,7 +198,6 @@ rule make_merged_bed:
     shell:
         """
         time (\
-            cat {input} > {output.bed_file_header}
             cat {input} \
                     | awk -F'\\t' '{{gsub(/[;]/, "\\t", $10)}} 1' OFS='\\t' \
                     | cut -f 1-10 \
@@ -210,10 +208,8 @@ rule make_merged_bed:
 rule gene_annot_subset:
     input:
         bed_file=       rules.make_merged_bed.output.bed_file,
-        bed_file_header=rules.make_merged_bed.output.bed_file_header,
         merged_cds=     rules.make_merged_cds_faa.output.merged_cds
     output:
-        bed_modif="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_names_modif.bed",
         bed_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed",
         fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
     log:
@@ -226,7 +222,7 @@ rule gene_annot_subset:
     shell:
         """
         remote_dir={wildcards.wd}/DB/{post_analysis_dir}/
-        time (Rscript {script_dir}/MAGs_genes_out_subset.R {threads} {input.bed_file_header} {input.bed_file} {input.merged_cds} ${{remote_dir}} {post_analysis_out}) &> {log}
+        time (Rscript {script_dir}/MAGs_genes_out_subset.R {threads} {input.bed_file} {input.merged_cds} ${{remote_dir}} {post_analysis_out}) &> {log}
         """
 
 ################################################################################################

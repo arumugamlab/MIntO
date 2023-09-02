@@ -9,11 +9,10 @@ library(stringr)
 library(rlang)
 
 threads_n <- args[1]
-#bed_file_short <- args[2]
-bed_file <- args[3]
-cd_transl_file <- args[4]
-dir_out <- args[5]
-file_name <- args[6]
+bed_file <- args[2]
+cd_transl_file <- args[3]
+dir_out <- args[4]
+file_name <- args[5]
 
 ##########################  ** Load directories **  ########################## 
 
@@ -40,7 +39,6 @@ genomes_df$ID_gene[genomes_df$name == '.'] <- paste0(genomes_df$chr[genomes_df$n
 
 genomes_df$name <- genomes_df$name2
 genomes_df$info <- genomes_df$ID_gene
-bed_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
 
 genomes_sub_df <- subset(genomes_df, select=bed_info)
 
@@ -48,7 +46,6 @@ write.table(genomes_sub_df,paste0(dir_out,"/", file_name,"_names_modif.bed"),sep
 
 ## Keep all antiSMASH and macrel genes
 genomes_df <- as.data.frame(fread(paste0(dir_out, "/", file_name, "_names_modif.bed"), header=F), stringsAsFactors = F)
-bed_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
 names(genomes_df) <- bed_info
 
 # Group duplicated features
@@ -107,7 +104,6 @@ rm(genomes_df, genomes_df_u, genomes_sub_df, genomes_sub, genomes_sub_dplyr, gen
 #### #### ####  CD_transl file #### #### ####
 ## Load bed file SUBSET
 genomes_sub_df <- as.data.frame(fread(paste0(dir_out, file_name, "_SUBSET.bed"), header=F), stringsAsFactors = F)
-bed_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
 names(genomes_sub_df) <- bed_info
 
 #genomes_sub_df$coord <- paste0(genomes_sub_df$chr, '_',genomes_sub_df$start, '_', genomes_sub_df$stop)
