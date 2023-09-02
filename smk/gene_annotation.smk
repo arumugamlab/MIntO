@@ -119,7 +119,7 @@ rule prokka_for_genome:
     shell:
         """
         rm -rf $(dirname {output})
-        locus_tag=$(echo "{genome}" | md5sum | cut -f1 -d' ' | tr -s '0-9' 'G-P' | tr -s 'a-z' 'A-Z' | cut -c1-10)
+        locus_tag=$(echo "{wildcards.genome}" | md5sum | cut -f1 -d' ' | tr -s '0-9' 'G-P' | tr -s 'a-z' 'A-Z' | cut -c1-10)
         prokka --outdir $(dirname {output.fna}) --prefix {wildcards.genome} --locustag $locus_tag --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
         """
 
