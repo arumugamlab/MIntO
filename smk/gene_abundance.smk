@@ -646,7 +646,7 @@ rule gene_abund_normalization_MG:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/profile_MG.R --normalize MG --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} --MG {input.genomes_marker_genes} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
+        time (Rscript {script_dir}/normalize_profiles.R --normalize MG --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} --MG {input.genomes_marker_genes} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
         """
 
 ###############################################################################################
@@ -669,7 +669,7 @@ rule gene_abund_normalization_TPM:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/profile_MG.R --normalize TPM --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
+        time (Rscript {script_dir}/normalize_profiles.R --normalize TPM --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
         """
 
 ###############################################################################################
