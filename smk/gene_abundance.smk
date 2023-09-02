@@ -228,35 +228,36 @@ def get_runs_for_sample(wildcards):
     #print(runs)
     return(sorted(runs))
 
-def combine_msamtools_profiles(profile_list, output_file):
+def combine_msamtools_profiles(input_list, output_file, log_file):
     import pandas as pd
     import hashlib
     import pickle
     import datetime
 
-    def logme(msg):
-        print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg)
+    def logme(stream, msg):
+        print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
 
     df_list = list()
-    logme("INFO: reading file 0")
-    df = pd.read_csv(profile_list[0], comment='#', header=0, sep = "\t", memory_map=True)
-    df_list.append(df)
-    md5_first = hashlib.md5(pickle.dumps(df.iloc[:, 0:1])).hexdigest() # make hash for sequence feature ID
-    for i in range(1, len(profile_list)):
-        logme("INFO: reading file {}".format(i))
-        df = pd.read_csv(profile_list[i], comment='#', header=0, sep = "\t", memory_map=True)
-        md5_next = hashlib.md5(pickle.dumps(df.iloc[:, 0:1])).hexdigest()
-        if md5_next != md5_first:
-            raise Exception("merge_individual_msamtools_profiles: Features don't match between {} and {}".format(profile_list[0], profile_list[i]))
-        df_list.append(df.drop(['ID'], axis=1))
-    logme("INFO: concatenating {} files".format(len(profile_list)))
-    df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
-    logme("INFO: writing to output file")
-    if output_file.endswith('.gz'):
-        df.to_csv(output_file, sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
-    else:
-        df.to_csv(output_file, sep = "\t", index = False)
-    logme("INFO: done")
+    with open(str(log_file), 'w') as f:
+        logme(f, "INFO: reading file 0")
+        df = pd.read_csv(input_list[0], comment='#', header=0, sep = "\t", memory_map=True)
+        df_list.append(df)
+        md5_first = hashlib.md5(pickle.dumps(df.iloc[:, 0:1])).hexdigest() # make hash for sequence feature ID
+        for i in range(1, len(input_list)):
+            logme(f, "INFO: reading file {}".format(i))
+            df = pd.read_csv(input_list[i], comment='#', header=0, sep = "\t", memory_map=True)
+            md5_next = hashlib.md5(pickle.dumps(df.iloc[:, 0:1])).hexdigest()
+            if md5_next != md5_first:
+                raise Exception("merge_individual_msamtools_profiles: Features don't match between {} and {}".format(input_list[0], input_list[i]))
+            df_list.append(df.drop(['ID'], axis=1))
+        logme(f, "INFO: concatenating {} files".format(len(input_list)))
+        df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
+        logme(f, "INFO: writing to output file")
+        if output_file.endswith('.gz'):
+            df.to_csv(output_file, sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
+        else:
+            df.to_csv(output_file, sep = "\t", index = False)
+        logme(f, "INFO: done")
 
 ###############################################################################################
 # Prepare genes for mapping to MAGs or publicly available genomes
@@ -435,9 +436,11 @@ rule merge_individual_msamtools_profiles:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.{type}.txt"
     shadow:
         "minimal"
+    log:
+        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
     run:
         import shutil
-        combine_msamtools_profiles(input.single, 'combined.txt')
+        combine_msamtools_profiles(input.single, 'combined.txt', log)
         shutil.copy2('combined.txt', output.combined)
 
 ###############################################################################################
@@ -690,7 +693,7 @@ rule gene_abund_tpm_merge:
         post_analysis_out='db-genes'
     run:
         import shutil
-        combine_msamtools_profiles(input.profile_tmp, 'combined.txt')
+        combine_msamtools_profiles(input.profile_tmp, 'combined.txt', log)
         shutil.copy2('combined.txt', output.profile_tpm_all)
 
 ###############################################################################################
