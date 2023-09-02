@@ -423,6 +423,7 @@ rule move_bins_after_checkm:
 # Therefore, we make the list of files using 'find' and process in batches of 5000 so that ARG_MAX is not reached.
 # If this rule fails in your hands with 'cp: Argument list too long', that means that your file paths are longer than 2000 characters.
 # It is strange, but not wrong. In that case, please reduce params.batch_size=5000 below and you should be fine.
+# Use of readarray was inspired by: https://stackoverflow.com/a/41268405
 
 rule collect_genomes_from_all_binners:
     input:
@@ -450,7 +451,7 @@ rule collect_genomes_from_all_binners:
                       ln -s ${{FILES[@]}} {output.all_genomes}/
                   done
         done
-        ) > & {log}
+        ) >& {log}
         touch {output.collected}
         """
 
