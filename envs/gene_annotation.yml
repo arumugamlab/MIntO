@@ -7,5 +7,5 @@ dependencies:
   - prokka=1.14.6
   - eggnog-mapper=2.1.9
   - kofamscan=1.3.0
-  - run-dbcan=2.0.11
+  - dbcan=4.0.0
   - perl=5.32.1

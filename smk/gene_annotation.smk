@@ -267,7 +267,7 @@ rule gene_annot_dbcan:
         "minimal"
     params:
         prefix="{post_analysis_out}_translated_cds_SUBSET",
-        dbcan_db=lambda wildcards: "{minto_dir}/data/dbCAN_db/".format(minto_dir = minto_dir)
+        dbcan_db=lambda wildcards: "{minto_dir}/data/dbCAN_db/V12/".format(minto_dir = minto_dir)
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_dbcan.log"
     resources:
@@ -277,7 +277,7 @@ rule gene_annot_dbcan:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        time (run_dbcan.py {input.fasta_subset} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre {params.prefix}_ --out_dir out
+        time (run_dbcan {input.fasta_subset} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre {params.prefix}_ --out_dir out
         {script_dir}/process_dbcan_overview.pl out/{params.prefix}_overview.txt > out/{params.prefix}_dbCAN.tsv
         rsync out/* {wildcards.wd}/DB/{post_analysis_dir}/annot/ )&> {log}
         """

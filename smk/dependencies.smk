@@ -106,13 +106,13 @@ def Kofam_db_out():
     return(result)
 
 def dbCAN_db_out():
-    files = ["CAZyDB.09242021.fa",
+    files = ["CAZyDB.07262023.fa",
                 "dbCAN.txt",
                 "tcdb.fa",
                 "tf-1.hmm",
                 "tf-2.hmm",
                 "stp.hmm"]
-    result = expand("{somewhere}/data/dbCAN_db/{file}",
+    result = expand("{somewhere}/data/dbCAN_db/V12/{file}",
                 somewhere = minto_dir,
                 file = files)
     return(result)
@@ -274,14 +274,16 @@ rule Kofam_db:
 # Download dbCAN database - run_dbcan
 ###############################################################################################
 
+# Based on instructions at https://github.com/linnabrown/run_dbcan
+
 rule dbCAN_db:
     output:
-        dbCAN_db1="{minto_dir}/data/dbCAN_db/CAZyDB.09242021.fa",
-        dbCAN_db2="{minto_dir}/data/dbCAN_db/dbCAN.txt",
-        dbCAN_db3="{minto_dir}/data/dbCAN_db/tcdb.fa",
-        dbCAN_db4="{minto_dir}/data/dbCAN_db/tf-1.hmm",
-        dbCAN_db5="{minto_dir}/data/dbCAN_db/tf-2.hmm",
-        dbCAN_db6="{minto_dir}/data/dbCAN_db/stp.hmm",
+        dbCAN_db1="{minto_dir}/data/dbCAN_db/V12/CAZyDB.07262023.fa",
+        dbCAN_db2="{minto_dir}/data/dbCAN_db/V12/dbCAN.txt",
+        dbCAN_db3="{minto_dir}/data/dbCAN_db/V12/tcdb.fa",
+        dbCAN_db4="{minto_dir}/data/dbCAN_db/V12/tf-1.hmm",
+        dbCAN_db5="{minto_dir}/data/dbCAN_db/V12/tf-2.hmm",
+        dbCAN_db6="{minto_dir}/data/dbCAN_db/V12/stp.hmm",
     resources: mem=download_memory
     threads: download_threads
     log:
@@ -290,50 +292,37 @@ rule dbCAN_db:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        mkdir -p {minto_dir}/data/dbCAN_db/
-        cd {minto_dir}/data/dbCAN_db/
-        time (wget https://bcb.unl.edu/dbCAN2/download/Databases/CAZyDB.09242021.fa
-        diamond makedb --in CAZyDB.09242021.fa -d CAZy
-        wget https://bcb.unl.edu/dbCAN2/download/Databases/V10/dbCAN-HMMdb-V10.txt
-        mv dbCAN-HMMdb-V10.txt dbCAN.txt
-        hmmpress dbCAN.txt
-        wget https://bcb.unl.edu/dbCAN2/download/Databases/tcdb.fa
+        mkdir -p {minto_dir}/data/dbCAN_db/V12
+        cd {minto_dir}/data/dbCAN_db/V12
+        time (
+        # Get the files
+        files="fam-substrate-mapping-08252022.tsv dbCAN-PUL_07-01-2022.xlsx dbCAN-PUL_07-01-2022.txt PUL.faa dbCAN-PUL.tar.gz dbCAN_sub.hmm"
+        for f in $files; do
+            wget --no-verbose http://bcb.unl.edu/dbCAN2/download/Databases/$f
+        done
+        files="tf-1.hmm tf-2.hmm stp.hmm CAZyDB.07262023.fa tcdb.fa dbCAN-HMMdb-V12.txt"
+        for f in $files; do
+            wget --no-verbose https://bcb.unl.edu/dbCAN2/download/Databases/V12/$f
+        done
+
+        # Extract
+        tar xvf dbCAN-PUL.tar.gz
+
+        # Format if necessary
+        # blast db
+        makeblastdb -in PUL.faa -dbtype prot
+        # diamond db
+        diamond makedb --in CAZyDB.07262023.fa -d CAZy
         diamond makedb --in tcdb.fa -d tcdb
-        wget https://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm
-        hmmpress tf-1.hmm
-        wget https://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm
-        hmmpress tf-2.hmm
-        wget https://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm
-        hmmpress stp.hmm
+        # hmm db
+        mv dbCAN-HMMdb-V12.txt dbCAN.txt
+        hmmpress dbCAN.txt
+        for f in *.hmm; do
+            hmmpress $f
+        done
+
         echo 'dbCAN database downloaded and installed') &> {log}
         """
-
-## https://github.com/linnabrown/run_dbcan
-
-# Database Installation.
-# git clone https://github.com/linnabrown/run_dbcan.git
-# cd run_dbcan
-# test -d db || mkdir db
-# cd db \
-#     && wget http://bcb.unl.edu/dbCAN2/download/CAZyDB.09242021.fa && diamond makedb --in CAZyDB.09242021.fa -d CAZy \
-#     && wget https://bcb.unl.edu/dbCAN2/download/Databases/V10/dbCAN-HMMdb-V10.txt && mv dbCAN-HMMdb-V10.txt dbCAN.txt && hmmpress dbCAN.txt \
-#     && wget http://bcb.unl.edu/dbCAN2/download/Databases/tcdb.fa && diamond makedb --in tcdb.fa -d tcdb \
-#     && wget http://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm && hmmpress tf-1.hmm \
-#     && wget http://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm && hmmpress tf-2.hmm \
-#     && wget http://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm && hmmpress stp.hmm
-
-
-# DATABASES Installation
-# https://bcb.unl.edu/dbCAN2/download/Databases/ #Databse -- Database Folder
-# https://bcb.unl.edu/dbCAN2/download/Databases/CAZyDB.09242021.fa #CAZy.fa--use diamond makedb --in CAZyDB.09242021.fa -d CAZy
-# [CAZyme]:included in eCAMI.
-# [EC]: included in eCAMI.
-# https://bcb.unl.edu/dbCAN2/download/Databases/V10/dbCAN-HMMdb-V10.txt #dbCAN-HMMdb-V10.txt--First use mv dbCAN-HMMdb-V10.txt dbCAN.txt, then use hmmpress dbCAN.txt
-# https://bcb.unl.edu/dbCAN2/download/Databases/tcdb.fa #tcdb.fa--use diamond makedb --in tcdb.fa -d tcdb
-# https://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm #tf-1.hmm--use hmmpress tf-1.hmm
-# https://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm #tf-2.hmm--use hmmpress tf-2.hmm
-# https://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm #stp.hmm--use hmmpress stp.hmm
-
 
 ###############################################################################################
 # Download metaphlan database - MetaPhlAn4
