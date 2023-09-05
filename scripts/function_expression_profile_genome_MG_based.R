@@ -305,7 +305,7 @@ if (omics == 'metaG_metaT'){
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(test, test2, test3, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
       } 
-      else if  (db_name %in% c('dbCAN.mod', 'dbCAN.enzclass', 'CAZy')){
+      else if  (db_name %in% c('dbCAN.module', 'dbCAN.enzclass', 'CAZy')){
         x <- PFAMCAZY
         mapped_keys <- mappedkeys(x)
         xx <- as.list(x[mapped_keys])
@@ -803,7 +803,7 @@ if (omics == 'metaG_metaT'){
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(test, test2, test3, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
       } 
-      else if  (db_name %in% c('dbCAN.mod', 'dbCAN.enzclass', 'CAZy')){
+      else if  (db_name %in% c('dbCAN.module', 'dbCAN.enzclass', 'CAZy')){
         x <- PFAMCAZY
         mapped_keys <- mappedkeys(x)
         xx <- as.list(x[mapped_keys])

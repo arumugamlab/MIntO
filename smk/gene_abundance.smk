@@ -782,7 +782,7 @@ ANNOTATION_file:
 
 # List annotation IDs matching to generate function profiles.
 # If map_reference= 'MAG' or 'reference_genome', this list could contain elements from:
-# 'eggNOG_OGs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO', 'PFAMs', 'dbCAN.mod', 'dbCAN.enzclass', 'dbCAN.subfamily', 'dbCAN.EC', 'eCAMI.subfamily', 'eCAMI.submodule'.
+# 'eggNOG_OGs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO', 'PFAMs', 'dbCAN.module', 'dbCAN.enzclass', 'dbCAN.subfamily', 'dbCAN.EC', 'eCAMI.subfamily', 'eCAMI.submodule'.
 # The names should match the ANNOTATION_file column names.
 #   E.g.:
 # - eggNOG_OGs
@@ -790,7 +790,7 @@ ANNOTATION_file:
 ANNOTATION_ids:
  - eggNOG_OGs
  - PFAMs
- - dbCAN.mod
+ - dbCAN.module
  - dbCAN.enzclass
  - dbCAN.subfamily
  - dbCAN.EC
