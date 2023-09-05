@@ -723,8 +723,8 @@ METADATA: {metadata}
 # MetaSPAdes settings
 #
 METASPADES_qoffset: auto
-METASPADES_threads: 10
-METASPADES_memory: 16
+METASPADES_threads: 16
+METASPADES_memory: 10
 METASPADES_hybrid_max_k: 99
 METASPADES_illumina_max_k: 99
 
@@ -739,7 +739,7 @@ METASPADES_illumina_max_k: 99
 #     until it succeeds or reaches max_attempts from snakemake.
 #     Please make sure that there is enough RAM on the server.
 MEGAHIT_memory: 10
-MEGAHIT_threads: 40
+MEGAHIT_threads: 32
 MEGAHIT_presets:
  - meta-sensitive
  - meta-large
