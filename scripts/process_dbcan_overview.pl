@@ -14,18 +14,18 @@ my $header = <FILE>;
 chomp($header);
 my @fields = split(/\t/, $header);
 
-print "ID\tdbCAN.module\tdbCAN.enzclass\tdbCAN.subfamily\teCAMI.subfamily\teCAMI.submodule\tdbCAN.EC\n";
+print join("\t", qw/ID dbCAN.module dbCAN.enzclass dbCAN.subfamily eCAMI.subfamily eCAMI.submodule dbCAN.EC/)."\n";
 while (<FILE>){
-	my $line = $_;
-	$line =~ s/\t\-/\t/g;
-	my @array = split /\t/, $line;
-	my $len = scalar(@array);
+    my $line = $_;
+    $line =~ s/\t\-/\t/g;
+    my @array = split /\t/, $line;
+    my $len = scalar(@array);
     my ($id, $ec);
-	my @filler = ("-")x6;
+    my @filler = ("-")x6;
     my $enz;
     my (%mod,%enzymes, %subfams, %ecamisub, %ecamisubmod);
 
-	for (my $i=0;$i<$len;$i++){
+    for (my $i=0;$i<$len;$i++){
         if ($fields[$i] eq "Gene ID") {
             $id =  $array[$i];
         }
@@ -66,30 +66,30 @@ while (<FILE>){
                 }
             }
         }
-	}
-	if (%mod){
-		my @mod = sort {$a cmp $b} keys %mod;
-		$filler[0] = join ",", @mod;
-	}
-	if (%enzymes){
-		my @enzymes = sort {$a cmp $b} keys %enzymes;
-		$filler[1] = join ",", @enzymes;
-	}
-	if (%subfams){
-		my @subfams = sort {$a cmp $b} keys %subfams;
-		$filler[2] = join ",", @subfams;
-	}
-	if (%ecamisub){
-		my @ecamisub = sort {$a cmp $b} keys %ecamisub;
-		$filler[3] = join ",", @ecamisub;
-	}
-	if (%ecamisubmod){
-		my @ecamisubmod = sort {$a cmp $b} keys %ecamisubmod;
-		$filler[4] = join ",", @ecamisubmod;
-	}
+    }
+    if (%mod){
+        my @mod = sort {$a cmp $b} keys %mod;
+        $filler[0] = join ",", @mod;
+    }
+    if (%enzymes){
+        my @enzymes = sort {$a cmp $b} keys %enzymes;
+        $filler[1] = join ",", @enzymes;
+    }
+    if (%subfams){
+        my @subfams = sort {$a cmp $b} keys %subfams;
+        $filler[2] = join ",", @subfams;
+    }
+    if (%ecamisub){
+        my @ecamisub = sort {$a cmp $b} keys %ecamisub;
+        $filler[3] = join ",", @ecamisub;
+    }
+    if (%ecamisubmod){
+        my @ecamisubmod = sort {$a cmp $b} keys %ecamisubmod;
+        $filler[4] = join ",", @ecamisubmod;
+    }
     if ($ec) {
         $filler[5] = $ec;
     }
-	my $myline =  $id."\t".join "\t", @filler;
-	print $myline, "\n";
+    my $myline =  $id."\t".join "\t", @filler;
+    print $myline, "\n";
 }
