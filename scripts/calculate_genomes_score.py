@@ -396,7 +396,7 @@ def calculate_fasta_statistics_genome_based(fasta_file, circularity_threshold = 
 					circular_chr = 3.15
 				elif "_circularA_circularL" in c_contigs_name:
 					circular_chr = 3
-				elif "_ciruclarL" in c_contigs_name:
+				elif "_circularL" in c_contigs_name:
 					circular_chr = 2
 				else:
 					circular_chr = 1 
