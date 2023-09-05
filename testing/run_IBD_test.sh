@@ -68,8 +68,8 @@ time (eval $cmd && echo "OK")
 
 if [ ! -d "IBD_tutorial_raw" ]; then
   echo -n "Downloading tutorial data: "
-  wget --quiet https://zenodo.org/record/6369313/files/IBD_tutorial_raw.tar.gz
-  tar xfz IBD_tutorial_raw.tar.gz
+  wget --quiet https://zenodo.org/record/8320216/files/IBD_tutorial_raw_v2.0.0.tar.gz
+  tar xfz IBD_tutorial_raw_v2.0.0.tar.gz
   echo "OK"
 fi
 
@@ -110,7 +110,7 @@ for OMICS in metaG metaT; do
   time (eval $cmd && echo "OK")
 
   echo -n "ASSEMBLY: "
-  sed "s@enable_COASSEMBLY: no@enable_COASSEMBLY: yes@;" assembly.yaml > assembly.yaml.fixed
+  perl -pe "s/enable_COASSEMBLY: no/enable_COASSEMBLY: yes/; s/^# Contig-depth: bwa/EXCLUDE_ASSEMBLY_TYPES:\n - illumina_coas\n\n# Contig-depth: bwa/" < assembly.yaml > assembly.yaml.fixed
   cmd="snakemake --snakefile $CODE_DIR/smk/assembly.smk --configfile assembly.yaml.fixed $SNAKE_PARAMS >& assembly.log"
   echo $cmd >> $COMMAND_LOG
   time (eval $cmd && echo "OK")
