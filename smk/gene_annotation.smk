@@ -312,9 +312,9 @@ rule gene_annot_eggnog:
                    --no_annot --no_file_comments --report_no_hits --override --output_dir out -m diamond -i {input.fasta_subset} --cpu {threads}
         emapper.py --annotate_hits_table out/{params.prefix}.emapper.seed_orthologs \
                    --data_dir /dev/shm/eggnog_data/ -m no_search --no_file_comments --override -o {params.prefix} --output_dir out --cpu {threads}
-        cut -f 1,5,12,13,14,21 out/{params.prefix}.emapper.annotations > out/{params.prefix}.eggNOG5
-        {script_dir}/process_eggNOG_OGs.pl out/{params.prefix}.eggNOG5 > out/{params.prefix}_eggNOG.tsv
-        rm out/{params.prefix}.eggNOG5
+        cut -f 1,5,12,13,14,21 out/{params.prefix}.emapper.annotations > out/{params.prefix}.eggNOG
+        {script_dir}/process_eggNOG_OGs.pl out/{params.prefix}.eggNOG > out/{params.prefix}_eggNOG.tsv
+        rm out/{params.prefix}.eggNOG
         sed -i 's/\#query/ID/' out/{params.prefix}_eggNOG.tsv
         sed -i 's/ko\://g' out/{params.prefix}_eggNOG.tsv
         rsync out/* {wildcards.wd}/DB/{post_analysis_dir}/annot/)&> {log}
