@@ -911,27 +911,22 @@ minto_dir: {minto_dir}
 METADATA: {metadata}
 
 ######################
-# Program settings
+# Annotation settings
 ######################
-# BWA Alignment
-msamtools_filter_length: 50
-alignment_identity: 95
 
-# Normalization approach
-# Could be TPM, MG or comma-delimited combinations
-abundance_normalization: TPM,MG
-fetchMGs_dir: {minto_dir}/data/fetchMGs-1.2
-
-# Map reads to reference
+# Where should we map reads to? MAG, reference_genomes, reference_genomes
 map_reference: MAG
+
+# Which omics for MAGs?
 MAG_omics: metaG
+
 # path to gene catalog fasta file
 PATH_reference:
+
 # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
 NAME_reference:
 
-
-# List of databases used to performe the genome annotation:
+# List of databases used to perform genome annotation:
 # - dbCAN
 # - KEGG
 # - eggNOG
@@ -939,11 +934,25 @@ ANNOTATION:
  - dbCAN
  - eggNOG
 
+#########################
+# Gene abundance settings
+#########################
+
+# BWA Alignment
 BWAindex_threads: 2
 BWAindex_memory: 10
 BWA_threads: 10
 BWA_memory: 45
+
+# Alignment filtering
+msamtools_filter_length: 50
+alignment_identity: 95
 MIN_mapped_reads: 2
+
+# Normalization approach
+# Could be TPM, MG or comma-delimited combinations
+abundance_normalization: TPM,MG
+fetchMGs_dir: {minto_dir}/data/fetchMGs-1.2
 
 # Input data
 
