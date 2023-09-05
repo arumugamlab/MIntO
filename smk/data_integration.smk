@@ -199,10 +199,11 @@ rule integration_merge_profiles:
     shell:
         """
         remote_dir=$(dirname {output.gene_abund_merge})
-        time (if [ {wildcards.omics} == 'metaG_metaT' ]
-        then python3 {script_dir}/gene_abundances_merge_profiles.py {wildcards.map_reference} {output.gene_abund_merge} {input.gene_abund}
+        time (
+        if [ {wildcards.omics} == 'metaG_metaT' ]; then
+            python3 {script_dir}/gene_abundances_merge_profiles.py {wildcards.map_reference} {output.gene_abund_merge} {input.gene_abund}
         else
-        rsync {input.gene_abund} {output.gene_abund_merge}
+            rsync {input.gene_abund} {output.gene_abund_merge}
         fi ) &> {log}
         """
 
@@ -233,10 +234,10 @@ rule integration_gene_profiles:
     shell:
         """
         time ( echo 'integration of gene profiles'
-        if [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]]
-        then Rscript {script_dir}/gene_expression_profile_genome_based.R {threads} $(dirname {output.gene_abund_prof[0]}) {omics} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
-        elif [[ {map_reference} == 'genes_db' ]]
-        then Rscript {script_dir}/gene_expression_profile_gene_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
+        if [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]]; then
+            Rscript {script_dir}/gene_expression_profile_genome_based.R {threads} $(dirname {output.gene_abund_prof[0]}) {omics} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
+        elif [[ {map_reference} == 'genes_db' ]]; then
+            Rscript {script_dir}/gene_expression_profile_gene_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
         fi ) &> {log}
         """
 
@@ -286,29 +287,29 @@ rule integration_function_profiles_TPM:
         """
 
 rule integration_function_profiles_MG_TPM:
-        input:
-            gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization),
-        output:
-            func_abund_prof=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.csv", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
-            func_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.rds", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
-            func_abund_plots=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funct_opt}.PCA.pdf", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
-        params:
-            annot_file={annot_file},
-            funct_opt=funct_opt_list,
-            mapped_reads_threshold=config["MIN_mapped_reads"]
-        log:
-            "{wd}/logs/output/data_integration/{post_analysis_other}/integration_funtion_profiles.{omics}.{normalization}.log".format(wd = working_dir, post_analysis_other = post_analysis_other, normalization = normalization, omics = omics),
-        resources:
-            mem=config["MERGE_memory"]
-        threads: config["MERGE_threads"]
-        conda:
-            config["minto_dir"]+"/envs/r_pkgs.yml" #R
-        shell:
-            """
-            time ( echo 'integration of function profiles'
-            if ( [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]] ) && [[ {normalization} == 'MG' ]]
-            then Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
-            elif [[ {map_reference} == 'genes_db' ]] && [[ {normalization} == 'TPM' ]]
-            then Rscript {script_dir}/function_expression_profile_gene_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
-            fi) &> {log}
-            """
+    input:
+        gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization),
+    output:
+        func_abund_prof=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.csv", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
+        func_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.rds", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
+        func_abund_plots=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funct_opt}.PCA.pdf", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
+    params:
+        annot_file={annot_file},
+        funct_opt=funct_opt_list,
+        mapped_reads_threshold=config["MIN_mapped_reads"]
+    log:
+        "{wd}/logs/output/data_integration/{post_analysis_other}/integration_funtion_profiles.{omics}.{normalization}.log".format(wd = working_dir, post_analysis_other = post_analysis_other, normalization = normalization, omics = omics),
+    resources:
+        mem=config["MERGE_memory"]
+    threads: config["MERGE_threads"]
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml" #R
+    shell:
+        """
+        time ( echo 'integration of function profiles'
+        if ( [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]] ) && [[ {normalization} == 'MG' ]]; then
+            Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
+        elif [[ {map_reference} == 'genes_db' ]] && [[ {normalization} == 'TPM' ]]; then
+            Rscript {script_dir}/function_expression_profile_gene_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
+        fi) &> {log}
+        """
