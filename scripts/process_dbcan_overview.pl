@@ -20,22 +20,19 @@ while (<FILE>){
     $line =~ s/\t\-/\t/g;
     my @array = split /\t/, $line;
     my $len = scalar(@array);
-    my ($id, $ec);
+    my ($id);
     my @filler = ("-")x6;
     my $enz;
-    my (%mod,%enzymes, %subfams, %ecamisub, %ecamisubmod);
+    my (%mod, %enzymes, %subfams, %ecamisub, %ecamisubmod, %ec);
 
     for (my $i=0;$i<$len;$i++){
         if ($fields[$i] eq "Gene ID") {
             $id =  $array[$i];
         }
         if ($fields[$i] eq "EC#") {
-            $ec = $array[$i];
-            if ($ec) {
-                my @ec = split('\|', $ec);
-                my %ec = map { (split(':', $_))[0] => 1 } @ec;
-                $ec = join(",", keys(%ec));
-            }
+            my @ec = split('\|', $array[$i]);
+               @ec = map { (split(':', $_))[0] } @ec;
+               %ec = map { $_ => 1 } grep { $_ ne "-" } @ec;
         }
         if ($fields[$i] =~ /HMMER|DIAMOND|dbCAN_sub|HotPep/) {
             my @hitcols = split /\+/, $array[$i];
@@ -87,8 +84,9 @@ while (<FILE>){
         my @ecamisubmod = sort {$a cmp $b} keys %ecamisubmod;
         $filler[4] = join ",", @ecamisubmod;
     }
-    if ($ec) {
-        $filler[5] = $ec;
+    if (%ec) {
+        my @ec = sort {$a cmp $b} keys %ec;
+        $filler[5] = join ",", @ec;
     }
     my $myline =  $id."\t".join "\t", @filler;
     print $myline, "\n";
