@@ -5,7 +5,6 @@
 PROJECT: IBD_tutorial
 working_dir: /mypath/IBD_tutorial
 omics: metaG
-local_dir: /tmp/user/
 minto_dir: /mypath/MIntO
 METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 raw_reads_dir: /mypath/IBD_tutorial_raw/metaG
@@ -14,7 +13,9 @@ raw_reads_dir: /mypath/IBD_tutorial_raw/metaG
 # Program settings
 ######################
 # Read quality filtering
+MULTIPLEX_TECH: TruSeq
 TRIMMOMATIC_adaptors: Skip
+TRIMMOMATIC_palindrome:
 TRIMMOMATIC_index_barcodes:
 TRIMMOMATIC_simple_clip_threshold:
 TRIMMOMATIC_threads: 8
