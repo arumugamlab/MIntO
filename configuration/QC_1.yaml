@@ -15,6 +15,7 @@ raw_reads_dir: /mypath/IBD_tutorial_raw/metaG
 # Read quality filtering
 MULTIPLEX_TECH: TruSeq
 TRIMMOMATIC_adaptors: Skip
+TRIMMOMATIC_palindrome:
 TRIMMOMATIC_index_barcodes:
 TRIMMOMATIC_simple_clip_threshold:
 TRIMMOMATIC_threads: 8

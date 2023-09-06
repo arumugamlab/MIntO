@@ -23,8 +23,8 @@ BINNERS:
 - aaez
 - vae384
 
-VAMB_THREADS: 24
-VAMB_memory: 20
+VAMB_THREADS: 20
+VAMB_memory: 40
 
 # Use GPU in VAMB:
 # could be yes or no
@@ -47,13 +47,6 @@ COVERM_memory: 5
 #
 # this could be checkm or genome
 SCORE_METHOD: checkm
-
-
-# PROKKA settings
-#
-RUN_PROKKA: yes
-PROKKA_CPUS: 8
-PROKKA_memory: 5
 
 # MAG taxonomy settings
 #

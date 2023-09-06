@@ -14,7 +14,7 @@ METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 #
 METASPADES_qoffset: auto
 METASPADES_threads: 16
-METASPADES_memory: 8
+METASPADES_memory: 10
 METASPADES_hybrid_max_k: 99
 METASPADES_illumina_max_k: 99
 
@@ -53,17 +53,6 @@ METAFLYE_presets:
   tres-o3000-3x: --min-overlap 3000 --iterations 3
   #metaflye-default: ""
 
-# BWA settings
-# Used when mapping reads back to contigs
-#
-BWA_threads: 24
-
-# samtools settings
-# Used when sorting bam files
-#
-SAMTOOLS_sort_threads: 4
-SAMTOOLS_sort_memory_gb: 20
-
 ###############################
 # Binning preparation settings
 ###############################
@@ -89,7 +78,25 @@ CONTIG_MAPPING_BATCH_SIZE: 100
 #
 # EXCLUDE_ASSEMBLY_TYPES:
 
+EXCLUDE_ASSEMBLY_TYPES:
+ - illumina_coas
+
+# Contig-depth: bwa-mem2 settings
+# Used when mapping reads back to contigs
+#
+BWA_threads: 10
+BWA_memory: 25
+BWA_index_memory: 50
+
+# Contig-depth: samtools sort settings
+# Used when sorting bam files
+# memory listed below is PER-THREAD.
+SAMTOOLS_sort_threads: 2
+SAMTOOLS_sort_perthread_memgb: 10
+
+###############################
 # Input data
+###############################
 
 # HYBRID section:
 # ---------------
@@ -141,15 +148,18 @@ ILLUMINA:
 - CD242
 - CD244
 
+###############################
 # COASSEMBLY section:
-# -------------------
-# MEGAHIT coassembly will be performed using the following definitions.
+###############################
+
+# If enable_COASSEMBLY is "yes", MEGAHIT coassembly will be performed using the following definitions.
 # Each coassembly is named in the LHS, and corresponding illumina sample(s) are in RHS (delimited by '+').
 # One coassembly will be performed for each line.
 # E.g. 'Subject1: I3+I4' will result in 1 coassembly: 'Subject1' using I3 and I4 data.
 # Memory per coassembly is calculated to be 10G per sample in the coassembly.
 # Please make sure that there is enough RAM on the server.
 #
+enable_COASSEMBLY: yes
 COASSEMBLY:
   Full: CD136+CD138+CD140+CD142+CD146+CD237+CD238+CD240+CD242+CD244
   CD1: CD136+CD138+CD140+CD142+CD146
