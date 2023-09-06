@@ -4,7 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - bedops=2.4.41
+  - bedops=2.4.39
   - bedtools=2.31.0
   - bwa-mem2=2.2.1
   - coverm=0.6.1
