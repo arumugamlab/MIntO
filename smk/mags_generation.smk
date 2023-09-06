@@ -539,7 +539,7 @@ rule run_coverm:
     threads:
         config["COVERM_THREADS"]
     conda:
-        config["minto_dir"]+"/envs/mags.yml"
+        config["minto_dir"]+"/envs/MIntO_base.yml" # coverm
     shell:
         """
         time (coverm cluster --genome-fasta-directory {params.HQ_folder} -x fna --ani 99 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch) &> {log}

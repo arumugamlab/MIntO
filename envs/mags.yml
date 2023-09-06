@@ -4,7 +4,6 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - coverm=0.6.1
   - phylophlan=3.0.3
   - biopython=1.79
   - pandas=1.3.4
