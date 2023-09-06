@@ -946,7 +946,7 @@ BWA_memory: 45
 
 # Alignment filtering
 msamtools_filter_length: 50
-alignment_identity: 95
+alignment_identity: 97
 MIN_mapped_reads: 2
 
 # Normalization approach
