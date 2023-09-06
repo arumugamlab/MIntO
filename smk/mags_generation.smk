@@ -247,6 +247,11 @@ rule run_vamb_aae:
                 --model aae
         """
 
+# Rename bins by stripping 'vae_', 'aae_y_', 'aae_z_' in the bin id. We will add our own prefix in the MAG outputs.
+# clusters.tsv file orders entries by bins, but the contigs are not sorted.
+# This means that the fna file has contigs in different order each time.
+# Sort the clusters.tsv file by (bin, sample, contig_len), so that final fna is reproducible.
+
 rule aae_tsv:
     input:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_{latent_type}_clusters.tsv",
@@ -254,7 +259,7 @@ rule aae_tsv:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/aae{latent_type}_clusters.tsv",
     shell:
         """
-        cat {input} | sed "s/^aae_{wildcards.latent_type}_//" > {output}
+        cat {input} | sed "s/^aae_{wildcards.latent_type}_//" | sort -k1,1 -k5,5nr -t '_' > {output}
         """
 
 rule vae_tsv:
@@ -264,7 +269,7 @@ rule vae_tsv:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/vae{vbinner}_clusters.tsv",
     shell:
         """
-        cat {input} | sed "s/^vae_//" > {output}
+        cat {input} | sed "s/^vae_//" | sort -k1,1 -k5,5nr -t '_' > {output}
         """
 
 ### Select MAGs that satisfy min_fasta_length criterion
