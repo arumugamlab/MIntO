@@ -99,7 +99,7 @@ if (normalize == 'MG') {
     # Remove MG rows
     # Replace NaN and infinite values by 0
     rpk_melt_percell <- rpk_melt %>%
-                             group_by(ID_MAG) %>%
+                             group_by(ID_MAG, variable) %>%
                              mutate(value = value/value[header == 'MG']) %>%
                              filter(header != 'MG') %>%
                              mutate(value = ifelse(is.infinite(value) | is.nan(value), 0, value))
