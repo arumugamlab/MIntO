@@ -768,7 +768,7 @@ METAFLYE_presets:
 ###############################
 
 # Whether to use contigs or scaffolds from SPAdes
-SPADES_CONTIGS_OR_SCAFFOLDS: scaffolds
+SPADES_CONTIGS_OR_SCAFFOLDS: contigs
 
 # minimum contig/scaffold fasta length
 MIN_FASTA_LENGTH: 2500
