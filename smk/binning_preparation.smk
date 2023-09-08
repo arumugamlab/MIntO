@@ -696,7 +696,7 @@ TAXONOMY_memory: 5
 
 # PHYLOPHLAN METAGENOMICS settings
 #
-TAXONOMY_DATABASE: SGB.Jan20
+TAXONOMY_DATABASE: SGB.Jul20
 TAXONOMY_DATABASE_FOLDER: {minto_dir}/data" > {output.config_file}
 
 ) >& {log}
