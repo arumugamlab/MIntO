@@ -5,8 +5,8 @@ channels:
   - defaults
 dependencies:
   - bioconductor-biostrings=2.66
-  - bioconductor-keggrest=1.38.0
-  - bioconductor-pfam.db=3.16.0
+  - bioconductor-keggrest=1.40.0
+  - bioconductor-pfam.db=3.17.0
   - bioconductor-phyloseq=1.42.0
   - r-base=4.2.2
   - r-data.table=1.14.6
