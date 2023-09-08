@@ -95,7 +95,8 @@ genomes_sub_df$info <- paste0(genomes_sub_df$genome, '|',genomes_sub_df$name2) #
 genomes_sub_df$strand <- '.'
 
 genomes_sub_df <- as.data.frame(genomes_sub_df %>%
-                                  dplyr::select(chr,start,stop,name,score,strand,source,feature,frame,info))
+                                  dplyr::select(chr,start,stop,name,score,strand,source,feature,frame,info)) %>%
+                                  dplyr::arrange(chr, start, stop)
 
 write.table(genomes_sub_df,paste0(dir_out, file_name, "_SUBSET.bed"),sep="\t",row.names=FALSE, col.names = F, quote = F)
 
