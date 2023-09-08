@@ -743,10 +743,9 @@ rule read_map_stats:
         time (
         for file in {input.map_profile}; do
             sample=$(basename $file); sample=${{sample%%.p{wildcards.identity}*}}
-            echo $sample
-            (echo -e -n "$sample\\t"; zcat $file | head | grep "Mapped inserts" | cut -f2 -d'(' | sed "s/%.*//")  >> {output.maprate}
-            (echo -e -n "$sample\\t"; zcat $file | head | grep "Mapped inserts" | cut -f2 -d':' | sed "s/^ //")   >> {output.mapstats}
-            (echo -e -n "$sample\\t"; zcat $file | head | grep "Multiple mapped" | cut -f2 -d'(' | sed "s/%.*//") >> {output.multimap}
+            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.maprate}
+            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d':' | sed 's/^ //'"  ) >> {output.mapstats}
+            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Multiple mapped' | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.multimap}
         done
         ) &> {log}
         """
