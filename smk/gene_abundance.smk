@@ -11,7 +11,7 @@ Authors: Carmen Saenz, Mani Arumugam
 from os import path
 import pathlib
 
-localrules: modify_cds_faa_header_for_fetchMG, make_merged_genome_fna, make_genome_def, merge_MG_tables, \
+localrules: modify_cds_faa_header_for_fetchMG, make_merged_genome_fna, make_genome_def, merge_MG_tables, fetchMG_genome_cds_faa, \
         modify_genome_fasta_header, config_yml_integration, read_map_stats
 
 # Get common config variables
@@ -228,7 +228,7 @@ def get_runs_for_sample(wildcards):
     #print(runs)
     return(sorted(runs))
 
-def combine_msamtools_profiles(input_list, output_file, log_file):
+def combine_profiles(input_list, output_file, log_file, key_columns):
     import pandas as pd
     import hashlib
     import pickle
@@ -242,14 +242,14 @@ def combine_msamtools_profiles(input_list, output_file, log_file):
         logme(f, "INFO: reading file 0")
         df = pd.read_csv(input_list[0], comment='#', header=0, sep = "\t", memory_map=True)
         df_list.append(df)
-        md5_first = hashlib.md5(pickle.dumps(df.iloc[:, 0:1])).hexdigest() # make hash for sequence feature ID
+        md5_first = hashlib.md5(pickle.dumps(df[key_columns])).hexdigest() # make hash for sequence feature ID
         for i in range(1, len(input_list)):
             logme(f, "INFO: reading file {}".format(i))
             df = pd.read_csv(input_list[i], comment='#', header=0, sep = "\t", memory_map=True)
-            md5_next = hashlib.md5(pickle.dumps(df.iloc[:, 0:1])).hexdigest()
+            md5_next = hashlib.md5(pickle.dumps(df[key_columns])).hexdigest()
             if md5_next != md5_first:
-                raise Exception("merge_individual_msamtools_profiles: Features don't match between {} and {}".format(input_list[0], input_list[i]))
-            df_list.append(df.drop(['ID'], axis=1))
+                raise Exception("combine_profiles: Features don't match between {} and {}, using keys {}".format(input_list[0], input_list[i], ",".join(key_columns)))
+            df_list.append(df.drop(columns=key_columns))
         logme(f, "INFO: concatenating {} files".format(len(input_list)))
         df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
         logme(f, "INFO: writing to output file")
@@ -440,7 +440,7 @@ rule merge_individual_msamtools_profiles:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
     run:
         import shutil
-        combine_msamtools_profiles(input.single, 'combined.txt', log)
+        combine_profiles(input.single, 'combined.txt', log, key_columns=['ID'])
         shutil.copy2('combined.txt', output.combined)
 
 ###############################################################################################
@@ -538,13 +538,31 @@ rule gene_catalog_mapping_profiling:
 
 rule gene_abund_compute:
     input:
-        sorted=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
-                    wd = wildcards.wd,
-                    omics = wildcards.omics,
-                    post_analysis_out = wildcards.post_analysis_out,
-                    identity = wildcards.identity,
-                    sample=ilmn_samples),
-        index=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
+        sorted="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
+        index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
+        bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_SUBSET.bed"
+    output:
+        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed"
+    shadow:
+        "minimal"
+    log:
+        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.genes_abundances_counts.p{identity}.log"
+    threads: 2
+    resources:
+        mem=config["BWA_memory"]
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml" #bedtools
+    shell:
+        """
+        time (
+        echo -e 'chr\\tstart\\tstop\\tname\\tscore\\tstrand\\tsource\\tfeature\\tframe\\tinfo\\t{wildcards.sample}' > bed_file
+        bedtools multicov -bams {input.sorted} -bed {input.bed_subset} >> bed_file
+        rsync bed_file {output.absolute_counts}) &> {log}
+        """
+
+rule merge_gene_abund:
+    input:
+        sorted=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed",
                     wd = wildcards.wd,
                     omics = wildcards.omics,
                     post_analysis_out = wildcards.post_analysis_out,
@@ -557,21 +575,13 @@ rule gene_abund_compute:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances_counts.p{identity}.log"
-    threads: config["BWA_threads"]
+    threads: 2
     resources:
         mem=config["BWA_memory"]
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #bedtools
-    shell:
-        """
-        time (files='{ilmn_samples}'; echo ${{files}} | tr ' ' '\\t' > filename_list
-        echo -e 'chr\\tstart\\tstop\\tname\\tscore\\tstrand\\tsource\\tfeature\\tframe\\tinfo' > column_names
-        cat filename_list >> column_names
-        cat column_names | tr '\\n' '\\t' > column_names2
-        sed 's/\t$//' column_names2 > bed_file; echo '' >> bed_file
-        bedtools multicov -bams {input.sorted} -bed {input.bed_subset} >> bed_file
-        rsync bed_file {output.absolute_counts}) &> {log}
-        """
+    run:
+        import shutil
+        combine_profiles(input.sorted, 'combined.txt', log, key_columns=['chr','start','stop','name','score','strand','source','feature','frame','info'])
+        shutil.copy2('combined.txt', output.absolute_counts)
 
 ###############################################################################################
 # Normalization of read counts to 10 marker genes (MG normalization)
@@ -693,7 +703,7 @@ rule gene_abund_tpm_merge:
         post_analysis_out='db-genes'
     run:
         import shutil
-        combine_msamtools_profiles(input.profile_tmp, 'combined.txt', log)
+        combine_profiles(input.profile_tmp, 'combined.txt', log, key_columns=['ID'])
         shutil.copy2('combined.txt', output.profile_tpm_all)
 
 ###############################################################################################
@@ -733,6 +743,7 @@ rule read_map_stats:
         time (
         for file in {input.map_profile}; do
             sample=$(basename $file); sample=${{sample%%.p{wildcards.identity}*}}
+            echo $sample
             (echo -e -n "$sample\\t"; zcat $file | head | grep "Mapped inserts" | cut -f2 -d'(' | sed "s/%.*//")  >> {output.maprate}
             (echo -e -n "$sample\\t"; zcat $file | head | grep "Mapped inserts" | cut -f2 -d':' | sed "s/^ //")   >> {output.mapstats}
             (echo -e -n "$sample\\t"; zcat $file | head | grep "Multiple mapped" | cut -f2 -d'(' | sed "s/%.*//") >> {output.multimap}
