@@ -248,7 +248,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc <- merge(keyMap_funct, cog_df, by = 'Funct', all.x = T)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       } 
@@ -258,7 +258,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Funct <- gsub('ko:', '', keyMap_funct_desc$Funct)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
@@ -268,7 +268,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Funct <- gsub('path:', '', keyMap_funct_desc$Funct)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
@@ -279,7 +279,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc <- merge(keyMap_funct, modules_list_sub, by='Funct', all=T)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
@@ -301,7 +301,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Pfam_id <- NULL
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(test, test2, test3, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
       } 
@@ -335,7 +335,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Pfam_id <- NULL
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(test, test2, test3, test_cazy, test_cazy.keyMap, test_cazy.singleKeys, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
       } 
@@ -344,7 +344,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Description <- '-'
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
@@ -746,7 +746,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc <- merge(keyMap_funct, cog_df, by = 'Funct', all.x = T)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       } 
@@ -756,7 +756,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Funct <- gsub('ko:', '', keyMap_funct_desc$Funct)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
@@ -766,7 +766,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Funct <- gsub('path:', '', keyMap_funct_desc$Funct)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
@@ -777,7 +777,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc <- merge(keyMap_funct, modules_list_sub, by='Funct', all=T)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
@@ -799,7 +799,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Pfam_id <- NULL
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(test, test2, test3, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
       } 
@@ -833,7 +833,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Pfam_id <- NULL
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(test, test2, test3, test_cazy, test_cazy.keyMap, test_cazy.singleKeys, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
       } 
@@ -842,7 +842,7 @@ if (omics == 'metaG_metaT'){
         keyMap_funct_desc$Description <- '-'
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(unique(Description), collapse=';')))
+                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
         annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
         rm(keyMap_funct_desc,keyMap_funct_desc2)
       }
