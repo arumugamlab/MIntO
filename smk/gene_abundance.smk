@@ -139,8 +139,8 @@ elif map_reference == 'reference_genome':
     post_analysis_dir="9-refgenome-genes-post-analysis"
 
 elif map_reference == 'genes_db':
+    post_analysis_out="db-genes"
     post_analysis_dir="9-genes-db-post-analysis"
-    post_analysis_out="db_genes"
 
 gene_catalog_db="None"
 gene_catalog_name="None"
@@ -178,19 +178,19 @@ if map_reference == 'genes_db':
         expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.bam",
                     wd = working_dir,
                     omics = omics,
-                    post_analysis_out = "db_genes",
+                    post_analysis_out = "db-genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity),\
         expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.log",
                     wd = working_dir,
                     omics = omics,
-                    post_analysis_out = "db_genes",
+                    post_analysis_out = "db-genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity),\
         expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile_TPM.txt.gz",
                     wd = working_dir,
                     omics = omics,
-                    post_analysis_out = "db_genes",
+                    post_analysis_out = "db-genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity)
         return(result)
@@ -482,10 +482,10 @@ rule gene_catalog_mapping_profiling:
         fwd=get_qc2_output_files_fwd_only,
         rev=get_qc2_output_files_rev_only,
     output:
-        filtered="{wd}/{omics}/9-mapping-profiles/db_genes/{sample}/{sample}.p{identity}.filtered.bam",
-        bwa_log="{wd}/{omics}/9-mapping-profiles/db_genes/{sample}/{sample}.p{identity}.filtered.log",
-        profile_tpm="{wd}/{omics}/9-mapping-profiles/db_genes/{sample}/{sample}.p{identity}.filtered.profile_TPM.txt.gz",
-        map_profile="{wd}/{omics}/9-mapping-profiles/db_genes/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz"
+        filtered="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.bam",
+        bwa_log="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.log",
+        profile_tpm="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.profile_TPM.txt.gz",
+        map_profile="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz"
     shadow:
         "minimal"
     params:
@@ -493,7 +493,7 @@ rule gene_catalog_mapping_profiling:
         mapped_reads_threshold=config["MIN_mapped_reads"],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/db_genes/{sample}.p{identity}_bwa.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/db-genes/{sample}.p{identity}_bwa.log"
     threads:
         config["BWA_threads"]
     resources:
