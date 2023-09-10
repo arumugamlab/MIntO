@@ -31,20 +31,17 @@ if 'ILLUMINA' in config:
     if config['ILLUMINA'] is None:
         print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
     else:
-        try:
-            # Make list of illumina samples, if ILLUMINA in config
-            ilmn_samples = list()
-            if 'ILLUMINA' in config:
-                #print("Samples:")
-                for ilmn in config["ILLUMINA"]:
-                    if path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), ilmn)) is True:
-                        #print(ilmn)
-                        ilmn_samples.append(ilmn)
-                    else:
-                        raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
-            n_samples=len(ilmn_samples)+3
-        except:
-            print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
+        # Make list of illumina samples, if ILLUMINA in config
+        ilmn_samples = list()
+        if 'ILLUMINA' in config:
+            #print("Samples:")
+            for ilmn in config["ILLUMINA"]:
+                if path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), ilmn)) is True:
+                    #print(ilmn)
+                    ilmn_samples.append(ilmn)
+                else:
+                    raise TypeError('ERROR in ', config_path, ': ILLUMINA sample', ilmn, 'does not exist. Please, complete ', config_path)
+        n_samples=len(ilmn_samples)+3
 else:
     print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
 
@@ -547,9 +544,9 @@ rule gene_abund_compute:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.genes_abundances_counts.p{identity}.log"
-    threads: 2
+    threads: 1
     resources:
-        mem=config["BWA_memory"]
+        mem=5
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bedtools
     shell:
@@ -575,9 +572,9 @@ rule merge_gene_abund:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances_counts.p{identity}.log"
-    threads: 2
+    threads: 1
     resources:
-        mem=config["BWA_memory"]
+        mem=30
     run:
         import shutil
         combine_profiles(input.sorted, 'combined.txt', log, key_columns=['chr','start','stop','name','score','strand','source','feature','frame','info'])
@@ -672,7 +669,7 @@ rule gene_abund_normalization_TPM:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.log"
     params:
         mapped_reads_threshold=config["MIN_mapped_reads"]
-    threads: config["BWA_threads"]
+    threads: 4
     resources:
         mem=config["BWA_memory"]
     conda:
@@ -699,6 +696,8 @@ rule gene_abund_tpm_merge:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/gene_abund_merge.p{identity}.TPM_log"
+    resources:
+        mem=30
     wildcard_constraints:
         post_analysis_out='db-genes'
     run:
@@ -761,7 +760,7 @@ rule config_yml_integration:
         mapped_reads_threshold=config["MIN_mapped_reads"],
     resources:
         mem=2
-    threads: 2
+    threads: 1
     log:
         "{wd}/logs/config_yml_integration.log"
     shell:
