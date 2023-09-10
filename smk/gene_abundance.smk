@@ -75,6 +75,8 @@ if config['NAME_reference'] is None and map_reference == 'genes_db':
     print('ERROR in ', config_path, ': NAME_reference variable does not exit. Please, complete ', config_path)
 
 mag_omics = 'metaG'
+gene_catalog_db="None"
+gene_catalog_name="None"
 if map_reference == 'MAG':
     if 'MAG_omics' in config and config['MAG_omics'] != None:
         mag_omics = config['MAG_omics']
@@ -142,8 +144,6 @@ elif map_reference == 'genes_db':
     post_analysis_out="db-genes"
     post_analysis_dir="9-genes-db-post-analysis"
 
-gene_catalog_db="None"
-gene_catalog_name="None"
 bwaindex_db="DB/{analysis_dir}/BWA_index/{analysis_name}".format(analysis_dir=post_analysis_dir, analysis_name=post_analysis_out)
 
 def combined_genome_profiles():
@@ -469,7 +469,7 @@ rule gene_catalog_bwaindex:
     shell:
         """
         time (bwa-mem2 index {wildcards.gene_catalog_path}/{wildcards.gene_catalog_name} -p {wildcards.gene_catalog_name}
-        ls {wildcards.wildcards.gene_catalog_name}.*
+        ls {wildcards.gene_catalog_name}.*
         rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/ ) &> {log}
         """
 
@@ -702,7 +702,7 @@ rule gene_abund_tpm_merge:
         post_analysis_out='db-genes'
     run:
         import shutil
-        combine_profiles(input.profile_tmp, 'combined.txt', log, key_columns=['ID'])
+        combine_profiles(input.profile_tpm, 'combined.txt', log, key_columns=['ID'])
         shutil.copy2('combined.txt', output.profile_tpm_all)
 
 ###############################################################################################
