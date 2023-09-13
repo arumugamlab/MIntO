@@ -77,6 +77,10 @@ fi
 
 tar xfz $MINTO_DIR/tutorial/genomes.tar.gz
 
+# Extract gene-catalog
+
+tar xfz $MINTO_DIR/tutorial/gene_catalog.tar.gz
+
 # Get data
 mkdir -p IBD_tutorial
 cd IBD_tutorial
@@ -146,6 +150,12 @@ for OMICS in metaG metaT; do
   echo $cmd >> $COMMAND_LOG
   time (eval $cmd && echo "OK")
 
+  echo -n "GENE_ABUNDANCE - gene catalog: "
+  sed "s@map_reference: MAG@map_reference: genes_db@; s@PATH_reference:@PATH_reference: $TEST_DIR/gene_catalog@; s@NAME_reference:@NAME_reference: gene_catalog.fna@; s@abundance_normalization: TPM,MG@abundance_normalization: TPM@" mapping.yaml > mapping.yaml.catalog
+  cmd="snakemake --snakefile $CODE_DIR/smk/gene_abundance.smk --configfile mapping.yaml.catalog $SNAKE_PARAMS >& abundance.catalog.log"
+  echo $cmd >> $COMMAND_LOG
+  time (eval $cmd && echo "OK")
+
   cd ..
 done
 
@@ -169,5 +179,11 @@ time (eval $cmd && echo "OK")
 sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.refgenome > data_integration.yaml.refgenome.TPM
 echo -n "DATA_INTEGRATION - refgenome, TPM: "
 cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.TPM $SNAKE_PARAMS >& integration.refgenome.TPM.metaGT.log"
+echo $cmd >> $COMMAND_LOG
+time (eval $cmd && echo "OK")
+
+echo -n "DATA_INTEGRATION - gene-catalog, TPM: "
+sed "s/map_reference: MAG/map_reference: genes_db/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM > data_integration.yaml.catalog.TPM
+cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.catalog.TPM $SNAKE_PARAMS >& integration.catalog.TPM.metaGT.log"
 echo $cmd >> $COMMAND_LOG
 time (eval $cmd && echo "OK")
