@@ -26,6 +26,10 @@ if omics == 'metaG':
 if omics == 'metaT':
     hq_dir="5-1-sortmerna"
 
+main_factor = None
+if config['MAIN_factor'] is not None:
+    main_factor = config['MAIN_factor']
+
 # Make list of illumina samples, if ILLUMINA in config
 if 'ILLUMINA' in config:
     if config['ILLUMINA'] is None:
@@ -187,7 +191,7 @@ if map_reference == 'genes_db':
                     post_analysis_out = "db-genes",
                     sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
                     identity = identity),\
-        expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile_TPM.txt.gz",
+        expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
                     wd = working_dir,
                     omics = omics,
                     post_analysis_out = "db-genes",
@@ -420,17 +424,23 @@ rule old_merge_individual_msamtools_profiles:
             df  = df.join(df2, how='outer')
         df.to_csv(output.combined, sep = "\t", index = True)
 
-rule merge_individual_msamtools_profiles:
+###############################################################################################
+# The following two rules are identical. But first is for reference_genomes and MAGs. Second is for gene-catalogs
+###############################################################################################
+
+# Merge individual profiles from genome mapping
+
+rule merge_msamtools_genome_mapping_profiles:
     input:
         single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                post_analysis_out = wildcards.post_analysis_out,
-                identity = wildcards.identity,
-                type = wildcards.type,
-                sample = ilmn_samples)
+                                            wd = wildcards.wd,
+                                            omics = wildcards.omics,
+                                            post_analysis_out = wildcards.post_analysis_out,
+                                            identity = wildcards.identity,
+                                            type = wildcards.type,
+                                            sample = ilmn_samples)
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.{type}.txt"
+        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.{type}.txt.raw"
     shadow:
         "minimal"
     log:
@@ -439,6 +449,32 @@ rule merge_individual_msamtools_profiles:
         import shutil
         combine_profiles(input.single, 'combined.txt', log, key_columns=['ID'])
         shutil.copy2('combined.txt', output.combined)
+
+# Merge normalized gene abundance or transcript profiles from gene catalog (TPM normalization)
+
+rule merge_msamtools_gene_mapping_profiles:
+    input:
+        profile_tpm=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
+                                            wd = wildcards.wd,
+                                            omics = wildcards.omics,
+                                            post_analysis_out = wildcards.post_analysis_out,
+                                            identity = wildcards.identity,
+                                            type = wildcards.type,
+                                            sample=ilmn_samples)
+    output:
+        profile_tpm_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{type}.csv.raw"
+    shadow:
+        "minimal"
+    log:
+        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
+    resources:
+        mem=30
+    wildcard_constraints:
+        post_analysis_out='db-genes'
+    run:
+        import shutil
+        combine_profiles(input.profile_tpm, 'combined.txt', log, key_columns=['ID'])
+        shutil.copy2('combined.txt', output.profile_tpm_all)
 
 ###############################################################################################
 # Prepare genes for mapping to gene-database
@@ -484,7 +520,7 @@ rule gene_catalog_mapping_profiling:
     output:
         filtered="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.bam",
         bwa_log="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.log",
-        profile_tpm="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.profile_TPM.txt.gz",
+        profile_tpm="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
         map_profile="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz"
     shadow:
         "minimal"
@@ -520,11 +556,11 @@ rule gene_catalog_mapping_profiling:
         total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         #echo $total_reads
         common_args="--label {wildcards.omics}.{wildcards.sample} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
-        msamtools profile aligned.bam $common_args -o profile_TPM.txt.gz --multi prop --unit tpm
+        msamtools profile aligned.bam $common_args -o profile.TPM.txt.gz --multi prop --unit tpm
         msamtools profile aligned.bam $common_args -o profile.abund.all.txt.gz --multi all --unit abund --nolen
 
         rsync -a aligned.bam {output.filtered}
-        rsync -a profile_TPM.txt.gz {output.profile_tpm}
+        rsync -a profile.TPM.txt.gz {output.profile_tpm}
         rsync -a profile.abund.all.txt.gz {output.map_profile}
         ) >& {log}
         """
@@ -567,7 +603,7 @@ rule merge_gene_abund:
                     sample=ilmn_samples),
         bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_SUBSET.bed"
     output:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed"
+        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed.raw"
     shadow:
         "minimal"
     log:
@@ -579,6 +615,28 @@ rule merge_gene_abund:
         import shutil
         combine_profiles(input.sorted, 'combined.txt', log, key_columns=['chr','start','stop','name','score','strand','source','feature','frame','info'])
         shutil.copy2('combined.txt', output.absolute_counts)
+
+# If this is a BED file, then sample names are just A, B, C.
+# If this is a gene-catalog mode TPM.csv, then it is metaG.A, metaG.B, metaG.C.
+# We use --prefix to prepend before relabeling.
+rule relabel_merged_gene_abund:
+    input:
+        original="{somewhere}/{something}.raw"
+    output:
+        relabeled="{somewhere}/{something}"
+    shadow:
+        "minimal"
+    log:
+        "{somewhere}/relabel_{something}.log"
+    params:
+        prefix = lambda wildcards: "" if (wildcards.something.endswith('.bed')) else "--prefix {}.".format(omics)
+    threads: 4
+    resources:
+        mem=30
+    shell:
+        """
+        time Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {metadata} --input {input.original} --output {output.relabeled} {params.prefix} >& {log}
+        """
 
 ###############################################################################################
 # Normalization of read counts to 10 marker genes (MG normalization)
@@ -680,32 +738,6 @@ rule gene_abund_normalization_TPM:
         """
 
 ###############################################################################################
-# Merge normalized gene abundance or transcript profiles from gene catalog (TPM normalization)
-###############################################################################################
-rule gene_abund_tpm_merge:
-    input:
-        profile_tpm=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile_TPM.txt.gz",
-                                            wd = wildcards.wd,
-                                            omics = wildcards.omics,
-                                            post_analysis_out = wildcards.post_analysis_out,
-                                            identity = wildcards.identity,
-                                            sample=ilmn_samples)
-    output:
-        profile_tpm_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv"
-    shadow:
-        "minimal"
-    log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/gene_abund_merge.p{identity}.TPM_log"
-    resources:
-        mem=30
-    wildcard_constraints:
-        post_analysis_out='db-genes'
-    run:
-        import shutil
-        combine_profiles(input.profile_tpm, 'combined.txt', log, key_columns=['ID'])
-        shutil.copy2('combined.txt', output.profile_tpm_all)
-
-###############################################################################################
 ## Mappability rate
 ## Mappability stats
 ## Multimapping read count
@@ -775,8 +807,15 @@ minto_dir: {minto_dir}
 METADATA: {metadata}
 
 ######################
+# Analysis settings
+######################
+
+MAIN_factor: {main_factor}
+
+######################
 # Program settings
 ######################
+
 alignment_identity: {identity}
 abundance_normalization: MG
 map_reference: {map_reference}
