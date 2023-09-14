@@ -398,12 +398,12 @@ if (omics %like% "metaG") {
     ga_norm_count <- res$counts
     ga_norm_taxa <- res$taxa
     ga_norm_taxa_genes <- rownames(ga_norm_taxa)
+    ga_fa_df <- data.frame(DB='genes', feature_n=length(ga_norm_taxa_genes), feature = 'Genes')
 
     if (omics == 'metaG') {
         metaG_norm_profile_rowsum_not_0 <- ga_norm_count
         profiles_annot_norm_df_sub <- ga_norm_taxa
         metadata_df <- res$metadata
-        ga_fa_df <- data.frame(DB='genes', feature_n=length(ga_norm_taxa_genes), feature = 'Genes')
     } else {
         metaG_norm_profile_rowsum_not_0 <- ga_norm_count[rownames(ga_norm_count) %in% ge_norm_taxa_genes,]
     }
@@ -418,12 +418,12 @@ if (omics %like% "metaT") {
     gt_norm_count <- res$counts
     gt_norm_taxa <- res$taxa
     gt_norm_taxa_genes <- rownames(gt_norm_taxa)
+    gt_ft_df <- data.frame(DB='genes', feature_n=length(gt_norm_taxa_genes), feature = 'Genes')
 
     if (omics == 'metaT') {
         metaT_norm_profile_rowsum_not_0 <- gt_norm_count
         profiles_annot_norm_df_sub <- gt_norm_taxa
         metadata_df <- res$metadata
-        gt_ft_df <- data.frame(DB='genes', feature_n=length(gt_norm_taxa_genes), feature = 'Genes')
     } else {
         metaT_norm_profile_rowsum_not_0 <- gt_norm_count[rownames(gt_norm_count) %in% ge_norm_taxa_genes,]
     }
