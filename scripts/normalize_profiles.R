@@ -141,4 +141,4 @@ final_table <- gene_rpk_bed_df %>%
                   #mutate_if(is.numeric, round, digits = 6)
 print(dim(final_table))
 
-write.table(format(final_table, digits=6), gene_norm_csv, row.names = F, col.names = T, sep = "\t", quote = F)
+fwrite(final_table, file = gene_norm_csv, row.names = F, col.names = T, sep = "\t", quote = F)
