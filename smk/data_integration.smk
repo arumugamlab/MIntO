@@ -3,7 +3,7 @@
 '''
 Gene and function profiling step
 
-Authors: Carmen Saenz
+Authors: Carmen Saenz, Mani Arumugam
 '''
 
 # configuration yaml file
@@ -18,6 +18,10 @@ include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
 # some variables
+
+main_factor = None
+if config['MAIN_factor'] is not None:
+    main_factor = config['MAIN_factor']
 
 if config['map_reference'] in ("MAG", "reference_genome","genes_db"):
     map_reference=config["map_reference"]
@@ -102,10 +106,8 @@ print('NOTE: MIntO is using ', funct_opt, ' as ANNOTATION_ids variable.')
 
 if normalization == 'TPM' and (map_reference == 'MAG' or map_reference == 'reference_genome'):
     post_analysis_TPM=post_analysis_out
-    post_analysis_other='None'
 else:
     post_analysis_TPM="None"
-    post_analysis_other=post_analysis_out
 
 def integration_merge_profiles():
     result = expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv",
@@ -141,7 +143,7 @@ def integration_gene_profiles():
     return(result)
 
 def integration_function_profiles():
-    result = expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.csv",
+    result = expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.tsv",
             wd = working_dir,
             omics = omics,
             post_analysis_out = post_analysis_out,
@@ -193,7 +195,7 @@ rule integration_merge_profiles:
         "{wd}/logs/output/data_integration/{map_reference}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
     resources:
         mem=config["MERGE_memory"]
-    threads: config["MERGE_threads"]
+    threads: 1
     conda:
         config["minto_dir"]+"/envs/mags.yml" # python with pandas
     shell:
@@ -214,20 +216,23 @@ rule integration_merge_profiles:
 # what do to with annot file
 rule integration_gene_profiles:
     input:
-        gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv".format(wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
-        #gene_abund="{input_dir}/".format(input_dir=gene_abund_file),
-        #gene_abund="{wd}/{omics}/9-mapping-profiles/{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
+        gene_abund_merge=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv",
+                                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
     output:
-        gene_abund_prof=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}.csv", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization, omics_prof = omics_prof),
-        gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization, omics_prof = omics_prof),
-        gene_abund_plots=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_prof}.PCA.pdf", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization, omics_prof = omics_prof),
+        gene_abund_prof=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_letter}.csv",
+                                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_letter = omics_prof, normalization = normalization),
+        gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_letter}.rds",
+                                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_letter = omics_prof, normalization = normalization),
+        gene_abund_plots=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_letter}.PCA.pdf",
+                                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_letter = omics_prof, normalization = normalization),
     params:
         annot_file={annot_file},
         funct_opt= funct_opt_list
     log:
-        "{wd}/logs/output/data_integration/{post_analysis_out}/integration_gene_profiles.{omics}.{normalization}.log".format(wd = working_dir, post_analysis_out = post_analysis_out, normalization = normalization, omics = omics),
+        "{wd}/logs/output/data_integration/{post_analysis_out}/integration_gene_profiles.{omics}.p{identity}.{normalization}.GX.log".format(
+                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
     resources:
-        mem=config["MERGE_memory"]
+        mem=25
     threads: config["MERGE_threads"]
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
@@ -235,7 +240,7 @@ rule integration_gene_profiles:
         """
         time ( echo 'integration of gene profiles'
         if [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]]; then
-            Rscript {script_dir}/gene_expression_profile_genome_based.R {threads} $(dirname {output.gene_abund_prof[0]}) {omics} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
+            Rscript {script_dir}/gene_expression_profile_genome_based.R {threads} $(dirname {output.gene_abund_prof[0]}) {omics} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt} {main_factor}
         elif [[ {map_reference} == 'genes_db' ]]; then
             Rscript {script_dir}/gene_expression_profile_gene_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
         fi ) &> {log}
@@ -267,9 +272,9 @@ rule integration_function_profiles_TPM:
         absolute_counts_merge="{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.bed".format(wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity),
         gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, normalization = normalization),
     output:
-        func_abund_prof=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/F{omics_prof}.{funct_opt}.csv", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
-        func_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/phyloseq_obj/F{omics_prof}.{funct_opt}.rds", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
-        func_abund_plots=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/plots/F{omics_prof}.{funct_opt}.PCA.pdf", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
+        tsv=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/F{omics_prof}.{funct_opt}.csv", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
+        physeq=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/phyloseq_obj/F{omics_prof}.{funct_opt}.rds", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
+        plots=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/plots/F{omics_prof}.{funct_opt}.PCA.pdf", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
     params:
         annot_file={annot_file},
         funct_opt=funct_opt_list,
@@ -288,17 +293,19 @@ rule integration_function_profiles_TPM:
 
 rule integration_function_profiles_MG_TPM:
     input:
-        gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization),
+        gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds",
+                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_prof = omics_prof, normalization = normalization),
+        genome_profile=expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.relabund.prop.genome.txt", wd = working_dir, omics = 'metaT' if omics=='metaG_metaT' else omics, post_analysis_out = post_analysis_out, identity = identity, omics_prof = omics_prof, normalization = normalization),
     output:
-        func_abund_prof=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.csv", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
-        func_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.rds", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
-        func_abund_plots=expand("{wd}/output/data_integration/{post_analysis_other}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funct_opt}.PCA.pdf", wd = working_dir, omics = omics, post_analysis_other = post_analysis_other, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
+        tsv=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.tsv", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
+        physeq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.rds", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
+        plots=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funct_opt}.PCA.pdf", wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_prof = omics_prof, normalization = normalization, funct_opt = funct_opt),
     params:
         annot_file={annot_file},
         funct_opt=funct_opt_list,
         mapped_reads_threshold=config["MIN_mapped_reads"]
     log:
-        "{wd}/logs/output/data_integration/{post_analysis_other}/integration_funtion_profiles.{omics}.{normalization}.log".format(wd = working_dir, post_analysis_other = post_analysis_other, normalization = normalization, omics = omics),
+        "{wd}/logs/output/data_integration/{post_analysis_out}/integration_funtion_profiles.{omics}.{normalization}.log".format(wd = working_dir, post_analysis_out = post_analysis_out, normalization = normalization, omics = omics),
     resources:
         mem=config["MERGE_memory"]
     threads: config["MERGE_threads"]
@@ -308,8 +315,8 @@ rule integration_function_profiles_MG_TPM:
         """
         time ( echo 'integration of function profiles'
         if ( [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]] ) && [[ {normalization} == 'MG' ]]; then
-            Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
+            Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold} {main_factor} {input.genome_profile}
         elif [[ {map_reference} == 'genes_db' ]] && [[ {normalization} == 'TPM' ]]; then
-            Rscript {script_dir}/function_expression_profile_gene_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_other} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
+            Rscript {script_dir}/function_expression_profile_gene_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
         fi) &> {log}
         """
