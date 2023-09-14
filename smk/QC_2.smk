@@ -718,6 +718,12 @@ minto_dir: {minto_dir}
 METADATA: {metadata}
 
 ######################
+# Analysis settings
+######################
+
+MAIN_factor: {main_factor}
+
+######################
 # Program settings
 ######################
 # MetaSPAdes settings
@@ -909,6 +915,12 @@ working_dir: {wildcards.wd}
 omics: {wildcards.omics}
 minto_dir: {minto_dir}
 METADATA: {metadata}
+
+######################
+# Analysis settings
+######################
+
+MAIN_factor: {main_factor}
 
 ######################
 # Annotation settings
