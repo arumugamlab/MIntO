@@ -9,6 +9,7 @@ map00053	Ascorbate and aldarate metabolism
 map00061	Fatty acid biosynthesis
 map00062	Fatty acid elongation
 map00071	Fatty acid degradation
+map00072	Synthesis and degradation of ketone bodies
 map00073	Cutin, suberine and wax biosynthesis
 map00100	Steroid biosynthesis
 map00120	Primary bile acid biosynthesis
@@ -20,6 +21,7 @@ map00195	Photosynthesis
 map00196	Photosynthesis - antenna proteins
 map00220	Arginine biosynthesis
 map00230	Purine metabolism
+map00231	Puromycin biosynthesis
 map00232	Caffeine metabolism
 map00240	Pyrimidine metabolism
 map00250	Alanine, aspartate and glutamate metabolism
@@ -29,6 +31,7 @@ map00260	Glycine, serine and threonine metabolism
 map00261	Monobactam biosynthesis
 map00270	Cysteine and methionine metabolism
 map00280	Valine, leucine and isoleucine degradation
+map00281	Geraniol degradation
 map00290	Valine, leucine and isoleucine biosynthesis
 map00300	Lysine biosynthesis
 map00310	Lysine degradation
@@ -39,6 +42,7 @@ map00332	Carbapenem biosynthesis
 map00333	Prodigiosin biosynthesis
 map00340	Histidine metabolism
 map00350	Tyrosine metabolism
+map00351	DDT degradation
 map00360	Phenylalanine metabolism
 map00361	Chlorocyclohexane and chlorobenzene degradation
 map00362	Benzoate degradation
@@ -58,6 +62,9 @@ map00440	Phosphonate and phosphinate metabolism
 map00450	Selenocompound metabolism
 map00460	Cyanoamino acid metabolism
 map00470	D-Amino acid metabolism
+map00471	D-Glutamine and D-glutamate metabolism
+map00472	D-Arginine and D-ornithine metabolism
+map00473	D-Alanine metabolism
 map00480	Glutathione metabolism
 map00500	Starch and sucrose metabolism
 map00510	N-Glycan biosynthesis
@@ -169,6 +176,7 @@ map01054	Nonribosomal peptide structures
 map01055	Biosynthesis of vancomycin group antibiotics
 map01056	Biosynthesis of type II polyketide backbone
 map01057	Biosynthesis of type II polyketide products
+map01058	Acridone alkaloid biosynthesis
 map01059	Biosynthesis of enediyne antibiotics
 map01060	Biosynthesis of plant secondary metabolites
 map01061	Biosynthesis of phenylpropanoids
@@ -181,6 +189,7 @@ map01070	Biosynthesis of plant hormones
 map01100	Metabolic pathways
 map01110	Biosynthesis of secondary metabolites
 map01120	Microbial metabolism in diverse environments
+map01130	Biosynthesis of antibiotics
 map01200	Carbon metabolism
 map01210	2-Oxocarboxylic acid metabolism
 map01212	Fatty acid metabolism
