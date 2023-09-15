@@ -631,6 +631,8 @@ rule relabel_merged_gene_abund:
     params:
         prefix = lambda wildcards: "" if (wildcards.something.endswith('.bed')) else "--prefix {}.".format(omics)
     threads: 4
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
     resources:
         mem=30
     shell:
