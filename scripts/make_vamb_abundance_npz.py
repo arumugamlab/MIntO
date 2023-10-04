@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import gzip
 import argparse
 import numpy as _np
 import vamb
@@ -53,7 +54,7 @@ def fasta_iter(infile):
     from itertools import groupby
 
     #first open the file outside
-    fh = open(infile)
+    fh = gzip.open(infile, 'rt') if infile.endswith('.gz') else open(infile)
     # ditch the boolean (x[0]) and just keep the header or sequence since
     # we know they alternate.
     faiter = (x[1] for x in groupby(fh, lambda line: line[0] == ">"))
@@ -78,8 +79,8 @@ headers = [header for header, seq in fiter]
 refhash = vamb.vambtools.hash_refnames(headers)
 
 jgipath = args.jgi
-with open(jgipath) as file:
-    rpkms = load_jgi(file)
+file = gzip.open(jgipath, 'rt') if jgipath.endswith('.gz') else open(jgipath)
+rpkms = load_jgi(file)
 
 abundance = vamb.parsebam.Abundance(rpkms, args.samples, 0.95, refhash)
 abundance.save(args.output)
