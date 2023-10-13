@@ -20,7 +20,7 @@ Authors: Eleonora Nigro, Mani Arumugam
 import os.path
 from os import path
 
-localrules: collect_genomes_from_all_binners, copy_best_genomes, prepare_bins_for_checkm, collect_HQ_genomes
+localrules: aae_tsv, vae_tsv, collect_genomes_from_all_binners, copy_best_genomes, prepare_bins_for_checkm, collect_HQ_genomes
 
 # Get common config variables
 # These are:
