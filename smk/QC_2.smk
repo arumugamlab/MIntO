@@ -352,7 +352,7 @@ rule bwaindex_host_genome:
     log:
         "{somewhere}/{genome}_BWAindex.log"
     resources:
-        mem=config['BWA_index_host_memory']
+        mem = lambda wildcards, attempt: config['BWA_index_host_memory'] + 40*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
     shell:
