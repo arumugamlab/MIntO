@@ -242,6 +242,7 @@ if (omics == 'metaG_metaT'){
         #cog_df <- subset(cog_df, select=c('ID_COG', 'name_COG', 'funct_pathway'))
         cog_df <- subset(cog_df, select=c('ID_COG', 'name_COG'))
         names(cog_df) <- c('Funct', 'Description')
+        cog_df$Description <- iconv(cog_df$Description, from = "ISO-8859-1", to = "UTF-8")
         keyMap_funct_desc <- merge(keyMap_funct, cog_df, by = 'Funct', all.x = T)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
@@ -730,6 +731,7 @@ if (omics == 'metaG_metaT'){
         #cog_df <- subset(cog_df, select=c('ID_COG', 'name_COG', 'funct_pathway'))
         cog_df <- subset(cog_df, select=c('ID_COG', 'name_COG'))
         names(cog_df) <- c('Funct', 'Description')
+        cog_df$Description <- iconv(cog_df$Description, from = "ISO-8859-1", to = "UTF-8")
         keyMap_funct_desc <- merge(keyMap_funct, cog_df, by = 'Funct', all.x = T)
         keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
                                               dplyr::group_by(Funct)%>%
