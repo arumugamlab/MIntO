@@ -8,8 +8,12 @@ dependencies:
   - bedtools=2.31.0
   - bwa-mem2=2.2.1
   - coverm=0.6.1
+  - fastp=0.23
+  - fastqc=0.12
+  - flye=2.9
   - megahit=1.2.9
   - msamtools=1.1.3
+  - multiqc=1.17
   - samtools=1.14
   - seqtk=1.4
   - seqkit=2.5.1
