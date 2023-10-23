@@ -185,6 +185,8 @@ rule run_vamb_vae:
                                 min_fasta_length = config['MIN_FASTA_LENGTH'])
     output:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/vae{vbinner}/vae_clusters.tsv"
+    shadow:
+        "minimal"
     params:
         cuda="{}".format("--cuda" if vamb_gpu == "yes" else ""),
         latent=lambda wildcards: int(int(wildcards.vbinner)/16)
@@ -199,18 +201,19 @@ rule run_vamb_vae:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
         """
-        rmdir $(dirname {output.tsv})
         vamb --fasta {input.contigs_file} \
                 --rpkm {input.rpkm_file} \
                 --seed 1234 \
                 -p {threads} \
                 {params.cuda} \
-                --outdir $(dirname {output.tsv}) \
+                --outdir out \
                 --model vae \
                 -l {params.latent} \
                 -n {wildcards.vbinner} {wildcards.vbinner}
+        rsync -a out $(dirname {output.tsv})
         """
 
+# TODO: adjust mem based on #samples or better yet #contigs. With 22M contigs, vamb uses 150G.
 rule run_vamb_aae:
     input:
         contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
@@ -224,6 +227,8 @@ rule run_vamb_aae:
     output:
         tsv_y="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_y_clusters.tsv",
         tsv_z="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_z_clusters.tsv"
+    shadow:
+        "minimal"
     params:
         cuda="{}".format("--cuda" if vamb_gpu == "yes" else "")
     log:
@@ -237,14 +242,14 @@ rule run_vamb_aae:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
         """
-        rmdir $(dirname {output.tsv_y})
         vamb --fasta {input.contigs_file} \
                 --rpkm {input.rpkm_file} \
                 --seed 1234 \
                 -p {threads} \
                 {params.cuda} \
-                --outdir $(dirname {output.tsv_y}) \
+                --outdir out \
                 --model aae
+        rsync -a out $(dirname {output.tsv_y})
         """
 
 # Rename bins by stripping 'vae_', 'aae_y_', 'aae_z_' in the bin id. We will add our own prefix in the MAG outputs.
@@ -288,7 +293,7 @@ rule make_avamb_mags:
         min_mag_length = config["MIN_MAG_LENGTH"],
         binsplit_char = config["BINSPLIT_CHAR"]
     log:
-        "{wd}/logs/{omics}/mags_generation/avamb{binner}.take_all_genomes_for_each_run.log"
+        "{wd}/logs/{omics}/mags_generation/avamb_{binner}.take_all_genomes_for_each_run.log"
     resources:
         mem=10
     threads:
@@ -357,6 +362,8 @@ rule checkm_batch:
         '{somewhere}/{something}.out/quality_report.tsv'
     log:
         '{somewhere}/{something}.checkM.log'
+    shadow:
+        "minimal"
     params:
         checkm_db = checkm_db
     conda:
@@ -366,12 +373,12 @@ rule checkm_batch:
         mem = 32
     shell:
         """
-        tmp=$(mktemp -d)
-        rm -rf $(dirname {output})
+        mkdir -p $(dirname {output})
+        mkdir tmp
         time ( \
-        checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input}) --tmpdir $tmp -o $(dirname {output})
+        checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input}) --tmpdir tmp -o out
         ) >& {log}
-        rm -rf $tmp
+        rsync -a out/quality_report.tsv {output}
         """
 
 ########################
@@ -400,28 +407,7 @@ rule merge_checkm_batches:
         # save the file with all the checkm in the same file
         all_checkm_output.to_csv("{}".format(output.binner_combined), sep = "\t", index = False)
 
-rule move_bins_after_checkm:
-    input:
-        checkm_report=rules.merge_checkm_batches.output.binner_combined,
-        fna_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/checkm/"
-    output:
-        moved="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/fna.moved",
-    params:
-        batch_size = checkm_batch_size
-    shell:
-        """
-        cd {input.fna_folder}
-        for i in *.batch; do
-          batch=${{i%%.batch}}
-          mv $batch/*.fna ../bins/
-          rmdir $batch
-          rm $batch.checkM.log
-          rm -rf $batch.out
-          rm $i
-        done
-        touch {output.moved}
-        """
-
+########################
 # Collect genomes from multiple binners into one location.
 # Copying using 'cp location/*.fna' might fail if string consisting list of fna files goes over bash limit for argument length (ARG_MAX).
 # ARG_MAX on our system was 2^21, and with our projects we hit it around 12,000 files.
@@ -429,6 +415,7 @@ rule move_bins_after_checkm:
 # If this rule fails in your hands with 'cp: Argument list too long', that means that your file paths are longer than 2000 characters.
 # It is strange, but not wrong. In that case, please reduce params.batch_size=5000 below and you should be fine.
 # Use of readarray was inspired by: https://stackoverflow.com/a/41268405
+########################
 
 rule collect_genomes_from_all_binners:
     input:
