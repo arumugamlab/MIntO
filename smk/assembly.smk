@@ -404,8 +404,8 @@ rule nanopore_assembly_metaflye:
     threads: 16
     params:
         options = lambda wildcards: config['METAFLYE_presets'][wildcards.assembly_preset]
-    singularity: "docker://quay.io/biocontainers/flye:2.9--py38h69e0bdc_0"
-    #"docker://quay.io/biocontainers/flye:2.8.3--py38h69e0bdc_1"
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
         mkdir -p $(dirname {output[0]})
