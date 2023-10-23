@@ -404,7 +404,12 @@ def calculate_fasta_statistics_genome_based(fasta_file, circularity_threshold = 
 	
 	circular_fraction = sum(circular_contigs_length)/total
 
-	score = math.log10(longest_contig_size) + math.log10(statistics_dictionary["N90"]) - math.log10(total) - math.log10(statistics_dictionary["L90"]) - entropy
+	# L90 and N90 works for MAGs with long contigs overall, e.g. short+long-read hybrid assemblies.
+	# L75 and N75 works for MAGs with shorter contigs overall, e.g. short-read-only assemblies.
+	L_stat = statistics_dictionary["L75"]
+	N_stat = statistics_dictionary["N75"]
+
+	score = math.log10(longest_contig_size) + math.log10(N_stat) - math.log10(total) - math.log10(L_stat) - entropy
 	score = score + (seq_1M * 0.1)
 	score = score + (seq_2M * 0.1)
 	score = score + (circular_chr * circular_fraction)
