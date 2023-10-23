@@ -505,14 +505,23 @@ rule combine_contigs_depth_batches:
         ok = rules.check_depth_batches.output.ok
     output:
         depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}/combined.{min_length}.depth.txt",
+    shadow:
+        "minimal"
+    params:
+        multi = lambda wildcards, input: "yes" if len(input.depths) > 1 else "no"
     resources:
        mem = 10
     threads:
         1
     shell:
         """
-        bash -c "zcat {input.depths[0]} | head -1" > {output.depths}
-        (for file in {input.depths}; do zcat $file | tail -n +2; done) >> {output.depths}
+        if [ "{params.multi}" == "yes" ]; then
+            bash -c "zcat {input.depths[0]} | head -1" > combined.depth
+            (for file in {input.depths}; do zcat $file | tail -n +2; done) >> combined.depth
+        else
+            zcat {input[0]} > combined.depth
+        fi
+        rsync -a combined.depth {output.depths}
         """
 
 
@@ -527,13 +536,22 @@ rule combine_fasta_batches:
                                             min_length = wildcards.min_length)
     output:
         fasta_combined="{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/combined.{min_length}.fasta"
+    shadow:
+        "minimal"
+    params:
+        multi = lambda wildcards, input: "yes" if len(input.fasta) > 1 else "no"
     resources:
        mem = 10
     threads:
         1
     shell:
         """
-        cat {input} > {output}
+        if [ "{params.multi}" == "yes" ]; then
+            cat {input} > combined.fasta
+            rsync -a combined.fasta {output}
+        else
+            ln -s --force {input[0]} {output}
+        fi
         """
 
 #####################################
@@ -550,13 +568,22 @@ rule combine_fasta:
                 scaf_type = SCAFFOLDS_type)
     output:
         fasta_combined="{wd}/{omics}/8-1-binning/scaffolds.{min_length}.fasta"
+    shadow:
+        "minimal"
+    params:
+        multi = lambda wildcards, input: "yes" if len(input.fasta) > 1 else "no"
     resources:
        mem = 10
     threads:
         1
     shell:
         """
-        cat {input} > {output}
+        if [ "{params.multi}" == "yes" ]; then
+            cat {input} > combined.fasta
+            rsync -a combined.fasta {output}
+        else
+            ln -s --force {input[0]} {output}
+        fi
         """
 
 # Sanity check to ensure that the order of sample-depths in the depth file is the same. Otherwise binning will be wrong!
@@ -593,14 +620,23 @@ rule combine_depth:
         depth_ok = rules.check_depths.output.ok
     output:
         depth_combined="{wd}/{omics}/8-1-binning/scaffolds.{min_length}.depth.txt"
+    shadow:
+        "minimal"
+    params:
+        multi = lambda wildcards, input: "yes" if len(input.depths) > 1 else "no"
     resources:
        mem = 10
     threads:
         1
     shell:
         """
-        head -1 {input.depths[0]} > {output}
-        (for file in {input.depths}; do tail -n +2 $file; done) >> {output}
+        if [ "{params.multi}" == "yes" ]; then
+            head -1 {input.depths[0]} > combined.depth
+            (for file in {input.depths}; do tail -n +2 $file; done) >> combined.depth
+            rsync -a combined.depth {output}
+        else
+            ln -s --force {input[0]} {output}
+        fi
         """
 
 ### Prepare abundance.npz for avamb v4+
