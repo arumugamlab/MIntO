@@ -14,7 +14,8 @@ include: 'include/fasta_bam_helpers.smk'
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
             filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, \
             check_depth_batches, combine_contigs_depth_batches, combine_fasta_batches, \
-            combine_fasta, check_depths, combine_depth, config_yml_binning
+            combine_fasta, check_depths, combine_depth, config_yml_binning, \
+            make_abundance_npz
 
 #
 # configuration yaml file
