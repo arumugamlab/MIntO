@@ -11,6 +11,8 @@ Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
 import pathlib
 from os import path
 
+localrules: make_bed_for_genome, make_cd_transl_faa_for_genome, make_merged_cds_faa, make_merged_bed
+
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata

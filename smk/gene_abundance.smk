@@ -12,7 +12,7 @@ from os import path
 import pathlib
 
 localrules: modify_cds_faa_header_for_fetchMG, make_merged_genome_fna, make_genome_def, merge_MG_tables, fetchMG_genome_cds_faa, \
-        modify_genome_fasta_header, config_yml_integration, read_map_stats
+        modify_genome_fasta_header, config_yml_integration, read_map_stats, merge_msamtools_genome_mapping_profiles
 
 # Get common config variables
 # These are:
