@@ -10,7 +10,7 @@ Authors: Carmen Saenz, Mani Arumugam, Judit Szarvas
 # configuration yaml file
 # import sys
 import re
-from os import path
+import os
 
 
 localrules: initial_fastqc, qc0_fake_move_for_multiqc, qc0_create_multiqc, \
@@ -40,7 +40,7 @@ if config['FASTP_adapters'] in ('Skip', 'Quality', 'Overlap'):
     pass
 elif config['FASTP_adapters'] is None:
     print('ERROR in ', config_path, ': FASTP_adapters variable is empty. Please, complete ', config_path)
-elif path.exists(config['FASTP_adapters']) is False:
+elif os.path.exists(config['FASTP_adapters']) is False:
     print('ERROR in ', config_path, ': FASTP_adapters variable path does not exit. Please, complete ', config_path)
 
 # Make list of illumina samples, if ILLUMINA in config
@@ -48,12 +48,18 @@ ilmn_samples = list()
 ilmn_samples_organisation = "folder"
 try:
     if 'ILLUMINA' in config:
-        # all option
+        # column_name specified option
         if isinstance(config["ILLUMINA"], str):
             import pandas as pd
+            from glob import glob
             col_name = config["ILLUMINA"]
             md_df = pd.read_table(metadata)
-            ilmn_samples = md_df[col_name].to_list()
+            for sampleid in md_df[col_name].to_list():
+                sample_pattern = "{}/{}*".format(raw_dir, sampleid)
+                if glob(sample_pattern):
+                    ilmn_samples.append(sampleid)
+                else:
+                    print('WARNING in ', metadata, ': sample ' sampleid, 'not in bulk data folder ', raw_dir)
             location = "{}/{}".format(raw_dir, ilmn_samples[0])
             if not os.path.exists(location) or not os.path.isdir(location):
                 ilmn_samples_organisation = "bulk"
@@ -61,7 +67,7 @@ try:
         else:
             for ilmn in config["ILLUMINA"]:
                 location = "{}/{}".format(raw_dir, ilmn)
-                if os.path.exists(location) is True:
+                if os.path.exists(location):
                     ilmn_samples.append(ilmn)
                 else:
                     raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
