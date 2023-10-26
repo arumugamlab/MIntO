@@ -23,7 +23,7 @@ ILLUMINA_suffix:
 - 1.fq.gz
 - 2.fq.gz
 
-# 'all': use all samples from the metadata file
+# 'column_name': use all samples from the column 'column_name' from the metadata file
 ILLUMINA:
 - CD136
 - CD242

@@ -49,10 +49,11 @@ ilmn_samples_organisation = "folder"
 try:
     if 'ILLUMINA' in config:
         # all option
-        if isinstance(config["ILLUMINA"], str) and config["ILLUMINA"].lower() == "all":
+        if isinstance(config["ILLUMINA"], str):
             import pandas as pd
+            col_name = config["ILLUMINA"]
             md_df = pd.read_table(metadata)
-            ilmn_samples = md_df['sample'].to_list()
+            ilmn_samples = md_df[col_name].to_list()
             location = "{}/{}".format(raw_dir, ilmn_samples[0])
             if not os.path.exists(location) or not os.path.isdir(location):
                 ilmn_samples_organisation = "bulk"
