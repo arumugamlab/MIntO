@@ -73,8 +73,6 @@ try:
                     ilmn_samples.append(ilmn)
                 else:
                     raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
-except:
-    print('ERROR in', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete', config_path)
 
 # file suffixes
 ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
