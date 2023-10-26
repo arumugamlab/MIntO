@@ -10,7 +10,7 @@ Authors: Carmen Saenz, Mani Arumugam, Judit Szarvas
 # configuration yaml file
 # import sys
 import re
-import os
+from os import path, scandir
 
 
 localrules: initial_fastqc, qc0_fake_move_for_multiqc, qc0_create_multiqc, \
@@ -40,7 +40,7 @@ if config['FASTP_adapters'] in ('Skip', 'Quality', 'Overlap'):
     pass
 elif config['FASTP_adapters'] is None:
     print('ERROR in ', config_path, ': FASTP_adapters variable is empty. Please, complete ', config_path)
-elif os.path.exists(config['FASTP_adapters']) is False:
+elif path.exists(config['FASTP_adapters']) is False:
     print('ERROR in ', config_path, ': FASTP_adapters variable path does not exit. Please, complete ', config_path)
 
 # Make list of illumina samples, if ILLUMINA in config
@@ -61,13 +61,13 @@ try:
                 else:
                     print('WARNING in ', metadata, ': sample ', sampleid, 'not in bulk data folder ', raw_dir)
             location = "{}/{}".format(raw_dir, ilmn_samples[0])
-            if not os.path.exists(location) or not os.path.isdir(location):
+            if not path.exists(location) or not path.isdir(location):
                 ilmn_samples_organisation = "bulk"
         # listed samples
         else:
             for ilmn in config["ILLUMINA"]:
                 location = "{}/{}".format(raw_dir, ilmn)
-                if os.path.exists(location):
+                if path.exists(location):
                     ilmn_samples.append(ilmn)
                 else:
                     raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
@@ -147,7 +147,7 @@ def get_raw_reads_for_sample_run(wildcards):
 
 def get_example_to_infer_index(sample):
     sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
-    runs = [ os.path.normpath(f) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
+    runs = [ path.normpath(f) for f in scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
     #print(runs)
     return(runs[0])
 
