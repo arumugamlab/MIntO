@@ -55,8 +55,7 @@ try:
             col_name = config["ILLUMINA"]
             md_df = pd.read_table(metadata)
             if not col_name in md_df.columns:
-                print('ERROR in ', config_path, ': column name specified for ILLUMINA does not exist in metadata sheet. Please, complete ', config_path)
-                sys.exit()
+                raise TypeError('ERROR in ', config_path, ': column name specified for ILLUMINA does not exist in metadata sheet. Please, complete ', config_path)
             for sampleid in md_df[col_name].to_list():
                 sample_pattern = "{}/{}*".format(raw_dir, sampleid)
                 if glob(sample_pattern):
