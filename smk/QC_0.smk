@@ -59,7 +59,7 @@ try:
                 if glob(sample_pattern):
                     ilmn_samples.append(sampleid)
                 else:
-                    print('WARNING in ', metadata, ': sample ' sampleid, 'not in bulk data folder ', raw_dir)
+                    print('WARNING in ', metadata, ': sample ', sampleid, 'not in bulk data folder ', raw_dir)
             location = "{}/{}".format(raw_dir, ilmn_samples[0])
             if not os.path.exists(location) or not os.path.isdir(location):
                 ilmn_samples_organisation = "bulk"
