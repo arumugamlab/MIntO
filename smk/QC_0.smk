@@ -46,33 +46,32 @@ elif path.exists(config['FASTP_adapters']) is False:
 # Make list of illumina samples, if ILLUMINA in config
 ilmn_samples = list()
 ilmn_samples_organisation = "folder"
-try:
-    if 'ILLUMINA' in config:
-        # column_name specified option
-        if isinstance(config["ILLUMINA"], str):
-            import pandas as pd
-            from glob import glob
-            col_name = config["ILLUMINA"]
-            md_df = pd.read_table(metadata)
-            if not col_name in md_df.columns:
-                raise TypeError('ERROR in ', config_path, ': column name specified for ILLUMINA does not exist in metadata sheet. Please, complete ', config_path)
-            for sampleid in md_df[col_name].to_list():
-                sample_pattern = "{}/{}*".format(raw_dir, sampleid)
-                if glob(sample_pattern):
-                    ilmn_samples.append(sampleid)
-                else:
-                    print('WARNING in ', metadata, ': sample ', sampleid, 'not in bulk data folder ', raw_dir)
-            location = "{}/{}".format(raw_dir, ilmn_samples[0])
-            if not path.exists(location) or not path.isdir(location):
-                ilmn_samples_organisation = "bulk"
-        # listed samples
-        else:
-            for ilmn in config["ILLUMINA"]:
-                location = "{}/{}".format(raw_dir, ilmn)
-                if path.exists(location):
-                    ilmn_samples.append(ilmn)
-                else:
-                    raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
+if 'ILLUMINA' in config:
+    # column_name specified option
+    if isinstance(config["ILLUMINA"], str):
+        import pandas as pd
+        from glob import glob
+        col_name = config["ILLUMINA"]
+        md_df = pd.read_table(metadata)
+        if not col_name in md_df.columns:
+            raise TypeError('ERROR in ', config_path, ': column name specified for ILLUMINA does not exist in metadata sheet. Please, complete ', config_path)
+        for sampleid in md_df[col_name].to_list():
+            sample_pattern = "{}/{}*".format(raw_dir, sampleid)
+            if glob(sample_pattern):
+                ilmn_samples.append(sampleid)
+            else:
+                print('WARNING in ', metadata, ': sample ', sampleid, 'not in bulk data folder ', raw_dir)
+        location = "{}/{}".format(raw_dir, ilmn_samples[0])
+        if not path.exists(location) or not path.isdir(location):
+            ilmn_samples_organisation = "bulk"
+    # listed samples
+    else:
+        for ilmn in config["ILLUMINA"]:
+            location = "{}/{}".format(raw_dir, ilmn)
+            if path.exists(location):
+                ilmn_samples.append(ilmn)
+            else:
+                raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
 
 # file suffixes
 ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
