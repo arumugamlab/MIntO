@@ -36,7 +36,7 @@ if config['FASTP_memory'] is None:
 elif type(config['FASTP_memory']) != int:
     print('ERROR in ', config_path, ': FASTP_memory variable is not an integer. Please, complete ', config_path)
 
-if config['FASTP_adapters'] in ('Skip', 'Quality', 'Overlap'):
+if config['FASTP_adapters'] in ('Skip', 'Quality', 'Overlap', 'Detect'):
     pass
 elif config['FASTP_adapters'] is None:
     print('ERROR in ', config_path, ': FASTP_adapters variable is empty. Please, complete ', config_path)
@@ -77,6 +77,15 @@ if 'ILLUMINA' in config:
 ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
 if 'ILLUMINA_suffix' in config and config["ILLUMINA_suffix"] is not None:
     ilmn_suffix = config["ILLUMINA_suffix"]
+
+# trimming options
+adapter_trimming_args = ""
+if config['FASTP_adapters'] == 'Quality':
+    adapter_trimming_args = "--disable_adapter_trimming"
+elif config['FASTP_adapters'] == 'Overlap':
+    adapter_trimming_args = "--overlap_diff_percent_limit 10"
+elif config['FASTP_adapters'] == 'Detect':
+    adapter_trimming_args = "--detect_adapter_for_pe"
 
 # Define all the outputs needed by target 'all'
 
@@ -179,8 +188,6 @@ rule initial_fastqc:
 
 if config['FASTP_adapters'] == 'Skip':
 
-    localrules: qc0_trim_quality
-
     # Fake a trim
     rule qc0_trim_quality:
         input:
@@ -189,6 +196,7 @@ if config['FASTP_adapters'] == 'Skip':
             pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
             pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
             json="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.json"
+        localrule: True
         log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc0_trim_quality.log"
         shell:
@@ -198,17 +206,22 @@ if config['FASTP_adapters'] == 'Skip':
             touch {output.json}
             echo "Skipped trimming and linked raw files to trimmed files.") >& {log}
             """
-
-elif config['FASTP_adapters'] == 'Quality':
+elif adapter_trimming_args:
     rule qc0_trim_quality:
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
             pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
             pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
-            json="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.json"
+            json="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.json",
+            html="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.html"
         shadow:
             "minimal"
+        params:
+            mq_5=config['FASTP_front_mean_qual'],
+            mq_3=config['FASTP_tail_mean_qual'],
+            ml=config['FASTP_min_length'],
+            adapter_args=adapter_trimming_args
         log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc0_trim_quality.log"
         resources:
@@ -222,38 +235,10 @@ elif config['FASTP_adapters'] == 'Quality':
             time ( \
                 fastp -i {input.read_fw} --in2 {input.read_rev} \
                 -o {output.pairead1} --out2 {output.pairead2} \
-                --cut_window_size 4 --cut_front --cut_front_mean_quality 5 --cut_tail --cut_tail_mean_quality 20 --length_required 50 \
-                --dont_eval_duplication --disable_trim_poly_g --disable_adapter_trimming \
-                --thread {threads} --json {output.json}
-            ) >& {log}
-            """
-elif config['FASTP_adapters'] == 'Overlap':
-
-    rule qc0_trim_quality_and_adapter:
-        input:
-            unpack(get_raw_reads_for_sample_run)
-        output:
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
-            json="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.json"
-        shadow:
-            "minimal"
-        log:
-            "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc0_trim_adapter.log"
-        resources:
-            mem=config['FASTP_memory']
-        threads:
-            config['FASTP_threads']
-        conda:
-            config["minto_dir"]+"/envs/MIntO_base.yml"
-        shell:
-            """
-            time ( \
-                fastp -i {input.read_fw} --in2 {input.read_rev} \
-                -o {output.pairead1} --out2 {output.pairead2} \
-                --cut_window_size 4 --cut_front --cut_front_mean_quality 5 --cut_tail --cut_tail_mean_quality 20 --length_required 50 \
+                --cut_window_size 4 --cut_front --cut_front_mean_quality {params.mq_5} --cut_tail --cut_tail_mean_quality {params.mq_3} --length_required {params.ml} \
+                {params.adapter_args} \
                 --dont_eval_duplication --disable_trim_poly_g \
-                --thread {threads} --json {output.json}
+                --thread {threads} --json {output.json} --html {output.html}
             ) >& {log}
             """
 else:
@@ -267,6 +252,9 @@ else:
         shadow:
             "minimal"
         params:
+            mq_5=config['FASTP_front_mean_qual'],
+            mq_3=config['FASTP_tail_mean_qual'],
+            ml=config['FASTP_min_length'],
             adapter=config['FASTP_adapters']
         log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc0_trim_customadapter.log"
@@ -281,7 +269,7 @@ else:
             time ( \
                 fastp -i {input.read_fw} --in2 {input.read_rev} \
                 -o {output.pairead1} --out2 {output.pairead2} \
-                --cut_window_size 4 --cut_front --cut_front_mean_quality 5 --cut_tail --cut_tail_mean_quality 20 --length_required 50 \
+                --cut_window_size 4 --cut_front --cut_front_mean_quality {params.mq_5} --cut_tail --cut_tail_mean_quality {params.mq_3} --length_required {params.ml} \
                 --dont_eval_duplication --disable_trim_poly_g \
                 --adapter_fasta {params.adapter} \
                 --thread {threads} --json {output.json}
@@ -335,7 +323,7 @@ rule qc0_create_multiqc:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time ( multiqc --filename {wildcards.omics}_multiqc.html --outdir {params.outdir} -d --zip-data-dir -q --no-ansi {params.indir} ) >& {log}
+        time ( multiqc --filename {wildcards.omics}_multiqc.html --outdir {params.outdir} -d --zip-data-dir -q --no-ansi --interactive {params.indir} ) >& {log}
         """
 
 rule qc1_check_read_length:

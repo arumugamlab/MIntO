@@ -12,10 +12,15 @@ raw_reads_dir: /mypath/IBD_tutorial_raw/metaG
 ######################
 # Program settings
 ######################
-# Read quality filtering and adapter trimming: 'Skip', 'Overlap', 'Quality' or path to adapter fasta
+# Read quality filtering and adapter trimming: 'Skip', 'Quality', 'Overlap', 'Detect' or path to adapter fasta
 FASTP_adapters: Overlap
 FASTP_threads: 3
 FASTP_memory: 5
+FASTP_front_mean_qual: 5
+FASTP_tail_mean_qual: 20
+FASTP_min_length: 50
+
+# Calculate length cut-off for QC_2
 perc_remaining_reads: 95
 
 # Input raw data suffix, ie. 'pe_1.fastq.gz'
