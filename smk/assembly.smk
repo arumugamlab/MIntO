@@ -131,6 +131,7 @@ elif config['MEGAHIT_custom_k_list'] is not None:
        config['MEGAHIT_presets'] = ['meta-custom']
     else:
         config['MEGAHIT_presets'].append('meta-custom')
+mega_k_list = config['MEGAHIT_custom_k_list']
 
 if config['METAFLYE_presets'] is None:
     print('ERROR in ', config_path, ': METAFLYE_presets list of METAFLYE parameters to run per long-read assembly is empty. Please, complete ', config_path)
@@ -376,7 +377,7 @@ rule coassembly_megahit:
     params:
         fwd_reads=lambda wildcards, input: ",".join(input.fwd),
         rev_reads=lambda wildcards, input: ",".join(input.rev),
-        asm_params=lambda wildcards: get_megahit_parameters(wildcards, illumina_max_k, config[MEGAHIT_custom_k_list]),
+        asm_params=lambda wildcards: get_megahit_parameters(wildcards, illumina_max_k, mega_k_list),
         memory_config=config['MEGAHIT_memory']
     resources:
         mem = lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1))),
