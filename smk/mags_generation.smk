@@ -210,7 +210,7 @@ rule run_vamb_vae:
                 --model vae \
                 -l {params.latent} \
                 -n {wildcards.vbinner} {wildcards.vbinner}
-        rsync -a out $(dirname {output.tsv})
+        rsync -a out/* $(dirname {output.tsv})
         """
 
 # TODO: adjust mem based on #samples or better yet #contigs. With 22M contigs, vamb uses 150G.
