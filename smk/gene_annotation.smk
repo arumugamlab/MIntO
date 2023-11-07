@@ -245,8 +245,6 @@ rule gene_annot_kofamscan:
         kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
     shadow:
         "minimal"
-    params:
-        kofam_db=lambda wildcards: "{minto_dir}/data/kofam_db/".format(minto_dir = minto_dir) #config["KOFAM_db"]
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_kofamscan.log"
     resources:
