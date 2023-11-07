@@ -22,6 +22,7 @@ kofam  = pd.DataFrame()
 eggnogfile = mydir+"/"+name+"_eggNOG.tsv"
 if os.path.exists(eggnogfile):
     eggnog = pd.read_csv(eggnogfile, sep="\t", index_col=False)
+    eggnog = eggnog.rename(columns={"KEGG_ko" : "KEGG_KO"})
     eggnog.set_index("ID", inplace=True)
     df = eggnog 
 
@@ -40,7 +41,7 @@ if os.path.exists(kofamfile):
 # eggnog and kofam
 if (not eggnog.empty and not kofam.empty):
     KOdf = pd.merge(eggnog,kofam, on="ID", how="outer").fillna("-")
-    kegglist = KOdf['KEGG_ko'].tolist()
+    kegglist = KOdf['KEGG_KO'].tolist()
     kofamlist = KOdf['kofam_KO'].tolist()
     newlist = []
     final = []
@@ -60,21 +61,15 @@ if (not eggnog.empty and not kofam.empty):
         else:
             mystring = "".join(newlist)
             final.append(mystring)
-    KOdf["KEGG_KO"] = final
-    del KOdf['KEGG_ko']
-    del KOdf['kofam_KO']
-    df = KOdf   
+    KOdf["merged_KO"] = final
+    df = KOdf
 # eggnog and dbcan, no kofam
 elif (not eggnog.empty and not dbcan.empty and kofam.empty):
     del df
-    eggnog["KEGG_KO"] = eggnog['KEGG_ko']
-    del eggnog['KEGG_ko']
     df = pd.merge(eggnog,dbcan, on="ID", how="outer").fillna("-")
 # kofam and dbcan, no eggnog
 elif (not kofam.empty and not dbcan.empty and eggnog.empty):
     del df
-    kofam["KEGG_KO"] = kofam['kofam_KO']
-    del kofam['kofam_KO']
     df = pd.merge(dbcan,kofam, on="ID", how="outer").fillna("-")
 
 # eggnog, kofam and dbcan
