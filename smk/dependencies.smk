@@ -251,8 +251,8 @@ rule eggnog_db:
 rule Kofam_db:
     output:
         kofam_db1="{minto_dir}/data/kofam_db/ko_list",
-        #kofam_db2="{minto_dir}/data/kofam_db/profiles.tar",
-        kofam_db3=directory("{minto_dir}/data/kofam_db/profiles"), #DIRECTORY xxx
+        kofam_db2=directory("{minto_dir}/data/kofam_db/profiles"),
+        kofam_db3="{minto_dir}/data/kofam_db/profiles/prokaryote.hal",
         kofam_db4="{minto_dir}/data/kofam_db/README"
     resources: mem=download_memory
     threads: download_threads
@@ -263,11 +263,16 @@ rule Kofam_db:
     shell:
         """
         mkdir -p {minto_dir}/data/kofam_db/
-        time (cd {minto_dir}/data/kofam_db/
-        wget ftp://ftp.genome.jp/pub/db/kofam/*
-        gunzip {minto_dir}/data/kofam_db/ko_list.gz
-        tar -zxvf {minto_dir}/data/kofam_db/profiles.tar.gz
-        echo 'KEGG database downloaded') &> {log}
+        time (
+            cd {minto_dir}/data/kofam_db/
+
+            # Get kofam databases
+            wget ftp://ftp.genome.jp/pub/db/kofam/*
+            gunzip ko_list.gz
+            tar -zxvf profiles.tar.gz
+
+            echo 'kofam database downloaded'
+        ) &> {log}
         """
 
 ###############################################################################################
