@@ -236,7 +236,11 @@ rule gene_annot_subset:
 
 rule gene_annot_kofamscan:
     input:
-        fasta_subset=rules.gene_annot_subset.output.fasta_subset
+        fasta_subset=rules.gene_annot_subset.output.fasta_subset,
+        ko_list=lambda wildcards: "{minto_dir}/data/kofam_db/ko_list".format(minto_dir = minto_dir),
+        prok_hal=lambda wildcards: "{minto_dir}/data/kofam_db/profiles/prokaryote.hal".format(minto_dir = minto_dir),
+        module_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Module2KO.tsv".format(minto_dir = minto_dir),
+        pathway_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv".format(minto_dir = minto_dir)
     output:
         kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
     shadow:
@@ -253,11 +257,12 @@ rule gene_annot_kofamscan:
     shell:
         """
         remote_dir=$(dirname {output.kofam_out})
-        time (exec_annotation -k {params.kofam_db}/ko_list -p {params.kofam_db}/profiles/prokaryote.hal --tmp-dir tmp --create-alignment -f mapper --cpu {threads} -o kofam_mapper.txt {input.fasta_subset}
-        {script_dir}/kofam_hits.pl kofam_mapper.txt > KEGG.tsv
-        sed -i 's/\\;K/\\,K/g' KEGG.tsv
-        mkdir -p ${{remote_dir}}
-        rsync -a KEGG.tsv {output.kofam_out}) &> {log}
+        time (
+            exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp --create-alignment -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.fasta_subset}
+            {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt > KEGG.tsv
+            mkdir -p ${{remote_dir}}
+            rsync -a KEGG.tsv {output.kofam_out}
+        ) &> {log}
         """
 
 rule gene_annot_dbcan:
