@@ -136,9 +136,12 @@ get_annotation_descriptions <- function(db_name) {
     ### Annotation descriptions ####
     # library(purrr)
     # library(magrittr)
-    if  (db_name %in% c('eggNOG_OGs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO', 'dbCAN.EC')){
+    if  (db_name %in% c('eggNOG_OGs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO', 'kofam_Pathway', 'kofam_Module', 'kofam_KO', 'merged_KO', 'dbCAN.EC')){
         #modules_list <- as.data.frame(fread(paste0(minto_dir,'/data/KEGG_Modules_20171212.csv'), header=T), stringsAsFactors = F)
-        def_list <- as.data.frame(fread(paste0(minto_dir,'/data/',db_name,'.tsv'), header=T), stringsAsFactors = F)
+        file_name <- db_name %>%
+                            gsub('kofam_', 'KEGG_', .) %>%
+                            gsub('merged_', 'KEGG_', .)
+        def_list <- as.data.frame(fread(paste0(minto_dir, '/data/', file_name, '.tsv'), header=T), stringsAsFactors = F)
         def_list_sub <- subset(def_list, select=c('Funct', 'Description'))
         def_list_sub$Description <- iconv(def_list_sub$Description, from = "ISO-8859-1", to = "UTF-8")
         keyMap_funct_desc <- merge(keyMap_funct, def_list_sub, by='Funct', all=T)
