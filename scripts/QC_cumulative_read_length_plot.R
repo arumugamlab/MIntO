@@ -110,12 +110,16 @@ read_len_df_plot_filter2 <- as.data.frame(read_len_df_plot_filter %>%
 # MINLEN parameter in Trimmomatic
 
 min_len_read = min(as.numeric(read_len_df_plot_filter2$len_reads))
-print(paste0('Estimated trimming length cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp'))
+cat(paste0('NOTE: Estimated trimming length cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp\n'))
 if (min_len_read < 50){
   min_len_read = 50
 }
+cat(paste0('NOTE: Recommended trimming length cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp\n'))
 
-print(paste0('Recommended trimming length cutoff to keep ', fraction_remain, '% of the reads: ',min_len_read, 'bp'))
+cat('NOTE: Here are the samples that retain the lowest percent reads at the cut-off\n')
+print(read_len_df_plot %>% filter(len_reads==min_len_read & sample_pair==1) %>% arrange(cumsum_total_perc) %>% head(10))
+print(read_len_df_plot %>% filter(len_reads==min_len_read & sample_pair==2) %>% arrange(cumsum_total_perc) %>% head(10))
+
 cat(min_len_read, file=output_file, sep="\n")
 
 # Output plot
