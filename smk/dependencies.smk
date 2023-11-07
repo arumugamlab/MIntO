@@ -99,6 +99,8 @@ def eggnog_db_out():
 def Kofam_db_out():
     files = ["ko_list",
                 "profiles",
+                "KEGG_Pathway2KO.tsv",
+                "KEGG_Module2KO.tsv",
                 "README"]
     result = expand("{somewhere}/data/kofam_db/{file}",
                 somewhere = minto_dir,
@@ -272,6 +274,38 @@ rule Kofam_db:
             tar -zxvf profiles.tar.gz
 
             echo 'kofam database downloaded'
+        ) &> {log}
+        """
+
+rule KEGG_maps:
+    output:
+        kegg_module="{minto_dir}/data/kofam_db/KEGG_Module2KO.tsv",
+        kegg_pathway="{minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv",
+    resources: mem=download_memory
+    threads: download_threads
+    log:
+        "{minto_dir}/logs/KEGG_maps_download.log"
+    conda:
+        config["minto_dir"]+"/envs/gene_annotation.yml"
+    shell:
+        """
+        mkdir -p {minto_dir}/data/kofam_db/
+        cd {minto_dir}/data/kofam_db/
+        time (
+
+            # Get KEGG Pathway2KO mapping
+            curl --silent https://rest.kegg.jp/list/pathway > KEGG_Pathway.tsv
+            for i in $(cut -f1 KEGG_Pathway.tsv); do
+                curl --silent https://rest.kegg.jp/link/ko/$i
+            done | sed 's/^path://;s/ko://' | grep '.' > KEGG_Pathway2KO.tsv
+
+            # Get KEGG Module2KO mapping
+            curl --silent https://rest.kegg.jp/list/module > KEGG_Module.tsv
+            for i in $(cut -f1 KEGG_Module.tsv); do
+                curl --silent https://rest.kegg.jp/link/ko/$i
+            done | sed 's/^md://;s/ko://' | grep '.' > KEGG_Module2KO.tsv
+
+            echo 'KEGG mapping downloaded'
         ) &> {log}
         """
 
