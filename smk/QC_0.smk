@@ -43,6 +43,11 @@ elif config['FASTP_adapters'] is None:
 elif path.exists(config['FASTP_adapters']) is False:
     print('ERROR in ', config_path, ': FASTP_adapters variable path does not exit. Please, complete ', config_path)
 
+# file suffixes
+ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
+if 'ILLUMINA_suffix' in config and config["ILLUMINA_suffix"] is not None:
+    ilmn_suffix = config["ILLUMINA_suffix"]
+
 # Make list of illumina samples, if ILLUMINA in config
 ilmn_samples = list()
 ilmn_samples_organisation = "folder"
@@ -56,7 +61,7 @@ if 'ILLUMINA' in config:
         if not col_name in md_df.columns:
             raise TypeError('ERROR in ', config_path, ': column name specified for ILLUMINA does not exist in metadata sheet. Please, complete ', config_path)
         for sampleid in md_df[col_name].to_list():
-            sample_pattern = "{}/{}*".format(raw_dir, sampleid)
+            sample_pattern = "{}/{}[.-_]{}".format(raw_dir, sampleid, ilmn_suffix[0])
             if glob(sample_pattern):
                 ilmn_samples.append(sampleid)
             else:
@@ -72,11 +77,6 @@ if 'ILLUMINA' in config:
                 ilmn_samples.append(ilmn)
             else:
                 raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
-
-# file suffixes
-ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
-if 'ILLUMINA_suffix' in config and config["ILLUMINA_suffix"] is not None:
-    ilmn_suffix = config["ILLUMINA_suffix"]
 
 # trimming options
 adapter_trimming_args = ""
@@ -148,7 +148,7 @@ def get_raw_reads_for_sample_run(wildcards):
         prefix = '{raw_dir}/{sample}/{run}'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
     raw_sample_run = {}
     for i, k in enumerate(['read_fw', 'read_rev']):
-        raw_sample_run[k] = glob("{}*{}".format(prefix, ilmn_suffix[i]))[0]
+        raw_sample_run[k] = glob("{}[.-_]{}".format(prefix, ilmn_suffix[i]))[0]
     return raw_sample_run
 
 # Get file for infering index
