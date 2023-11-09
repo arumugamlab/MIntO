@@ -13,7 +13,7 @@ import re
 from os import path, scandir
 
 
-localrules: initial_fastqc, qc0_fake_move_for_multiqc, qc0_create_multiqc, \
+localrules: qc0_fake_move_for_multiqc, qc0_create_multiqc, \
             qc1_check_read_length_merge, qc1_cumulative_read_len_plot, \
             qc2_config_yml_file
 
@@ -172,6 +172,8 @@ rule initial_fastqc:
         outdir="{wd}/{omics}/1-0-qc/{sample}"
     log:
         "{wd}/logs/{omics}/1-0-qc/{sample}_{run}_qc0_fastqc.log"
+    resources:
+        mem=4
     threads:
         2
     conda:
