@@ -744,11 +744,13 @@ METASPADES_illumina_max_k: 99
 #     each successive attempt will increase per-sample memory by 6 Gibabytes
 #     until it succeeds or reaches max_attempts from snakemake.
 #     Please make sure that there is enough RAM on the server.
+# Custom k-list for assembly: k must be odd, in the range 15-255, increment <= 28, fx. 21,29,39,59,79,99,119,141
 MEGAHIT_memory: 10
 MEGAHIT_threads: 32
 MEGAHIT_presets:
  - meta-sensitive
  - meta-large
+MEGAHIT_custom_k_list:
 
 # MetaFlye settings
 #

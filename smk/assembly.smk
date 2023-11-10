@@ -120,8 +120,23 @@ if config['MEGAHIT_threads'] is None:
 elif type(config['MEGAHIT_threads']) != int:
     print('ERROR in ', config_path, ': MEGAHIT_threads variable is not an integer. Please, complete ', config_path)
 
-if config['MEGAHIT_presets'] is None:
+if config['MEGAHIT_presets'] is None and config['MEGAHIT_custom_k_list'] is None:
     print('ERROR in ', config_path, ': MEGAHIT_presets list of MEGAHIT parameters to run per co-assembly is empty. Please, complete ', config_path)
+
+mega_k_list = []
+if 'MEGAHIT_custom' not in config:
+    config['MEGAHIT_custom'] = None
+elif config['MEGAHIT_custom'] is not None:
+    # if the custom k-s are set, that should be added to the MEGAHIT assembly types
+    if isinstance(config['MEGAHIT_custom'], str):
+        config['MEGAHIT_custom'] = [config['MEGAHIT_custom']]
+    for i, k_list in enumerate(config['MEGAHIT_custom']):
+        if k_list and not k_list.isspace():
+            if config['MEGAHIT_presets'] is None:
+                config['MEGAHIT_presets'] = [f'meta-custom-{i+1}']
+            else:
+                config['MEGAHIT_presets'].append(f'meta-custom-{i+1}')
+            mega_k_list.append(k_list)
 
 if config['METAFLYE_presets'] is None:
     print('ERROR in ', config_path, ': METAFLYE_presets list of METAFLYE parameters to run per long-read assembly is empty. Please, complete ', config_path)
@@ -340,7 +355,7 @@ rule hybrid_assembly_metaspades:
 # This starts with 11G per sample, but if that fails, it increases by 5G per sample per repeated attempt
 ###############################################################################################
 
-def get_megahit_parameters(wildcards, kk):
+def get_megahit_parameters(wildcards, kk, k_list):
     if (wildcards.assembly_preset == 'rnaspades'):
         # We assume kk is about 1/2 max-length - see rnaSPAdes recommendation
         # We will then make kmers=[0.33max, ..., 0.5max] with step 22
@@ -349,6 +364,9 @@ def get_megahit_parameters(wildcards, kk):
         kmers.extend([kk])
         kmer_option = ','.join([str(k) for k in kmers])
         return "--k-list {}".format(kmer_option)
+    elif (wildcards.assembly_preset.startswith('meta-custom')):
+        k_list_i = int(wildcards.assembly_preset.rsplit("-", 1)[-1])
+        return "--k-list {}".format(k_list[k_list_i - 1])
     elif (wildcards.assembly_preset in ['meta-large', 'meta-sensitive']):
         return "--presets {}".format(wildcards.assembly_preset)
     else:
@@ -365,7 +383,7 @@ rule coassembly_megahit:
     params:
         fwd_reads=lambda wildcards, input: ",".join(input.fwd),
         rev_reads=lambda wildcards, input: ",".join(input.rev),
-        asm_params=lambda wildcards: get_megahit_parameters(wildcards, illumina_max_k),
+        asm_params=lambda wildcards: get_megahit_parameters(wildcards, illumina_max_k, mega_k_list),
         memory_config=config['MEGAHIT_memory']
     resources:
         mem = lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1))),

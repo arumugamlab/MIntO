@@ -33,6 +33,9 @@ MEGAHIT_threads: 32
 MEGAHIT_presets:
  - meta-sensitive
  - meta-large
+# Custom k-list for assembly: k must be odd, in the range 15-255, increment <= 28, fx. 21,29,39,59,79,99,119,141
+#MEGAHIT_custom:
+# - 
 
 # MetaFlye settings
 #
