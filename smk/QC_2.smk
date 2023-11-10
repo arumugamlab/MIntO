@@ -338,6 +338,9 @@ rule qc2_length_filter:
 # Remove host genome sequences
 ###############################################################################################
 
+# Index the host genome
+# bwa-mem2 index can handle gzipped files without any extra cmdline options
+
 rule bwaindex_host_genome:
     input:
         host_genome='{somewhere}/{genome}'
