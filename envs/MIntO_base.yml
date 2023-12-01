@@ -18,6 +18,7 @@ dependencies:
   - seqtk=1.4
   - seqkit=2.5.1
   - sortmerna=4.3.6
+  - sourmash=4.8
   - spades=3.15.5
   - trimmomatic=0.39
 prefix: MIntO_base
