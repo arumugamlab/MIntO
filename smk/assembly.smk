@@ -120,7 +120,7 @@ if config['MEGAHIT_threads'] is None:
 elif type(config['MEGAHIT_threads']) != int:
     print('ERROR in ', config_path, ': MEGAHIT_threads variable is not an integer. Please, complete ', config_path)
 
-if config['MEGAHIT_presets'] is None and config['MEGAHIT_custom_k_list'] is None:
+if config['MEGAHIT_presets'] is None and config['MEGAHIT_custom'] is None:
     print('ERROR in ', config_path, ': MEGAHIT_presets list of MEGAHIT parameters to run per co-assembly is empty. Please, complete ', config_path)
 
 mega_k_list = []
