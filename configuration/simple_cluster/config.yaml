@@ -1,0 +1,25 @@
+cluster:
+  mkdir -p logs/{rule} &&
+  sbatch
+    --partition={resources.partition}
+    --cpus-per-task={threads}
+    --mem={resources.mem}
+    --job-name={name}
+    --output=logs/{rule}/slurm-%x.o%A
+    --error=logs/{rule}/slurm-%x.e%A
+    --export=ALL,TMPDIR=/scratch
+default-resources:
+  - partition=standard
+  - qos=normal
+  - mem_mb=2000
+restart-times: 2
+max-jobs-per-second: 10
+max-status-checks-per-second: 1
+local-cores: 1
+latency-wait: 60
+jobs: 20
+keep-going: True
+rerun-incomplete: True
+printshellcmds: True
+scheduler: greedy
+use-conda: True
