@@ -482,7 +482,7 @@ READ_minlen: $(cat {input.cutoff_file})
 
 PATH_host_genome:
 NAME_host_genome:
-BWA_index_host_memory: 40
+BWA_index_host_memory: 100
 BWA_host_threads: 8
 BWA_host_memory: 40
 ___EOF___
