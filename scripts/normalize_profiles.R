@@ -1,5 +1,7 @@
 #!/usr/bin/env Rscript
 
+# Normalize gene abundances and write profiles with '<omics>.<sample>' as sample-id.
+
 # Parse command line arguments
 library(optparse)
 opt_list <- list(
@@ -129,6 +131,7 @@ if (normalize == 'MG') {
 }
 
 # Get the right columns
+# Add 'metaG.' or 'metaT.' prefix from omics
 rpk_final_norm <- rpk_final_norm %>%
                          select(-ID_MAG) %>%
                          rename_at(vars(!matches(c("header"))), ~ paste0(omics,".", .))
