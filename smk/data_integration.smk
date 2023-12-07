@@ -176,6 +176,39 @@ rule all:
         integration_gene_profiles(),
         integration_function_profiles()
 
+# Function to column-wise combine profiles, after checking whether they all agree on values in key_columns.
+# TODO: This is duplicated between here and gene_abundance.smk. Should be moved to 'include/' directory.
+
+def combine_profiles(input_list, output_file, log_file, key_columns):
+    import pandas as pd
+    import hashlib
+    import pickle
+    import datetime
+
+    def logme(stream, msg):
+        print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
+
+    df_list = list()
+    with open(str(log_file), 'w') as f:
+        logme(f, "INFO: reading file 0")
+        df = pd.read_csv(input_list[0], comment='#', header=0, sep = "\t", memory_map=True)
+        df_list.append(df)
+        md5_first = hashlib.md5(pickle.dumps(df[key_columns])).hexdigest() # make hash for sequence feature ID
+        for i in range(1, len(input_list)):
+            logme(f, "INFO: reading file {}".format(i))
+            df = pd.read_csv(input_list[i], comment='#', header=0, sep = "\t", memory_map=True)
+            md5_next = hashlib.md5(pickle.dumps(df[key_columns])).hexdigest()
+            if md5_next != md5_first:
+                raise Exception("combine_profiles: Features don't match between {} and {}, using keys {}".format(input_list[0], input_list[i], ",".join(key_columns)))
+            df_list.append(df.drop(columns=key_columns))
+        logme(f, "INFO: concatenating {} files".format(len(input_list)))
+        df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
+        logme(f, "INFO: writing to output file")
+        if output_file.endswith('.gz'):
+            df.to_csv(output_file, sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
+        else:
+            df.to_csv(output_file, sep = "\t", index = False)
+        logme(f, "INFO: done")
 
 ###############################################################################################
 # Prepare gene profile
@@ -196,18 +229,13 @@ rule integration_merge_profiles:
     resources:
         mem=config["MERGE_memory"]
     threads: 1
-    conda:
-        config["minto_dir"]+"/envs/mags.yml" # python with pandas
-    shell:
-        """
-        remote_dir=$(dirname {output.gene_abund_merge})
-        time (
-        if [ {wildcards.omics} == 'metaG_metaT' ]; then
-            python3 {script_dir}/gene_abundances_merge_profiles.py {wildcards.map_reference} {output.gene_abund_merge} {input.gene_abund}
-        else
-            rsync {input.gene_abund} {output.gene_abund_merge}
-        fi ) &> {log}
-        """
+    run:
+        import shutil
+        if (wildcards.omics == 'metaG_metaT'):
+            combine_profiles(input.gene_abund, 'combined.txt', log, key_columns=['coord', 'chr', 'start', 'stop', 'name', 'score', 'strand', 'source', 'feature', 'frame', 'info', 'gene_length'])
+            shutil.copy2('combined.txt', output.gene_abund_merge)
+        else:
+            shutil.copy2(input.gene_abund[0], output.gene_abund_merge)
 
 ###############################################################################################
 # Generate gene expression profile
