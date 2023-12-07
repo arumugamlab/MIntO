@@ -112,6 +112,22 @@ else:
     else:
         print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 128.')
 
+if config['MEGAHIT_presets'] is None and config['MEGAHIT_custom'] is None:
+    print('ERROR in ', config_path, ': MEGAHIT_presets list of MEGAHIT parameters to run per co-assembly is empty. Please, complete ', config_path)
+
+if 'MEGAHIT_custom' not in config:
+    config['MEGAHIT_custom'] = None
+elif config['MEGAHIT_custom'] is not None:
+    # if the custom k-s are set, that should be added to the MEGAHIT assembly types
+    if isinstance(config['MEGAHIT_custom'], str):
+        config['MEGAHIT_custom'] = [config['MEGAHIT_custom']]
+    for i, k_list in enumerate(config['MEGAHIT_custom']):
+        if k_list and not k_list.isspace():
+            if config['MEGAHIT_presets'] is None:
+                config['MEGAHIT_presets'] = [f'meta-custom-{i+1}']
+            else:
+                config['MEGAHIT_presets'].append(f'meta-custom-{i+1}')
+
 batch_size = 100
 if config['CONTIG_MAPPING_BATCH_SIZE'] is None:
     print('ERROR in ', config_path, ': CONTIG_MAPPING_BATCH_SIZE variable is empty. Please, complete ', config_path)
