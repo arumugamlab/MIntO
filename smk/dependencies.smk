@@ -14,6 +14,8 @@ import glob
 
 include: 'include/cmdline_validator.smk'
 
+script_dir=workflow.basedir+"/../scripts"
+
 metaphlan_index = 'mpa_vOct22_CHOCOPhlAnSGB_202212'
 metaphlan_version = '4.0.6'
 motus_version = '3.0.3'
@@ -119,6 +121,18 @@ def dbCAN_db_out():
                 file = files)
     return(result)
 
+def func_db_desc_out():
+    files = [
+                "KEGG_Pathway.tsv",
+                "KEGG_Module.tsv",
+                "KEGG_KO.tsv",
+                "dbCAN.EC.tsv",
+                "eggNOG_OGs.tsv"]
+    result = expand("{somewhere}/data/descriptions/{file}",
+                somewhere = minto_dir,
+                file = files)
+    return(result)
+
 def metaphlan_db_out():
     result=expand("{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv",
         minto_dir=minto_dir,
@@ -159,6 +173,7 @@ rule all:
         eggnog_db_out(),
         Kofam_db_out(),
         dbCAN_db_out(),
+        func_db_desc_out(),
         metaphlan_db_out(),
         motus_db_out(),
         fetchMGs_out(),
@@ -306,6 +321,56 @@ rule KEGG_maps:
             done | sed 's/^md://;s/ko://' | grep '.' > KEGG_Module2KO.tsv
 
             echo 'KEGG mapping downloaded'
+        ) &> {log}
+        """
+
+rule functional_db_descriptions:
+    input:
+        kegg_ko="{minto_dir}/data/descriptions/include/KEGG_KO.tsv",
+        kegg_module="{minto_dir}/data/descriptions/include/KEGG_Module.tsv",
+        kegg_pathway="{minto_dir}/data/descriptions/include/KEGG_Pathway.tsv",
+    output:
+        kegg_ko="{minto_dir}/data/descriptions/KEGG_KO.tsv",
+        kegg_module="{minto_dir}/data/descriptions/KEGG_Module.tsv",
+        kegg_pathway="{minto_dir}/data/descriptions/KEGG_Pathway.tsv",
+        eggnog_desc="{minto_dir}/data/descriptions/eggNOG_OGs.tsv",
+        EC_desc="{minto_dir}/data/descriptions/dbCAN.EC.tsv",
+    resources: mem=download_memory
+    threads: download_threads
+    log:
+        "{minto_dir}/logs/func_db_desc_download.log"
+    conda:
+        config["minto_dir"]+"/envs/gene_annotation.yml"
+    shell:
+        """
+        mkdir -p {minto_dir}/data/descriptions/
+        time (
+
+            ## KEGG
+
+            # Get MIntO-provided descriptions that includes descriptions for eggNOG's version-freeze, and update using KEGG
+            (cat {input.kegg_pathway}; curl --silent https://rest.kegg.jp/list/pathway) | {script_dir}/merge_function_descriptions.pl > {output.kegg_pathway}
+            (cat {input.kegg_ko};      curl --silent https://rest.kegg.jp/list/ko)      | {script_dir}/merge_function_descriptions.pl > {output.kegg_ko}
+            (cat {input.kegg_module};  curl --silent https://rest.kegg.jp/list/module)  | {script_dir}/merge_function_descriptions.pl > {output.kegg_module}
+
+            echo 'KEGG descriptions downloaded'
+
+            ## eggNOG
+
+            (echo -e 'Funct\tCategory\tDescription';
+             curl --silent http://eggnog5.embl.de/download/eggnog_5.0/per_tax_level/1/1_annotations.tsv.gz | gzip -dc | cut -f2-4 | grep -v '^COG';
+             curl --silent https://ftp.ncbi.nih.gov/pub/COG/COG2020/data/cog-20.def.tab | cut -f1,2,3) > {output.eggnog_desc}
+
+            echo 'eggNOG descriptions downloaded'
+
+            ## EC numbers for dbCAN
+
+            (echo -e 'Funct\tDescription';
+             curl --silent https://rest.kegg.jp/list/enzyme;
+             curl --silent https://ftp.expasy.org/databases/enzyme/enzclass.txt | {script_dir}/format_ec_classes.pl) > {output.EC_desc}
+
+            echo 'EC descriptions downloaded'
+
         ) &> {log}
         """
 

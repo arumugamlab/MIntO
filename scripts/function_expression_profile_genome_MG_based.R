@@ -141,7 +141,7 @@ get_annotation_descriptions <- function(db_name) {
         file_name <- db_name %>%
                             gsub('kofam_', 'KEGG_', .) %>%
                             gsub('merged_', 'KEGG_', .)
-        def_list <- as.data.frame(fread(paste0(minto_dir, '/data/', file_name, '.tsv'), header=T), stringsAsFactors = F)
+        def_list <- as.data.frame(fread(paste0(minto_dir, '/data/descriptions/', file_name, '.tsv'), header=T), stringsAsFactors = F)
         def_list_sub <- subset(def_list, select=c('Funct', 'Description'))
         def_list_sub$Description <- iconv(def_list_sub$Description, from = "ISO-8859-1", to = "UTF-8")
         keyMap_funct_desc <- merge(keyMap_funct, def_list_sub, by='Funct', all=T)
