@@ -118,7 +118,7 @@ rule all:
 
 def get_runs_for_sample(sample):
     sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
-    runs = [ re.sub(".1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('1.fq.gz') ]
+    runs = [ re.sub(".1\.(fq|fastq)\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and (f.name.endswith('1.fq.gz') or f.name.endswith('1.fastq.gz')) ]
     #print(runs)
     return(sorted(runs))
 
@@ -126,16 +126,17 @@ def get_runs_for_sample(sample):
 
 def get_raw_reads_for_sample_run(wildcards):
     prefix = '{raw_dir}/{sample}/{run}'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
-    if path.exists(prefix+'.1.fq.gz'):
-        return {
-                'read_fw': '{raw_dir}/{sample}/{run}.1.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run),
-                'read_rv': '{raw_dir}/{sample}/{run}.2.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
-                }
-    elif path.exists(prefix+'_1.fq.gz'):
-        return {
-                'read_fw': '{raw_dir}/{sample}/{run}_1.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run),
-                'read_rv': '{raw_dir}/{sample}/{run}_2.fq.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
-                }
+    for ext in ['fq', 'fastq']:
+        if path.exists(prefix+'.1.'+ext+'.gz'):
+            return {
+                    'read_fw': '{raw_dir}/{sample}/{run}.1.{ext}.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run, ext=ext),
+                    'read_rv': '{raw_dir}/{sample}/{run}.2.{ext}.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run, ext=ext)
+                    }
+        elif path.exists(prefix+'_1.'+ext+'.gz'):
+            return {
+                    'read_fw': '{raw_dir}/{sample}/{run}_1.{ext}.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run, ext=ext),
+                    'read_rv': '{raw_dir}/{sample}/{run}_2.{ext}.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run, ext=ext)
+                    }
 
 # Get file for infering index
 
