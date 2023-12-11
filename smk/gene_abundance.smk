@@ -696,39 +696,46 @@ rule merge_MG_tables:
             ) &> {log}
         """
 
-rule gene_abund_normalization_MG:
-    input:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed",
-        genomes_marker_genes="{wd}/DB/9-{post_analysis_out}-post-analysis/all.marker_genes_scores.table"
-    output:
-        norm_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.MG.csv"
-    params:
-        mapped_reads_threshold=config["MIN_mapped_reads"]
-    log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.MG.log"
-    threads: 4
-    resources:
-        mem=config["BWA_memory"]
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml" #R
-    shell:
-        """
-        time (Rscript {script_dir}/normalize_profiles.R --normalize MG --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} --MG {input.genomes_marker_genes} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
-        """
-
 ###############################################################################################
 # Normalization of read counts by sequence depth and genes’ length (TPM normalization)
+# or marker genes (MG normalization)
+# Normalize and add prefix to samples so that metaG and metaT do not clash when combined in future
 ###############################################################################################
 
-rule gene_abund_normalization_TPM:
+# Input depends on norm mode, since MG mode needs location of MG files.
+# Thus, input will be encapsulated in this function.
+
+def get_gene_abund_normalization_input(wildcards):
+    if (wildcards.norm == 'MG'):
+        return {
+            'absolute_counts' : "{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed".format(
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    post_analysis_out = wildcards.post_analysis_out,
+                    identity = wildcards.identity),
+            'genomes_marker_genes' : "{wd}/DB/9-{post_analysis_out}-post-analysis/all.marker_genes_scores.table".format(
+                    wd = wildcards.wd,
+                    post_analysis_out = wildcards.post_analysis_out)
+            }
+    else:
+        return {
+            'absolute_counts' : "{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed".format(
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    post_analysis_out = wildcards.post_analysis_out,
+                    identity = wildcards.identity)
+            }
+
+rule gene_abund_normalization:
     input:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed",
+        unpack(get_gene_abund_normalization_input)
     output:
-        norm_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv",
-    log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.log"
+        norm_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{norm}.csv"
     params:
-        mapped_reads_threshold=config["MIN_mapped_reads"]
+        mapped_reads_threshold=config["MIN_mapped_reads"],
+        optional_arg_MG = lambda wildcards, input: "" if wildcards.norm == "TPM" else "--MG " + input.genomes_marker_genes
+    log:
+        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{norm}.log"
     threads: 4
     resources:
         mem=config["BWA_memory"]
@@ -736,7 +743,7 @@ rule gene_abund_normalization_TPM:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/normalize_profiles.R --normalize TPM --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
+        time (Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
         """
 
 ###############################################################################################
