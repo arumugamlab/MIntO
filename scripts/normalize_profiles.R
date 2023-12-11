@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# Normalize gene abundances and write profiles with '<omics>.<sample>' as sample-id.
+# Normalize gene abundances and write profiles with '<prefix><sample>' as sample-id.
 
 # Parse command line arguments
 library(optparse)
@@ -8,7 +8,7 @@ opt_list <- list(
                 make_option("--normalize", type="character", default=NULL, help="normalization type: MG or TPM"),
                 make_option("--bed", type="character", default=NULL, help="gene mapped-read-count bed file", metavar="file"),
                 make_option(c("--out"), type="character", default=NULL, help="output file to write normalized counts", metavar="file"),
-                make_option("--omics", type="character", default=NULL, help="which omics: metaG or metaT", metavar="omic-type"),
+                make_option("--sample-prefix", type="character", default="", help="prefix for sample-id in the output table: typically, 'metaG.' or 'metaT.' [default: none]", metavar="sample-prefix"),
                 make_option("--min-read-count", type="integer", default=2, help="minimum mapped read-count to consider gene is present [default: %default]"),
                 make_option("--MG", type="character", default=NULL, help="marker gene table", metavar="file"),
                 make_option("--threads", type="integer", default=4, help="number of threads [default: %default]"),
@@ -22,7 +22,7 @@ gene_norm_csv <- opt$out
 threads_n <- opt$threads
 memory_lim <- opt$memory
 fetchMG_table <- opt$MG
-omics <- opt$omics
+prefix <- opt[['sample-prefix']]
 read_n <- opt[['min-read-count']]
 
 ##########################  ** Load libraries **  ##########################
@@ -131,10 +131,10 @@ if (normalize == 'MG') {
 }
 
 # Get the right columns
-# Add 'metaG.' or 'metaT.' prefix from omics
+# Add 'metaG.' or 'metaT.' prefix from --sample-prefix
 rpk_final_norm <- rpk_final_norm %>%
                          select(-ID_MAG) %>%
-                         rename_at(vars(!matches(c("header"))), ~ paste0(omics,".", .))
+                         rename_at(vars(!matches(c("header"))), ~ paste0(prefix, .))
 
 # Merge normalized rpk with gene_info
 final_table <- gene_rpk_bed_df %>%

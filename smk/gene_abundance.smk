@@ -743,7 +743,7 @@ rule gene_abund_normalization:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --omics {wildcards.omics} --min-read-count {params.mapped_reads_threshold}) &> {log}
+        time (Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --sample-prefix {wildcards.omics}. --min-read-count {params.mapped_reads_threshold}) &> {log}
         """
 
 ###############################################################################################
