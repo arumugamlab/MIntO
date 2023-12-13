@@ -300,31 +300,6 @@ rule merge_absolute_counts_TPM:
         time (python3 {script_dir}/gene_abundances_merge_raw_profiles.py {threads} {resources.mem} {working_dir} {omics} {post_analysis_TPM} {normalization} {identity}) &> {log}
         """
 
-rule integration_function_profiles_TPM:
-    input:
-        absolute_counts_merge="{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.bed.IGNORE".format(wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity),
-        gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, normalization = normalization),
-    output:
-        tsv=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/F{omics_prof}.{funct_opt}.csv", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
-        physeq=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/phyloseq_obj/F{omics_prof}.{funct_opt}.rds", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
-        plots=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/plots/F{omics_prof}.{funct_opt}.PCA.pdf", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
-    params:
-        annot_file={annot_file},
-        funct_opt=funct_opt_list,
-        mapped_reads_threshold=config["MIN_mapped_reads"]
-    log:
-        "{wd}/logs/output/data_integration/{post_analysis_TPM}/integration_function_profiles.{omics}.TPM.log".format(wd = working_dir, post_analysis_TPM = post_analysis_TPM, omics = omics),
-    resources:
-        mem=config["MERGE_memory"]
-    threads: config["MERGE_threads"]
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml" #R
-    shell:
-        """
-        time (Rscript {script_dir}/function_expression_profile_genome_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_TPM} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}) &> {log}
-        """
-
-
 def get_function_profile_integration_input(wildcards):
     gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds",
             wd = working_dir,
