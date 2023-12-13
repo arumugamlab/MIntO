@@ -297,7 +297,7 @@ rule merge_absolute_counts_TPM:
 
 rule integration_function_profiles_TPM:
     input:
-        absolute_counts_merge="{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.bed".format(wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity),
+        absolute_counts_merge="{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.bed.IGNORE".format(wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity),
         gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, normalization = normalization),
     output:
         tsv=expand("{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.TPM/F{omics_prof}.{funct_opt}.csv", wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity, omics_prof = omics_prof, funct_opt = funct_opt),
@@ -364,7 +364,8 @@ rule integration_function_profiles_MG_TPM:
     params:
         annot_file={annot_file},
         funct_opt=funct_opt_list,
-        mapped_reads_threshold=config["MIN_mapped_reads"]
+        mapped_reads_threshold=config["MIN_mapped_reads"],
+        genome_weights_arg = lambda wildcards, input: input.genome_profile if (normalization == 'MG') else ""
     log:
         "{wd}/logs/output/data_integration/{post_analysis_out}/integration_funtion_profiles.{omics}.{normalization}.log".format(wd = working_dir, post_analysis_out = post_analysis_out, normalization = normalization, omics = omics),
     resources:
@@ -375,8 +376,8 @@ rule integration_function_profiles_MG_TPM:
     shell:
         """
         time ( echo 'integration of function profiles'
-        if ( [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]] ) && [[ {normalization} == 'MG' ]]; then
-            Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold} {main_factor} {input.genome_profile}
+        if [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]]; then
+            Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold} {main_factor} {params.genome_weights_arg}
         elif [[ {map_reference} == 'genes_db' ]] && [[ {normalization} == 'TPM' ]]; then
             Rscript {script_dir}/function_expression_profile_gene_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
         fi) &> {log}

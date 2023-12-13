@@ -33,7 +33,6 @@ genome_profile_file <- args[14]
 ##########################  ** Load libraries **  ##########################
 library(data.table)
 library(phyloseq)
-library(KEGGREST)
 library(ggplot2)
 library(ggrepel)
 library(PFAM.db)
@@ -261,46 +260,63 @@ make_profile_files_old <- function(keys, profile, file_label, database, annotati
 }
 
 make_profile_files <- function(keys, profile, file_label, database, annotations, metadata, weights) {
+
+      # Get abundance information by gene and select only relevant columns.
       counts_by_gene <- inner_join(keys, profile, by='coord') %>%
                             mutate(MAG = stringr::str_split(coord, '\\|') %>% map_chr(.,1)) %>%
-                            dplyr::select(-ID_gene, -name, -coord) %>%
-                            dplyr::select(MAG, Funct, everything()) %>%
-                            bind_rows(., weights)
+                            dplyr::select(-ID_gene, -name, -coord)
 
       # From count-per-gene, make count-per-function
+      # If necessary, weight the functions by REL of genomes
+      if (!is.null(weights)) {
 
-      counts_by_func_unweighted <- counts_by_gene %>%
-                                     dplyr::summarise(across(everything(), sum),
-                                                      .by = c(MAG, Funct))
+          # Summarize by MAG,Funct
+          counts_by_func <- counts_by_gene %>%
+                                dplyr::select(MAG, Funct, everything()) %>%
+                                bind_rows(., weights)
+                                dplyr::summarise(across(everything(), sum),
+                                                 .by = c(MAG, Funct))
 
-      # melt to make one gene rpk per row for operational convenience
-      cf_melt <- reshape2::melt(counts_by_func_unweighted, id.vars = c("MAG", "Funct"))
+          # melt to make one gene rpk per row for operational convenience
+          cf_melt <- reshape2::melt(counts_by_func, id.vars = c("MAG", "Funct"))
 
-      rm(counts_by_gene, counts_by_func_unweighted)
+          # Normalize by weighting by 'weights'
+          # Remove REL rows
+          # Replace NaN and infinite values by 0
+          cf_melt_normalized <- cf_melt %>%
+            mutate(value = value * value[Funct == 'REL'],
+                   .by = c(MAG, variable)) %>%
+            filter(Funct != 'REL') %>%
+            dplyr::select(-MAG) %>%
+            dplyr::summarise(value = sum(value),
+                             .by = c(Funct, variable))
+
+
+          # unmelt to bring back table
+          counts_by_func <- reshape2::dcast(cf_melt_normalized, Funct ~ variable,  value.var="value")
+          rm(cf_melt, cf_melt_normalized)
+          gc()
+      } else {
+
+          # Summarize by Funct
+          counts_by_func <- counts_by_gene %>%
+                                dplyr::select(-MAG) %>%
+                                dplyr::select(Funct, everything()) %>%
+                                dplyr::summarise(across(everything(), sum),
+                                                 .by = c(Funct))
+      }
+
+      # Clean up memory
+      rm(counts_by_gene)
       gc()
 
-      # Normalize
-      # Remove REL rows
-      # Replace NaN and infinite values by 0
-      cf_melt_normalized <- cf_melt %>%
-        mutate(value = value * value[Funct == 'REL'],
-               .by = c(MAG, variable)) %>%
-        filter(Funct != 'REL') %>%
-        dplyr::select(-MAG) %>%
-        dplyr::summarise(value = sum(value),
-                         .by = c(Funct, variable))
-
-
-      # unmelt to bring back table
-      counts_by_func <- reshape2::dcast(cf_melt_normalized, Funct ~ variable,  value.var="value")
-
+      # Add annotations
       counts_by_func_annotated <- right_join(annotations, counts_by_func, by='Funct')
+
+      # Write annotated functional profile as tsv
       fwrite(counts_by_func_annotated, file=paste0(integration_dir, '/', file_label, '.', database ,'.tsv'), sep='\t', row.names = F, quote = F)
 
-      rm(cf_melt, cf_melt_normalized)
-      gc()
-
-      #### phyloseq object ####
+      #### Create phyloseq object ####
 
       rownames(counts_by_func) <- counts_by_func$Funct
       counts_by_func$Funct <- NULL
@@ -315,6 +331,8 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
 
       physeq <- phyloseq(otu_table(as.matrix(counts_by_func), taxa_are_rows = T),
                                                      tax_table(as.matrix(func_desc)), samp)
+
+      # Write phyloseq object
       saveRDS(physeq, file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.rds'))
 
       return(physeq)
@@ -465,7 +483,7 @@ rm(filter_profile)
 
 # genome profile
 genome_weights <- NULL
-if (!is.null(genome_profile_file)) {
+if (!is.na(genome_profile_file)) {
     genome_weights <- fread(genome_profile_file, header=T) %>%
                         as.data.frame(stringsAsFactors = F) %>%
                         dplyr::rename(MAG = ID) %>%
