@@ -132,8 +132,6 @@ dir.create(file.path(visual_dir), showWarnings = FALSE)
 phyloseq_dir=paste0(integration_dir,'/phyloseq_obj/')
 dir.create(file.path(phyloseq_dir), showWarnings = FALSE)
 
-bed_colnames <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
-
 print('#################################### gene profiles ####################################')
 
 ########################################################
@@ -144,49 +142,63 @@ print('#################################### gene profiles ######################
 # Replace , by ; in annotation IDs
 gene_annot_df <- as.data.frame(fread(annot_file,header=T), stringsAsFactors = F, row.names = T) %>%
                         mutate(across(-ID, ~ gsub("\\,", "\\;", .))) %>%
-                        rename(ID_gene = ID) %>%
-                        select(ID_gene, all_of(unique(annot_names)))
+                        select(ID, all_of(unique(annot_names))) %>%
+                        add_row(ID = 'Unknown')
 
-# Read the combined metaG_metaT TPM/MG normalized profile csv file
+# Read the TPM/MG normalized profile csv file for this omics
 gene_profile_df <- fread(profiles_tpm, header=T) %>%
-                    as.data.frame(stringsAsFactors = F) %>%
-                    mutate(info = ifelse(name=='.', coord, info))
+                    as.data.frame(stringsAsFactors = F)
 
 ########################################################
 ## Get abundance and gene information into separate DFs
 ########################################################
 
-# Get useful non-abundance information columns (BED columns) in a separate DF
-# Modify some fields in the info DF
-# Keep also coord, which will be used to merge info and abundance later
-bed_info_only_df <- gene_profile_df %>%
-                        select(coord, all_of(bed_colnames)) %>%
-                        mutate(ID_gene = info) %>%
-                        mutate(name    = stringr::str_split(ID_gene, '\\|') %>% map_chr(., 2)) # Get 2nd field
 
-# Get abundance information in a separate DF
-# And remove all rows with 0 sum
-abundance_only_df <- gene_profile_df %>%
-                        select(-gene_length, -all_of(bed_colnames)) %>%
-                        distinct(coord, .keep_all = TRUE) %>%
-                        mutate(across(-coord, ~ as.numeric(replace(., . == '' | is.na(.), 0)))) %>%
-                        tibble::column_to_rownames('coord') %>%
-                        filter(rowSums(across(where(is.numeric), ~.x != 0))>0)
+bed_colnames <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
+if ( sum(bed_colnames %in% colnames(gene_profile_df)) == length(bed_colnames)) { # MAG-genes or refgenome-genes mode
 
-########################################################
-# Merge bed-info DF and annotation DF
-########################################################
+    # Get useful non-abundance information columns (BED columns) in a separate DF
+    # Modify some fields in the info DF
+    # Keep also coord, which will be used to merge info and abundance later
+    bed_info_only_df <- gene_profile_df %>%
+                            mutate(info = ifelse(name=='.', coord, info)) %>%
+                            select(coord, all_of(bed_colnames)) %>%
+                            mutate(ID = info) %>%
+                            mutate(name    = stringr::str_split(ID, '\\|') %>% map_chr(., 2)) # Get 2nd field
 
-names_list <- names(gene_annot_df)
-gene_info_annotation_df <- merge(gene_annot_df, bed_info_only_df, by='ID_gene', all.y=T) %>%
-                                tibble::column_to_rownames('coord') %>%
-                                select(name, all_of(names_list))
+    # Get abundance information in a separate DF
+    # And remove all rows with 0 sum
+    abundance_only_df <- gene_profile_df %>%
+                            select(-gene_length, -all_of(bed_colnames)) %>%
+                            distinct(coord, .keep_all = TRUE) %>%
+                            mutate(across(-coord, ~ as.numeric(replace(., . == '' | is.na(.), 0)))) %>%
+                            tibble::column_to_rownames('coord') %>%
+                            filter(rowSums(across(where(is.numeric), ~.x != 0))>0)
+
+    # Merge bed-info DF and annotation DF
+    names_list <- names(gene_annot_df)
+    gene_info_annotation_df <- merge(gene_annot_df, bed_info_only_df, by='ID', all.y=T) %>%
+                                    tibble::column_to_rownames('coord') %>%
+                                    select(name, all_of(names_list))
+
+    rm(bed_info_only_df)
+} else { # db-genes mode
+    # Profile file only has ID column other than abundance columns
+    # Remove all rows with 0 sum
+    abundance_only_df <- gene_profile_df %>%
+                            mutate(across(-ID, ~ as.numeric(replace(., . == '' | is.na(.), 0)))) %>%
+                            tibble::column_to_rownames('ID') %>%
+                            filter(rowSums(across(where(is.numeric), ~.x != 0))>0)
+    gene_info_annotation_df <- merge(gene_annot_df, gene_profile_df, by='ID', all.y=T) %>%
+                                    mutate(ID2 = ID) %>%
+                                    tibble::column_to_rownames('ID2')
+}
 
 # Write annotations into csv file
-fwrite(gene_info_annotation_df, file=paste0(integration_dir, '/Annotations.csv'), row.names = F, quote = F)
+fwrite(gene_annot_df, file=paste0(integration_dir, '/Annotations.csv'), row.names = F, quote = F)
 
 # Free memory
-rm(gene_profile_df, gene_annot_df, bed_info_only_df)
+rm(gene_profile_df, gene_annot_df)
 gc()
 
 ########################################################
@@ -241,13 +253,13 @@ if (omics %like% 'metaG') {
     # Get profile
     metaG_tpm_profile_sub <- metaG_tpm_profile %>%
                                 select(all_of(samples_intersect)) %>%
-                                tibble::rownames_to_column('info') %>%
-                                dplyr::select(info, everything())
+                                tibble::rownames_to_column('ID') %>%
+                                dplyr::select(ID, everything())
 
     # Write csv file
     fwrite(metaG_tpm_profile_sub, file=paste0(integration_dir, '/GA.csv'), row.names = F, quote = F)
     metaG_tpm_profile_sub <- metaG_tpm_profile_sub %>%
-                                tibble::column_to_rownames('info')
+                                tibble::column_to_rownames('ID')
 
     # Write phyloseq
     if (is.null(metadata_df)) {
@@ -263,7 +275,7 @@ if (omics %like% 'metaG') {
     prepare_PCA(physeq=metaG_physeq, type="abundance",  color=main_factor)
 
     # Free memory
-    rm(metaG_tpm_profile, metaG_physeq, metaG_tpm_profile_sub)
+    rm(metaG_tpm_profile, metaG_physeq)
     gc()
 }
 
@@ -272,13 +284,13 @@ if (omics %like% 'metaT') {
     # Get profile
     metaT_tpm_profile_sub <- metaT_tpm_profile %>%
                                 select(all_of(samples_intersect)) %>%
-                                tibble::rownames_to_column('info') %>%
-                                dplyr::select(info, everything())
+                                tibble::rownames_to_column('ID') %>%
+                                dplyr::select(ID, everything())
 
     # Write csv file
     fwrite(metaT_tpm_profile_sub, file=paste0(integration_dir, '/GT.csv'), row.names = F, quote = F)
     metaT_tpm_profile_sub <- metaT_tpm_profile_sub %>%
-                                tibble::column_to_rownames('info')
+                                tibble::column_to_rownames('ID')
 
     # Write phyloseq
     if (is.null(metadata_df)) {
@@ -295,7 +307,7 @@ if (omics %like% 'metaT') {
     prepare_PCA(physeq=metaT_physeq, type="transcript", color=main_factor)
 
     # Free memory
-    rm(metaT_tpm_profile, metaT_physeq, metaT_tpm_profile_sub)
+    rm(metaT_tpm_profile, metaT_physeq)
     gc()
 }
 
@@ -312,13 +324,14 @@ if (omics == 'metaG_metaT'){
     print(paste("metaG-metaT match:", identical(names(metaG_tpm_profile_sub), names(metaT_tpm_profile_sub))))
     gene_expression_tpm=(metaT_tpm_profile_sub)/(metaG_tpm_profile_sub)
     gene_expression_tpm_noinf <- gene_expression_tpm %>%
-                                               tibble::rownames_to_column('info') %>%
-                                               dplyr::mutate(across(-info, function(x) ifelse(is.infinite(x) | is.nan(x), NA, x))) %>%
-                                               dplyr::select(info, everything())
+                                               tibble::rownames_to_column('ID') %>%
+                                               dplyr::mutate(across(-ID, function(x) ifelse(is.infinite(x) | is.nan(x), NA, x))) %>%
+                                               dplyr::select(ID, everything())
 
     # Write csv file
     fwrite(gene_expression_tpm_noinf, file=paste0(integration_dir, '/GE.csv'), row.names = F, quote = F)
-    gene_expression_tpm_noinf <- gene_expression_tpm_noinf %>% tibble::column_to_rownames('info')
+    gene_expression_tpm_noinf <- gene_expression_tpm_noinf %>%
+                                               tibble::column_to_rownames('ID')
 
     # Write phyloseq
     # 'samp' should be populated in either metaT already

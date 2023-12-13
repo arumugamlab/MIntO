@@ -264,7 +264,7 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       # Get abundance information by gene and select only relevant columns.
       counts_by_gene <- inner_join(keys, profile, by='coord') %>%
                             mutate(MAG = stringr::str_split(coord, '\\|') %>% map_chr(.,1)) %>%
-                            dplyr::select(-ID_gene, -name, -coord)
+                            dplyr::select(-coord)
 
       # From count-per-gene, make count-per-function
       # If necessary, weight the functions by REL of genomes
@@ -273,7 +273,7 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
           # Summarize by MAG,Funct
           counts_by_func <- counts_by_gene %>%
                                 dplyr::select(MAG, Funct, everything()) %>%
-                                bind_rows(., weights)
+                                bind_rows(., weights) %>%
                                 dplyr::summarise(across(everything(), sum),
                                                  .by = c(MAG, Funct))
 
@@ -296,11 +296,12 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
           counts_by_func <- reshape2::dcast(cf_melt_normalized, Funct ~ variable,  value.var="value")
           rm(cf_melt, cf_melt_normalized)
           gc()
+
       } else {
 
           # Summarize by Funct
           counts_by_func <- counts_by_gene %>%
-                                dplyr::select(-MAG) %>%
+                                dplyr::select(-any_of(c("MAG"))) %>%         # remove MAG if exists
                                 dplyr::select(Funct, everything()) %>%
                                 dplyr::summarise(across(everything(), sum),
                                                  .by = c(Funct))
@@ -350,7 +351,6 @@ process_phyloseq_obj <- function(omics_label) {
     taxa <- as.data.frame(unclass(tax_table(physeq)), stringsAsFactors = F)
     metadata <- as.data.frame(unclass(sample_data(physeq)), stringsAsFactors = F)
     rownames(metadata) <- metadata[["sample_alias"]]
-    #taxa$ID_gene <- rownames(taxa)
 
     return(list(counts=counts, taxa=taxa, metadata=metadata))
 }
@@ -428,8 +428,9 @@ if (omics %like% "metaG") {
     } else {
         metaG_norm_profile_rowsum_not_0 <- ga_norm_count[rownames(ga_norm_count) %in% ge_norm_taxa_genes,]
     }
-    metaG_norm_profile_rowsum_not_0$coord <- rownames(metaG_norm_profile_rowsum_not_0)
-    rownames(metaG_norm_profile_rowsum_not_0) <- NULL
+    metaG_norm_profile_rowsum_not_0 <- metaG_norm_profile_rowsum_not_0 %>%
+                                            tibble::rownames_to_column('coord') %>%
+                                            dplyr::select(coord, everything())
     rm(ga_norm_count, ga_norm_taxa, ga_norm_taxa_genes)
 }
 
@@ -475,8 +476,7 @@ if (omics == 'metaT') {
 }
 profiles_annot_norm_df_sub <- profiles_annot_norm_df_sub %>%
                                   mutate(coord = rownames(.)) %>%
-                                  dplyr::select(coord, ID_gene, name, everything()) %>%
-                                  #dplyr::select_if( !names(.) %in% c("KEGG_ko", "kofam_KO")) %>%
+                                  dplyr::select(coord, everything()) %>%
                                   filter(coord %in% filter_profile$coord)
 rm(filter_profile)
 
@@ -491,15 +491,13 @@ if (!is.na(genome_profile_file)) {
     colnames(genome_weights) <- gsub(x = colnames(genome_weights), pattern = "metaG\\.|metaT\\.", replacement = "")
 }
 
-#mappings_ncol <- ncol(profiles_annot_norm_df_sub)
-#for(db in colnames(profiles_annot_norm_df_sub)[4:mappings_ncol]) {}
 for(db in annot_names) {
     db_name <- gsub(' ', '.', db)
 
     # Get entries for this db
 
     dbMap <- profiles_annot_norm_df_sub %>%
-                dplyr::select(c(coord, ID_gene, name, all_of(db))) %>%
+                dplyr::select(c(coord, all_of(db))) %>%
                 filter(!is.na(!!as.symbol(db)) & !!as.symbol(db) != "" & !!as.symbol(db) != "-")
 
     if (dim(dbMap)[1] > 0) {
@@ -512,10 +510,8 @@ for(db in annot_names) {
 
         # Replicate the gene annotation table by having N rows for gene with N annotations.
 
-        singleKeys <- strsplit(dbMap[,4], split = "\\; |\\;|\\, |\\,")
+        singleKeys <- strsplit(dbMap[,2], split = "\\; |\\;|\\, |\\,")
         keyMap <- data.frame(coord = rep(dbMap$coord, sapply(singleKeys, length)),
-                             ID_gene = rep(dbMap$ID_gene, sapply(singleKeys, length)),
-                             name = rep(dbMap$name, sapply(singleKeys, length)),
                              Funct = unlist(singleKeys),
                              stringsAsFactors = FALSE) %>%
                      distinct()

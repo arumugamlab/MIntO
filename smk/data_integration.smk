@@ -56,9 +56,9 @@ elif type(config['MERGE_threads']) != int:
 
 if map_reference == 'genes_db':
     if config['ANNOTATION_file'] is None:
-        print('ERROR in ', config_path, ': ANNOTATION_file variable in configuration yaml file is empty. Please, complete ', config_path)
+        raise Exception("Gene functional annotation needs to be provided via ANNOTATION_file variable")
     elif path.exists(config['ANNOTATION_file']) is False:
-        print('ERROR in ', config_path, ': ANNOTATION_file variable path does not exit. Please, complete ', config_path)
+        raise Exception("File specified in ANNOTATION_file variable does not exist")
     elif path.exists(config['ANNOTATION_file']) is True:
         annot_file=config['ANNOTATION_file']
 
@@ -231,8 +231,16 @@ rule integration_merge_profiles:
     threads: 1
     run:
         import shutil
+
+        # Set key columns to merge metaG and metaT profiles
+        if (wildcards.map_reference == 'db-genes'):
+            key_columns = ['ID']
+        else:
+            key_columns = ['coord', 'chr', 'start', 'stop', 'name', 'score', 'strand', 'source', 'feature', 'frame', 'info', 'gene_length']
+
+        # Merge metaG and metaT profiles
         if (wildcards.omics == 'metaG_metaT'):
-            combine_profiles(input.gene_abund, 'combined.txt', log, key_columns=['coord', 'chr', 'start', 'stop', 'name', 'score', 'strand', 'source', 'feature', 'frame', 'info', 'gene_length'])
+            combine_profiles(input.gene_abund, 'combined.txt', log, key_columns=key_columns)
             shutil.copy2('combined.txt', output.gene_abund_merge)
         else:
             shutil.copy2(input.gene_abund[0], output.gene_abund_merge)
@@ -267,11 +275,8 @@ rule integration_gene_profiles:
     shell:
         """
         time ( echo 'integration of gene profiles'
-        if [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]]; then
             Rscript {script_dir}/gene_expression_profile_genome_based.R {threads} $(dirname {output.gene_abund_prof[0]}) {omics} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt} {main_factor}
-        elif [[ {map_reference} == 'genes_db' ]]; then
-            Rscript {script_dir}/gene_expression_profile_gene_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt}
-        fi ) &> {log}
+        ) &> {log}
         """
 
 ##################################################################################################
@@ -319,23 +324,36 @@ rule integration_function_profiles_TPM:
         time (Rscript {script_dir}/function_expression_profile_genome_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_TPM} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}) &> {log}
         """
 
+
+def get_function_profile_integration_input(wildcards):
+    gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds",
+            wd = working_dir,
+            omics = omics,
+            post_analysis_out = post_analysis_out,
+            identity = identity,
+            omics_prof = omics_prof,
+            normalization = normalization)
+    genome_profile=expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.relabund.prop.genome.txt",
+            wd = working_dir,
+            omics = 'metaT' if omics=='metaG_metaT' else omics,
+            post_analysis_out = post_analysis_out,
+            identity = identity,
+            omics_prof = omics_prof,
+            normalization = normalization)
+    if (normalization == 'MG'):
+        return {
+                'gene_abund_phyloseq' : gene_abund_phyloseq,
+                'genome_profile'      : genome_profile
+            }
+    else:
+        return {
+                'gene_abund_phyloseq' : gene_abund_phyloseq,
+            }
+
 # TODO: Call R scripts for each functional category independently, so that all values are passed as wildcards. Also R scripts need to be fixed.
 rule integration_function_profiles_MG_TPM:
     input:
-        gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds",
-                wd = working_dir,
-                omics = omics,
-                post_analysis_out = post_analysis_out,
-                identity = identity,
-                omics_prof = omics_prof,
-                normalization = normalization),
-        genome_profile=expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.relabund.prop.genome.txt",
-                wd = working_dir,
-                omics = 'metaT' if omics=='metaG_metaT' else omics,
-                post_analysis_out = post_analysis_out,
-                identity = identity,
-                omics_prof = omics_prof,
-                normalization = normalization),
+        unpack(get_function_profile_integration_input)
     output:
         tsv=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.tsv", 
                 wd = working_dir,
@@ -376,9 +394,6 @@ rule integration_function_profiles_MG_TPM:
     shell:
         """
         time ( echo 'integration of function profiles'
-        if [[ {map_reference} == 'MAG' ]] || [[ {map_reference} == 'reference_genome' ]]; then
             Rscript {script_dir}/function_expression_profile_genome_MG_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold} {main_factor} {params.genome_weights_arg}
-        elif [[ {map_reference} == 'genes_db' ]] && [[ {normalization} == 'TPM' ]]; then
-            Rscript {script_dir}/function_expression_profile_gene_TPM_based.R {threads} {resources.mem} {working_dir} {omics} {post_analysis_out} {normalization} {identity} {params.annot_file} {metadata} {minto_dir} {params.funct_opt} {params.mapped_reads_threshold}
-        fi) &> {log}
+        ) &> {log}
         """
