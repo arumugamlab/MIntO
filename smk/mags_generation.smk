@@ -249,7 +249,7 @@ rule run_vamb_aae:
                 {params.cuda} \
                 --outdir out \
                 --model aae
-        rsync -a out $(dirname {output.tsv_y})
+        rsync -a out/* $(dirname {output.tsv_y})
         """
 
 # Rename bins by stripping 'vae_', 'aae_y_', 'aae_z_' in the bin id. We will add our own prefix in the MAG outputs.
