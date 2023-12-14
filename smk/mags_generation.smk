@@ -440,7 +440,7 @@ rule collect_genomes_from_all_binners:
           echo "Collecting $(basename $location) in batches of {params.batch_size}"
           find $location/bins/ -name "*.fna" |
                   while readarray -t -n {params.batch_size} FILES && ((${{#FILES[@]}})); do
-                      ln -s ${{FILES[@]}} {output.all_genomes}/
+                      ln --symbolic --relative ${{FILES[@]}} {output.all_genomes}/
                   done
         done
         ) >& {log}

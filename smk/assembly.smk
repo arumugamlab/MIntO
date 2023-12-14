@@ -271,7 +271,7 @@ rule merge_runs:
             rsync -a combined.fq.gz {output}
         else
             cd $(dirname {output})
-            ln -s --force $(basename {input}) $(basename {output})
+            ln --symbolic --relative --force {input[0]} {output}
         fi
         """
 

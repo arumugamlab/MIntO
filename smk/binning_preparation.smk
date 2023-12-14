@@ -567,7 +567,7 @@ rule combine_fasta_batches:
             cat {input} > combined.fasta
             rsync -a combined.fasta {output}
         else
-            ln -s --force {input[0]} {output}
+            ln --symbolic --relative --force {input[0]} {output}
         fi
         """
 
@@ -599,7 +599,7 @@ rule combine_fasta:
             cat {input} > combined.fasta
             rsync -a combined.fasta {output}
         else
-            ln -s --force {input[0]} {output}
+            ln --symbolic --relative --force {input[0]} {output}
         fi
         """
 
@@ -652,7 +652,7 @@ rule combine_depth:
             (for file in {input.depths}; do tail -n +2 $file; done) >> combined.depth
             rsync -a combined.depth {output}
         else
-            ln -s --force {input[0]} {output}
+            ln --symbolic --relative --force {input[0]} {output}
         fi
         """
 
