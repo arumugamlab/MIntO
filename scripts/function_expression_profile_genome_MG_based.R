@@ -315,7 +315,12 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       counts_by_func_annotated <- right_join(annotations, counts_by_func, by='Funct')
 
       # Write annotated functional profile as tsv
-      fwrite(counts_by_func_annotated, file=paste0(integration_dir, '/', file_label, '.', database ,'.tsv'), sep='\t', row.names = F, quote = F)
+      fwrite(counts_by_func_annotated %>%
+                filter(rowSums(across(-c(Funct, Description))) > 0),
+             file=paste0(integration_dir, '/', file_label, '.', database ,'.tsv'),
+             sep='\t',
+             row.names = F,
+             quote = F)
 
       #### Create phyloseq object ####
 
