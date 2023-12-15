@@ -422,13 +422,13 @@ if (omics %like% "metaG") {
     ga_fa_df <- data.frame(DB='genes', feature_n=length(ga_norm_taxa_genes), feature = 'Genes')
 
     if (omics == 'metaG') {
-        metaG_norm_profile_rowsum_not_0 <- ga_norm_count
+        metaG_norm_profile <- ga_norm_count
         profiles_annot_norm_df_sub <- ga_norm_taxa
         metadata_df <- res$metadata
     } else {
-        metaG_norm_profile_rowsum_not_0 <- ga_norm_count[rownames(ga_norm_count) %in% ge_norm_taxa_genes,]
+        metaG_norm_profile <- ga_norm_count[rownames(ga_norm_count) %in% ge_norm_taxa_genes,]
     }
-    metaG_norm_profile_rowsum_not_0 <- metaG_norm_profile_rowsum_not_0 %>%
+    metaG_norm_profile <- metaG_norm_profile %>%
                                             tibble::rownames_to_column('coord') %>%
                                             dplyr::select(coord, everything())
     rm(ga_norm_count, ga_norm_taxa, ga_norm_taxa_genes)
@@ -443,13 +443,13 @@ if (omics %like% "metaT") {
     gt_ft_df <- data.frame(DB='genes', feature_n=length(gt_norm_taxa_genes), feature = 'Genes')
 
     if (omics == 'metaT') {
-        metaT_norm_profile_rowsum_not_0 <- gt_norm_count
+        metaT_norm_profile <- gt_norm_count
         profiles_annot_norm_df_sub <- gt_norm_taxa
         metadata_df <- res$metadata
     } else {
-        metaT_norm_profile_rowsum_not_0 <- gt_norm_count[rownames(gt_norm_count) %in% ge_norm_taxa_genes,]
+        metaT_norm_profile <- gt_norm_count[rownames(gt_norm_count) %in% ge_norm_taxa_genes,]
     }
-    metaT_norm_profile_rowsum_not_0 <- metaT_norm_profile_rowsum_not_0 %>%
+    metaT_norm_profile <- metaT_norm_profile %>%
                                             tibble::rownames_to_column('coord') %>%
                                             dplyr::select(coord, everything())
     rm(gt_norm_count, gt_norm_taxa, gt_norm_taxa_genes)
@@ -470,9 +470,9 @@ print('#################################### FUNCTION EXPRESSION  ###############
 # Filter profile based on non-zero features if GE. Otherwise, use themselves
 
 if (omics == 'metaT') {
-    filter_profile <- metaT_norm_profile_rowsum_not_0
+    filter_profile <- metaT_norm_profile
 } else {
-    filter_profile <- metaG_norm_profile_rowsum_not_0
+    filter_profile <- metaG_norm_profile
 }
 profiles_annot_norm_df_sub <- profiles_annot_norm_df_sub %>%
                                   mutate(coord = rownames(.)) %>%
@@ -537,7 +537,7 @@ for(db in annot_names) {
         # metaG or metaG_metaT
         if (omics %like% "metaG") {
             metaG_physeq <- make_profile_files(keys=keyMap,
-                                               profile=metaG_norm_profile_rowsum_not_0,
+                                               profile=metaG_norm_profile,
                                                file_label="FA",
                                                database=db_name,
                                                annotations=annot_df,
@@ -548,7 +548,7 @@ for(db in annot_names) {
         # metaT or metaG_metaT
         if (omics %like% "metaT") {
             metaT_physeq <- make_profile_files(keys=keyMap,
-                                               profile=metaT_norm_profile_rowsum_not_0,
+                                               profile=metaT_norm_profile,
                                                file_label="FT",
                                                database=db_name,
                                                annotations=annot_df,
@@ -559,7 +559,7 @@ for(db in annot_names) {
         # metaG_metaT
         if (omics == 'metaG_metaT') {
             FE_physeq <- make_profile_files(keys=keyMap,
-                                               profile=metaT_norm_profile_rowsum_not_0,
+                                               profile=metaT_norm_profile,
                                                file_label="FT",
                                                database=db_name,
                                                annotations=annot_df,
