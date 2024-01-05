@@ -238,12 +238,10 @@ rule integration_merge_profiles:
         else:
             key_columns = ['coord', 'chr', 'start', 'stop', 'name', 'score', 'strand', 'source', 'feature', 'frame', 'info', 'gene_length']
 
-        # Merge metaG and metaT profiles
-        if (wildcards.omics == 'metaG_metaT'):
-            combine_profiles(input.gene_abund, 'combined.txt', log, key_columns=key_columns)
-            shutil.copy2('combined.txt', output.gene_abund_merge)
-        else:
-            shutil.copy2(input.gene_abund[0], output.gene_abund_merge)
+        # Merge metaG and metaT profiles if the input is of length 2
+        # Or just read and write the single input if length is 1
+        combine_profiles(input.gene_abund, 'combined.txt', log, key_columns=key_columns)
+        shutil.copy2('combined.txt', output.gene_abund_merge)
 
 ###############################################################################################
 # Generate gene expression profile
