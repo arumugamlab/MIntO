@@ -7,28 +7,6 @@
 #
 # '''
 
-args = commandArgs(trailingOnly=TRUE)
-
-##########################  ** Load arguments **  ##########################
-threads_n <- args[1]
-memory_lim <- args[2]
-wd <- args[3]
-omics <- args[4] #'metaG_metaT'
-map_reference <- args[5]
-normalization <- args[6]
-identity <- args[7]
-annot_file <- args[8]
-metadata_file <- args[9]
-#input_file <- args[10]
-minto_dir <- args[10]
-annot_arg  <- args[11]
-annot_names <- unlist(strsplit(annot_arg, split = "\\,")[[1]])
-print(annot_names)
-read_n <- args[12]
-read_n <- as.numeric(read_n)
-main_factor <- args[13]
-genome_profile_file <- args[14]
-
 
 ##########################  ** Load libraries **  ##########################
 library(data.table)
@@ -40,8 +18,73 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(purrr)
+library(optparse)
 
-#library(unix)
+# Parse command line arguments
+opt_list <- list(
+                make_option("--threads", type="integer", default=4, help="number of threads [default: %default]"),
+                make_option("--outdir", type="character", default=NULL, help="output directory to write normalized counts", metavar="directory"),
+                make_option("--omics", type="character", default=NULL, help="which omics to summarize: metaG, metaT or metaG_metaT", metavar="string"),
+                make_option("--normalization", type="character", default=NULL, help="normalization type: MG or TPM"),
+                make_option("--identity", type="integer", default=NULL, help="percent identity used while mapping reads to function DB"),
+                make_option("--funcat-name", type="character", default=NULL, help="name of functional category to summarize: e.g., eggNOG_OGs, dbCAN.EC", metavar="string"),
+                make_option("--funcat-desc", type="character", default=NULL, help="file containing descriptions of functions", metavar="file"),
+                make_option("--genome-weights-metaG", type="character", default=NULL, help="file with metaG profiles", metavar="file"),
+                make_option("--genome-weights-metaT", type="character", default=NULL, help="file with metaT profiles", metavar="file"),
+                make_option("--main-factor", type="character", default=NULL, help="main factor variable to use when plotting data", metavar="string")
+                )
+opts <- parse_args(OptionParser(option_list=opt_list))
+
+
+args = commandArgs(trailingOnly=TRUE)
+
+##########################  ** Load arguments **  ##########################
+threads_n <- opts$threads
+output_dir <- opts$outdir
+omics <- opts$omics #'metaG_metaT'
+normalization <- opts$normalization
+identity <- opts$identity
+funcat_name  <- opts[['funcat-name']]
+funcat_desc_file <- opts[['funcat-desc']]
+main_factor <- opts[['main-factor']]
+metaG_profile_file <- opts[['genome-weights-metaG']]
+metaT_profile_file <- opts[['genome-weights-metaT']]
+
+# genome profiles to use as weights
+
+metaG_genome_weights <- NULL
+metaT_genome_weights <- NULL
+
+if (normalization == 'MG') {
+    if (omics %in% c('metaG', 'metaG_metaT')) {
+        if (is.null(metaG_profile_file)) {
+            stop("--genome-weights-metaG must be provided with --omics=metaG")
+        } else {
+            metaG_genome_weights <- fread(metaG_profile_file, header=T) %>%
+                                as.data.frame(stringsAsFactors = F) %>%
+                                dplyr::rename(MAG = ID) %>%
+                                mutate(Funct = "REL")
+            colnames(metaG_genome_weights) <- gsub(x = colnames(metaG_genome_weights), pattern = "metaG\\.", replacement = "")
+        }
+    }
+
+    if (omics %in% c('metaT', 'metaG_metaT')) {
+        if (is.null(metaT_profile_file)) {
+            stop("--genome-weights-metaT must be provided with --omics=metaT")
+        } else {
+            metaT_genome_weights <- fread(metaT_profile_file, header=T) %>%
+                                as.data.frame(stringsAsFactors = F) %>%
+                                dplyr::rename(MAG = ID) %>%
+                                mutate(Funct = "REL")
+            colnames(metaT_genome_weights) <- gsub(x = colnames(metaT_genome_weights), pattern = "metaT\\.", replacement = "")
+        }
+    }
+}
+
+
+#annot_file <- args[8]
+#metadata_file <- args[9]
+#input_file <- args[10]
 
 setDTthreads(threads = as.numeric(threads_n))
 set.seed(1234)
@@ -136,11 +179,10 @@ get_annotation_descriptions <- function(db_name) {
     # library(purrr)
     # library(magrittr)
     if  (db_name %in% c('eggNOG_OGs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO', 'kofam_Pathway', 'kofam_Module', 'kofam_KO', 'merged_KO', 'dbCAN.EC')){
-        #modules_list <- as.data.frame(fread(paste0(minto_dir,'/data/KEGG_Modules_20171212.csv'), header=T), stringsAsFactors = F)
         file_name <- db_name %>%
                             gsub('kofam_', 'KEGG_', .) %>%
                             gsub('merged_', 'KEGG_', .)
-        def_list <- as.data.frame(fread(paste0(minto_dir, '/data/descriptions/', file_name, '.tsv'), header=T), stringsAsFactors = F)
+        def_list <- as.data.frame(fread(funcat_desc_file, header=T), stringsAsFactors = F)
         def_list_sub <- subset(def_list, select=c('Funct', 'Description'))
         def_list_sub$Description <- iconv(def_list_sub$Description, from = "ISO-8859-1", to = "UTF-8")
         keyMap_funct_desc <- merge(keyMap_funct, def_list_sub, by='Funct', all=T)
@@ -237,7 +279,7 @@ make_profile_files_old <- function(keys, profile, file_label, database, annotati
       names(counts_by_func) <- gsub('X', '', names(counts_by_func))
 
       counts_by_func_annotated <- merge(annotations, counts_by_func, by='Funct', all.y=T)
-      fwrite(counts_by_func_annotated, file=paste0(integration_dir, '/', file_label, '.', database ,'.tsv'), sep='\t', row.names = F, quote = F)
+      fwrite(counts_by_func_annotated, file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'), sep='\t', row.names = F, quote = F)
 
       #### phyloseq object ####
 
@@ -317,7 +359,7 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       # Write annotated functional profile as tsv
       fwrite(counts_by_func_annotated %>%
                 filter(rowSums(across(-c(Funct, Description))) > 0),
-             file=paste0(integration_dir, '/', file_label, '.', database ,'.tsv'),
+             file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'),
              sep='\t',
              row.names = F,
              quote = F)
@@ -360,35 +402,21 @@ process_phyloseq_obj <- function(omics_label) {
     return(list(counts=counts, taxa=taxa, metadata=metadata))
 }
 
-# # *******************************************************************************************
-# # **adonis/adonis2, Permutational Multivariate Analysis of Variance Using Distance Matrix**:
-# library(vegan)
-# #library(ztable)
-# metadata_adonis <- as(sample_data(metaG_norm_profile_rowsum_not_0_phyloseq), "data.frame")
-# set.seed(2)
-# adonis_Status<-vegan::adonis(phyloseq::distance(metaG_norm_profile_rowsum_not_0_phyloseq, method= distance_lab) ~ Condition+time, data = metadata_adonis)
-# #ztable(data.frame(adonis_Status$aov.tab),digits = 3)
-# adonis_Status_df <- data.frame(adonis_Status$aov.tab)
-# adonis_Status_df$Coefficients <- rownames(adonis_Status_df)
-# write.table(adonis_Status_df, paste0(dir_diff_analysis_plot, db , '.FE.',filename3,'_',compartment,"_no0in_metaG.PCoA-",distance_lab,"_PERMANOVA.csv"), row.names = F, col.names = T, sep = "\t", quote = F)
-# # *******************************************************************************************
-
 # *************************** Use GA and GT raw counts to generate FE profile *************************** ####
-# # GA and GT raw counts will be normalized by gene length
-# # The genes will be clustered by function IDs and TPM normalized
-# # FE profile will be generated: (FT_norm) / (FA_norm)
+# The genes will be clustered by function IDs.
+# TPM normalization - sum all TPMs for the member genes
+#                     (there will be redundancy and total might be over 1 million)
+# MG normalization  - weight individual member genes by the rel. abundance of the genome and sum.
+# FE profile will be generated: (FT_norm) / (FA_norm)
 #Raw gene abundances #####
 
 print('#################################### Paths ####################################')
 
-dir_DB <- paste0(wd, "/output/data_integration/", map_reference)
-filename=paste0(omics,".genes_abundances.p", identity,".", normalization)
 # Generate output directories ####
-integration_dir=paste0(dir_DB, '/',filename)
-dir.create(file.path(integration_dir), showWarnings = FALSE)
-visual_dir=paste0(integration_dir,'/plots/')
+dir.create(file.path(output_dir), showWarnings = FALSE)
+visual_dir=paste0(output_dir,'/plots/')
 dir.create(file.path(visual_dir), showWarnings = FALSE)
-phyloseq_dir=paste0(integration_dir,'/phyloseq_obj/')
+phyloseq_dir=paste0(output_dir,'/phyloseq_obj/')
 dir.create(file.path(phyloseq_dir), showWarnings = FALSE)
 
 
@@ -486,28 +514,14 @@ profiles_annot_norm_df_sub <- profiles_annot_norm_df_sub %>%
 rm(filter_profile)
 
 
-# genome profile
-genome_weights <- NULL
-if (!is.na(genome_profile_file)) {
-    genome_weights <- fread(genome_profile_file, header=T) %>%
-                        as.data.frame(stringsAsFactors = F) %>%
-                        dplyr::rename(MAG = ID) %>%
-                        mutate(Funct = "REL")
-    colnames(genome_weights) <- gsub(x = colnames(genome_weights), pattern = "metaG\\.|metaT\\.", replacement = "")
-}
-
-for(db in annot_names) {
-    db_name <- gsub(' ', '.', db)
-
-    # Get entries for this db
-
+    # Get entries for this funcat_name
     dbMap <- profiles_annot_norm_df_sub %>%
-                dplyr::select(c(coord, all_of(db))) %>%
-                filter(!is.na(!!as.symbol(db)) & !!as.symbol(db) != "" & !!as.symbol(db) != "-")
+                dplyr::select(c(coord, all_of(funcat_name))) %>%
+                filter(!is.na(!!as.symbol(funcat_name)) & !!as.symbol(funcat_name) != "" & !!as.symbol(funcat_name) != "-")
 
     if (dim(dbMap)[1] > 0) {
 
-        message(format(Sys.time(), digits=0), " - ", db, " started")
+        message(format(Sys.time(), digits=0), " - ", funcat_name, " started")
 
         ################################################
         # Prepare annotations and their descriptions
@@ -523,7 +537,7 @@ for(db in annot_names) {
 
         # Since KEGG annotations can have map12345 and ko12345 for the same pathway,
         # remove such redundancy.
-        if (db == "KEGG_Pathway"){
+        if (funcat_name == "KEGG_Pathway"){
             keyMap$Funct <- gsub('ko', 'map', keyMap$Funct)
             keyMap <- distinct(keyMap)
         }
@@ -532,7 +546,7 @@ for(db in annot_names) {
 
         # Get annotation descriptions from external sources
 
-        annot_df <- get_annotation_descriptions(db_name)
+        annot_df <- get_annotation_descriptions(funcat_name)
 
 
         #####################################################
@@ -544,10 +558,10 @@ for(db in annot_names) {
             metaG_physeq <- make_profile_files(keys=keyMap,
                                                profile=metaG_norm_profile,
                                                file_label="FA",
-                                               database=db_name,
+                                               database=funcat_name,
                                                annotations=annot_df,
                                                metadata=metadata_df,
-                                               weights=genome_weights)
+                                               weights=metaG_genome_weights)
         }
 
         # metaT or metaG_metaT
@@ -555,10 +569,10 @@ for(db in annot_names) {
             metaT_physeq <- make_profile_files(keys=keyMap,
                                                profile=metaT_norm_profile,
                                                file_label="FT",
-                                               database=db_name,
+                                               database=funcat_name,
                                                annotations=annot_df,
                                                metadata=metadata_df,
-                                               weights=genome_weights)
+                                               weights=metaT_genome_weights)
         }
 
         # metaG_metaT
@@ -566,10 +580,10 @@ for(db in annot_names) {
             FE_physeq <- make_profile_files(keys=keyMap,
                                                profile=metaT_norm_profile,
                                                file_label="FT",
-                                               database=db_name,
+                                               database=funcat_name,
                                                annotations=annot_df,
                                                metadata=metadata_df,
-                                               weights=genome_weights)
+                                               weights=metaT_genome_weights)
             # Expression -
             function_ids <- taxa_names(metaG_physeq)
             metaG_values <- as.data.frame(otu_table(metaG_physeq))
@@ -590,7 +604,7 @@ for(db in annot_names) {
                                                       dplyr::select(Funct, everything())
 
             function_expression_norm_desc <- right_join(annot_df, function_expression_norm, by='Funct')
-            fwrite(function_expression_norm_desc, file=paste0(integration_dir, '/FE.', db_name ,'.tsv'), sep='\t', row.names = F, quote = F)
+            fwrite(function_expression_norm_desc, file=paste0(output_dir, '/FE.', funcat_name ,'.tsv'), sep='\t', row.names = F, quote = F)
 
             # Delete data
             rm(dbMap, keyMap_funct, singleKeys,
@@ -613,7 +627,7 @@ for(db in annot_names) {
             FE_physeq <- phyloseq(otu_table(as.matrix(function_expression_norm), taxa_are_rows = T),
                                                    tax_table(as.matrix(FE_annot_desc)),
                                                    samp)
-            saveRDS(FE_physeq, file = paste0(phyloseq_dir, '/FE.', db_name ,'.rds'))
+            saveRDS(FE_physeq, file = paste0(phyloseq_dir, '/FE.', funcat_name ,'.rds'))
         }
 
 
@@ -623,17 +637,17 @@ for(db in annot_names) {
 
         # PCA - metaG ####
         if (omics %like% 'metaG') {
-            prepare_PCA(metaG_physeq, type="abundance", database=db_name, color=main_factor)
+            prepare_PCA(metaG_physeq, type="abundance", database=funcat_name, color=main_factor)
         }
 
         # PCA - metaT ####
         if (omics %like% 'metaT') {
-            prepare_PCA(metaT_physeq, type="transcript", database=db_name, color=main_factor)
+            prepare_PCA(metaT_physeq, type="transcript", database=funcat_name, color=main_factor)
         }
 
         # PCA - GE ####
         if (omics == 'metaG_metaT') {
-            prepare_PCA(FE_physeq, type="expression", database=db_name, color=main_factor)
+            prepare_PCA(FE_physeq, type="expression", database=funcat_name, color=main_factor)
         }
 
         # Create df to plot number of genes and functions ####
@@ -643,7 +657,7 @@ for(db in annot_names) {
                         as.data.frame(stringsAsFactors = F) %>%
                         dplyr::filter(Funct != 'Unknown') %>%
                         nrow()
-            ga_fa_df <- rbind(ga_fa_df, c(db_name, n_row, 'Functions'))
+            ga_fa_df <- rbind(ga_fa_df, c(funcat_name, n_row, 'Functions'))
         }
         if (!is.null(gt_ft_df)) {
             x <- metaT_physeq
@@ -651,7 +665,7 @@ for(db in annot_names) {
                         as.data.frame(stringsAsFactors = F) %>%
                         dplyr::filter(Funct != 'Unknown') %>%
                         nrow()
-            gt_ft_df <- rbind(gt_ft_df, c(db_name, n_row, 'Functions'))
+            gt_ft_df <- rbind(gt_ft_df, c(funcat_name, n_row, 'Functions'))
         }
         if (!is.null(ge_fe_df)) {
             x <- FE_physeq
@@ -659,31 +673,27 @@ for(db in annot_names) {
                         as.data.frame(stringsAsFactors = F) %>%
                         dplyr::filter(Funct != 'Unknown') %>%
                         nrow()
-            ge_fe_df <- rbind(ge_fe_df, c(db_name, n_row, 'Functions'))
+            ge_fe_df <- rbind(ge_fe_df, c(funcat_name, n_row, 'Functions'))
         }
 
-        # Delete data
-        rm(metaG_physeq, metaT_physeq, FE_physeq)
-
-        message(format(Sys.time(), digits=0), " - ", db, " finished!")
+        message(format(Sys.time(), digits=0), " - ", funcat_name, " finished!")
 
     } else {
         # create .tsv, .rds, .pdf
-        file.create(paste0(integration_dir, '/FA.', db_name ,'.tsv'))
-        file.create(paste0(integration_dir, '/FT.', db_name ,'.tsv'))
-        file.create(paste0(integration_dir, '/FE.', db_name ,'.tsv'))
-        file.create(paste0(phyloseq_dir, 'FA.', db_name ,'.rds'))
-        file.create(paste0(phyloseq_dir, 'FT.', db_name ,'.rds'))
-        file.create(paste0(phyloseq_dir, 'FE.', db_name ,'.rds'))
-        file.create(paste0(visual_dir, 'FA.', db_name ,'.PCA.pdf'))
-        file.create(paste0(visual_dir, 'FT.', db_name ,'.PCA.pdf'))
-        file.create(paste0(visual_dir, 'FE.', db_name ,'.PCA.pdf'))
-        ge_fe_df <- rbind(ge_fe_df, c(db_name, 0, 'Functions'))
+        file.create(paste0(output_dir, '/FA.', funcat_name ,'.tsv'))
+        file.create(paste0(output_dir, '/FT.', funcat_name ,'.tsv'))
+        file.create(paste0(output_dir, '/FE.', funcat_name ,'.tsv'))
+        file.create(paste0(phyloseq_dir, 'FA.', funcat_name ,'.rds'))
+        file.create(paste0(phyloseq_dir, 'FT.', funcat_name ,'.rds'))
+        file.create(paste0(phyloseq_dir, 'FE.', funcat_name ,'.rds'))
+        file.create(paste0(visual_dir, 'FA.', funcat_name ,'.PCA.pdf'))
+        file.create(paste0(visual_dir, 'FT.', funcat_name ,'.PCA.pdf'))
+        file.create(paste0(visual_dir, 'FE.', funcat_name ,'.PCA.pdf'))
+        ge_fe_df <- rbind(ge_fe_df, c(funcat_name, 0, 'Functions'))
     }
 
     # Free memory
     gc()
-}
 
 #####################################
 # Write out feature count statistics
@@ -691,10 +701,23 @@ for(db in annot_names) {
 
 print('#################################### FEATURE COUNTS  ####################################')#####
 
+# Write counts
+if (!is.null(ga_fa_df)) {
+    fwrite(ga_fa_df, file=paste0(output_dir, '/GA_FA_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
+}
+
+if (!is.null(gt_ft_df)) {
+    fwrite(gt_ft_df, file=paste0(output_dir, '/GT_FT_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
+}
+
+if (!is.null(ge_fe_df)) {
+    fwrite(ge_fe_df, file=paste0(output_dir, '/GE_FE_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
+}
+
 # Plot counts
 plot_feature_stats <- function(count_df, file_name) {
-    fwrite(count_df, file=paste0(integration_dir, '/', file_name, '.tsv'), sep='\t', row.names = F, quote = F)
-    count_df<- as.data.frame(fread(paste0(integration_dir, '/', file_name, '.tsv'), header=T), stringsAsFactors = F, row.names = T)
+    fwrite(count_df, file=paste0(output_dir, '/', file_name, '.tsv'), sep='\t', row.names = F, quote = F)
+    count_df<- as.data.frame(fread(paste0(output_dir, '/', file_name, '.tsv'), header=T), stringsAsFactors = F, row.names = T)
     count_df$feature_n <- as.numeric(count_df$feature_n)
     feature_order <- count_df$DB[order(count_df$feature_n)]
     count_df$DB <- factor(count_df$DB, levels=feature_order)
@@ -708,19 +731,6 @@ plot_feature_stats <- function(count_df, file_name) {
 
     )
     dev.off()
-}
-
-# Write counts
-if (!is.null(ga_fa_df)) {
-    plot_feature_stats(ga_fa_df, 'GA_FA_features')
-}
-
-if (!is.null(gt_ft_df)) {
-    plot_feature_stats(gt_ft_df, 'GT_FT_features')
-}
-
-if (!is.null(ge_fe_df)) {
-    plot_feature_stats(ge_fe_df, 'GE_FE_features')
 }
 
 print('done!')
