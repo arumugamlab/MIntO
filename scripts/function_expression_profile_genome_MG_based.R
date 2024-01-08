@@ -714,23 +714,4 @@ if (!is.null(ge_fe_df)) {
     fwrite(ge_fe_df, file=paste0(output_dir, '/GE_FE_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
 }
 
-# Plot counts
-plot_feature_stats <- function(count_df, file_name) {
-    fwrite(count_df, file=paste0(output_dir, '/', file_name, '.tsv'), sep='\t', row.names = F, quote = F)
-    count_df<- as.data.frame(fread(paste0(output_dir, '/', file_name, '.tsv'), header=T), stringsAsFactors = F, row.names = T)
-    count_df$feature_n <- as.numeric(count_df$feature_n)
-    feature_order <- count_df$DB[order(count_df$feature_n)]
-    count_df$DB <- factor(count_df$DB, levels=feature_order)
-
-    pdf(paste0(visual_dir,'/', file_name, '.pdf'),width=6,height=5,paper="special" )
-    print(ggplot(data=count_df, aes(x=DB, y=feature_n)) +
-          geom_bar(stat="identity")+ theme_minimal()+
-          facet_wrap(feature~., scales= "free") + labs(y='Number of features', x='')+
-          theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))+
-          geom_text(aes(label=feature_n), position=position_dodge(width=0.9), vjust=-0.25, size = 3)
-
-    )
-    dev.off()
-}
-
 print('done!')
