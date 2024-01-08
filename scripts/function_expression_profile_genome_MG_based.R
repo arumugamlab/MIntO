@@ -514,186 +514,186 @@ profiles_annot_norm_df_sub <- profiles_annot_norm_df_sub %>%
 rm(filter_profile)
 
 
-    # Get entries for this funcat_name
-    dbMap <- profiles_annot_norm_df_sub %>%
-                dplyr::select(c(coord, all_of(funcat_name))) %>%
-                filter(!is.na(!!as.symbol(funcat_name)) & !!as.symbol(funcat_name) != "" & !!as.symbol(funcat_name) != "-")
+# Get entries for this funcat_name
+dbMap <- profiles_annot_norm_df_sub %>%
+            dplyr::select(c(coord, all_of(funcat_name))) %>%
+            filter(!is.na(!!as.symbol(funcat_name)) & !!as.symbol(funcat_name) != "" & !!as.symbol(funcat_name) != "-")
 
-    if (dim(dbMap)[1] > 0) {
+if (dim(dbMap)[1] > 0) {
 
-        message(format(Sys.time(), digits=0), " - ", funcat_name, " started")
+    message(format(Sys.time(), digits=0), " - ", funcat_name, " started")
 
-        ################################################
-        # Prepare annotations and their descriptions
-        ################################################
+    ################################################
+    # Prepare annotations and their descriptions
+    ################################################
 
-        # Replicate the gene annotation table by having N rows for gene with N annotations.
+    # Replicate the gene annotation table by having N rows for gene with N annotations.
 
-        singleKeys <- strsplit(dbMap[,2], split = "\\; |\\;|\\, |\\,")
-        keyMap <- data.frame(coord = rep(dbMap$coord, sapply(singleKeys, length)),
-                             Funct = unlist(singleKeys),
-                             stringsAsFactors = FALSE) %>%
-                     distinct()
+    singleKeys <- strsplit(dbMap[,2], split = "\\; |\\;|\\, |\\,")
+    keyMap <- data.frame(coord = rep(dbMap$coord, sapply(singleKeys, length)),
+                         Funct = unlist(singleKeys),
+                         stringsAsFactors = FALSE) %>%
+                 distinct()
 
-        # Since KEGG annotations can have map12345 and ko12345 for the same pathway,
-        # remove such redundancy.
-        if (funcat_name == "KEGG_Pathway"){
-            keyMap$Funct <- gsub('ko', 'map', keyMap$Funct)
-            keyMap <- distinct(keyMap)
-        }
-
-        keyMap_funct <- data.frame(Funct = c(unique(keyMap$Funct)))
-
-        # Get annotation descriptions from external sources
-
-        annot_df <- get_annotation_descriptions(funcat_name)
-
-
-        #####################################################
-        # Make profiles and write them to 'output' directory
-        #####################################################
-
-        # metaG or metaG_metaT
-        if (omics %like% "metaG") {
-            metaG_physeq <- make_profile_files(keys=keyMap,
-                                               profile=metaG_norm_profile,
-                                               file_label="FA",
-                                               database=funcat_name,
-                                               annotations=annot_df,
-                                               metadata=metadata_df,
-                                               weights=metaG_genome_weights)
-        }
-
-        # metaT or metaG_metaT
-        if (omics %like% "metaT") {
-            metaT_physeq <- make_profile_files(keys=keyMap,
-                                               profile=metaT_norm_profile,
-                                               file_label="FT",
-                                               database=funcat_name,
-                                               annotations=annot_df,
-                                               metadata=metadata_df,
-                                               weights=metaT_genome_weights)
-        }
-
-        # metaG_metaT
-        if (omics == 'metaG_metaT') {
-            FE_physeq <- make_profile_files(keys=keyMap,
-                                               profile=metaT_norm_profile,
-                                               file_label="FT",
-                                               database=funcat_name,
-                                               annotations=annot_df,
-                                               metadata=metadata_df,
-                                               weights=metaT_genome_weights)
-            # Expression -
-            function_ids <- taxa_names(metaG_physeq)
-            metaG_values <- as.data.frame(otu_table(metaG_physeq))
-            metaT_values <- as.data.frame(otu_table(metaT_physeq))
-            metaT_values <- metaT_values[match(rownames(metaT_values), rownames(metaT_values)),]
-
-            # Function Expression
-            function_expression_norm=(metaT_values)/(metaG_values)
-
-            # Get rid of rows with Inf or 0-sum
-            function_expression_norm <- as.data.frame(function_expression_norm %>%
-                                                      tibble::rownames_to_column('rownames') %>%
-                                                      dplyr::mutate_all(function(x) ifelse(is.infinite(x), NA, x)) %>%
-                                                      drop_na() %>%
-                                                      filter(rowSums(across(where(is.numeric), ~.x != 0))>0) %>%
-                                                      mutate(Funct = rownames) %>%
-                                                      tibble::column_to_rownames('rownames')) %>%
-                                                      dplyr::select(Funct, everything())
-
-            function_expression_norm_desc <- right_join(annot_df, function_expression_norm, by='Funct')
-            fwrite(function_expression_norm_desc, file=paste0(output_dir, '/FE.', funcat_name ,'.tsv'), sep='\t', row.names = F, quote = F)
-
-            # Delete data
-            rm(dbMap, keyMap_funct, singleKeys,
-             metaG_values, metaT_values)
-
-            #### phyloseq object - metaT relative to metaG -####
-
-            rownames(function_expression_norm) <- function_expression_norm$Funct
-            function_expression_norm$Funct <- NULL
-            #min(function_expression_norm[function_expression_norm >0 & !is.na(function_expression_norm)])
-
-            ## metadata
-            samp <- sample_data(metadata_df)
-            rownames(samp) <- samp[["sample_alias"]]
-
-            # taxa
-            FE_annot_desc <- subset(function_expression_norm_desc, select=c("Funct","Description"))
-            rownames(FE_annot_desc) <- FE_annot_desc$Funct
-
-            FE_physeq <- phyloseq(otu_table(as.matrix(function_expression_norm), taxa_are_rows = T),
-                                                   tax_table(as.matrix(FE_annot_desc)),
-                                                   samp)
-            saveRDS(FE_physeq, file = paste0(phyloseq_dir, '/FE.', funcat_name ,'.rds'))
-        }
-
-
-        ###########
-        # Plot PCA
-        ###########
-
-        # PCA - metaG ####
-        if (omics %like% 'metaG') {
-            prepare_PCA(metaG_physeq, type="abundance", database=funcat_name, color=main_factor)
-        }
-
-        # PCA - metaT ####
-        if (omics %like% 'metaT') {
-            prepare_PCA(metaT_physeq, type="transcript", database=funcat_name, color=main_factor)
-        }
-
-        # PCA - GE ####
-        if (omics == 'metaG_metaT') {
-            prepare_PCA(FE_physeq, type="expression", database=funcat_name, color=main_factor)
-        }
-
-        # Create df to plot number of genes and functions ####
-        if (!is.null(ga_fa_df)) {
-            x <- metaG_physeq
-            n_row <- unclass(tax_table(x)) %>%
-                        as.data.frame(stringsAsFactors = F) %>%
-                        dplyr::filter(Funct != 'Unknown') %>%
-                        nrow()
-            ga_fa_df <- rbind(ga_fa_df, c(funcat_name, n_row, 'Functions'))
-        }
-        if (!is.null(gt_ft_df)) {
-            x <- metaT_physeq
-            n_row <- unclass(tax_table(x)) %>%
-                        as.data.frame(stringsAsFactors = F) %>%
-                        dplyr::filter(Funct != 'Unknown') %>%
-                        nrow()
-            gt_ft_df <- rbind(gt_ft_df, c(funcat_name, n_row, 'Functions'))
-        }
-        if (!is.null(ge_fe_df)) {
-            x <- FE_physeq
-            n_row <- unclass(tax_table(x)) %>%
-                        as.data.frame(stringsAsFactors = F) %>%
-                        dplyr::filter(Funct != 'Unknown') %>%
-                        nrow()
-            ge_fe_df <- rbind(ge_fe_df, c(funcat_name, n_row, 'Functions'))
-        }
-
-        message(format(Sys.time(), digits=0), " - ", funcat_name, " finished!")
-
-    } else {
-        # create .tsv, .rds, .pdf
-        file.create(paste0(output_dir, '/FA.', funcat_name ,'.tsv'))
-        file.create(paste0(output_dir, '/FT.', funcat_name ,'.tsv'))
-        file.create(paste0(output_dir, '/FE.', funcat_name ,'.tsv'))
-        file.create(paste0(phyloseq_dir, 'FA.', funcat_name ,'.rds'))
-        file.create(paste0(phyloseq_dir, 'FT.', funcat_name ,'.rds'))
-        file.create(paste0(phyloseq_dir, 'FE.', funcat_name ,'.rds'))
-        file.create(paste0(visual_dir, 'FA.', funcat_name ,'.PCA.pdf'))
-        file.create(paste0(visual_dir, 'FT.', funcat_name ,'.PCA.pdf'))
-        file.create(paste0(visual_dir, 'FE.', funcat_name ,'.PCA.pdf'))
-        ge_fe_df <- rbind(ge_fe_df, c(funcat_name, 0, 'Functions'))
+    # Since KEGG annotations can have map12345 and ko12345 for the same pathway,
+    # remove such redundancy.
+    if (funcat_name == "KEGG_Pathway"){
+        keyMap$Funct <- gsub('ko', 'map', keyMap$Funct)
+        keyMap <- distinct(keyMap)
     }
 
-    # Free memory
-    gc()
+    keyMap_funct <- data.frame(Funct = c(unique(keyMap$Funct)))
+
+    # Get annotation descriptions from external sources
+
+    annot_df <- get_annotation_descriptions(funcat_name)
+
+
+    #####################################################
+    # Make profiles and write them to 'output' directory
+    #####################################################
+
+    # metaG or metaG_metaT
+    if (omics %like% "metaG") {
+        metaG_physeq <- make_profile_files(keys=keyMap,
+                                           profile=metaG_norm_profile,
+                                           file_label="FA",
+                                           database=funcat_name,
+                                           annotations=annot_df,
+                                           metadata=metadata_df,
+                                           weights=metaG_genome_weights)
+    }
+
+    # metaT or metaG_metaT
+    if (omics %like% "metaT") {
+        metaT_physeq <- make_profile_files(keys=keyMap,
+                                           profile=metaT_norm_profile,
+                                           file_label="FT",
+                                           database=funcat_name,
+                                           annotations=annot_df,
+                                           metadata=metadata_df,
+                                           weights=metaT_genome_weights)
+    }
+
+    # metaG_metaT
+    if (omics == 'metaG_metaT') {
+        FE_physeq <- make_profile_files(keys=keyMap,
+                                           profile=metaT_norm_profile,
+                                           file_label="FT",
+                                           database=funcat_name,
+                                           annotations=annot_df,
+                                           metadata=metadata_df,
+                                           weights=metaT_genome_weights)
+        # Expression -
+        function_ids <- taxa_names(metaG_physeq)
+        metaG_values <- as.data.frame(otu_table(metaG_physeq))
+        metaT_values <- as.data.frame(otu_table(metaT_physeq))
+        metaT_values <- metaT_values[match(rownames(metaT_values), rownames(metaT_values)),]
+
+        # Function Expression
+        function_expression_norm=(metaT_values)/(metaG_values)
+
+        # Get rid of rows with Inf or 0-sum
+        function_expression_norm <- as.data.frame(function_expression_norm %>%
+                                                  tibble::rownames_to_column('rownames') %>%
+                                                  dplyr::mutate_all(function(x) ifelse(is.infinite(x), NA, x)) %>%
+                                                  drop_na() %>%
+                                                  filter(rowSums(across(where(is.numeric), ~.x != 0))>0) %>%
+                                                  mutate(Funct = rownames) %>%
+                                                  tibble::column_to_rownames('rownames')) %>%
+                                                  dplyr::select(Funct, everything())
+
+        function_expression_norm_desc <- right_join(annot_df, function_expression_norm, by='Funct')
+        fwrite(function_expression_norm_desc, file=paste0(output_dir, '/FE.', funcat_name ,'.tsv'), sep='\t', row.names = F, quote = F)
+
+        # Delete data
+        rm(dbMap, keyMap_funct, singleKeys,
+         metaG_values, metaT_values)
+
+        #### phyloseq object - metaT relative to metaG -####
+
+        rownames(function_expression_norm) <- function_expression_norm$Funct
+        function_expression_norm$Funct <- NULL
+        #min(function_expression_norm[function_expression_norm >0 & !is.na(function_expression_norm)])
+
+        ## metadata
+        samp <- sample_data(metadata_df)
+        rownames(samp) <- samp[["sample_alias"]]
+
+        # taxa
+        FE_annot_desc <- subset(function_expression_norm_desc, select=c("Funct","Description"))
+        rownames(FE_annot_desc) <- FE_annot_desc$Funct
+
+        FE_physeq <- phyloseq(otu_table(as.matrix(function_expression_norm), taxa_are_rows = T),
+                                               tax_table(as.matrix(FE_annot_desc)),
+                                               samp)
+        saveRDS(FE_physeq, file = paste0(phyloseq_dir, '/FE.', funcat_name ,'.rds'))
+    }
+
+
+    ###########
+    # Plot PCA
+    ###########
+
+    # PCA - metaG ####
+    if (omics %like% 'metaG') {
+        prepare_PCA(metaG_physeq, type="abundance", database=funcat_name, color=main_factor)
+    }
+
+    # PCA - metaT ####
+    if (omics %like% 'metaT') {
+        prepare_PCA(metaT_physeq, type="transcript", database=funcat_name, color=main_factor)
+    }
+
+    # PCA - GE ####
+    if (omics == 'metaG_metaT') {
+        prepare_PCA(FE_physeq, type="expression", database=funcat_name, color=main_factor)
+    }
+
+    # Create df to plot number of genes and functions ####
+    if (!is.null(ga_fa_df)) {
+        x <- metaG_physeq
+        n_row <- unclass(tax_table(x)) %>%
+                    as.data.frame(stringsAsFactors = F) %>%
+                    dplyr::filter(Funct != 'Unknown') %>%
+                    nrow()
+        ga_fa_df <- rbind(ga_fa_df, c(funcat_name, n_row, 'Functions'))
+    }
+    if (!is.null(gt_ft_df)) {
+        x <- metaT_physeq
+        n_row <- unclass(tax_table(x)) %>%
+                    as.data.frame(stringsAsFactors = F) %>%
+                    dplyr::filter(Funct != 'Unknown') %>%
+                    nrow()
+        gt_ft_df <- rbind(gt_ft_df, c(funcat_name, n_row, 'Functions'))
+    }
+    if (!is.null(ge_fe_df)) {
+        x <- FE_physeq
+        n_row <- unclass(tax_table(x)) %>%
+                    as.data.frame(stringsAsFactors = F) %>%
+                    dplyr::filter(Funct != 'Unknown') %>%
+                    nrow()
+        ge_fe_df <- rbind(ge_fe_df, c(funcat_name, n_row, 'Functions'))
+    }
+
+    message(format(Sys.time(), digits=0), " - ", funcat_name, " finished!")
+
+} else {
+    # create .tsv, .rds, .pdf
+    file.create(paste0(output_dir, '/FA.', funcat_name ,'.tsv'))
+    file.create(paste0(output_dir, '/FT.', funcat_name ,'.tsv'))
+    file.create(paste0(output_dir, '/FE.', funcat_name ,'.tsv'))
+    file.create(paste0(phyloseq_dir, 'FA.', funcat_name ,'.rds'))
+    file.create(paste0(phyloseq_dir, 'FT.', funcat_name ,'.rds'))
+    file.create(paste0(phyloseq_dir, 'FE.', funcat_name ,'.rds'))
+    file.create(paste0(visual_dir, 'FA.', funcat_name ,'.PCA.pdf'))
+    file.create(paste0(visual_dir, 'FT.', funcat_name ,'.PCA.pdf'))
+    file.create(paste0(visual_dir, 'FE.', funcat_name ,'.PCA.pdf'))
+    ge_fe_df <- rbind(ge_fe_df, c(funcat_name, 0, 'Functions'))
+}
+
+# Free memory
+gc()
 
 #####################################
 # Write out feature count statistics
