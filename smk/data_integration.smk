@@ -151,6 +151,13 @@ def integration_function_profiles():
             normalization = normalization,
             omics_prof = omics_prof,
             funct_opt = funct_opt),\
+    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_prof}_F{omics_prof}_features.pdf",
+            wd = working_dir,
+            omics = omics,
+            post_analysis_out = post_analysis_out,
+            identity = identity,
+            normalization = normalization,
+            omics_prof = omics_prof),\
     expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.rds",
             wd = working_dir,
             omics = omics,
@@ -324,13 +331,15 @@ def get_function_profile_integration_input(wildcards):
 
     return ret_dict
 
+# TODO: feature_counts are now split across files. Make a rule for combined file and making the plot.
 rule integration_function_profiles_MG_TPM:
     input:
         unpack(get_function_profile_integration_input)
     output:
-        tsv="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
+        abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
+        features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}_F{omics_prof}_features.{funcat}.tsv",
         physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.rds",
-        plots="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
+        pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
     wildcard_constraints:
         normalization='MG|TPM',
         omics_prof='A|E|T'
@@ -357,7 +366,7 @@ rule integration_function_profiles_MG_TPM:
         time (
             Rscript {script_dir}/function_expression_profile_genome_MG_based.R \
                     --threads {threads} \
-                    --outdir $(dirname {output.tsv}) \
+                    --outdir $(dirname {output.abundance}) \
                     --main-factor {main_factor} \
                     {params.weights_arg} \
                     --normalization {wildcards.normalization} \
@@ -366,4 +375,59 @@ rule integration_function_profiles_MG_TPM:
                     --funcat-desc {params.funcat_desc_file} \
                     --omics {wildcards.omics}
         ) &> {log}
+        """
+
+# Combine individual tsv files listing the number of features within each funcat
+# into a single data frame.
+
+rule combine_feature_counts:
+    input:
+        features=lambda wildcards: expand("{somewhere}/{something}_features.{funcat}.tsv",
+                                            somewhere=wildcards.somewhere,
+                                            something=wildcards.something,
+                                            funcat=funct_opt)
+    output:
+        combined="{somewhere}/{something}_features.tsv",
+    run:
+        import pandas as pd
+
+        # Read files and append
+        df_list = list()
+        for f in input.features:
+            df = pd.read_csv(f, comment='#', header=0, sep = "\t", memory_map=True)
+            df_list.append(df)
+        df = pd.concat(df_list, ignore_index=True, copy=False, sort=False)
+        df.to_csv(output.combined, sep = "\t", index = False)
+
+# Make a plot of number of features from each functional category.
+# It can make GA_FA, GT_FT, GE_FE, depending on what is being asked.
+
+rule make_feature_count_plot:
+    input:
+        tsv=rules.combine_feature_counts.output.combined
+    output:
+        pdf="{somewhere}/plots/{something}_features.pdf"
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml" #R
+    shell:
+        """
+        R --vanilla --silent --no-echo <<___EOF___
+        library(data.table)
+        library(ggplot2)
+        library(dplyr)
+
+        count_df <- fread('{input.tsv}', header=T) %>%
+                        as.data.frame(stringsAsFactors = F, row.names = T) %>%
+                        distinct() %>%
+                        mutate(DB = reorder(DB, feature_n))
+
+        pdf('{output.pdf}', width=6, height=5, paper="special" )
+        print(ggplot(data=count_df, aes(x=DB, y=feature_n)) +
+                geom_bar(stat="identity")+ theme_minimal()+
+                facet_wrap(feature~., scales= "free") + labs(y='Number of features', x='')+
+                theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))+
+                geom_text(aes(label=feature_n), position=position_dodge(width=0.9), vjust=-0.25, size = 3)
+             )
+        dev.off()
+___EOF___
         """
