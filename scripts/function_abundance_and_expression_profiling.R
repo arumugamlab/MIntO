@@ -26,7 +26,6 @@ opt_list <- list(
                 make_option("--outdir", type="character", default=NULL, help="output directory to write normalized counts", metavar="directory"),
                 make_option("--omics", type="character", default=NULL, help="which omics to summarize: metaG, metaT or metaG_metaT", metavar="string"),
                 make_option("--normalization", type="character", default=NULL, help="normalization type: MG or TPM"),
-                make_option("--identity", type="integer", default=NULL, help="percent identity used while mapping reads to function DB"),
                 make_option("--funcat-name", type="character", default=NULL, help="name of functional category to summarize: e.g., eggNOG_OGs, dbCAN.EC", metavar="string"),
                 make_option("--funcat-desc", type="character", default=NULL, help="file containing descriptions of functions", metavar="file"),
                 make_option("--genome-weights-metaG", type="character", default=NULL, help="file with metaG profiles", metavar="file"),
@@ -36,14 +35,11 @@ opt_list <- list(
 opts <- parse_args(OptionParser(option_list=opt_list))
 
 
-args = commandArgs(trailingOnly=TRUE)
-
 ##########################  ** Load arguments **  ##########################
 threads_n <- opts$threads
 output_dir <- opts$outdir
 omics <- opts$omics #'metaG_metaT'
 normalization <- opts$normalization
-identity <- opts$identity
 funcat_name  <- opts[['funcat-name']]
 funcat_desc_file <- opts[['funcat-desc']]
 main_factor <- opts[['main-factor']]
@@ -81,10 +77,6 @@ if (normalization == 'MG') {
     }
 }
 
-
-#annot_file <- args[8]
-#metadata_file <- args[9]
-#input_file <- args[10]
 
 setDTthreads(threads = as.numeric(threads_n))
 set.seed(1234)

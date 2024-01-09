@@ -398,7 +398,6 @@ rule integration_function_profiles:
                     --main-factor {main_factor} \
                     {params.weights_arg} \
                     --normalization {wildcards.normalization} \
-                    --identity {wildcards.identity} \
                     --funcat-name {wildcards.funcat} \
                     --funcat-desc {params.funcat_desc_file} \
                     --omics {wildcards.omics}
