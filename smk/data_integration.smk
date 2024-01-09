@@ -317,32 +317,6 @@ rule merge_absolute_counts_TPM:
         time (python3 {script_dir}/gene_abundances_merge_raw_profiles.py {threads} {resources.mem} {working_dir} {omics} {post_analysis_TPM} {normalization} {identity}) &> {log}
         """
 
-def get_function_profile_integration_input(wildcards):
-    gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds".format(
-            wd = wildcards.wd,
-            omics = wildcards.omics,
-            post_analysis_out = wildcards.post_analysis_out,
-            identity = wildcards.identity,
-            omics_prof = wildcards.omics_prof,
-            normalization = wildcards.normalization)
-    ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
-
-    # Add genome-weights if it is MG-normalization
-    genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.relabund.prop.genome.txt",
-            wd = working_dir,
-            omics = ['metaG', 'metaT'],
-            post_analysis_out = wildcards.post_analysis_out,
-            identity = wildcards.identity,
-            omics_prof = wildcards.omics_prof,
-            normalization = wildcards.normalization)
-    if (normalization == 'MG'):
-        if (wildcards.omics.find('metaG') != -1):
-            ret_dict['metaG_profile'] = genome_profiles[0]
-        if (wildcards.omics.find('metaT') != -1):
-            ret_dict['metaT_profile'] = genome_profiles[1]
-
-    return ret_dict
-
 #################################################################
 # Quantify functions by functional category of interest.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -372,49 +346,147 @@ def get_function_profile_integration_input(wildcards):
 #    If each species in the community carries the functional unit and expresses it at the same level as marker genes, it will be 1.0
 #################################################################
 
-rule integration_function_profiles:
-    input:
-        unpack(get_function_profile_integration_input)
-    output:
-        abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
-        features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}_F{omics_prof}_features.{funcat}.tsv",
-        physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.rds",
-        pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
-    wildcard_constraints:
-        normalization='MG|TPM',
-        omics_prof='A|E|T'
-    params:
-        funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
-                                                    location=minto_dir,
-                                                    name=wildcards.funcat.replace("kofam_", "KEGG_").replace("merged_", "KEGG_")),
-        weights_arg = lambda wildcards, input: "" if (wildcards.normalization == 'TPM') \
-                                               else (f"--genome-weights-metaG {input.metaG_profile}" if (wildcards.omics == 'metaG') \
-                                                     else (f"--genome-weights-metaT {input.metaT_profile}" if (wildcards.omics == 'metaT') \
-                                                           else f"--genome-weights-metaG {input.metaG_profile} --genome-weights-metaT {input.metaT_profile}" \
-                                                          ) \
-                                                    )
-    log:
-        "{wd}/logs/output/data_integration/{post_analysis_out}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_prof}.{funcat}.log"
-    resources:
-        mem=config["MERGE_memory"]
-    threads: config["MERGE_threads"]
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml" #R
-    shell:
+# We replicate it 2 times, so that FA/FT, FA+FT+FE are handled separately
+# This is because FE mode generates FA+FT+FE; but FA/FT generate only FA/FT resp.
+# And to avoid complications, we define the rules conditionally.
+
+if omics == 'metaG_metaT':
+    def get_function_profile_integration_input_FE(wildcards):
+        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/GE.rds".format(
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                post_analysis_out = wildcards.post_analysis_out,
+                identity = wildcards.identity,
+                normalization = wildcards.normalization)
+        ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
+
+        # Add genome-weights if it is MG-normalization
+        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.relabund.prop.genome.txt",
+                wd = working_dir,
+                omics = ['metaG', 'metaT'],
+                post_analysis_out = wildcards.post_analysis_out,
+                identity = wildcards.identity,
+                normalization = wildcards.normalization)
+        if (normalization == 'MG'):
+            if (wildcards.omics.find('metaG') != -1):
+                ret_dict['metaG_profile'] = genome_profiles[0]
+            if (wildcards.omics.find('metaT') != -1):
+                ret_dict['metaT_profile'] = genome_profiles[1]
+
+        return ret_dict
+
+    rule integration_function_profiles_FE:
+        input:
+            unpack(get_function_profile_integration_input_FE)
+        output:
+            abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FE.{funcat}.tsv",
+            features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GE_FE_features.{funcat}.tsv",
+            physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FE.{funcat}.rds",
+            pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FE.{funcat}.PCA.pdf",
+            FA_abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FA.{funcat}.tsv",
+            FA_features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GA_FA_features.{funcat}.tsv",
+            FA_physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FA.{funcat}.rds",
+            FA_pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FA.{funcat}.PCA.pdf",
+            FT_abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FT.{funcat}.tsv",
+            FT_features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GT_FT_features.{funcat}.tsv",
+            FT_physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FT.{funcat}.rds",
+            FT_pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FT.{funcat}.PCA.pdf",
+        wildcard_constraints:
+            normalization='MG|TPM',
+        params:
+            funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
+                                                        location=minto_dir,
+                                                        name=wildcards.funcat.replace("kofam_", "KEGG_").replace("merged_", "KEGG_")),
+            weights_arg = lambda wildcards, input: "" if (wildcards.normalization == 'TPM') else f"--genome-weights-metaG {input.metaG_profile} --genome-weights-metaT {input.metaT_profile}"
+        log:
+            "{wd}/logs/output/data_integration/{post_analysis_out}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.FE.{funcat}.log"
+        resources:
+            mem=config["MERGE_memory"]
+        threads: config["MERGE_threads"]
+        conda:
+            config["minto_dir"]+"/envs/r_pkgs.yml" #R
+        shell:
+            """
+            echo 'integration of function profiles'
+            time (
+                Rscript {script_dir}/function_abundance_and_expression_profiling.R \
+                        --threads {threads} \
+                        --outdir $(dirname {output.abundance}) \
+                        --main-factor {main_factor} \
+                        {params.weights_arg} \
+                        --normalization {wildcards.normalization} \
+                        --funcat-name {wildcards.funcat} \
+                        --funcat-desc {params.funcat_desc_file} \
+                        --omics {wildcards.omics}
+            ) &> {log}
         """
-        echo 'integration of function profiles'
-        time (
-            Rscript {script_dir}/function_abundance_and_expression_profiling.R \
-                    --threads {threads} \
-                    --outdir $(dirname {output.abundance}) \
-                    --main-factor {main_factor} \
-                    {params.weights_arg} \
-                    --normalization {wildcards.normalization} \
-                    --funcat-name {wildcards.funcat} \
-                    --funcat-desc {params.funcat_desc_file} \
-                    --omics {wildcards.omics}
-        ) &> {log}
-        """
+else :
+    def get_function_profile_integration_input_FA_FT(wildcards):
+        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds".format(
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                post_analysis_out = wildcards.post_analysis_out,
+                identity = wildcards.identity,
+                omics_prof = wildcards.omics_prof,
+                normalization = wildcards.normalization)
+        ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
+
+        # Add genome-weights if it is MG-normalization
+        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.relabund.prop.genome.txt",
+                wd = working_dir,
+                omics = ['metaG', 'metaT'],
+                post_analysis_out = wildcards.post_analysis_out,
+                identity = wildcards.identity,
+                normalization = wildcards.normalization)
+        if (normalization == 'MG'):
+            if (wildcards.omics.find('metaG') != -1):
+                ret_dict['metaG_profile'] = genome_profiles[0]
+            if (wildcards.omics.find('metaT') != -1):
+                ret_dict['metaT_profile'] = genome_profiles[1]
+
+        return ret_dict
+
+    rule integration_function_profiles_FA_FT:
+        input:
+            unpack(get_function_profile_integration_input_FA_FT)
+        output:
+            abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
+            features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}_F{omics_prof}_features.{funcat}.tsv",
+            physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.rds",
+            pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
+        wildcard_constraints:
+            normalization='MG|TPM',
+            omics_prof='A|T'
+        params:
+            funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
+                                                        location=minto_dir,
+                                                        name=wildcards.funcat.replace("kofam_", "KEGG_").replace("merged_", "KEGG_")),
+            weights_arg = lambda wildcards, input: "" if (wildcards.normalization == 'TPM') \
+                                                   else (f"--genome-weights-metaG {input.metaG_profile}" if (wildcards.omics == 'metaG') \
+                                                         else f"--genome-weights-metaT {input.metaT_profile}" \
+                                                        )
+        log:
+            "{wd}/logs/output/data_integration/{post_analysis_out}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_prof}.{funcat}.log"
+        resources:
+            mem=config["MERGE_memory"]
+        threads: config["MERGE_threads"]
+        conda:
+            config["minto_dir"]+"/envs/r_pkgs.yml" #R
+        shell:
+            """
+            echo 'integration of function profiles'
+            time (
+                Rscript {script_dir}/function_abundance_and_expression_profiling.R \
+                        --threads {threads} \
+                        --outdir $(dirname {output.abundance}) \
+                        --main-factor {main_factor} \
+                        {params.weights_arg} \
+                        --normalization {wildcards.normalization} \
+                        --funcat-name {wildcards.funcat} \
+                        --funcat-desc {params.funcat_desc_file} \
+                        --omics {wildcards.omics}
+            ) &> {log}
+            """
 
 # Combine individual tsv files listing the number of features within each funcat
 # into a single data frame.
