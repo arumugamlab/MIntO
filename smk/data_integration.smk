@@ -392,7 +392,7 @@ rule integration_function_profiles:
         """
         echo 'integration of function profiles'
         time (
-            Rscript {script_dir}/function_expression_profile_genome_MG_based.R \
+            Rscript {script_dir}/function_abundance_and_expression_profiling.R \
                     --threads {threads} \
                     --outdir $(dirname {output.abundance}) \
                     --main-factor {main_factor} \
