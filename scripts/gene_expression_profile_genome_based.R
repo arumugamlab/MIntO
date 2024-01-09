@@ -7,20 +7,6 @@
 #
 # '''
 
-args = commandArgs(trailingOnly=TRUE)
-
-##########################  ** Load arguments **  ##########################
-threads_n <- args[1]
-integration_dir <- args[2]
-omics <- args[3] #'metaG_metaT'
-annot_file <- args[4]
-metadata_file <- args[5]
-input_file <- args[6]
-annot_arg  <- args[7]
-annot_names <- unlist(strsplit(annot_arg, split = "\\,")[[1]])
-main_factor <- args[8]
-print(annot_names)
-
 ##########################  ** Load libraries **  ##########################
 library(dplyr)
 library(data.table)
@@ -29,8 +15,32 @@ library(KEGGREST)
 library(tibble)
 library(stringr)
 library(purrr)
+library(optparse)
 
-#library(unix)
+# Parse command line arguments
+opt_list <- list(
+                make_option("--threads", type="integer", default=4, help="number of threads [default: %default]"),
+                make_option("--outdir", type="character", default=NULL, help="output directory to write normalized counts", metavar="directory"),
+                make_option("--omics", type="character", default=NULL, help="which omics to summarize: metaG, metaT or metaG_metaT", metavar="string"),
+                make_option("--funcat-names", type="character", default=NULL, help="comma-delimited list of functional categores to summarize: e.g., 'eggNOG_OGs,dbCAN.EC,KEGG_KO'", metavar="string"),
+                make_option("--gene-profile", type="character", default=NULL, help="file containing gene profiles in metaG and/or metaT space", metavar="file"),
+                make_option("--annotation", type="character", default=NULL, help="file with gene annotations", metavar="file"),
+                make_option("--metadata", type="character", default=NULL, help="file with sample metadata", metavar="file"),
+                make_option("--main-factor", type="character", default=NULL, help="main factor variable to use when plotting data", metavar="string")
+                )
+opts <- parse_args(OptionParser(option_list=opt_list))
+
+threads_n <- opts$threads
+output_dir <- opts$outdir
+omics <- opts$omics #'metaG_metaT'
+annot_file <- opts$annotation
+metadata_file <- opts$metadata
+input_file <- opts[['gene-profile']]
+funcat_args  <- opts[['funcat-names']]
+main_factor <- opts[['main-factor']]
+
+funcat_names <- unlist(strsplit(funcat_args, split = "\\,")[[1]])
+print(funcat_names)
 
 setDTthreads(threads = threads_n)
 set.seed(1234)
@@ -125,11 +135,13 @@ prepare_PCA <- function(physeq, type, color) {
 profiles_tpm <- input_file
 
 print('#################################### Paths ####################################')
+
 # Generate output directories ####
-dir.create(file.path(integration_dir), showWarnings = FALSE)
-visual_dir=paste0(integration_dir,'/plots/')
+
+dir.create(file.path(output_dir), showWarnings = FALSE)
+visual_dir=paste0(output_dir, '/plots/')
 dir.create(file.path(visual_dir), showWarnings = FALSE)
-phyloseq_dir=paste0(integration_dir,'/phyloseq_obj/')
+phyloseq_dir=paste0(output_dir, '/phyloseq_obj/')
 dir.create(file.path(phyloseq_dir), showWarnings = FALSE)
 
 print('#################################### gene profiles ####################################')
@@ -142,7 +154,7 @@ print('#################################### gene profiles ######################
 # Replace , by ; in annotation IDs
 gene_annot_df <- as.data.frame(fread(annot_file,header=T), stringsAsFactors = F, row.names = T) %>%
                         mutate(across(-ID, ~ gsub("\\,", "\\;", .))) %>%
-                        select(ID, all_of(unique(annot_names))) %>%
+                        select(ID, all_of(unique(funcat_names))) %>%
                         add_row(ID = 'Unknown')
 
 # Read the TPM/MG normalized profile csv file for this omics
@@ -195,7 +207,7 @@ if ( sum(bed_colnames %in% colnames(gene_profile_df)) == length(bed_colnames)) {
 }
 
 # Write annotations into csv file
-fwrite(gene_annot_df, file=paste0(integration_dir, '/Annotations.csv'), row.names = F, quote = F)
+fwrite(gene_annot_df, file=paste0(output_dir, '/Annotations.csv'), row.names = F, quote = F)
 
 # Free memory
 rm(gene_profile_df, gene_annot_df)
@@ -249,7 +261,7 @@ if (metadata_file != 'None'){
 }
 
 # Write GA profile data for metaG
-if (omics %like% 'metaG') {
+if (omics == 'metaG') {
     # Get profile
     metaG_tpm_profile_sub <- metaG_tpm_profile %>%
                                 select(all_of(samples_intersect)) %>%
@@ -257,7 +269,7 @@ if (omics %like% 'metaG') {
                                 dplyr::select(ID, everything())
 
     # Write csv file
-    fwrite(metaG_tpm_profile_sub, file=paste0(integration_dir, '/GA.csv'), row.names = F, quote = F)
+    fwrite(metaG_tpm_profile_sub, file=paste0(output_dir, '/GA.csv'), row.names = F, quote = F)
     metaG_tpm_profile_sub <- metaG_tpm_profile_sub %>%
                                 tibble::column_to_rownames('ID')
 
@@ -280,7 +292,7 @@ if (omics %like% 'metaG') {
 }
 
 # Write GT data for metaT
-if (omics %like% 'metaT') {
+if (omics == 'metaT') {
     # Get profile
     metaT_tpm_profile_sub <- metaT_tpm_profile %>%
                                 select(all_of(samples_intersect)) %>%
@@ -288,7 +300,7 @@ if (omics %like% 'metaT') {
                                 dplyr::select(ID, everything())
 
     # Write csv file
-    fwrite(metaT_tpm_profile_sub, file=paste0(integration_dir, '/GT.csv'), row.names = F, quote = F)
+    fwrite(metaT_tpm_profile_sub, file=paste0(output_dir, '/GT.csv'), row.names = F, quote = F)
     metaT_tpm_profile_sub <- metaT_tpm_profile_sub %>%
                                 tibble::column_to_rownames('ID')
 
@@ -316,6 +328,14 @@ if (omics == 'metaG_metaT'){
     ################################## GENE EXPRESSION  ##################################
     print('#################################### GENE EXPRESSION  ####################################')
 
+    # Get profiles
+    metaG_tpm_profile_sub <- metaG_tpm_profile %>%
+                                select(all_of(samples_intersect))
+
+    metaT_tpm_profile_sub <- metaT_tpm_profile %>%
+                                select(all_of(samples_intersect))
+
+
     # # Normalization
     # When metaG is 0, just get metaT value (replace metaG 0 values by 1) ####
     # We don't do this anymore. These will become NaN
@@ -329,12 +349,16 @@ if (omics == 'metaG_metaT'){
                                                dplyr::select(ID, everything())
 
     # Write csv file
-    fwrite(gene_expression_tpm_noinf, file=paste0(integration_dir, '/GE.csv'), row.names = F, quote = F)
+    fwrite(gene_expression_tpm_noinf, file=paste0(output_dir, '/GE.csv'), row.names = F, quote = F)
     gene_expression_tpm_noinf <- gene_expression_tpm_noinf %>%
                                                tibble::column_to_rownames('ID')
 
     # Write phyloseq
-    # 'samp' should be populated in either metaT already
+    if (is.null(metadata_df)) {
+        metadata_df <- data.frame(sample=names(gene_expression_tpm_noinf), group='control', sample_alias=names(gene_expression_tpm_noinf))
+    }
+    samp <- sample_data(metadata_df)
+    rownames(samp) <- samp$sample_alias
     GE_physeq <- phyloseq(otu_table(as.matrix(gene_expression_tpm_noinf), taxa_are_rows = T),
                                                      tax_table(as.matrix(gene_info_annotation_df)), samp)
     saveRDS(GE_physeq, file = paste0(phyloseq_dir, '/GE.rds'))

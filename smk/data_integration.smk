@@ -251,27 +251,31 @@ rule integration_merge_profiles:
         shutil.copy2('combined.txt', output.gene_abund_merge)
 
 ###############################################################################################
-# Generate gene expression profile
+# Generate gene profile
+# ~~~~~~~~~~~~~~~~~~~~~
+#
+# Generate one of {GA, GT, GE}.
+# These outputs need metaG, metaT, metaG_metaT, resp. as --omics arg for the R script.
+# So, we use param script_omics to figure that out.
+# When the main workflow needs GA/GT/GE because the main omics is 'metaG_metaT', this rule will
+# be run 3 times, once for each.
 ###############################################################################################
-# Change names to R scripts
-# what do to with annot file
 rule integration_gene_profiles:
     input:
-        gene_abund_merge=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv",
-                                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
+        gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv"
     output:
-        gene_abund_prof=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_letter}.csv",
-                                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_letter = omics_prof, normalization = normalization),
-        gene_abund_phyloseq=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_letter}.rds",
-                                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_letter = omics_prof, normalization = normalization),
-        gene_abund_plots=expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_letter}.PCA.pdf",
-                                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, omics_letter = omics_prof, normalization = normalization),
+        gene_abund_prof="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_alphabet}.csv",
+        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.rds",
+        gene_abund_plots="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     params:
-        annot_file={annot_file},
-        funct_opt= funct_opt_list
+        annot_file = annot_file,
+        metadata_file = metadata,
+        funcat_names = funct_opt_list,
+        script_omics = lambda wildcards: 'metaG' if wildcards.omics_alphabet == 'A' \
+                                         else ('metaT' if wildcards.omics_alphabet == 'T' \
+                                               else 'metaG_metaT')
     log:
-        "{wd}/logs/output/data_integration/{post_analysis_out}/integration_gene_profiles.{omics}.p{identity}.{normalization}.GX.log".format(
-                wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
+        "{wd}/logs/output/data_integration/{post_analysis_out}/integration_gene_profiles.{omics}.p{identity}.{normalization}.G{omics_alphabet}.log"
     resources:
         mem=25
     threads: config["MERGE_threads"]
@@ -280,7 +284,15 @@ rule integration_gene_profiles:
     shell:
         """
         time ( echo 'integration of gene profiles'
-            Rscript {script_dir}/gene_expression_profile_genome_based.R {threads} $(dirname {output.gene_abund_prof[0]}) {omics} {params.annot_file} {metadata} {input.gene_abund_merge} {params.funct_opt} {main_factor}
+            Rscript {script_dir}/gene_expression_profile_genome_based.R \
+                    --threads {threads} \
+                    --outdir $(dirname {output.gene_abund_prof}) \
+                    --main-factor {main_factor} \
+                    --annotation {params.annot_file} \
+                    --metadata {params.metadata_file} \
+                    --gene-profile {input.gene_abund_merge} \
+                    --funcat-names {params.funcat_names} \
+                    --omics {params.script_omics}
         ) &> {log}
         """
 
