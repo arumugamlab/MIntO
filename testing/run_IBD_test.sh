@@ -89,6 +89,10 @@ cp $MINTO_DIR/tutorial/build_hg18_subset.fna .
 
 # Run metaG and metaT steps
 
+echo "------------------------"
+echo "Running data processing:"
+echo "------------------------"
+
 OMICS="metaG"
 for OMICS in metaG metaT; do
   echo ""
@@ -161,29 +165,43 @@ done
 
 # Run integration
 
-echo -n "DATA_INTEGRATION - MAG, MG: "
-cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml $SNAKE_PARAMS >& integration.MAG.MG.metaGT.log"
-echo $cmd >> $COMMAND_LOG
-time (eval $cmd && echo "OK")
-sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml > data_integration.yaml.TPM
-echo -n "DATA_INTEGRATION - MAG, TPM: "
-cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.TPM $SNAKE_PARAMS >& integration.MAG.TPM.metaGT.log"
-echo $cmd >> $COMMAND_LOG
-time (eval $cmd && echo "OK")
+echo "-------------------------"
+echo "Running data integration:"
+echo "-------------------------"
 
-echo -n "DATA_INTEGRATION - refgenome, MG: "
-sed "s/map_reference: MAG/map_reference: reference_genome/" data_integration.yaml > data_integration.yaml.refgenome
-cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome $SNAKE_PARAMS >& integration.refgenome.MG.metaGT.log"
-echo $cmd >> $COMMAND_LOG
-time (eval $cmd && echo "OK")
-sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.refgenome > data_integration.yaml.refgenome.TPM
-echo -n "DATA_INTEGRATION - refgenome, TPM: "
-cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.TPM $SNAKE_PARAMS >& integration.refgenome.TPM.metaGT.log"
-echo $cmd >> $COMMAND_LOG
-time (eval $cmd && echo "OK")
+for OMICS in metaG_metaT metaG metaT; do
 
-echo -n "DATA_INTEGRATION - gene-catalog, TPM: "
-sed "s/map_reference: MAG/map_reference: genes_db/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM > data_integration.yaml.catalog.TPM
-cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.catalog.TPM $SNAKE_PARAMS >& integration.catalog.TPM.metaGT.log"
-echo $cmd >> $COMMAND_LOG
-time (eval $cmd && echo "OK")
+  echo ""
+  echo "------------------"
+  echo "Processing $OMICS:"
+  echo "------------------"
+
+  sed "s/omics: metaG_metaT/omics: $OMICS/" data_integration.yaml > data_integration.yaml.MG.$OMICS
+  echo -n "DATA_INTEGRATION - MAG, MG: "
+  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.MG.$OMICS $SNAKE_PARAMS >& integration.MAG.MG.$OMICS.log"
+  echo $cmd >> $COMMAND_LOG
+  time (eval $cmd && echo "OK")
+  sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.MG.$OMICS > data_integration.yaml.TPM.$OMICS
+  echo -n "DATA_INTEGRATION - MAG, TPM: "
+  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.TPM.$OMICS $SNAKE_PARAMS >& integration.MAG.TPM.$OMICS.log"
+  echo $cmd >> $COMMAND_LOG
+  time (eval $cmd && echo "OK")
+
+  echo -n "DATA_INTEGRATION - refgenome, MG: "
+  sed "s/map_reference: MAG/map_reference: reference_genome/" data_integration.yaml.MG.$OMICS > data_integration.yaml.refgenome.MG.$OMICS
+  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.MG.$OMICS $SNAKE_PARAMS >& integration.refgenome.MG.$OMICS.log"
+  echo $cmd >> $COMMAND_LOG
+  time (eval $cmd && echo "OK")
+  sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.refgenome.MG.$OMICS > data_integration.yaml.refgenome.TPM.$OMICS
+  echo -n "DATA_INTEGRATION - refgenome, TPM: "
+  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.TPM.$OMICS $SNAKE_PARAMS >& integration.refgenome.TPM.$OMICS.log"
+  echo $cmd >> $COMMAND_LOG
+  time (eval $cmd && echo "OK")
+
+  echo -n "DATA_INTEGRATION - gene-catalog, TPM: "
+  sed "s/map_reference: MAG/map_reference: genes_db/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
+  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.catalog.TPM.$OMICS $SNAKE_PARAMS >& integration.catalog.TPM.$OMICS.log"
+  echo $cmd >> $COMMAND_LOG
+  time (eval $cmd && echo "OK")
+
+done
