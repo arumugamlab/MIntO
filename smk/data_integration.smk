@@ -284,7 +284,7 @@ rule integration_gene_profiles:
     shell:
         """
         time ( echo 'integration of gene profiles'
-            Rscript {script_dir}/gene_expression_profile_genome_based.R \
+            Rscript {script_dir}/gene_abundance_and_expression_profiling.R \
                     --threads {threads} \
                     --outdir $(dirname {output.gene_abund_prof}) \
                     --main-factor {main_factor} \
