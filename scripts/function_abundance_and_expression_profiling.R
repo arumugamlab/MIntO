@@ -253,46 +253,6 @@ get_annotation_descriptions <- function(db_name) {
     return(annot_df)
 }
 
-make_profile_files_old <- function(keys, profile, file_label, database, annotations, metadata) {
-      counts_by_gene <- merge(keys, profile, by='coord', all=T)
-      counts_by_gene$coord <- NULL
-      counts_by_gene$ID_gene <- NULL
-      counts_by_gene$name <- NULL
-
-      # From count-per-gene, make count-per-function
-
-      counts_by_func <- counts_by_gene %>%
-                             replace_na(list(Funct = 'Unknown')) %>%
-                             mutate(Funct = ifelse(Funct == '-' | Funct == '', 'Unknown', Funct)) %>%
-                             dplyr::group_by(Funct) %>%
-                             dplyr::summarise(across(everything(),sum)) %>%
-                             as.data.frame(stringsAsFactors = F) %>%
-                             dplyr::select(Funct, everything())
-      names(counts_by_func) <- gsub('X', '', names(counts_by_func))
-
-      counts_by_func_annotated <- merge(annotations, counts_by_func, by='Funct', all.y=T)
-      fwrite(counts_by_func_annotated, file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'), sep='\t', row.names = F, quote = F)
-
-      #### phyloseq object ####
-
-      rownames(counts_by_func) <- counts_by_func$Funct
-      counts_by_func$Funct <- NULL
-
-      ## metadata
-      samp <- sample_data(metadata_df)
-      rownames(samp) <- samp[["sample_alias"]]
-
-      # taxa
-      func_desc <- subset(counts_by_func_annotated, select=c("Funct", "Description"))
-      rownames(func_desc) <- func_desc$Funct
-
-      physeq <- phyloseq(otu_table(as.matrix(counts_by_func), taxa_are_rows = T),
-                                                     tax_table(as.matrix(func_desc)), samp)
-      saveRDS(physeq, file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.rds'))
-
-      return(physeq)
-}
-
 make_profile_files <- function(keys, profile, file_label, database, annotations, metadata, weights) {
 
       # Get abundance information by gene and select only relevant columns.
@@ -569,13 +529,6 @@ if (dim(dbMap)[1] > 0) {
 
     # metaG_metaT
     if (omics == 'metaG_metaT') {
-        FE_physeq <- make_profile_files(keys=keyMap,
-                                           profile=metaT_norm_profile,
-                                           file_label="FT",
-                                           database=funcat_name,
-                                           annotations=annot_df,
-                                           metadata=metadata_df,
-                                           weights=metaT_genome_weights)
         # Expression -
         function_ids <- taxa_names(metaG_physeq)
         metaG_values <- as.data.frame(otu_table(metaG_physeq))
