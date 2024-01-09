@@ -331,8 +331,36 @@ def get_function_profile_integration_input(wildcards):
 
     return ret_dict
 
-# TODO: feature_counts are now split across files. Make a rule for combined file and making the plot.
-rule integration_function_profiles_MG_TPM:
+#################################################################
+# Quantify functions by functional category of interest.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# Handles all different normalizations in one rule using one R script.
+#
+# Input:
+# ------
+#  Either TPM normalized or MG normalized gene abundances from metaG and/or metaT
+# Output:
+# -------
+#  Depending on the input, we will generate:
+#   FA: quantification of the function from metaG data
+#   FT: quantification of the function from metaT data
+#   FE: ratio FA/FT
+# TPM normalization:
+# ------------------
+#  Quantification is straightforward: sum up all genes mapped to a given functional unit (e.g. K12345).
+#  This also means that functional profiles do not sum to million anymore.
+#  Since each gene can map to multiple KEGG KO's for example, total might be over million.
+# MG normalization:
+# -----------------
+#  Quantification is a little bit more involved.
+#  Weighted sum of genes belonging to a given functional unit (e.g. K12345), weighted by the relative abundance of the MAG it belongs to.
+#  Weighting for metaG/metaT gene profiles uses relative abundance from metaG/metaT space, respectively.
+#  Interpretation:
+#    If each species in the community carries the functional unit and expresses it at the same level as marker genes, it will be 1.0
+#################################################################
+
+rule integration_function_profiles:
     input:
         unpack(get_function_profile_integration_input)
     output:
