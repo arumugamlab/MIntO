@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # '''
 # compile annotations from eggnog-mapper
@@ -7,6 +7,7 @@
 # '''
 
 use strict;
+use warnings;
 
 open FILE, $ARGV[0];
 
