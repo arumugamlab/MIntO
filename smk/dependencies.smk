@@ -590,20 +590,3 @@ rule mags_gen:
         """
         time (echo 'mags environment generated') &> {output}
         """
-
-rule mags_gen_py36:
-    output:
-        py36_env="{minto_dir}/logs/py36_env.log"
-    resources:
-        mem=download_memory
-    threads:
-        download_threads
-    log:
-        "{minto_dir}/logs/py36_env.log"
-    conda:
-        config["minto_dir"]+"/envs/py36_env.yml"
-    shell:
-        """
-        time (
-        echo 'Python 3.6 environment generated') &> {log}
-        """
