@@ -231,6 +231,8 @@ rule integration_merge_profiles:
                                             normalization = wildcards.normalization),
     output:
         gene_abund_merge="{wd}/output/data_integration/{map_reference}/{omics}.genes_abundances.p{identity}.{normalization}.csv"
+    shadow:
+        "minimal"
     log:
         "{wd}/logs/output/data_integration/{map_reference}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
     resources:
