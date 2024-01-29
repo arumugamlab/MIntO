@@ -963,6 +963,14 @@ BWA_threads: 10
 BWA_memory: 45
 
 # Alignment filtering
+# -------------------
+# msamtools_filter_length: Default 50 works well for ILLUMINA 2x150bp.
+#                          For shorter sequencing, e.g. 2x75bp, please reduce accordingly.
+# alignment_identity: Default 97 works well for MAGs that are dereped at 99%.
+#                     For refgenomes, modify it according to the derep level of your refgenomes.
+#                     For gene catalog, modify it to match the derep level of the gene catalog (usually 95%).
+# MIN_mapped_reads:   Default 2 is designed for low-to-medium sequencing depth.
+#                     Increase according to depth (e.g., set to 10 when depth is above 5Gb).
 msamtools_filter_length: 50
 alignment_identity: 97
 MIN_mapped_reads: 2
