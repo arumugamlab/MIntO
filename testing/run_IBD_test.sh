@@ -3,9 +3,10 @@
 # Which MIntO version are we using?
 # Use specific tag by "tags/<TAG>" or "main"
 # E.g.
-# MINTO_STABLE_VERSION="tags/2.0.0-beta.2"
+# MINTO_STABLE_VERSION="tags/2.0.0"
+# Developers use 'main' but users should stick to stable versions.
 
-MINTO_STABLE_VERSION="main"
+MINTO_STABLE_VERSION="tags/2.0.0"
 
 # Set MIntO and scratch locations
 
