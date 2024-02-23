@@ -520,7 +520,7 @@ rule collect_HQ_genomes:
 rule run_coverm:
     input:
         HQ_table=rules.collect_HQ_genomes.output.HQ_table,
-        checkm_total = rules.make_comprehensive_table.outputdiff 
+        checkm_total = rules.make_comprehensive_table.output 
     output:
         cluster_tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
     params:
