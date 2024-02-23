@@ -24,7 +24,7 @@ include: 'include/locations.smk'
 
 localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
             metaphlan_combine_profiles, motus_combine_profiles, motus_calc_motu, \
-            plot_taxonomic_profile, \
+            plot_taxonomic_profile, plot_sourmash_kmers 
 
 taxonomies_versioned = list()
 ilmn_samples = list()
@@ -257,6 +257,16 @@ def taxonomy_plot_output():
     results.append(plots)
     return(results)
 
+def smash_plot_output():
+    results = None
+    if omics == "metaG":
+        barplots = "{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.clusters.pdf".format(
+                        wd = working_dir,
+                        omics = omics,
+                        taxonomy_versioned = taxonomies_versioned[0])
+        results = [barplots]
+    return results
+
 def merged_sample_output():
     return()
 
@@ -283,6 +293,7 @@ rule all:
     input:
         merged_sample_output(),
         taxonomy_plot_output(),
+        smash_plot_output(),
         next_step_config_yml_output()
 
 # Get a sorted list of runs for a sample
@@ -688,17 +699,143 @@ rule plot_taxonomic_profile:
             ) >& {log}
         """
 
+###############################################################################################
+# Assembly-free sample comparison
+###############################################################################################
+
+# We are using sourmash to create weighted sketches from the host-free metaG fastq files.
+# If there are multiple runs for a sample, they will be included in the same sketch.
+
+rule sourmash_sketch:
+    input:
+        fwd=get_qc2_output_files_fwd_only,
+        rev=get_qc2_output_files_rev_only,
+    output:
+        temp("{wd}/{omics}/6-1a-smash/{sample}.sig.gz")
+    shadow:
+        "minimal"
+    params:
+        k=21,
+        scaled=100
+    resources:
+        mem=TAXA_memory
+    threads:
+        2
+    log:
+        "{wd}/logs/{omics}/6-1-smash/{sample}.sourmash.sketch.log"
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
+    shell:
+        """
+        time (sourmash sketch dna -p k={params.k},scaled={params.scaled},abund --name {wildcards.sample} -o {output} {input.fwd} {input.rev}) >& {log}
+        """
+
+rule sourmash_filter:
+    input:
+        "{wd}/{omics}/6-1a-smash/{sample}.sig.gz"
+    output:
+        "{wd}/{omics}/6-1-smash/{sample}.sig.gz"
+    shadow:
+        "minimal"
+    params:
+        k=21,
+        m=config['SOURMASH_min_abund'],
+        M=config['SOURMASH_max_abund']
+    resources:
+        mem=TAXA_memory
+    threads:
+        2
+    log:
+        "{wd}/logs/{omics}/6-1-smash/{sample}.sourmash.filter.log"
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
+    shell:
+        """
+        time ( sourmash signature filter -k {params.k} -m {params.m} -M {params.M} -o {output} {input} ) >& {log}
+        """
+
+rule sourmash_compare:
+    input:
+        expand("{wd}/{omics}/6-1-smash/{sample}.sig.gz",
+                wd = working_dir,
+                omics = omics,
+                sample = ilmn_samples)
+    output:
+        csv="{wd}/{omics}/6-1-smash/{omics}.sourmash_cosine_similarity.csv",
+        npy="{wd}/{omics}/6-1-smash/{omics}.sourmash_cosine_similarity.npy"
+    shadow:
+        "minimal"
+    params:
+        k=21
+    resources:
+        mem=TAXA_memory
+    threads:
+        TAXA_threads
+    log:
+        "{wd}/logs/{omics}/6-1-smash/{omics}.sourmash.compare.log"
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
+    shell:
+        """
+        time (sourmash compare -k {params.k} -p {threads} --csv {output.csv} -o {output.npy} {input}) >& {log}
+        """
+
+rule plot_sourmash_kmers:
+    input:
+        csv = expand("{wd}/{omics}/6-1-smash/{omics}.sourmash_cosine_similarity.csv",
+                wd = working_dir,
+                omics = omics),
+        npy = expand("{wd}/{omics}/6-1-smash/{omics}.sourmash_cosine_similarity.npy",
+                wd = working_dir,
+                omics = omics),
+        merged = "{wd}/output/6-taxa_profile/{omics}.{taxonomy_versioned}.merged_abundance_table.txt",
+    output:
+        barplot="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.clusters.pdf",
+        tsv="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.sourmash_clusters.tsv"
+    params:
+        cutoff=config['SOURMASH_cutoff'],
+        plot_args=plot_args_str        
+    threads:
+        1
+    log:
+        "{wd}/logs/{omics}/6-1-smash/{omics}.{taxonomy_versioned}.sourmash.plot.log"
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml" #R
+    shell:
+        """
+        time (\
+                Rscript {script_dir}/plot_6-1_sourmash.R --csv {input.csv} --cutoff {params.cutoff} --table {input.merged} --metadata {metadata} --outdir $(dirname {output.barplot}) {params.plot_args}
+            ) >& {log}
+        """
+
+rule dummy_sourmash_clusters:
+    input:
+        "{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.sourmash_clusters.tsv".format(
+                        wd = working_dir,
+                        omics = omics,
+                        taxonomy_versioned = taxonomies_versioned[0])
+    output:
+        "{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv"       
+    threads:
+        1
+    localrule: True
+    shell:
+        """
+        mv {input} {output}
+        """
+
 ##########################################################################################################
 # Generate configuration yml file for recovery of MAGs and taxonomic annotation step - assembly/coassembly
 ##########################################################################################################
 
 rule qc2_filter_config_yml_assembly:
     input:
-        expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
+        tax=expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
                 wd = working_dir,
                 omics = omics,
                 sample = ilmn_samples,
-                taxonomy = taxonomies_versioned)
+                taxonomy = taxonomies_versioned),
+        table="{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv".format(wd = working_dir, omics = omics)
     output:
         config_file="{wd}/{omics}/assembly.yaml"
     resources:
@@ -888,6 +1025,21 @@ metadata <- read.table('{metadata}', sep="\\t", header=TRUE) %>%
 write.table(metadata, file="", col.names=FALSE, row.names=FALSE, quote=FALSE, sep=": ")
 ___EOF___
 
+if [[ "metaG" == "{wildcards.omics}" ]]; then
+        R --vanilla --silent --no-echo >> {output} <<___EOF___
+library(dplyr)
+metadata <- read.table('{input.table}', sep="\\t", header=TRUE) %>%
+    as.data.frame() %>%
+    select(sample, clustering) %>%
+    group_by(clustering) %>%
+    filter(n() > 1) %>%
+    mutate(co_asm = paste(sample, collapse = "+")) %>%
+    select(-sample) %>%
+    slice(1) %>%
+    mutate(clustering=paste0("  SCL", clustering))
+write.table(metadata, file="", col.names=FALSE, row.names=FALSE, quote=FALSE, sep=": ")
+___EOF___
+fi
 
         echo {ilmn_samples} >& {log}
         """
