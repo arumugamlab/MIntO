@@ -519,7 +519,8 @@ rule collect_HQ_genomes:
 ## Run coverm on HQ genomes to create the .tsv file
 rule run_coverm:
     input:
-        HQ_table=rules.collect_HQ_genomes.output.HQ_table
+        HQ_table=rules.collect_HQ_genomes.output.HQ_table,
+        checkm_total = rules.make_comprehensive_table.outputdiff 
     output:
         cluster_tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
     params:
@@ -534,7 +535,7 @@ rule run_coverm:
         config["minto_dir"]+"/envs/MIntO_base.yml" # coverm
     shell:
         """
-        time (coverm cluster --genome-fasta-directory {params.HQ_folder} -x fna --ani 99 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch) &> {log}
+        time (coverm cluster --genome-fasta-directory {params.HQ_folder} --checkm2-quality-report {input.checkm_total} -x fna --cluster-method fastani --ani 99 --fragment-length 2500 --min-aligned-fraction 30 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch --precluster-ani 93) &> {log}
         """
 
 ## Run retrieving scored
