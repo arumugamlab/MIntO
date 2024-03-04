@@ -258,14 +258,15 @@ def taxonomy_plot_output():
     return(results)
 
 def smash_plot_output():
-    results = None
     if omics == "metaG":
         barplots = "{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.clusters.pdf".format(
                         wd = working_dir,
                         omics = omics,
                         taxonomy_versioned = taxonomies_versioned[0])
         results = [barplots]
-    return results
+        return(results)
+    else:
+        return()
 
 def merged_sample_output():
     return()
