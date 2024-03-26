@@ -3,7 +3,7 @@
 '''
 MAGs recovery and annotation
 
-1) Run the binning program  (avamb in VAE and AAE modes
+1) Run the binning program  (avamb in VAE and AAE modes)
 2) Run CheckM2 on all the data
 3) Copy the HQ genomes in a folder
 4) Run Coverm on HQ (why coverm, because it is easier to add a new binner in the case)
@@ -129,11 +129,10 @@ run_taxonomy="no"
 if config['RUN_TAXONOMY'] is None:
     print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
 elif config['RUN_TAXONOMY'] == True:
-    print('NOTE: MIntO is running taxonomy labelling of the unique MAGs using PhyloPhlAn3.')
     run_taxonomy = "yes"
 elif config['RUN_TAXONOMY'] == False:
     run_taxonomy = "no"
-    print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs using PhyloPhlAn3.')
+    print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs.')
 else:
     print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
 
@@ -155,15 +154,29 @@ if run_taxonomy == "yes":
     elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is True:
        taxonomy_db_folder = config["TAXONOMY_DATABASE_FOLDER"]
 
-    if config['TAXONOMY_DATABASE'] is None:
-        print('ERROR in ', config_path, ': TAXONOMY_DATABASE variable is empty. Please, complete ', config_path)
+    allowed = ('phylophlan', 'gtdb')
+    flags = [0 if x in allowed else 1 for x in config['TAXONOMY_NAME'].split(",")]
+    if sum(flags) == 0:
+        taxonomy=config["TAXONOMY_NAME"]
     else:
-        print('NOTE: MIntO is using ', config['TAXONOMY_DATABASE'], ' from ', taxonomy_db_folder)
+        print('ERROR in ', config_path, ': TAXONOMY_NAME variable is not correct. "TAXONOMY_NAME" variable should be phylophlan, gtdb, or combinations thereof.')
+
+    taxonomies_versioned = list()
+    taxonomies = taxonomy.split(",")
+    for t in taxonomies:
+        version="unknown"
+        if t == "phylophlan":
+            version=config["PHYLOPHLAN_TAXONOMY_VERSION"]
+        elif t == "gtdb":
+            version=config["GTDB_TAXONOMY_VERSION"]
+        taxonomies_versioned.append(t+"."+version)
+    print('NOTE: MIntO is running taxonomy labelling of the unique MAGs using [{}].'.format(", ".join(taxonomies_versioned)))
+
 
 def mags_recovery():
     result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt", wd = working_dir, omics = config['omics'])
     if (run_taxonomy == "yes"):
-        result.append(expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.tsv", wd = working_dir, omics = config['omics']))
+        result.append(expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.{taxonomy}.tsv", wd = working_dir, omics = config['omics'], taxonomy = taxonomies_versioned))
     return(result)
 
 rule all:
@@ -648,22 +661,19 @@ checkpoint copy_best_genomes:
         """
 
 ########################
-# PhyloPhlAn on a fna file
+# PhyloPhlAn on fna files
 ########################
 
-rule taxonomy_for_genome_collection:
+rule phylophlan_taxonomy_for_genome_collection:
     input:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes"
+        genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
+        db_folder=lambda wildcards: "{location}/{db_version}".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
     output:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.tsv"
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.tsv"
     shadow:
         "minimal"
     log:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.log"
-    params:
-        run_taxonomy = "{run_taxonomy}".format(run_taxonomy = run_taxonomy),
-        taxonomy_database_folder = "{taxonomy_db_folder}".format(taxonomy_db_folder = taxonomy_db_folder),
-        taxonomy_database = config["TAXONOMY_DATABASE"],
+        "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.log"
     resources:
         mem=config["TAXONOMY_memory"]
     threads:
@@ -673,7 +683,38 @@ rule taxonomy_for_genome_collection:
     shell:
         """
         time (
-        phylophlan_metagenomic -i {input} --nproc {threads} -d {params.taxonomy_database} -o taxonomy --database_folder {params.taxonomy_database_folder}
+        phylophlan_metagenomic -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {input.db_folder}
+        ) >& {log}
+        rsync -a taxonomy.tsv {output}
+        """
+
+########################
+# PhyloPhlAn on a fna file
+########################
+
+rule gtdb_taxonomy_for_genome_collection:
+    input:
+        genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
+        db_folder=lambda wildcards: "{location}/GTDB.{db_version}/taxonomy/gtdb_taxonomy.tsv".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+    output:
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.gtdb.{db_version}.tsv"
+    shadow:
+        "minimal"
+    log:
+        "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.gtdb.{db_version}.log"
+    resources:
+        mem=70
+    threads:
+        config["TAXONOMY_CPUS"]
+    conda:
+        config["minto_dir"]+"/envs/gtdb.yml"
+    shell:
+        """
+        time (
+        export GTDBTK_DATA_PATH={input.db_folder}
+        gtdbtk classify_wf --genome_dir {input.genomes} -x fna --out_dir tmp --cpus {threads} --skip_ani_screen
+        cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
+        cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
         ) >& {log}
         rsync -a taxonomy.tsv {output}
         """
