@@ -103,16 +103,6 @@ else:
             else:
                 print('ERROR in ', config_path, ': NAME_reference variable does not exit. Please, complete ', config_path)
 
-if config['BWAindex_threads'] is None:
-    print('ERROR in ', config_path, ': BWAindex_threads variable is empty. Please, complete ', config_path)
-elif type(config['BWAindex_threads']) != int:
-    print('ERROR in ', config_path, ': BWAindex_threads variable is not an integer. Please, complete ', config_path)
-
-if config['BWAindex_memory'] is None:
-    print('ERROR in ', config_path, ': BWAindex_memory variable is empty. Please, complete ', config_path)
-elif type(config['BWAindex_memory']) != int:
-    print('ERROR in ', config_path, ': BWAindex_memory variable is not an integer. Please, complete ', config_path)
-
 if config['BWA_threads'] is None:
     print('ERROR in ', config_path, ': BWA_threads variable is empty. Please, complete ', config_path)
 elif type(config['BWA_threads']) != int:
@@ -312,8 +302,10 @@ rule make_genome_def:
         grep '^>' {input} | sed 's^.*/^^' | sed 's/.fna.hdr-mod:>/\\t/' >> {output}
         """
 
+# Memory is based on number of MAGs - 50 MB per genome; increase by 50 MB each new attempt.
 rule genome_bwaindex:
     input:
+        fna=get_genome_fna,
         fasta_merge=rules.make_merged_genome_fna.output.fasta_merge
     output:
         "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.0123",
@@ -325,16 +317,15 @@ rule genome_bwaindex:
         "minimal"
     log:
         "{wd}/logs/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_bwaindex.log"
-    threads:
-        config["BWAindex_threads"]
+    threads: 2
     resources:
-        mem=config["BWAindex_memory"]
+        mem = lambda wildcards, input, attempt: 0.05*len(input.fna)*attempt
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
         time (\
-                bwa-mem2 index {input} -p {wildcards.post_analysis_out}
+                bwa-mem2 index {input.fasta_merge} -p {wildcards.post_analysis_out}
                 ls {wildcards.post_analysis_out}.*
                 rsync -a {wildcards.post_analysis_out}.* $(dirname {output[0]})/
             ) >& {log}
@@ -483,6 +474,9 @@ rule merge_msamtools_gene_mapping_profiles:
 ## TPM normalization: sequence depth and genes’ length
 ###############################################################################################
 
+# Memory is expected to be high, since gene catalogs are large.
+# Assume the equivalent of 2000 genomes to begin with.
+# So, start at 100 GB and increase by 100 GB each new attempt.
 rule gene_catalog_bwaindex:
     input:
         genes="{gene_catalog_path}/{gene_catalog_name}"
@@ -496,10 +490,9 @@ rule gene_catalog_bwaindex:
         "minimal"
     log:
         genes="{gene_catalog_path}/{gene_catalog_name}.bwaindex.log"
-    threads:
-        config["BWAindex_threads"]
+    threads: 2
     resources:
-        mem=config["BWAindex_memory"]
+        mem = lambda wildcards, attempt: attempt*100
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
