@@ -743,14 +743,15 @@ SCORE_METHOD: "checkm"
 # MAG taxonomy settings
 #
 RUN_TAXONOMY: yes
-TAXONOMY_NAME: phylophlan    # Currently, only phylophlan
+TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
 TAXONOMY_CPUS: 8
 TAXONOMY_memory: 5
+TAXONOMY_DATABASE_FOLDER: {minto_dir}/data
 
-# PHYLOPHLAN METAGENOMICS settings
+# Taxonomy database versions
 #
-TAXONOMY_DATABASE: SGB.Jul20
-TAXONOMY_DATABASE_FOLDER: {minto_dir}/data" > {output.config_file}
+PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jul20
+GTDB_TAXONOMY_VERSION: r214" > {output.config_file}
 
 ) >& {log}
         """

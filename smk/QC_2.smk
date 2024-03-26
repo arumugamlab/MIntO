@@ -1110,8 +1110,6 @@ ANNOTATION:
 #########################
 
 # BWA Alignment
-BWAindex_threads: 2
-BWAindex_memory: 10
 BWA_threads: 10
 BWA_memory: 45
 
