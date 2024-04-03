@@ -689,7 +689,7 @@ rule phylophlan_taxonomy_for_genome_collection:
         """
 
 ########################
-# PhyloPhlAn on a fna file
+# GTDB-tk on fna files
 ########################
 
 rule gtdb_taxonomy_for_genome_collection:
