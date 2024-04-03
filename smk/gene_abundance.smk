@@ -436,6 +436,8 @@ rule merge_msamtools_genome_mapping_profiles:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
+    resources:
+        mem=30
     run:
         import shutil
         combine_profiles(input.single, 'combined.txt', log, key_columns=['ID'])
@@ -475,8 +477,9 @@ rule merge_msamtools_gene_mapping_profiles:
 ###############################################################################################
 
 # Memory is expected to be high, since gene catalogs are large.
-# Assume the equivalent of 2000 genomes to begin with.
-# So, start at 100 GB and increase by 100 GB each new attempt.
+# Assume the equivalent of 1000 genomes to begin with.
+# It is roughly 50 MB per bacterial genome.
+# So, start at 50 GB and increase by 50 GB each new attempt.
 rule gene_catalog_bwaindex:
     input:
         genes="{gene_catalog_path}/{gene_catalog_name}"
@@ -492,7 +495,7 @@ rule gene_catalog_bwaindex:
         genes="{gene_catalog_path}/{gene_catalog_name}.bwaindex.log"
     threads: 2
     resources:
-        mem = lambda wildcards, attempt: attempt*100
+        mem = lambda wildcards, attempt: attempt*50
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
