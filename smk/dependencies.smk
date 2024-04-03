@@ -567,7 +567,7 @@ rule download_GTDB_db:
         """
         time (\
             cd {minto_dir}/data/
-            wget https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_r214_data.tar.gz
+            wget https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_r{gtdb_release_number}_data.tar.gz
             if [ $? -eq 0 ]; then
                 echo 'GTDB download: OK'
             else
