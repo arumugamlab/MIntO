@@ -19,6 +19,7 @@ script_dir=workflow.basedir+"/../scripts"
 metaphlan_index = 'mpa_vOct22_CHOCOPhlAnSGB_202212'
 metaphlan_version = '4.0.6'
 motus_version = '3.0.3'
+gtdb_release_number = '214'
 
 #args = sys.argv
 #print(args)
@@ -156,6 +157,12 @@ def fetchMGs_out():
         minto_dir=minto_dir)
     return(result)
 
+def gtdb_db_out():
+    result=expand("{minto_dir}/data/GTDB.r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv",
+        minto_dir=minto_dir,
+        gtdb_release_number=gtdb_release_number)
+    return(result)
+
 def all_env_out():
     files = ["vamb_env.log",
              "r_pkgs.log",
@@ -177,6 +184,7 @@ rule all:
         metaphlan_db_out(),
         motus_db_out(),
         fetchMGs_out(),
+        gtdb_db_out(),
         all_env_out()
 
 ###############################################################################################
@@ -539,6 +547,35 @@ rule download_fetchMGs:
                 echo 'fetchMGs download: FAIL'
             fi
             rm fetchMGs-1.2.tar.gz
+            ) &> {log}
+        """
+
+###############################################################################################
+# Download GTDB database
+###############################################################################################
+
+rule download_GTDB_db:
+    output:
+        tsv="{minto_dir}/data/GTDB.r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv"
+    resources:
+        mem=download_memory
+    threads:
+        download_threads
+    log:
+        "{minto_dir}/logs/GTDB.r{gtdb_release_number}.download.log"
+    shell:
+        """
+        time (\
+            cd {minto_dir}/data/
+            wget https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_r{gtdb_release_number}_data.tar.gz
+            if [ $? -eq 0 ]; then
+                echo 'GTDB download: OK'
+            else
+                echo 'GTDB download: FAIL'
+            fi
+            tar xfz gtdbtk_r{gtdb_release_number}_data.tar.gz
+            mv release{gtdb_release_number} GTDB.r{gtdb_release_number}
+            rm gtdbtk_r{gtdb_release_number}_data.tar.gz
             ) &> {log}
         """
 
