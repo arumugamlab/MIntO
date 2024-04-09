@@ -285,7 +285,7 @@ rule gene_annot_eggnog:
         "minimal"
     params:
         prefix="{post_analysis_out}_translated_cds_SUBSET",
-        eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
+        eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/data".format(minto_dir = minto_dir) #config["EGGNOG_db"]
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_eggnog.log"
     resources:
