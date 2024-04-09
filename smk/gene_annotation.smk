@@ -103,6 +103,39 @@ def get_genomes_from_refdir(ref_dir):
     genomes = [ pathlib.Path(f).stem for f in os.scandir(ref_dir) if f.is_file() and f.name.endswith('.fna') ]
     return(sorted(genomes))
 
+genomes = get_genomes_from_refdir(reference_dir)
+
+rule generate_locus_ids:
+    input: 
+        expand("{ref_dir}/{genome}.fna", ref_dir = reference_dir, genome = genomes)
+    output:
+        "{wd}/DB/{post_analysis_dir}/genomes/locus_id_list.txt"
+    localrule: True
+    run:
+        from hashlib import md5
+        from re import sub
+        import pathlib
+        tr_tb = str.maketrans("0123456789", "GHIJKLMNOP")
+        genome_locusids = {}
+        for fna in input:
+            g = pathlib.Path(fna).stem
+            lid = sub(r'(.)(\1+)', r'\1', md5(bytes(f"{g}\n", 'utf-8'), usedforsecurity=False).hexdigest().translate(tr_tb).upper())[:10]
+            if lid not in genome_locusids:
+                genome_locusids[lid] = g
+            else:
+                #clashing
+                i = 9
+                while lid in genome_locusids:
+                    while lid[i] == "Z" and i > 1:
+                        i =- 1
+                    new_lid_char = chr(ord(lid[i]) + 1)
+                    lid = lid[:i] + new_lid_char + lid[i+1:]
+                genome_locusids[lid] = g
+        with open(output[0], "w") as of:
+            for lid, genome in genome_locusids.items():
+                print(genome, lid, sep="\t", file=of)
+
+
 ########################
 # Prokka on an fna file in reference_dir.
 # To make it reproducible, we assign locus_tag based on the name of the MAG/genome.
@@ -110,7 +143,9 @@ def get_genomes_from_refdir(ref_dir):
 ########################
 
 rule prokka_for_genome:
-    input: lambda wildcards: "{reference_dir}/{genome}.fna".format(reference_dir=reference_dir, genome=wildcards.genome)
+    input: 
+        fna=lambda wildcards: "{reference_dir}/{genome}.fna".format(reference_dir=reference_dir, genome=wildcards.genome),
+        locus_ids=lambda wildcards: "{wd}/DB/{post_analysis_dir}/genomes/locus_id_list.txt".format(wd=wildcards.wd, post_analysis_dir=wildcards.post_analysis_dir)
     output:
         fna="{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.fna",
         faa="{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.faa",
@@ -125,7 +160,7 @@ rule prokka_for_genome:
     shell:
         """
         rm -rf $(dirname {output})
-        locus_tag=$(echo "{wildcards.genome}" | md5sum | cut -f1 -d' ' | tr -s '0-9' 'G-P' | tr -s 'a-z' 'A-Z' | cut -c1-10)
+        locus_tag=$(grep "{wildcards.genome}$(printf '\t')" {input.locus_ids} | cut -f 2 )
         prokka --outdir $(dirname {output.fna}) --prefix {wildcards.genome} --locustag $locus_tag --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
         """
 
