@@ -111,7 +111,8 @@ def Kofam_db_out():
     return(result)
 
 def dbCAN_db_out():
-    files = ["CAZyDB.07262023.fa",
+    files = ["CAZyDB.fa",
+                "fam-substrate-mapping.tsv",
                 "dbCAN.txt",
                 "tcdb.fa",
                 "tf-1.hmm",
@@ -390,12 +391,13 @@ rule functional_db_descriptions:
 
 rule dbCAN_db:
     output:
-        dbCAN_db1="{minto_dir}/data/dbCAN_db/V12/CAZyDB.07262023.fa",
+        dbCAN_db1="{minto_dir}/data/dbCAN_db/V12/CAZyDB.fa",
         dbCAN_db2="{minto_dir}/data/dbCAN_db/V12/dbCAN.txt",
         dbCAN_db3="{minto_dir}/data/dbCAN_db/V12/tcdb.fa",
         dbCAN_db4="{minto_dir}/data/dbCAN_db/V12/tf-1.hmm",
         dbCAN_db5="{minto_dir}/data/dbCAN_db/V12/tf-2.hmm",
         dbCAN_db6="{minto_dir}/data/dbCAN_db/V12/stp.hmm",
+        dbCAN_db7="{minto_dir}/data/dbCAN_db/V12/fam-substrate-mapping.tsv"
     resources: mem=download_memory
     threads: download_threads
     log:
@@ -405,33 +407,9 @@ rule dbCAN_db:
     shell:
         """
         mkdir -p {minto_dir}/data/dbCAN_db/V12
-        cd {minto_dir}/data/dbCAN_db/V12
+        cd {minto_dir}/data/dbCAN_db
         time (
-        # Get the files
-        files="fam-substrate-mapping-08252022.tsv dbCAN-PUL_07-01-2022.xlsx dbCAN-PUL_07-01-2022.txt PUL.faa dbCAN-PUL.tar.gz dbCAN_sub.hmm"
-        for f in $files; do
-            wget --no-verbose http://bcb.unl.edu/dbCAN2/download/Databases/$f
-        done
-        files="tf-1.hmm tf-2.hmm stp.hmm CAZyDB.07262023.fa tcdb.fa dbCAN-HMMdb-V12.txt"
-        for f in $files; do
-            wget --no-verbose https://bcb.unl.edu/dbCAN2/download/Databases/V12/$f
-        done
-
-        # Extract
-        tar xvf dbCAN-PUL.tar.gz
-
-        # Format if necessary
-        # blast db
-        makeblastdb -in PUL.faa -dbtype prot
-        # diamond db
-        diamond makedb --in CAZyDB.07262023.fa -d CAZy
-        diamond makedb --in tcdb.fa -d tcdb
-        # hmm db
-        mv dbCAN-HMMdb-V12.txt dbCAN.txt
-        hmmpress dbCAN.txt
-        for f in *.hmm; do
-            hmmpress $f
-        done
+        dbcan_build --cpus 2 --db-dir V12 --clean
 
         echo 'dbCAN database downloaded and installed') &> {log}
         """

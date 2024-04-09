@@ -11,7 +11,7 @@ Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
 import pathlib
 from os import path
 
-localrules: make_bed_for_genome, make_cd_transl_faa_for_genome, make_merged_cds_faa, make_merged_bed
+localrules: make_bed_for_genome, make_cd_transl_faa_for_genome, combine_annotation_outputs, make_merged_subset_bed
 
 # Get common config variables
 # These are:
@@ -39,25 +39,26 @@ elif map_reference == 'reference_genome':
 if path.exists(reference_dir) is False:
     print('ERROR in ', config_path, ': reference genome path ', reference_dir, ' does not exit. Please, complete ', config_path)
 
+annot_list = list()
 if 'ANNOTATION' in config:
     if config['ANNOTATION'] is None:
         print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete ', config_path)
     else:
         try:
-            # Make list of illumina samples, if ILLUMINA in config
-            annot_list = list()
-            if 'ANNOTATION' in config:
-                #print("Samples:")
-                for annot in config["ANNOTATION"]:
-                    if annot in ('dbCAN', 'KEGG', 'eggNOG'):
-                        annot_list.append(annot)
-                        pass
-                    else:
-                        raise TypeError('ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete ', config_path)
+            for annot in config["ANNOTATION"]:
+                if annot in ['dbCAN', 'KEGG', 'eggNOG']:
+                    annot_list.append(annot)
+                else:
+                    raise TypeError
         except:
-            print('ERROR in ', config_path, ': ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG.')
+            print('ERROR in ', config_path, ': ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete ', config_path)
 else:
     print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete', config_path)
+
+eggNOG_dbmem = True
+if 'eggNOG' in annot_list and 'eggNOG_dbmem' in config:
+    if not config['eggNOG_dbmem']:
+        eggNOG_dbmem = False
 
 # Define all the outputs needed by target 'all'
 
@@ -85,7 +86,10 @@ def predicted_genes_collate_out():
 
 rule all:
     input:
-        predicted_genes_collate_out()
+        predicted_genes_collate_out(),
+        "{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed".format(wd = working_dir,
+                    post_analysis_dir = post_analysis_dir,
+                    post_analysis_out = post_analysis_out)
 
 
 ###############################################################################################
@@ -125,7 +129,7 @@ rule prokka_for_genome:
         prokka --outdir $(dirname {output.fna}) --prefix {wildcards.genome} --locustag $locus_tag --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
         """
 
-# Combine FAA files ####
+# Dont combine FAA files ####
 
 rule make_cd_transl_faa_for_genome:
     input: rules.prokka_for_genome.output.faa
@@ -137,26 +141,6 @@ rule make_cd_transl_faa_for_genome:
     shell:
         """
         time (seqtk seq -l 0 {input} | sed -e "s/^>/>{wildcards.genome}|/g" > {output}) >& {log}
-        """
-
-def get_genome_cd_transl_faa(wildcards):
-    #Collect the CDS faa files for MAGs
-    genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/{post_analysis_dir}/CD_transl/{genome}.faa",
-                    wd=wildcards.wd,
-                    post_analysis_dir=wildcards.post_analysis_dir,
-                    genome=genomes)
-    return(result)
-
-rule make_merged_cds_faa:
-    input: get_genome_cd_transl_faa
-    output:
-        merged_cds="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds.faa"
-    wildcard_constraints:
-        post_analysis_out='MAG-genes|refgenome-genes'
-    shell:
-        """
-        cat {input} > {output}
         """
 
 # Convert GFF file into BED file ####
@@ -180,19 +164,42 @@ rule make_bed_for_genome:
         ) >& {log}
         """
 
+
+rule gene_annot_subset:
+    input:
+        bed_file = "{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.coord_correct.bed",
+        faa_cds = "{wd}/DB/{post_analysis_dir}/CD_transl/{genome}.faa"
+    output:
+        bed_subset="{wd}/DB/{post_analysis_dir}/subset/{genome}.{post_analysis_out}_SUBSET.bed",
+        fasta_subset="{wd}/DB/{post_analysis_dir}/subset/{genome}.{post_analysis_out}_translated_cds_SUBSET.faa"
+    log:
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_subset_out.log"
+    resources:
+        mem=5
+    threads: 8
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
+    shell:
+        """
+        remote_dir={wildcards.wd}/DB/{post_analysis_dir}/subset/
+        file_prefix={wildcards.genome}.{post_analysis_out}
+        time (Rscript {script_dir}/MAGs_genes_out_subset.R {threads} {input.bed_file} {input.faa_cds} ${{remote_dir}} ${{file_prefix}}) &> {log}
+        """
+
 def get_genome_bed(wildcards):
     #Collect the BED files for MAGs
     genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.coord_correct.bed",
+    result = expand("{wd}/DB/{post_analysis_dir}/subset/{genome}.{post_analysis_out}_SUBSET.bed",
                     wd=wildcards.wd,
                     post_analysis_dir=wildcards.post_analysis_dir,
+                    post_analysis_out=wildcards.post_analysis_out,
                     genome=genomes)
     return(result)
 
-rule make_merged_bed:
+rule make_merged_subset_bed:
     input: get_genome_bed
     output:
-        bed_file="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed",
+        bed_file="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed",
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}.merge_bed.log"
     wildcard_constraints:
@@ -205,26 +212,6 @@ rule make_merged_bed:
                     | cut -f 1-10 \
                     > {output.bed_file} \
         ) >& {log}
-        """
-
-rule gene_annot_subset:
-    input:
-        bed_file=       rules.make_merged_bed.output.bed_file,
-        merged_cds=     rules.make_merged_cds_faa.output.merged_cds
-    output:
-        bed_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed",
-        fasta_subset="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_translated_cds_SUBSET.faa",
-    log:
-        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_subset_out.log"
-    resources:
-        mem=5
-    threads: 8
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
-    shell:
-        """
-        remote_dir={wildcards.wd}/DB/{post_analysis_dir}/
-        time (Rscript {script_dir}/MAGs_genes_out_subset.R {threads} {input.bed_file} {input.merged_cds} ${{remote_dir}} {post_analysis_out}) &> {log}
         """
 
 ################################################################################################
@@ -242,11 +229,11 @@ rule gene_annot_kofamscan:
         module_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Module2KO.tsv".format(minto_dir = minto_dir),
         pathway_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv".format(minto_dir = minto_dir)
     output:
-        kofam_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
+        "{wd}/DB/{post_analysis_dir}/annot/KEGG/{genome}.{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_kofamscan.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_kofamscan.log"
     resources:
         mem=10
     threads: 16
@@ -254,12 +241,10 @@ rule gene_annot_kofamscan:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        remote_dir=$(dirname {output.kofam_out})
+        remote_dir=$(dirname {output})
         time (
-            exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.fasta_subset}
-            {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt > KEGG.tsv
-            mkdir -p ${{remote_dir}}
-            rsync -a KEGG.tsv {output.kofam_out}
+            exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp --create-alignment -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.fasta_subset}
+            {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt > {output}
         ) &> {log}
         """
 
@@ -267,14 +252,14 @@ rule gene_annot_dbcan:
     input:
         fasta_subset=rules.gene_annot_subset.output.fasta_subset
     output:
-        dbcan_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
+        "{wd}/DB/{post_analysis_dir}/annot/dbCAN/{genome}.{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
     shadow:
         "minimal"
     params:
         prefix="{post_analysis_out}_translated_cds_SUBSET",
         dbcan_db=lambda wildcards: "{minto_dir}/data/dbCAN_db/V12/".format(minto_dir = minto_dir)
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_dbcan.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_dbcan.log"
     resources:
         mem=10
     threads: 16
@@ -282,23 +267,27 @@ rule gene_annot_dbcan:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
+        if [[ ! -f {params.dbcan_db}/fam-substrate-mapping.tsv ]]; then
+          echo "Error: dbCAN database needs to be re-built, run dependencies.smk" > {log};
+          exit 1;
+        fi
+
         time (run_dbcan {input.fasta_subset} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre {params.prefix}_ --out_dir out
-        {script_dir}/process_dbcan_overview.pl out/{params.prefix}_overview.txt > out/{params.prefix}_dbCAN.tsv
-        rsync out/* {wildcards.wd}/DB/{post_analysis_dir}/annot/ )&> {log}
+        {script_dir}/process_dbcan_overview.pl out/{params.prefix}_overview.txt > {output} )&> {log}
         """
 
 rule gene_annot_eggnog:
     input:
         fasta_subset=rules.gene_annot_subset.output.fasta_subset
     output:
-        eggnog_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_eggNOG.tsv",
+        "{wd}/DB/{post_analysis_dir}/annot/eggNOG/{genome}.{post_analysis_out}_translated_cds_SUBSET_eggNOG.tsv",
     shadow:
         "minimal"
     params:
         prefix="{post_analysis_out}_translated_cds_SUBSET",
         eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_eggnog.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_eggnog.log"
     resources:
         mem=10
     threads: 24
@@ -307,28 +296,50 @@ rule gene_annot_eggnog:
     shell:
         """
         time (
-        [[ -d /dev/shm/eggnog_data ]] || mkdir /dev/shm/eggnog_data
-        eggnogdata=(eggnog.db eggnog_proteins.dmnd eggnog.taxa.db eggnog.taxa.db.traverse.pkl)
-        for e in "${{eggnogdata[@]}}"
-            do [[ -f /dev/shm/eggnog_data/$e ]] || cp {params.eggnog_db}/data/$e /dev/shm/eggnog_data/
-        done
         mkdir out
-        emapper.py --data_dir /dev/shm/eggnog_data/ -o {params.prefix} \
+        emapper.py --data_dir {params.eggnog_db} -o {params.prefix} \
                    --no_annot --no_file_comments --report_no_hits --override --output_dir out -m diamond -i {input.fasta_subset} --cpu {threads}
         emapper.py --annotate_hits_table out/{params.prefix}.emapper.seed_orthologs \
-                   --data_dir /dev/shm/eggnog_data/ -m no_search --no_file_comments --override -o {params.prefix} --output_dir out --cpu {threads}
+                   --data_dir {params.eggnog_db} -m no_search --no_file_comments --override -o {params.prefix} --output_dir out --cpu {threads}
         cut -f 1,5,12,13,14,21 out/{params.prefix}.emapper.annotations > out/{params.prefix}.eggNOG
         {script_dir}/process_eggNOG_OGs.pl out/{params.prefix}.eggNOG > out/{params.prefix}_eggNOG.tsv
         rm out/{params.prefix}.eggNOG
         sed -i 's/\#query/ID/' out/{params.prefix}_eggNOG.tsv
-        sed -i 's/ko\://g' out/{params.prefix}_eggNOG.tsv
-        rsync out/* {wildcards.wd}/DB/{post_analysis_dir}/annot/)&> {log}
-        rm -rf /dev/shm/eggnog_data
+        sed 's/ko\://g' out/{params.prefix}_eggNOG.tsv > {output} )&> {log}
         """
 
 ################################################################################################
 # Combine gene annotation results into one file
 ################################################################################################
+
+def get_genome_annotation_tsvs(wildcards):
+    #Collect the CDS faa files for MAGs
+    genomes = get_genomes_from_refdir(reference_dir)
+    inputs = expand("{wd}/DB/{post_analysis_dir}/annot/{annot}/{genome}.{post_analysis_out}_translated_cds_SUBSET_{annot}.tsv",
+                    wd=wildcards.wd,
+                    annot=wildcards.annot,
+                    post_analysis_dir=wildcards.post_analysis_dir,
+                    post_analysis_out=wildcards.post_analysis_out,
+                    genome=genomes)
+    return(inputs)
+
+rule combine_annotation_outputs:
+    input:
+        get_genome_annotation_tsvs
+    output:
+        "{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_{annot}.tsv"
+    log:
+        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_combine_{annot}.log"
+    wildcard_constraints:
+        post_analysis_out='MAG-genes|refgenome-genes'
+    shadow:
+        "minimal"
+    shell:
+        """
+        time (head -n 1 {input[0]} > {output};
+        FOLDER=$(dirname {input[0]})
+        tail -n +2 -q $FOLDER/*.tsv >> {output} ) &> {log}
+        """
 
 rule predicted_gene_annotation_collate:
     input:
