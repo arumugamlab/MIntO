@@ -44,7 +44,8 @@ set.seed(1234)
 ##########################  ** Functions **  ########################## 
 plot_umap_layout <- function(dist_matrix, label_data, sampleid_v, color_var, shape_var){
   set.seed(1234)
-  umap_est <- umap(dist_matrix, input="dist", preserve.seed = T)
+  n_neighbors = min(dim(dist_matrix)[1], 15)
+  umap_est <- umap(dist_matrix, n_neighbors=n_neighbors, input="dist", preserve.seed = T)
   t.label <-  left_join(data.frame(sample=sampleid_v), label_data) %>% select(sample, {{ shape_var }}, {{ color_var }})
   umap_layout_df <- data.frame(umap_est$layout)
   umap_layout_df$sample <- rownames(umap_layout_df)
