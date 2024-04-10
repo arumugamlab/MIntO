@@ -18,6 +18,7 @@ script_dir=workflow.basedir+"/../scripts"
 
 metaphlan_index = 'mpa_vOct22_CHOCOPhlAnSGB_202212'
 metaphlan_version = '4.0.6'
+phylophlan_db_version = 'Jul20'
 motus_version = '3.0.3'
 gtdb_release_number = '214'
 
@@ -134,6 +135,12 @@ def func_db_desc_out():
                 file = files)
     return(result)
 
+def phylophlan_db_out():
+    result=expand("{minto_dir}/data/phylophlan/SGB.{version}.md5",
+        minto_dir=minto_dir,
+        version=phylophlan_db_version)
+    return(result)
+
 def metaphlan_db_out():
     result=expand("{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv",
         minto_dir=minto_dir,
@@ -182,6 +189,7 @@ rule all:
         dbCAN_db_out(),
         func_db_desc_out(),
         metaphlan_db_out(),
+        phylophlan_db_out(),
         motus_db_out(),
         fetchMGs_out(),
         gtdb_db_out(),
@@ -547,6 +555,36 @@ rule download_fetchMGs:
                 echo 'fetchMGs download: FAIL'
             fi
             rm fetchMGs-1.2.tar.gz
+            ) &> {log}
+        """
+
+###############################################################################################
+# Download phylophlan database
+###############################################################################################
+
+rule download_phylophlan_db:
+    output:
+        md5="{minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.md5"
+    shadow:
+        "minimal"
+    resources:
+        mem=download_memory
+    threads:
+        download_threads
+    log:
+        "{minto_dir}/logs/phylophlan.SGB.{phylophlan_db_version}.download.log"
+    conda:
+        config["minto_dir"]+"/envs/mags.yml"
+    shell:
+        """
+        time (\
+            tar xvfz {minto_dir}/tutorial/genomes.tar.gz
+            phylophlan_metagenomic --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp
+            if [ $? -eq 0 ]; then
+                echo 'phylophlan download: OK'
+            else
+                echo 'phylophlan download: FAIL'
+            fi
             ) &> {log}
         """
 
