@@ -161,7 +161,7 @@ def combined_gene_abundance_profiles():
     return(result)
 
 if map_reference == 'genes_db':
-    reference_dir="{wd}"
+    reference_dir=config["PATH_reference"]
     def combined_genome_profiles():
         return()
 
