@@ -197,7 +197,7 @@ for OMICS in metaG_metaT metaG metaT; do
 
   COMMAND_LOG="commands_integration_${OMICS}.txt"
 
-  sed "s/omics: metaG_metaT/omics: $OMICS/" data_integration.yaml > data_integration.yaml.MG.$OMICS
+  sed "s/omics: metaG_metaT/omics: $OMICS/; s/map_reference: .*/map_reference: MAG/" data_integration.yaml > data_integration.yaml.MG.$OMICS
   echo -n "MODE - MAG, MG: "
   cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.MG.$OMICS $SNAKE_PARAMS >& integration.MAG.MG.$OMICS.log"
   echo $cmd >> $COMMAND_LOG
@@ -209,7 +209,7 @@ for OMICS in metaG_metaT metaG metaT; do
   time (eval $cmd && echo "OK")
 
   echo -n "MODE - refgenome, MG: "
-  sed "s/map_reference: MAG/map_reference: reference_genome/" data_integration.yaml.MG.$OMICS > data_integration.yaml.refgenome.MG.$OMICS
+  sed "s/map_reference: .*/map_reference: reference_genome/" data_integration.yaml.MG.$OMICS > data_integration.yaml.refgenome.MG.$OMICS
   cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.MG.$OMICS $SNAKE_PARAMS >& integration.refgenome.MG.$OMICS.log"
   echo $cmd >> $COMMAND_LOG
   time (eval $cmd && echo "OK")
@@ -220,7 +220,7 @@ for OMICS in metaG_metaT metaG metaT; do
   time (eval $cmd && echo "OK")
 
   echo -n "MODE - gene-catalog, TPM: "
-  sed "s/map_reference: MAG/map_reference: genes_db/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
+  sed "s/map_reference: .*/map_reference: genes_db/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
   cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.catalog.TPM.$OMICS $SNAKE_PARAMS >& integration.catalog.TPM.$OMICS.log"
   echo $cmd >> $COMMAND_LOG
   time (eval $cmd && echo "OK")
