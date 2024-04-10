@@ -617,6 +617,7 @@ rule merge_gene_abund:
 # We use --prefix to prepend before relabeling.
 rule relabel_merged_gene_abund:
     input:
+        metadata=metadata,
         original="{somewhere}/{something}.raw"
     output:
         relabeled="{somewhere}/{something}"
@@ -633,7 +634,8 @@ rule relabel_merged_gene_abund:
         mem=30
     shell:
         """
-        time Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {metadata} --input {input.original} --output {output.relabeled} {params.prefix} >& {log}
+        time (Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {input.metadata} --input {input.original} --output relabeled.txt {params.prefix}) >& {log}
+        rsync -a relabeled.txt {output.relabeled}
         """
 
 ###############################################################################################
@@ -642,6 +644,7 @@ rule relabel_merged_gene_abund:
 ## (COG0012, COG0016, COG0018, COG0172, COG0215, COG0495, COG0525, COG0533, COG0541, and COG0552)
 ###############################################################################################
 
+# fetchMG cannot handle '.' in gene names, so we replace '.' with '-' in fasta headers.
 rule modify_cds_faa_header_for_fetchMG:
     input: '{something}.faa'
     output: '{something}_SUBSET.faa'
