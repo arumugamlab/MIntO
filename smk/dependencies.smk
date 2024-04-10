@@ -601,6 +601,8 @@ rule download_GTDB_db:
         download_threads
     log:
         "{minto_dir}/logs/GTDB.r{gtdb_release_number}.download.log"
+    conda:
+        config["minto_dir"]+"/envs/gtdb.yml"
     shell:
         """
         time (\
