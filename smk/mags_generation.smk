@@ -667,7 +667,7 @@ checkpoint copy_best_genomes:
 rule phylophlan_taxonomy_for_genome_collection:
     input:
         genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
-        db_folder=lambda wildcards: "{location}/{db_version}".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+        db_folder=lambda wildcards: "{location}/phylophlan/{db_version}".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
     output:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.tsv"
     shadow:
