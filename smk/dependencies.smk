@@ -136,7 +136,7 @@ def func_db_desc_out():
     return(result)
 
 def phylophlan_db_out():
-    result=expand("{minto_dir}/data/phylophlan/SGB.{version}.md5",
+    result=expand("{minto_dir}/data/phylophlan/SGB.{version}.txt.bz2",
         minto_dir=minto_dir,
         version=phylophlan_db_version)
     return(result)
@@ -564,7 +564,7 @@ rule download_fetchMGs:
 
 rule download_phylophlan_db:
     output:
-        md5="{minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.md5"
+        "{minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.txt.bz2"
     shadow:
         "minimal"
     resources:
@@ -585,6 +585,8 @@ rule download_phylophlan_db:
             else
                 echo 'phylophlan download: FAIL'
             fi
+            rm {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.tar
+            rm {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.md5
             ) &> {log}
         """
 
