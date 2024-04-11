@@ -165,7 +165,7 @@ def fetchMGs_out():
     return(result)
 
 def gtdb_db_out():
-    result=expand("{minto_dir}/data/GTDB.r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv",
+    result=expand("{minto_dir}/data/GTDB/r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv",
         minto_dir=minto_dir,
         gtdb_release_number=gtdb_release_number)
     return(result)
@@ -594,7 +594,7 @@ rule download_phylophlan_db:
 
 rule download_GTDB_db:
     output:
-        tsv="{minto_dir}/data/GTDB.r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv"
+        "{minto_dir}/data/GTDB/r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv"
     resources:
         mem=download_memory
     threads:
@@ -606,16 +606,18 @@ rule download_GTDB_db:
     shell:
         """
         time (\
-            cd {minto_dir}/data/
-            wget https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_r{gtdb_release_number}_data.tar.gz
+            mkdir -p {minto_dir}/data/GTDB/r{gtdb_release_number}
+            cd {minto_dir}/data/GTDB
+            wget -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_r{gtdb_release_number}_data.tar.gz
             if [ $? -eq 0 ]; then
                 echo 'GTDB download: OK'
             else
                 echo 'GTDB download: FAIL'
             fi
-            tar xfz gtdbtk_r{gtdb_release_number}_data.tar.gz
-            mv release{gtdb_release_number} GTDB.r{gtdb_release_number}
-            rm gtdbtk_r{gtdb_release_number}_data.tar.gz
+            tar xfz gtdb.tar.gz
+            mv release{gtdb_release_number}/* r{gtdb_release_number}/
+            rmdir release{gtdb_release_number}
+            rm gtdb.tar.gz
             ) &> {log}
         """
 
