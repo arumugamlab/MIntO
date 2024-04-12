@@ -18,11 +18,11 @@ else
   SHADOWDIR="/scratch/$USER/tmp/MIntO/"
   MINTO_DIR="$(pwd)/MIntO"
 fi
-CONDA_DIR="$MINTO_DIR/conda_env"
 
 # Where will the tutorial be tested?
 
 TEST_DIR=$(pwd)
+CONDA_DIR="$TEST_DIR/conda_env"
 
 # Get MIntO or pull the latest if it already exists
 
