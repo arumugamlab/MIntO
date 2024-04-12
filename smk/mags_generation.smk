@@ -695,7 +695,7 @@ rule phylophlan_taxonomy_for_genome_collection:
 rule gtdb_taxonomy_for_genome_collection:
     input:
         genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
-        db_folder=lambda wildcards: "{location}/GTDB.{db_version}/taxonomy/gtdb_taxonomy.tsv".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+        db_folder=lambda wildcards: "{location}/GTDB/{db_version}/taxonomy/gtdb_taxonomy.tsv".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
     output:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.gtdb.{db_version}.tsv"
     shadow:

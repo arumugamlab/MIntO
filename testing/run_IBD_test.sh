@@ -18,11 +18,11 @@ else
   SHADOWDIR="/scratch/$USER/tmp/MIntO/"
   MINTO_DIR="$(pwd)/MIntO"
 fi
-CONDA_DIR="$MINTO_DIR/conda_env"
 
 # Where will the tutorial be tested?
 
 TEST_DIR=$(pwd)
+CONDA_DIR="$TEST_DIR/conda_env"
 
 # Get MIntO or pull the latest if it already exists
 
@@ -50,12 +50,12 @@ COMMAND_LOG='commands_dependencies.txt'
 
 # Snakemake options
 if [ ! -z "$COMPUTEROME_PROJ" ]; then
-  SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --default-resources gpu=0 mem=4 --cluster 'qsub -d $(pwd) -W group_list=$COMPUTEROME_PROJ -A $COMPUTEROME_PROJ -N {name} -l nodes=1:thinnode:ppn={threads},mem={resources.mem}gb,walltime=7200 -V -v TMPDIR=$SHADOWDIR' --local-cores 4"
+  SNAKE_PARAMS="--use-conda --restart-times 0 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --default-resources gpu=0 mem=4 --cluster 'qsub -d $(pwd) -W group_list=$COMPUTEROME_PROJ -A $COMPUTEROME_PROJ -N {name} -l nodes=1:thinnode:ppn={threads},mem={resources.mem}gb,walltime=7200 -V -v TMPDIR=$SHADOWDIR' --local-cores 4"
 else
   # Computerome thin nodes
-  #SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --cores 40 --resources mem=188"
+  #SNAKE_PARAMS="--use-conda --restart-times 0 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --cores 40 --resources mem=188"
   # Default
-  SNAKE_PARAMS="--use-conda --restart-times 1 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --cores 96 --resources mem=700"
+  SNAKE_PARAMS="--use-conda --restart-times 0 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --cores 96 --resources mem=700"
 fi
 
 # Set code directory
