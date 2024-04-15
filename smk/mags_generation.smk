@@ -667,13 +667,15 @@ checkpoint copy_best_genomes:
 rule phylophlan_taxonomy_for_genome_collection:
     input:
         genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
-        db_folder=lambda wildcards: "{location}/phylophlan/{db_version}".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+        phylo_def=lambda wildcards: "{location}/phylophlan/{db_version}.txt.bz2".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
     output:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.tsv"
     shadow:
         "minimal"
     log:
         "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.log"
+    params:
+        db_folder=lambda wildcards: "{location}/phylophlan/{db_version}".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
     resources:
         mem=config["TAXONOMY_memory"]
     threads:
@@ -683,7 +685,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     shell:
         """
         time (
-        phylophlan_metagenomic -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {input.db_folder}
+        phylophlan_metagenomic -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
         ) >& {log}
         rsync -a taxonomy.tsv {output}
         """
@@ -695,13 +697,15 @@ rule phylophlan_taxonomy_for_genome_collection:
 rule gtdb_taxonomy_for_genome_collection:
     input:
         genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
-        db_folder=lambda wildcards: "{location}/GTDB/{db_version}/taxonomy/gtdb_taxonomy.tsv".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+        gtdb_def=lambda wildcards: "{location}/GTDB/{db_version}/taxonomy/gtdb_taxonomy.tsv".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
     output:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.gtdb.{db_version}.tsv"
     shadow:
         "minimal"
     log:
         "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.gtdb.{db_version}.log"
+    params:
+        db_folder=lambda wildcards: "{location}/GTDB/{db_version}".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
     resources:
         mem=70
     threads:
@@ -711,7 +715,7 @@ rule gtdb_taxonomy_for_genome_collection:
     shell:
         """
         time (
-        export GTDBTK_DATA_PATH={input.db_folder}
+        export GTDBTK_DATA_PATH={params.db_folder}
         gtdbtk classify_wf --genome_dir {input.genomes} -x fna --out_dir tmp --cpus {threads} --skip_ani_screen
         cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
         cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
