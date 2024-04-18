@@ -11,10 +11,6 @@
 ##########################  ** Load libraries **  ##########################
 library(data.table)
 library(phyloseq)
-library(ggplot2)
-library(ggrepel)
-library(PFAM.db)
-library(dplyr)
 library(tidyr)
 library(stringr)
 library(purrr)
@@ -46,6 +42,9 @@ main_factor <- opts[['main-factor']]
 metaG_profile_file <- opts[['genome-weights-metaG']]
 metaT_profile_file <- opts[['genome-weights-metaT']]
 
+setDTthreads(threads = as.numeric(threads_n))
+set.seed(1234)
+
 # genome profiles to use as weights
 
 metaG_genome_weights <- NULL
@@ -56,11 +55,13 @@ if (normalization == 'MG') {
         if (is.null(metaG_profile_file)) {
             stop("--genome-weights-metaG must be provided with --omics=metaG")
         } else {
-            metaG_genome_weights <- fread(metaG_profile_file, header=T) %>%
-                                as.data.frame(stringsAsFactors = F) %>%
-                                dplyr::rename(MAG = ID) %>%
-                                mutate(Funct = "REL")
-            colnames(metaG_genome_weights) <- gsub(x = colnames(metaG_genome_weights), pattern = "metaG\\.", replacement = "")
+            metaG_genome_weights <- (
+                                     fread(metaG_profile_file, header=T)
+                                     [, Funct := 'REL']
+                                    )
+            setnames(metaG_genome_weights, "ID", "MAG")
+            setnames(metaG_genome_weights, colnames(metaG_genome_weights),
+                     gsub(x = colnames(metaG_genome_weights), pattern = "metaG\\.", replacement = ""))
         }
     }
 
@@ -68,25 +69,26 @@ if (normalization == 'MG') {
         if (is.null(metaT_profile_file)) {
             stop("--genome-weights-metaT must be provided with --omics=metaT")
         } else {
-            metaT_genome_weights <- fread(metaT_profile_file, header=T) %>%
-                                as.data.frame(stringsAsFactors = F) %>%
-                                dplyr::rename(MAG = ID) %>%
-                                mutate(Funct = "REL")
-            colnames(metaT_genome_weights) <- gsub(x = colnames(metaT_genome_weights), pattern = "metaT\\.", replacement = "")
+            metaT_genome_weights <- (
+                                     fread(metaT_profile_file, header=T)
+                                     [, Funct := 'REL']
+                                    )
+            setnames(metaT_genome_weights, "ID", "MAG")
+            setnames(metaT_genome_weights, colnames(metaT_genome_weights),
+                     gsub(x = colnames(metaT_genome_weights), pattern = "metaT\\.", replacement = ""))
         }
     }
 }
 
 
-setDTthreads(threads = as.numeric(threads_n))
-set.seed(1234)
 
 ##########################  ** Load functions **  ##########################
 
 plot_PCA <- function(data_phyloseq, color, label) {
 
-  library(phyloseq)
   library(ggplot2)
+  library(ggrepel)
+  library(dplyr)
 
   ##### metadata:
   sample_data_df <- data.frame(sample_data(data_phyloseq), stringsAsFactors = F)
@@ -171,42 +173,44 @@ get_annotation_descriptions <- function(db_name) {
     # library(purrr)
     # library(magrittr)
     if  (db_name %in% c('eggNOG_OGs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO', 'kofam_Pathway', 'kofam_Module', 'kofam_KO', 'merged_KO', 'dbCAN.EC')){
-        file_name <- db_name %>%
-                            gsub('kofam_', 'KEGG_', .) %>%
-                            gsub('merged_', 'KEGG_', .)
-        def_list <- as.data.frame(fread(funcat_desc_file, header=T), stringsAsFactors = F)
-        def_list_sub <- subset(def_list, select=c('Funct', 'Description'))
-        def_list_sub$Description <- iconv(def_list_sub$Description, from = "ISO-8859-1", to = "UTF-8")
-        keyMap_funct_desc <- merge(keyMap_funct, def_list_sub, by='Funct', all=T)
-        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
-                                              dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
-        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
-        rm(keyMap_funct_desc,keyMap_funct_desc2)
+        annotations <- (fread(funcat_desc_file, header=T)
+                        [, .(Funct, Description)]
+                        [, Description := iconv(Description, from = "ISO-8859-1", to = "UTF-8")]
+                       )
+        annotations <- unique(merge(keyMap_funct, annotations, by='Funct', all=T)
+                              [, Description := paste(sort(unique(Description)), collapse=';'), by=Funct]
+                             )
     }
     else if  (db_name %in% c('PFAMs')){
-        x <- PFAMID
-        mapped_keys <- mappedkeys(x)
-        xx <- as.list(x[mapped_keys])
-        test <- as.data.frame(do.call(rbind, xx))
-        names(test) <- 'Pfam_family'
-        test$Pfam_id <- rownames(test)
-        x <- PFAMDE
-        mapped_keys <- mappedkeys(x)
-        xx <- as.list(x[mapped_keys])
-        test2 <- as.data.frame(do.call(rbind, xx))
-        names(test2) <- 'Description'
-        test2$Pfam_id <- rownames(test2)
-        test3 <- merge(test, test2, by='Pfam_id')
-        keyMap_funct_desc <- merge(keyMap_funct, test3, by.x='Funct' , by.y='Pfam_family', all.x=T)
-        keyMap_funct_desc$Pfam_id <- NULL
-        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
-                                              dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
-        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
-        rm(test, test2, test3, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
+
+        library(PFAM.db)
+
+        # Get PFAM IDs
+        pfam_names <- as.list(PFAMID[mappedkeys(PFAMID)])
+        setDT(pfam_names, keep.rownames = TRUE)
+        pfam_names <- data.table::transpose(pfam_names, keep.names = "Pfam_id")
+        setnames(pfam_names, "V1", "Funct")
+
+        # Get PFAM descriptions
+        pfam_desc <- as.list(PFAMDE[mappedkeys(PFAMDE)])
+        setDT(pfam_desc, keep.rownames = TRUE)
+        pfam_desc <- data.table::transpose(pfam_desc, keep.names = "Pfam_id")
+        setnames(pfam_desc, "V1", "Description")
+
+        # Merge based on PFAM_ID and delete that join key
+        pfam_table <- merge(pfam_names, pfam_desc, by='Pfam_id')[, Pfam_id := NULL]
+
+        # Merge descriptions for the relevant PFAMs
+        annotations <- unique(merge(keyMap_funct, pfam_table, by='Funct', all.x=T)
+                                    [,Description := paste(sort(unique(Description)), collapse=';'), by='Funct']
+                             )
+        rm(pfam_names, pfam_desc, pfam_table, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
     }
     else if  (db_name %in% c('dbCAN.module', 'dbCAN.enzclass', 'CAZy')){
+
+        library(PFAM.db)
+        library(dplyr)
+
         x <- PFAMCAZY
         mapped_keys <- mappedkeys(x)
         xx <- as.list(x[mapped_keys])
@@ -219,98 +223,94 @@ get_annotation_descriptions <- function(db_name) {
         test_cazy$V1 <- test_cazy$V2 <- test_cazy$V3 <- test_cazy$V4 <- NULL
         test_cazy.singleKeys <- strsplit(test_cazy$CAZY_id, split = "\\  |\\,")
         if (length(test_cazy.singleKeys) > 0){
-          test_cazy.keyMap <- data.frame(
+          test_cazy.keyMap <- data.table(
             Pfam_id = rep(test_cazy$Pfam_id, sapply(test_cazy.singleKeys, length)),
-            Funct = unlist(test_cazy.singleKeys),
-            stringsAsFactors = FALSE
+            Funct = unlist(test_cazy.singleKeys)
           )
         }
-        x <- PFAMDE
-        mapped_keys <- mappedkeys(x)
-        xx <- as.list(x[mapped_keys])
-        test2 <- as.data.frame(do.call(rbind, xx))
-        names(test2) <- 'Description'
-        test2$Pfam_id <- rownames(test2)
-        test3 <- merge(test_cazy.keyMap, test2, by='Pfam_id')
-        keyMap_funct_desc <- merge(keyMap_funct, test3, by='Funct', all.x=T)
-        keyMap_funct_desc$Pfam_id <- NULL
-        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
-                                              dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
-        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
-        rm(test, test2, test3, test_cazy, test_cazy.keyMap, test_cazy.singleKeys, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
+
+        # Get PFAM descriptions
+        pfam_desc <- as.list(PFAMDE[mappedkeys(PFAMDE)])
+        setDT(pfam_desc, keep.rownames = TRUE)
+        pfam_desc <- data.table::transpose(pfam_desc, keep.names = "Pfam_id")
+        setnames(pfam_desc, "V1", "Description")
+
+        # Merge based on PFAM_ID and delete that join key
+        cazy_table <- merge(test_cazy.keyMap, pfam_desc, by='Pfam_id')[, Pfam_id := NULL]
+
+        # Merge descriptions for the relevant PFAMs
+        annotations <- unique(merge(keyMap_funct, cazy_table, by='Funct', all.x=T)
+                              [,Description := paste(sort(unique(Description)), collapse=';'), by='Funct']
+                             )
     }
     else {
-        keyMap_funct_desc <- keyMap_funct
-        keyMap_funct_desc$Description <- '-'
-        keyMap_funct_desc2 <- as.data.frame(keyMap_funct_desc %>%
-                                              dplyr::group_by(Funct)%>%
-                                              dplyr::summarise(Description = paste(sort(unique(Description)), collapse=';')))
-        annot_df <- keyMap_funct_desc2[!duplicated(keyMap_funct_desc2),]
-        rm(keyMap_funct_desc,keyMap_funct_desc2)
+        annotations <- unique(keyMap_funct[, Description := '-'])
     }
-    #annot_df$Description <- gsub(",", ";", annot_df$Description)
-    return(annot_df)
+    return(annotations)
 }
 
 make_profile_files <- function(keys, profile, file_label, database, annotations, metadata, weights) {
 
+      # Make a list of sample-names
+      sample_cols <- setdiff(colnames(profile), c('coord'))
+
       # Get abundance information by gene and select only relevant columns.
-      counts_by_gene <- inner_join(keys, profile, by='coord') %>%
-                            mutate(MAG = stringr::str_split(coord, '\\|') %>% map_chr(.,1)) %>%
-                            dplyr::select(-coord)
+      message(format(Sys.time(), digits=0), " - total genes ", dim(profile)[1])
+      counts <- (merge(keys, profile, by='coord', all=FALSE)
+                 [, MAG := stringr::str_split(coord, "\\|") %>% map_chr(., 1)] # Get the first field
+                 [, coord := NULL]
+                 [Reduce(`+`, mget(sample_cols)) > 0]
+                )
+      message(format(Sys.time(), digits=0), " - clean genes ", dim(counts)[1])
 
       # From count-per-gene, make count-per-function
       # If necessary, weight the functions by REL of genomes
       if (!is.null(weights)) {
 
           # Summarize by MAG,Funct
-          counts_by_func <- counts_by_gene %>%
-                                dplyr::select(MAG, Funct, everything()) %>%
-                                bind_rows(., weights) %>%
-                                dplyr::summarise(across(everything(), sum),
-                                                 .by = c(MAG, Funct))
+          # And prepend with weights
+          counts <- rbind(weights,
+                          counts[, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
+                         )
+          message(format(Sys.time(), digits=0), " - MAGxfunctions ", dim(counts)[1])
 
-          # melt to make one gene rpk per row for operational convenience
-          cf_melt <- reshape2::melt(counts_by_func, id.vars = c("MAG", "Funct"))
+          # weigh by the given weights per MAG
+          weight_MAG_by_proportions <- function(x){
+            if (is.character(x[1])){
+              return(x)
+            }else{
+              x = x*x[1]
+              return(x)
+            }
+          }
 
           # Normalize by weighting by 'weights'
           # Remove REL rows
-          # Replace NaN and infinite values by 0
-          cf_melt_normalized <- cf_melt %>%
-            mutate(value = value * value[Funct == 'REL'],
-                   .by = c(MAG, variable)) %>%
-            filter(Funct != 'REL') %>%
-            dplyr::select(-MAG) %>%
-            dplyr::summarise(value = sum(value),
-                             .by = c(Funct, variable))
-
-
-          # unmelt to bring back table
-          counts_by_func <- reshape2::dcast(cf_melt_normalized, Funct ~ variable,  value.var="value")
-          rm(cf_melt, cf_melt_normalized)
-          gc()
-
+          # Summarize by Funct
+          counts <- (
+                      counts
+                      [, lapply(.SD, weight_MAG_by_proportions), by = MAG]
+                      [! Funct == 'REL']
+                      [, MAG := NULL]
+                      [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
+                    )
       } else {
 
           # Summarize by Funct
-          counts_by_func <- counts_by_gene %>%
-                                dplyr::select(-any_of(c("MAG"))) %>%         # remove MAG if exists
-                                dplyr::select(Funct, everything()) %>%
-                                dplyr::summarise(across(everything(), sum),
-                                                 .by = c(Funct))
+          counts <- (
+                      counts
+                      [, MAG := NULL]
+                      [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
+                    )
       }
 
-      # Clean up memory
-      rm(counts_by_gene)
-      gc()
+      message(format(Sys.time(), digits=0), " - functions ", dim(counts)[1])
 
       # Add annotations
-      counts_by_func_annotated <- right_join(annotations, counts_by_func, by='Funct')
+      counts <- merge(annotations, counts, by='Funct', all.x=FALSE, all.y=TRUE)
 
       # Write annotated functional profile as tsv
-      fwrite(counts_by_func_annotated %>%
-                filter(rowSums(across(-c(Funct, Description))) > 0),
+      fwrite(counts,
              file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'),
              sep='\t',
              row.names = F,
@@ -318,19 +318,20 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
 
       #### Create phyloseq object ####
 
-      rownames(counts_by_func) <- counts_by_func$Funct
-      counts_by_func$Funct <- NULL
+      my_otu_table <- as.matrix(counts[, -c('Funct', 'Description')])
+      rownames(my_otu_table) <- counts$Funct
 
       ## metadata
       samp <- sample_data(metadata_df)
       rownames(samp) <- samp[["sample_alias"]]
 
       # taxa
-      func_desc <- subset(counts_by_func_annotated, select=c("Funct", "Description"))
-      rownames(func_desc) <- func_desc$Funct
+      my_tax_table <- as.matrix(counts[, .(Funct, Description)])
+      rownames(my_tax_table) <- counts$Funct
 
-      physeq <- phyloseq(otu_table(as.matrix(counts_by_func), taxa_are_rows = T),
-                                                     tax_table(as.matrix(func_desc)), samp)
+      physeq <- phyloseq(otu_table(my_otu_table, taxa_are_rows = T),
+                         tax_table(my_tax_table),
+                         samp)
 
       # Write phyloseq object
       saveRDS(physeq, file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.rds'))
@@ -338,18 +339,21 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       return(physeq)
 }
 
-process_phyloseq_obj <- function(omics_label) {
-    physeq <- readRDS(paste0(phyloseq_dir, '/', omics_label, '.rds'))
-    counts <- unclass(otu_table(physeq)) %>%
-                                   as.data.frame(stringsAsFactors = F) %>%
-                                   tibble::rownames_to_column('rownames') %>%
-                                   dplyr::mutate_all(function(x) ifelse(is.na(x), 0, x)) %>%
-                                   tibble::column_to_rownames('rownames') %>%
-                                   as.data.frame(stringsAsFactors = F)
+process_phyloseq_obj <- function(physeq_file) {
+    physeq <- readRDS(physeq_file)
+    counts <- (
+                data.table(unclass(otu_table(physeq)), keep.rownames=TRUE)
+                [, lapply(.SD, function(x) ifelse(is.na(x), 0, x))]
+              )
+    setnames(counts, "rn", "coord")
 
-    taxa <- as.data.frame(unclass(tax_table(physeq)), stringsAsFactors = F)
-    metadata <- as.data.frame(unclass(sample_data(physeq)), stringsAsFactors = F)
-    rownames(metadata) <- metadata[["sample_alias"]]
+    taxa <- data.table(unclass(tax_table(physeq)), keep.rownames=TRUE)
+    setnames(taxa, "rn", "coord")
+
+    metadata <- (
+                  data.table(as.data.frame(unclass(sample_data(physeq))), keep.rownames=TRUE)
+                  [, rn := sample_alias]
+                )
 
     return(list(counts=counts, taxa=taxa, metadata=metadata))
 }
@@ -375,103 +379,94 @@ dir.create(file.path(phyloseq_dir), showWarnings = FALSE)
 print('#################################### DB profiles ####################################')
 
 # Initialize some variables
-ge_norm_taxa_genes <- NULL
+ge_gene_names <- NULL
 metadata_df <- NULL
-profiles_annot_norm_df_sub <- NULL
+gene_annotation <- NULL
 ga_fa_df <- NULL
 gt_ft_df <- NULL
 ge_fe_df <- NULL
 
 # GE
 if (omics == 'metaG_metaT'){
-    res <- process_phyloseq_obj("GE")
-    ge_norm_count <- res$counts
-    ge_norm_taxa <- res$taxa
-    ge_norm_taxa_genes <- rownames(ge_norm_taxa)
-    profiles_annot_norm_df_sub <- ge_norm_taxa
+    message(format(Sys.time(), digits=0), " - began reading phyloseq")
+    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GE.rds'))
+    message(format(Sys.time(), digits=0), " - done  reading phyloseq")
+
+    ge_fe_df <- data.frame(DB='genes', feature_n=dim(res$taxa)[1], feature = 'Genes')
+
+    ge_gene_names <- res$counts$coord
+    gene_annotation <- res$taxa
 
     # metadata
     metadata_df <- res$metadata
 
-    ge_fe_df <- data.frame(DB='genes', feature_n=length(ge_norm_taxa_genes), feature = 'Genes')
-
-    rm(ge_norm_count, ge_norm_taxa)
+    rm(res)
 }
 
 # metaG
 if (omics %like% "metaG") {
-    res <- process_phyloseq_obj("GA")
-    ga_norm_count <- res$counts
-    ga_norm_taxa <- res$taxa
-    ga_norm_taxa_genes <- rownames(ga_norm_taxa)
-    ga_fa_df <- data.frame(DB='genes', feature_n=length(ga_norm_taxa_genes), feature = 'Genes')
+    message(format(Sys.time(), digits=0), " - began reading phyloseq")
+    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GA.rds'))
+    message(format(Sys.time(), digits=0), " - done  reading phyloseq")
+
+    ga_fa_df <- data.frame(DB='genes', feature_n=dim(res$taxa)[1], feature = 'Genes')
 
     if (omics == 'metaG') {
-        metaG_norm_profile <- ga_norm_count
-        profiles_annot_norm_df_sub <- ga_norm_taxa
+        metaG_norm_profile <- res$counts
+        gene_annotation <- res$taxa[coord %in% metaG_norm_profile$coord, ]
         metadata_df <- res$metadata
     } else {
-        metaG_norm_profile <- ga_norm_count[rownames(ga_norm_count) %in% ge_norm_taxa_genes,]
+        metaG_norm_profile <- res$counts[coord %in% ge_gene_names, ]
     }
-    metaG_norm_profile <- metaG_norm_profile %>%
-                                            tibble::rownames_to_column('coord') %>%
-                                            dplyr::select(coord, everything())
-    rm(ga_norm_count, ga_norm_taxa, ga_norm_taxa_genes)
+
+    rm(res)
 }
 
 # metaT
 if (omics %like% "metaT") {
-    res <- process_phyloseq_obj("GT")
-    gt_norm_count <- res$counts
-    gt_norm_taxa <- res$taxa
-    gt_norm_taxa_genes <- rownames(gt_norm_taxa)
-    gt_ft_df <- data.frame(DB='genes', feature_n=length(gt_norm_taxa_genes), feature = 'Genes')
+    message(format(Sys.time(), digits=0), " - began reading phyloseq")
+    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GT.rds'))
+    message(format(Sys.time(), digits=0), " - done  reading phyloseq")
+
+    gt_ft_df <- data.frame(DB='genes', feature_n=dim(res$taxa)[1], feature = 'Genes')
 
     if (omics == 'metaT') {
-        metaT_norm_profile <- gt_norm_count
-        profiles_annot_norm_df_sub <- gt_norm_taxa
+        metaT_norm_profile <- res$counts
+        gene_annotation <- res$taxa[coord %in% metaT_norm_profile$coord, ]
         metadata_df <- res$metadata
     } else {
-        metaT_norm_profile <- gt_norm_count[rownames(gt_norm_count) %in% ge_norm_taxa_genes,]
+        metaT_norm_profile <- res$counts[coord %in% ge_gene_names, ]
     }
-    metaT_norm_profile <- metaT_norm_profile %>%
-                                            tibble::rownames_to_column('coord') %>%
-                                            dplyr::select(coord, everything())
-    rm(gt_norm_count, gt_norm_taxa, gt_norm_taxa_genes)
+
+    rm(res)
 }
 
 # Delete data
-rm(ge_norm_taxa_genes)
+rm(ge_gene_names)
 
 # By now, we will have:
 #   metadata_df
-#   profiles_annot_norm_df_sub
+#   gene_annotation
 #   ge_fe_df
 
 
 #################################### FUNCTION EXPRESSION  ####################################
 print('#################################### FUNCTION EXPRESSION  ####################################')
 
-# Filter profile based on non-zero features if GE. Otherwise, use themselves
+# Filter tax.table based on features in metaG, if metaG_metaT. metaG/metaT have been filtered earlier.
 
-if (omics == 'metaT') {
-    filter_profile <- metaT_norm_profile
-} else {
-    filter_profile <- metaG_norm_profile
+if (omics == 'metaG_metaT') {
+    gene_annotation <- gene_annotation[coord %in% metaG_norm_profile$coord, ]
 }
-profiles_annot_norm_df_sub <- profiles_annot_norm_df_sub %>%
-                                  mutate(coord = rownames(.)) %>%
-                                  dplyr::select(coord, everything()) %>%
-                                  filter(coord %in% filter_profile$coord)
-rm(filter_profile)
 
 
 # Get entries for this funcat_name
-dbMap <- profiles_annot_norm_df_sub %>%
-            dplyr::select(c(coord, all_of(funcat_name))) %>%
-            filter(!is.na(!!as.symbol(funcat_name)) & !!as.symbol(funcat_name) != "" & !!as.symbol(funcat_name) != "-")
+gene_annotation <- (gene_annotation
+          [, c('coord', funcat_name), with = FALSE]
+          [!get(funcat_name) %in% c(NA, "", "-")]
+         )
 
-if (dim(dbMap)[1] > 0) {
+if (dim(gene_annotation)[1] > 0) {
 
     message(format(Sys.time(), digits=0), " - ", funcat_name, " started")
 
@@ -481,24 +476,23 @@ if (dim(dbMap)[1] > 0) {
 
     # Replicate the gene annotation table by having N rows for gene with N annotations.
 
-    singleKeys <- strsplit(dbMap[,2], split = "\\; |\\;|\\, |\\,")
-    keyMap <- data.frame(coord = rep(dbMap$coord, sapply(singleKeys, length)),
-                         Funct = unlist(singleKeys),
-                         stringsAsFactors = FALSE) %>%
-                 distinct()
+    singleKeys <- strsplit(gene_annotation[[funcat_name]], split = "\\; |\\;|\\, |\\,")
+    keyMap <- unique(data.table(coord = rep(gene_annotation$coord, sapply(singleKeys, length)),
+                                Funct = unlist(singleKeys),
+                                key = "coord"))
+
 
     # Since KEGG annotations can have map12345 and ko12345 for the same pathway,
     # remove such redundancy.
-    if (funcat_name == "KEGG_Pathway"){
-        keyMap$Funct <- gsub('ko', 'map', keyMap$Funct)
-        keyMap <- distinct(keyMap)
+    if (funcat_name %in% c("KEGG_Pathway", "kofam_Pathway")) {
+        keyMap <- unique(keyMap[, Funct := gsub('ko', 'map', Funct)])
     }
 
-    keyMap_funct <- data.frame(Funct = c(unique(keyMap$Funct)))
+    keyMap_funct <- data.table(Funct = c(unique(keyMap$Funct)))
 
     # Get annotation descriptions from external sources
 
-    annot_df <- get_annotation_descriptions(funcat_name)
+    annot_dt <- get_annotation_descriptions(funcat_name)
 
 
     #####################################################
@@ -511,7 +505,7 @@ if (dim(dbMap)[1] > 0) {
                                            profile=metaG_norm_profile,
                                            file_label="FA",
                                            database=funcat_name,
-                                           annotations=annot_df,
+                                           annotations=annot_dt,
                                            metadata=metadata_df,
                                            weights=metaG_genome_weights)
     }
@@ -522,18 +516,23 @@ if (dim(dbMap)[1] > 0) {
                                            profile=metaT_norm_profile,
                                            file_label="FT",
                                            database=funcat_name,
-                                           annotations=annot_df,
+                                           annotations=annot_dt,
                                            metadata=metadata_df,
                                            weights=metaT_genome_weights)
     }
 
     # metaG_metaT
     if (omics == 'metaG_metaT') {
+
+        library(dplyr)
+
         # Expression -
         function_ids <- taxa_names(metaG_physeq)
         metaG_values <- as.data.frame(otu_table(metaG_physeq))
         metaT_values <- as.data.frame(otu_table(metaT_physeq))
-        metaT_values <- metaT_values[match(rownames(metaT_values), rownames(metaT_values)),]
+        feature_ids <- intersect(rownames(metaG_values), rownames(metaT_values))
+        metaG_values <- metaG_values[feature_ids,]
+        metaT_values <- metaT_values[feature_ids,]
 
         # Function Expression
         function_expression_norm=(metaT_values)/(metaG_values)
@@ -548,12 +547,11 @@ if (dim(dbMap)[1] > 0) {
                                                   tibble::column_to_rownames('rownames')) %>%
                                                   dplyr::select(Funct, everything())
 
-        function_expression_norm_desc <- right_join(annot_df, function_expression_norm, by='Funct')
+        function_expression_norm_desc <- right_join(as.data.frame(annot_dt), function_expression_norm, by='Funct')
         fwrite(function_expression_norm_desc, file=paste0(output_dir, '/FE.', funcat_name ,'.tsv'), sep='\t', row.names = F, quote = F)
 
         # Delete data
-        rm(dbMap, keyMap_funct, singleKeys,
-         metaG_values, metaT_values)
+        rm(gene_annotation, keyMap_funct, singleKeys, metaG_values, metaT_values, feature_ids)
 
         #### phyloseq object - metaT relative to metaG -####
 
@@ -598,26 +596,17 @@ if (dim(dbMap)[1] > 0) {
     # Create df to plot number of genes and functions ####
     if (!is.null(ga_fa_df)) {
         x <- metaG_physeq
-        n_row <- unclass(tax_table(x)) %>%
-                    as.data.frame(stringsAsFactors = F) %>%
-                    dplyr::filter(Funct != 'Unknown') %>%
-                    nrow()
+        n_row <- nrow(data.table(unclass(tax_table(x)))[Funct != 'Unknown',])
         ga_fa_df <- rbind(ga_fa_df, c(funcat_name, n_row, 'Functions'))
     }
     if (!is.null(gt_ft_df)) {
         x <- metaT_physeq
-        n_row <- unclass(tax_table(x)) %>%
-                    as.data.frame(stringsAsFactors = F) %>%
-                    dplyr::filter(Funct != 'Unknown') %>%
-                    nrow()
+        n_row <- nrow(data.table(unclass(tax_table(x)))[Funct != 'Unknown',])
         gt_ft_df <- rbind(gt_ft_df, c(funcat_name, n_row, 'Functions'))
     }
     if (!is.null(ge_fe_df)) {
         x <- FE_physeq
-        n_row <- unclass(tax_table(x)) %>%
-                    as.data.frame(stringsAsFactors = F) %>%
-                    dplyr::filter(Funct != 'Unknown') %>%
-                    nrow()
+        n_row <- nrow(data.table(unclass(tax_table(x)))[Funct != 'Unknown',])
         ge_fe_df <- rbind(ge_fe_df, c(funcat_name, n_row, 'Functions'))
     }
 
