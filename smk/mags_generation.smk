@@ -675,7 +675,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     log:
         "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.log"
     params:
-        db_folder=lambda wildcards: "{location}/phylophlan/{db_version}".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+        db_folder=lambda wildcards: "{location}/phylophlan".format(location=taxonomy_db_folder)
     resources:
         mem=config["TAXONOMY_memory"]
     threads:
