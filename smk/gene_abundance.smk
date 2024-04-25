@@ -654,16 +654,19 @@ rule merge_gene_abund:
 # We use --prefix to prepend before relabeling.
 rule relabel_merged_gene_abund:
     input:
-        metadata=metadata,
-        original="{somewhere}/{something}.raw"
+        original="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.{suffix}.raw"
     output:
-        relabeled="{somewhere}/{something}"
+        relabeled="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.{suffix}"
+    wildcard_constraints:
+        label="all|genes_abundances",
+        identity='\d+',
+        suffix="|".join(['profile.abund.prop.txt', 'profile.abund.prop.genome.txt', 'profile.relabund.prop.genome.txt', 'bed'])
     shadow:
         "minimal"
     log:
-        "{somewhere}/relabel_{something}.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/relabel_{label}.p{identity}.{suffix}.log"
     params:
-        prefix = lambda wildcards: "" if (wildcards.something.endswith('.bed')) else "--prefix {}.".format(omics)
+        prefix = lambda wildcards: "" if (wildcards.suffix.endswith('bed')) else "--prefix {}.".format(omics)
     threads: 4
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
@@ -671,8 +674,7 @@ rule relabel_merged_gene_abund:
         mem=30
     shell:
         """
-        time (Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {input.metadata} --input {input.original} --output relabeled.txt {params.prefix}) >& {log}
-        rsync -a relabeled.txt {output.relabeled}
+        time Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {metadata} --input {input.original} --output {output.relabeled} {params.prefix} >& {log}
         """
 
 ###############################################################################################
