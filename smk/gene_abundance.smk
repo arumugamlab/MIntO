@@ -852,6 +852,11 @@ ANNOTATION_ids:
  - dbCAN.EC
  - eCAMI.subfamily
  - eCAMI.submodule
-" > {output.config_file}
+ - kofam_Pathway
+ - kofam_Module
+ - kofam_KO
+ - KEGG_Pathway
+ - KEGG_Module
+ - KEGG_KO" > {output.config_file}
 ) >& {log}
         """
