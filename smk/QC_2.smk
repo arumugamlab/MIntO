@@ -1103,6 +1103,7 @@ NAME_reference:
 # - eggNOG
 ANNOTATION:
  - dbCAN
+ - KEGG
  - eggNOG
 
 #########################
