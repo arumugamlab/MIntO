@@ -247,7 +247,7 @@ def get_runs_for_sample(wildcards):
             omics=wildcards.omics,
             location=get_qc2_output_location(wildcards.omics),
             illumina=wildcards.illumina)
-    runs = [ re.sub("\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
+    runs = [ re.sub(r"\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
     return(sorted(runs))
 
 rule merge_runs:
@@ -500,6 +500,6 @@ rule rename_megahit_contigs:
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
-        """
+        r"""
         perl -ne 's/^>k(\d+)_(\d+) (.*)len=(\d+)/>MEGAHIT.{wildcards.assembly_preset}.{wildcards.coassembly}_NODE_$2_length_$4_k_$1/ if m/^>/; print $_;' < {input} > {output}
         """
