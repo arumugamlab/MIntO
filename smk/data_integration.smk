@@ -264,13 +264,13 @@ rule integration_merge_profiles:
 ###############################################################################################
 rule integration_gene_profiles:
     input:
+        annot_file = annot_file,
         gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv"
     output:
         gene_abund_prof="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_alphabet}.csv",
         gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.rds",
         gene_abund_plots="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     params:
-        annot_file = annot_file,
         metadata_file = metadata,
         funcat_names = funct_opt_list,
         script_omics = lambda wildcards: 'metaG' if wildcards.omics_alphabet == 'A' \
@@ -290,7 +290,7 @@ rule integration_gene_profiles:
                     --threads {threads} \
                     --outdir $(dirname {output.gene_abund_prof}) \
                     --main-factor {main_factor} \
-                    --annotation {params.annot_file} \
+                    --annotation {input.annot_file} \
                     --metadata {params.metadata_file} \
                     --gene-profile {input.gene_abund_merge} \
                     --funcat-names {params.funcat_names} \
