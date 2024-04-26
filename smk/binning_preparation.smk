@@ -288,7 +288,7 @@ rule filter_contigs_nanopore:
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
-        batch = '\d+',
+        batch = r'\d+',
         scaf_type = 'nanopore'
     resources:
         mem = 5
@@ -309,7 +309,7 @@ rule filter_contigs_illumina_single_nanopore:
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
-        batch = '\d+',
+        batch = r'\d+',
         scaf_type = 'illumina_single_nanopore'
     resources:
         mem = 5
@@ -329,7 +329,7 @@ rule filter_contigs_illumina_single:
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
-        batch = '\d+',
+        batch = r'\d+',
         scaf_type = 'illumina_single'
     resources:
         mem = 5
@@ -348,7 +348,7 @@ rule filter_contigs_illumina_coas:
     output:
         "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
     wildcard_constraints:
-        batch = '\d+',
+        batch = r'\d+',
         scaf_type = 'illumina_coas'
     resources:
         mem = 5
