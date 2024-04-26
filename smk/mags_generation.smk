@@ -174,7 +174,7 @@ if run_taxonomy == "yes":
 
 
 def mags_recovery():
-    result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt", wd = working_dir, omics = config['omics'])
+    result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes", wd = working_dir, omics = config['omics'])
     if (run_taxonomy == "yes"):
         result.append(expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.{taxonomy}.tsv", wd = working_dir, omics = config['omics'], taxonomy = taxonomies_versioned))
     return(result)
