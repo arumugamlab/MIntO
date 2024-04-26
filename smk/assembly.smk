@@ -457,7 +457,7 @@ rule mark_circular_metaspades_contigs:
                     if seq[0:params.kmer] == seq[-params.kmer:]:
                         seq = seq[0:-params.kmer]
                         header = regex.sub("length_%s_" % len(seq), header) + '_circularA'
-                out.write(f'>MetaSPAdes.k21-{wildcards.maxk}.{wildcards.sample}_{header}\n')
+                out.write(">MetaSPAdes.k21-{maxk}.{sample}_{header}\n".format(maxk=wildcards.maxk, sample=wildcards.sample, header=header))
                 out.write(seq+"\n")
 
 ###############################################################################################

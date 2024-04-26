@@ -98,7 +98,7 @@ def filter_fasta_by_length(infile, outfile, min_length=2500):
         for entry in fiter:
             header, seq = entry
             if len(seq) >= min_length:
-                out.write(f'>{header}\n{seq}\n')
+                out.write(">{header}\n{seq}\n".format(header=header, seq=seq))
 
 # Filter multiple files by length and output to one file
 def filter_fasta_list_by_length(infile_list, outfile, min_length=2500):
@@ -117,4 +117,4 @@ def filter_fasta_list_by_length(infile_list, outfile, min_length=2500):
             for entry in fiter:
                 header, seq = entry
                 if len(seq) >= int(min_length):
-                    out.write(f'>{header}\n{seq}\n')
+                    out.write(">{header}\n{seq}\n".format(header=header, seq=seq))
