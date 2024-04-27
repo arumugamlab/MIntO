@@ -33,10 +33,11 @@ if 'ILLUMINA' in config:
             # Make list of illumina samples, if ILLUMINA in config
             ilmn_samples = list()
             #print("Samples:")
-            location='5-1-sortmerna' if omics=='metaT' else '4-hostfree'
             for ilmn in config['ILLUMINA']:
                 x = str(ilmn)
-                if path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), x)) is True:
+                if path.exists("{}/{}/{}/{}".format(working_dir, omics, '6-corrected', x)) is True:
+                    ilmn_samples.append(x)
+                elif path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), x)) is True:
                     ilmn_samples.append(x)
                 else:
                     raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
@@ -151,7 +152,7 @@ elif type(config['MEGAHIT_memory']) == int:
 # Define all the outputs needed by target 'all'
 
 def illumina_single_assembly_output():
-    result = expand("{wd}/{omics}/7-assembly/{sample}/{kmer_dir}/{sample}.{sequence}.fasta.len",
+    result = expand("{wd}/{omics}/7-assembly/{sample}/{kmer_dir}/{sample}.{sequence}.fasta",
                     wd = working_dir,
                     omics = omics,
                     sample = ilmn_samples,
@@ -160,7 +161,7 @@ def illumina_single_assembly_output():
     return(result)
 
 def illumina_co_assembly_output():
-    result = expand("{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta.len",
+    result = expand("{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta",
                     wd = working_dir,
                     omics = omics,
                     coassembly = co_assemblies,
@@ -168,7 +169,7 @@ def illumina_co_assembly_output():
     return(result)
 
 def nanopore_single_assembly_output():
-    result = expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.fasta.len",
+    result = expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.fasta",
                     wd = working_dir,
                     omics = omics,
                     sample = config["NANOPORE"] if "NANOPORE" in config else [],
@@ -176,7 +177,7 @@ def nanopore_single_assembly_output():
     return(result)
 
 def hybrid_assembly_output():
-    result = expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.{sequence}.fasta.len",
+    result = expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.{sequence}.fasta",
                     wd = working_dir,
                     omics = omics,
                     assembly = hybrid_assemblies,
@@ -217,8 +218,8 @@ rule correct_spadeshammer:
     input:
         reads=get_hq_fastq_files
     output:
-        fwd="{wd}/{omics}/6-corrected/{illumina}/{run}.1.fq.gz",
-        rev="{wd}/{omics}/6-corrected/{illumina}/{run}.2.fq.gz",
+        fwd="{wd}/{omics}/5-corrected-runs/{illumina}/{run}.1.fq.gz",
+        rev="{wd}/{omics}/5-corrected-runs/{illumina}/{run}.2.fq.gz",
     shadow:
         "minimal"
     params:
@@ -226,7 +227,7 @@ rule correct_spadeshammer:
     resources:
         mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
     log:
-        "{wd}/logs/{omics}/6-corrected/{illumina}/{run}_spadeshammer.log"
+        "{wd}/logs/{omics}/5-corrected-runs/{illumina}/{run}_spadeshammer.log"
     threads: config['METASPADES_threads']
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #METASPADES
@@ -242,6 +243,18 @@ rule correct_spadeshammer:
 # Get a sorted list of runs for a sample
 
 def get_runs_for_sample(wildcards):
+    # If corrected runs are already present, take it from there
+    sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
+            wd=wildcards.wd,
+            omics=wildcards.omics,
+            location='5-corrected-runs',
+            illumina=wildcards.illumina)
+    if path.exists(sample_dir):
+        runs = [ re.sub(r"\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
+        if (len(runs) > 0):
+            return(sorted(runs))
+
+    # Not corrected yet, so look at QC2 outputs
     sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
             wd=wildcards.wd,
             omics=wildcards.omics,
@@ -252,7 +265,7 @@ def get_runs_for_sample(wildcards):
 
 rule merge_runs:
     input:
-        files=lambda wildcards: expand("{wd}/{omics}/6-corrected/{illumina}/{run}.{pair}.fq.gz",
+        files=lambda wildcards: expand("{wd}/{omics}/5-corrected-runs/{illumina}/{run}.{pair}.fq.gz",
                                         wd = wildcards.wd,
                                         omics = wildcards.omics,
                                         illumina = wildcards.illumina,
