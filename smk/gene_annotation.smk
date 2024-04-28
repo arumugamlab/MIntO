@@ -105,6 +105,10 @@ def get_genomes_from_refdir(ref_dir):
 
 genomes = get_genomes_from_refdir(reference_dir)
 
+# Generate unique locus ids that are not clashing with each other.
+# Clashes are study-specific, so locus-ids will be reproducible for a study with same MAGs.
+# But they might be different after resolution when compared between studies.
+
 rule generate_locus_ids:
     input: 
         expand("{ref_dir}/{genome}.fna", ref_dir = reference_dir, genome = genomes)
@@ -119,7 +123,10 @@ rule generate_locus_ids:
         genome_locusids = {}
         for fna in input:
             g = pathlib.Path(fna).stem
+            # Get a 10-char translation of md5 checksum
             lid = sub(r'(.)(\1+)', r'\1', md5(bytes(f"{g}\n", 'utf-8'), usedforsecurity=False).hexdigest().translate(tr_tb).upper())[:10]
+            # Having FAIL in the locus_id will lead to barrnap failing due to a bug, so replace it
+            lid = sub(r'FAIL', r'RAIL', lid)
             if lid not in genome_locusids:
                 genome_locusids[lid] = g
             else:
