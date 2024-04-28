@@ -134,7 +134,7 @@ rule generate_locus_ids:
                 i = 9
                 while lid in genome_locusids:
                     while lid[i] == "Z" and i > 1:
-                        i =- 1
+                        i -= 1
                     new_lid_char = chr(ord(lid[i]) + 1)
                     lid = lid[:i] + new_lid_char + lid[i+1:]
                 genome_locusids[lid] = g
