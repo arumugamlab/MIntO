@@ -8,6 +8,12 @@ minto_dir: /mypath/MIntO
 METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 
 ######################
+# Analysis settings
+######################
+
+MAIN_factor: participant_ID2
+
+######################
 # Program settings
 ######################
 # MetaSPAdes settings
@@ -28,11 +34,14 @@ METASPADES_illumina_max_k: 99
 #     each successive attempt will increase per-sample memory by 6 Gibabytes
 #     until it succeeds or reaches max_attempts from snakemake.
 #     Please make sure that there is enough RAM on the server.
+# Custom k-list for assembly: k must be odd, in the range 15-255, increment <= 28, fx. 21,29,39,59,79,99,119,141
 MEGAHIT_memory: 10
 MEGAHIT_threads: 32
 MEGAHIT_presets:
  - meta-sensitive
  - meta-large
+#MEGAHIT_custom:
+# - 
 
 # MetaFlye settings
 #
@@ -58,7 +67,7 @@ METAFLYE_presets:
 ###############################
 
 # Whether to use contigs or scaffolds from SPAdes
-SPADES_CONTIGS_OR_SCAFFOLDS: scaffolds
+SPADES_CONTIGS_OR_SCAFFOLDS: contigs
 
 # minimum contig/scaffold fasta length
 MIN_FASTA_LENGTH: 2500
@@ -164,3 +173,5 @@ COASSEMBLY:
   Full: CD136+CD138+CD140+CD142+CD146+CD237+CD238+CD240+CD242+CD244
   CD1: CD136+CD138+CD140+CD142+CD146
   CD2: CD237+CD238+CD240+CD242+CD244
+  SCL2: CD140+CD142+CD138+CD146
+  SCL4: CD237+CD240+CD238+CD242

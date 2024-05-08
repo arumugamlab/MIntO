@@ -31,7 +31,7 @@ READ_minlen: 134
 
 PATH_host_genome: /mypath/IBD_tutorial
 NAME_host_genome: build_hg18_subset.fna
-BWA_index_host_memory: 40
+BWA_index_host_memory: 100
 BWA_host_threads: 8
 BWA_host_memory: 40
 
@@ -49,6 +49,19 @@ BWA_host_memory: 40
 TAXA_threads: 8
 TAXA_memory: 10
 TAXA_profiler: motus_rel,metaphlan
+
+#########################
+# K-mer based comparison
+#########################
+
+# FracMinHash comparisons by sourmash
+# SOURMASH_min_abund - Minimum count of each k-mer for filtering the sketch (integer)
+# SOURMASH_max_abund - Maximum count of each k-mer for filtering the sketch (integer)
+# SOURMASH_cutoff    - Dissimilarity cutoff for subclusters via hierarchical clustering
+
+SOURMASH_min_abund: 2
+SOURMASH_max_abund: 1000
+SOURMASH_cutoff: 0.40
 
 #####################
 # Analysis parameters
