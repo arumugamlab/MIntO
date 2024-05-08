@@ -32,6 +32,8 @@ if path.exists("{}/{}/{}/".format(working_dir, omics, read_dir)) is False:
     else:
         raise Error("ERROR in {}: One of {} or 6-corrected must exist. Please correct {}".format(config_path, get_qc2_output_location(omics), working_dir))
 
+print("NOTE: MIntO is using '{}' as read directory".format(read_dir))
+
 main_factor = None
 if config['MAIN_factor'] is not None:
     main_factor = config['MAIN_factor']
@@ -217,16 +219,42 @@ rule all:
         mapping_statistics(),
         config_yaml()
 
+###############################################################################################
+# Useful python functions
+###############################################################################################
+
 # Get a sorted list of runs for a sample
 
 def get_runs_for_sample(wildcards):
-    sample_dir = '{wd}/{omics}/{location}/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, location=read_dir, sample=wildcards.sample)
     if read_dir == '6-corrected':
         runs = [wildcards.sample]
     else:
+        sample_dir = '{wd}/{omics}/{location}/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, location=read_dir, sample=wildcards.sample)
         runs = sorted([ re.sub("\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ])
         #print(runs)
     return(runs)
+
+# Get a sorted list of runs for a sample
+
+def get_fwd_files_only(wildcards):
+    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                location = read_dir,
+                sample = wildcards.sample,
+                run = get_runs_for_sample(wildcards),
+                pair = '1')
+    return(files)
+
+def get_rev_files_only(wildcards):
+    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                location = read_dir,
+                sample = wildcards.sample,
+                run = get_runs_for_sample(wildcards),
+                pair = '2')
+    return(files)
 
 def combine_profiles(input_list, output_file, log_file, key_columns):
     import pandas as pd
@@ -344,8 +372,8 @@ rule genome_mapping_profiling:
     input:
         bwaindex=rules.genome_bwaindex.output,
         genome_def=rules.make_genome_def.output.genome_def,
-        fwd=get_qc2_output_files_fwd_only,
-        rev=get_qc2_output_files_rev_only,
+        fwd=get_fwd_files_only,
+        rev=get_rev_files_only,
     output:
         sorted="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
         index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
@@ -520,8 +548,8 @@ rule gene_catalog_mapping_profiling:
                 gene_catalog_path=gene_catalog_db,
                 gene_catalog_name=gene_catalog_name,
                 ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac']),
-        fwd=get_qc2_output_files_fwd_only,
-        rev=get_qc2_output_files_rev_only,
+        fwd=get_fwd_files_only,
+        rev=get_rev_files_only,
     output:
         filtered="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.bam",
         bwa_log="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.log",
