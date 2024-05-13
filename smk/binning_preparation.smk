@@ -196,15 +196,16 @@ else:
 
 # Make list of illumina coassemblies, if COASSEMBLY in config
 co_assemblies = list()
-if 'COASSEMBLY' in config:
-    if config['COASSEMBLY'] is None:
-        print('ERROR in ', config_path, ': COASSEMBLY list of samples is empty. Please, complete ', config_path)
-    else:
-        #print("Coassemblies:")
-        SCAFFOLDS_type.append('illumina_coas')
-        for co in config["COASSEMBLY"]:
-            #print(" "+co)
-            co_assemblies.append(co)
+if 'enable_COASSEMBLY' in config and config['enable_COASSEMBLY'] is not None and config['enable_COASSEMBLY'] is True:
+    if 'COASSEMBLY' in config:
+        if config['COASSEMBLY'] is None:
+            print('ERROR in ', config_path, ': COASSEMBLY list of samples is empty. Please, complete ', config_path)
+        else:
+            #print("Coassemblies:")
+            SCAFFOLDS_type.append('illumina_coas')
+            for co in config["COASSEMBLY"]:
+                #print(" "+co)
+                co_assemblies.append(co)
 else:
     print('WARNING in ', config_path, ': COASSEMBLY list of samples is empty. Skipping co-assembly.')
 
