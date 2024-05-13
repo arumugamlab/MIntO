@@ -29,22 +29,21 @@ if 'ILLUMINA' in config:
     if config['ILLUMINA'] is None:
         print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
     else:
-        try:
-            # Make list of illumina samples, if ILLUMINA in config
-            ilmn_samples = list()
-            #print("Samples:")
-            for ilmn in config['ILLUMINA']:
-                x = str(ilmn)
-                if path.exists("{}/{}/{}/{}".format(working_dir, omics, '6-corrected', x)) is True:
-                    ilmn_samples.append(x)
-                elif path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), x)) is True:
-                    ilmn_samples.append(x)
-                else:
-                    raise TypeError('ERROR in ', config_path, ': ILLUMINA list of samples does not exist. Please, complete ', config_path)
-        except TypeError:
-            print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
+        # Make list of illumina samples, if ILLUMINA in config
+        ilmn_samples = list()
+        #print("Samples:")
+        for ilmn in config['ILLUMINA']:
+            x = str(ilmn)
+            if path.exists("{}/{}/{}/{}".format(working_dir, omics, '6-corrected', x)) is True:
+                ilmn_samples.append(x)
+            elif path.exists("{}/{}/{}/{}".format(working_dir, omics, '5-corrected-runs', x)) is True:
+                ilmn_samples.append(x)
+            elif path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), x)) is True:
+                ilmn_samples.append(x)
+            else:
+                raise NameError("ERROR in {}: ILLUMINA sequence does not exist for sample {}".format(config_path, x))
 else:
-    print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
+    print('ERROR in', config_path, ': ILLUMINA list of samples is empty. Please, complete', config_path)
 
 # Figure out SPAdes version
 spades_script = 'spades.py' # from conda environment
@@ -244,24 +243,19 @@ rule correct_spadeshammer:
 
 def get_runs_for_sample(wildcards):
     # If corrected runs are already present, take it from there
-    sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
-            wd=wildcards.wd,
-            omics=wildcards.omics,
-            location='5-corrected-runs',
-            illumina=wildcards.illumina)
-    if path.exists(sample_dir):
-        runs = [ re.sub(r"\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
-        if (len(runs) > 0):
-            return(sorted(runs))
-
-    # Not corrected yet, so look at QC2 outputs
-    sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
-            wd=wildcards.wd,
-            omics=wildcards.omics,
-            location=get_qc2_output_location(wildcards.omics),
-            illumina=wildcards.illumina)
-    runs = [ re.sub(r"\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
-    return(sorted(runs))
+    # If not, look at QC2 outputs
+    # This is to handle special cases where we delete qc2 output after error-correction to save space
+    for location in ['5-corrected-runs', get_qc2_output_location(wildcards.omics)]:
+        sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
+                wd=wildcards.wd,
+                omics=wildcards.omics,
+                location=location,
+                illumina=wildcards.illumina)
+        if path.exists(sample_dir):
+            runs = [ re.sub(r"\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
+            if (len(runs) > 0):
+                return(sorted(runs))
+    raise Error("Cannot find fastq files for sample: ", wildcards.illumina)
 
 rule merge_runs:
     input:
