@@ -12,6 +12,7 @@ library(data.table)
 library(KEGGREST)
 library(optparse)
 library(phyloseq)
+library(stringr)
 
 logmsg <- function(...) {
     message("# ", format(Sys.time(), digits=0), " - ", paste(list(...)), collapse=" ")
@@ -82,6 +83,9 @@ gene_profile_dt <- fread(profiles_tpm, header=T)
 logmsg("  done")
 logmsg("  profile: ", dim(gene_profile_dt))
 
+# Subset relevant columns from the profile table
+logmsg("Subsetting profile columns")
+
 # Get all column names in profile
 all_column_names <- names(gene_profile_dt)
 
@@ -96,6 +100,7 @@ if (omics == 'metaG_metaT') {
     sample_names <- grep(paste0("^meta[GT]\\."), all_column_names, fixed=FALSE, perl=TRUE, value=TRUE)
 }
 gene_profile_dt <- gene_profile_dt[, c("ID", sample_names), with=FALSE]
+logmsg("  done")
 
 # Index
 logmsg("Indexing")
@@ -150,14 +155,26 @@ if (omics != 'metaG_metaT') {
 
 # Prepare separate tables
 logmsg("Preparing separate annotation and profile tables")
-# Replace , by ; in annotations, since output will be csv
+# 1. Annotations
+#    Replace , by ; in annotations, since output will be csv
+#    Replace NA by "-" to catch later
+#    Concat all annotations
+#    Remove empty annotations (meaning '-' in every column
+#    Delete annotation column
+gene_annot_dt <- gene_combined_dt[, c("ID", funcat_names), with=FALSE]
 gene_annot_dt <- (
-                  gene_combined_dt
-                  [, c("ID", funcat_names), with=FALSE]
-                  [, lapply(.SD, function(x) gsub("\\,", "\\;", x))]
+                  gene_annot_dt
+                  [, lapply(.SD, function(x) str_replace_all(str_replace_na(x, replacement="-"), pattern=",", replacement=";"))]
+                  [, annot := do.call(paste, c(.SD, sep = "")), .SDcols = funcat_names]
                  )
+setkey(gene_annot_dt, annot)
+empty_annotation <- strrep("-", length(funcat_names))
+gene_annot_dt <- gene_annot_dt[!J(empty_annotation)][, annot := NULL]
+# 2. Profile
+#    Just get the ID and sample columns
 gene_combined_dt <- gene_combined_dt[, c("ID", sample_cols), with=FALSE]
-
+logmsg("  Annot   : ", dim(gene_annot_dt))
+logmsg("  Profile : ", dim(gene_combined_dt))
 logmsg("  done")
 
 # Write annotations into csv file
@@ -278,17 +295,21 @@ plot_PCA <- function(profile, color, label) {
     ## Update 2024.10.05 - NA/Inf should not be there in the tables anymore.
 
     # Get the lowest value in table and its log() to replace 0s by log2(min value * 1e-2) for the PCA
-    otu_copy <- (
-                 profile
-                 [, lapply(.SD, function(x) min(x[x>0], na.rm = TRUE))]
-                 [, minv := min(.SD, na.rm = TRUE)]
-                )
-    min_value <- (min(otu_copy[, .(minv)]))
+    profile_copy <- (
+                     profile
+                     [, lapply(.SD, function(x) min(x[x>0], na.rm = TRUE))]
+                     [, minv := min(.SD, na.rm = TRUE)]
+                    )
+    min_value <- (min(profile_copy[, .(minv)]))
     logmsg("  Min value in table: ", min_value)
     replace_val <- log(min_value*1e-2)
 
     # Log transform values
-    pca_data <- data.table::transpose(profile[, lapply(.SD, function(x) ifelse(x==0, replace_val, log(x)))])
+    pca_data <- profile[, lapply(.SD, function(x) ifelse(x==0, replace_val, log(x)))]
+    gc()
+    pca_data <- data.table::transpose(pca_data)
+    gc()
+
 
     #Plotting scores of PC1 and PC2 with log transformation
     gene_expression_pca <- prcomp(pca_data, center = T, sca=T)
@@ -353,7 +374,8 @@ if (omics == 'metaG') {
     make_output_files(profile=metaG_profile, type='abundance', label='GA')
 
     # Get first maxN rows and remove ID
-    metaG_profile <- metaG_profile[, head(.SD, maxN)][, ID := NULL]
+    metaG_profile <- metaG_profile[, first(.SD, maxN)][, ID := NULL]
+    gc()
 
     # Make PCA plot
     prepare_PCA(profile=metaG_profile, type='abundance', label='GA', color=main_factor)
@@ -365,6 +387,7 @@ if (omics == 'metaT') {
 
     # Get first maxN rows and remove ID
     metaT_profile <- metaT_profile[, head(.SD, maxN)][, ID := NULL]
+    gc()
 
     # Make PCA plot
     prepare_PCA(profile=metaT_profile, type='transcript', label='GT', color=main_factor)
@@ -422,6 +445,7 @@ if (omics == 'metaG_metaT') {
                         [, ID := NULL]
                         [, lapply(.SD, function(x) ifelse(is.na(x), 0, x))]
                        )
+    gc()
 
     # Make PCA plot
     prepare_PCA(profile=gene_expression, type='expression', label='GE', color=main_factor)
