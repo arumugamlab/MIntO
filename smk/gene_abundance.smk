@@ -393,7 +393,7 @@ rule genome_mapping_profiling:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.p{identity}_bwa.log"
     wildcard_constraints:
-        identity='\d+'
+        identity=r'\d+'
     threads:
         config["BWA_threads"]
     resources:
@@ -659,7 +659,7 @@ rule relabel_merged_gene_abund:
         relabeled="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.{suffix}"
     wildcard_constraints:
         label="all|genes_abundances",
-        identity='\d+',
+        identity=r'\d+',
         suffix="|".join(['profile.abund.prop.txt', 'profile.abund.prop.genome.txt', 'profile.relabund.prop.genome.txt', 'bed'])
     shadow:
         "minimal"
@@ -806,7 +806,7 @@ rule read_map_stats:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.read_map_stats.log"
     wildcard_constraints:
-        identity='\d+'
+        identity=r'\d+'
     threads: 1
     resources:
         mem=2
