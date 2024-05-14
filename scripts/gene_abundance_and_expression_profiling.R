@@ -8,14 +8,14 @@
 # '''
 
 ##########################  ** Load libraries **  ##########################
-library(dplyr)
 library(data.table)
-library(phyloseq)
 library(KEGGREST)
-library(tibble)
-library(stringr)
-library(purrr)
 library(optparse)
+library(phyloseq)
+
+logmsg <- function(...) {
+    message("# ", format(Sys.time(), digits=0), " - ", paste(list(...)), collapse=" ")
+}
 
 # Parse command line arguments
 opt_list <- list(
@@ -39,51 +39,268 @@ input_file <- opts[['gene-profile']]
 funcat_args  <- opts[['funcat-names']]
 main_factor <- opts[['main-factor']]
 
-funcat_names <- unlist(strsplit(funcat_args, split = "\\,")[[1]])
-print(funcat_names)
+funcat_names <- unique(unlist(strsplit(funcat_args, split = "\\,")[[1]]))
+logmsg("Including annotations for: ", paste(funcat_names, collapse=","))
 
 setDTthreads(threads = threads_n)
 set.seed(1234)
 
-plot_PCA <- function(physeq, color, label) {
+#####
+# Gene abundance profile
+#####
 
-    library(phyloseq)
+profiles_tpm <- input_file
+
+logmsg('#################################### Making output directory ####################################')
+
+# Generate output directories ####
+
+dir.create(file.path(output_dir), showWarnings = FALSE)
+visual_dir=paste0(output_dir, '/plots')
+dir.create(file.path(visual_dir), showWarnings = FALSE)
+phyloseq_dir=paste0(output_dir, '/phyloseq_obj')
+dir.create(file.path(phyloseq_dir), showWarnings = FALSE)
+
+########################################################
+## Read input files
+########################################################
+
+logmsg('#################################### Reading input files ####################################')
+
+# Get gene annotations
+logmsg("Reading annotations")
+gene_annot_dt <- fread(annot_file, header=T, select=c("ID", funcat_names))
+logmsg("  done")
+logmsg("Indexing")
+setkey(gene_annot_dt, ID)
+logmsg("  done")
+logmsg("  annot: ", dim(gene_annot_dt))
+
+# Read the TPM/MG normalized profile csv file for this omics
+logmsg("Reading profile")
+gene_profile_dt <- fread(profiles_tpm, header=T)
+logmsg("  done")
+logmsg("  profile: ", dim(gene_profile_dt))
+
+# Get all column names in profile
+all_column_names <- names(gene_profile_dt)
+
+# Rename the key column info --> ID in refgenome/MAG mode
+if (!"ID" %in% all_column_names && "info" %in% all_column_names) {
+    setnames(gene_profile_dt, c("info"), c("ID"))
+}
+
+# If single omic mode but multi-omic input file, subset columns to relevant samples only
+sample_names <- grep(paste0("^", omics, "\\."), all_column_names, fixed=FALSE, perl=TRUE, value=TRUE)
+if (omics == 'metaG_metaT') {
+    sample_names <- grep(paste0("^meta[GT]\\."), all_column_names, fixed=FALSE, perl=TRUE, value=TRUE)
+}
+gene_profile_dt <- gene_profile_dt[, c("ID", sample_names), with=FALSE]
+
+# Index
+logmsg("Indexing")
+setkey(gene_profile_dt, ID)
+logmsg("  done")
+
+# Make a list of sample columns for easy lookup later
+sample_cols <- setdiff(colnames(gene_profile_dt), c("ID"))
+
+########################################################
+## Get abundance and gene information into separate DFs
+########################################################
+
+logmsg("#################################### Processing data ####################################")
+
+# Merge tables
+logmsg("Combining profiles and annotations")
+gene_combined_dt <- gene_annot_dt[gene_profile_dt, ] # outer join - profiles should be kept for unannotated genes
+logmsg("  done")
+
+# Free memory
+logmsg("Freeing memory")
+rm(gene_profile_dt, gene_annot_dt)
+gc()
+logmsg("  done")
+
+# For metaG_metaT, the real profile is the ratio. So don't do any filtering now.
+# For others, do the filtering
+
+if (omics != 'metaG_metaT') {
+
+    # Estimate rowSum but negate it so that setkey will sort by desc(rowSum)
+    logmsg("Estimating rowSum")
+    gene_combined_dt <- gene_combined_dt[, negRowSum := rowSums(.SD, na.rm = TRUE), .SDcols = sample_cols]
+    logmsg("  done")
+
+    # Set key
+    logmsg("Indexing")
+    setkey(gene_combined_dt, negRowSum)
+    logmsg("  done")
+
+    # Remove zerosum rows
+
+    logmsg("Removing zero-sum rows")
+    logmsg("  Before: ", dim(gene_combined_dt))
+    gene_combined_dt <- gene_combined_dt[!J(0)] # This is the so-called 'not join' idiom
+    logmsg("  After : ", dim(gene_combined_dt))
+    logmsg("  done")
+
+    # NOTE: By now, profile table is free of zerosum rows and sorted(desc) by rowSum
+}
+
+# Prepare separate tables
+logmsg("Preparing separate annotation and profile tables")
+# Replace , by ; in annotations, since output will be csv
+gene_annot_dt <- (
+                  gene_combined_dt
+                  [, c("ID", funcat_names), with=FALSE]
+                  [, lapply(.SD, function(x) gsub("\\,", "\\;", x))]
+                 )
+gene_combined_dt <- gene_combined_dt[, c("ID", sample_cols), with=FALSE]
+
+logmsg("  done")
+
+# Write annotations into csv file
+logmsg("Writing out annotations")
+fwrite(gene_annot_dt,
+       file = paste0(output_dir, '/Annotations.csv'),
+       row.names = FALSE,
+       quote = FALSE)
+logmsg("  done")
+
+########################################################
+# For metaG_metaT, split profiles into metaG and metaT
+########################################################
+
+metaG_profile <- NULL
+metaT_profile <- NULL
+
+all_column_names <- names(gene_combined_dt)
+
+logmsg("Synchronizing metaG and metaT if applicable")
+# Subset profile file by metaG and metaT
+if (omics %like% 'metaG') {
+    old_names     <- grep("^metaG\\.", all_column_names, fixed=FALSE, perl=TRUE, value=TRUE)
+    new_names     <- gsub("^metaG\\.", "", old_names, fixed=FALSE, perl=TRUE)
+    metaG_profile <- gene_combined_dt[, c("ID", old_names), with=FALSE]
+    setnames(metaG_profile, old_names, new_names)
+}
+if (omics %like% 'metaT') {
+    old_names     <- grep("^metaT\\.", all_column_names, fixed=FALSE, perl=TRUE, value=TRUE)
+    new_names     <- gsub("^metaT\\.", "", old_names, fixed=FALSE, perl=TRUE)
+    metaT_profile <- gene_combined_dt[, c("ID", old_names), with=FALSE]
+    setnames(metaT_profile, old_names, new_names)
+}
+logmsg("  done")
+
+# Free memory
+logmsg("Freeing memory")
+rm(gene_combined_dt)
+gc()
+logmsg("  done")
+
+########################################################
+# For metaG_metaT, subset profiles for common samples
+########################################################
+
+# Columns shared b/w metaG and metaT. This includes 'ID', which is also needed in final table.
+if (omics == 'metaG_metaT') {
+    intersect_columns <- intersect(colnames(metaG_profile), colnames(metaT_profile))
+    metaG_profile <- metaG_profile[, intersect_columns, with=FALSE]
+    metaT_profile <- metaT_profile[, intersect_columns, with=FALSE]
+}
+
+########################################################
+# Make metadata df
+########################################################
+
+# If there is metadata file, use it instead of the dummy metadata created later
+metadata_df <- NULL
+if (metadata_file != 'None'){
+    metadata_df <- as.data.frame(fread(metadata_file,  header = T), stringsAsFactors = F)
+}
+if (is.null(metadata_df)) {
+    if (omics == 'metaT') {
+        metadata_df <- data.frame(sample=names(metaT_profile), group='control', sample_alias=names(metaT_profile))
+    } else {
+        metadata_df <- data.frame(sample=names(metaG_profile), group='control', sample_alias=names(metaG_profile))
+    }
+}
+sample_metadata <- sample_data(metadata_df)
+rownames(sample_metadata) <- sample_metadata$sample_alias
+
+########################################################
+# Write output files
+########################################################
+
+logmsg("#################################### Writing output files ####################################")
+
+# Common function to make output files for each type
+make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
+
+    library(qs)
+
+    logmsg("Processing ", type, " data")
+
+    # Write csv file
+    logmsg(" Writing CSV file")
+    fwrite(profile, file=paste0(output_dir, '/', label, '.csv'), row.names = F, quote = F)
+
+    # Prepare phyloseq
+    logmsg(" Making phyloseq")
+    physeq <- phyloseq(otu_table(as.matrix(profile, rownames="ID"), taxa_are_rows = T),
+                       tax_table(as.matrix(gene_annot_dt, rownames="ID")),
+                       sample_metadata)
+
+    # Write phyloseq
+    logmsg(" Writing phyloseq")
+    qsave(physeq,
+          file = paste0(phyloseq_dir, '/', label, '.qs'),
+          preset = "balanced",
+          nthreads = threads_n,
+         )
+}
+
+# Requirements:
+#  'profile' should only have numeric columns - IDs should have been removed
+#  'profile' should have removed all zerosum rows
+#  'profile' should be sorted (desc) by rowSum
+plot_PCA <- function(profile, color, label) {
+
     library(ggplot2)
     library(ggrepel)
 
     ##### metadata:
-    sample_data_df <- data.frame(sample_data(physeq), stringsAsFactors = F)
+    sample_data_df <- data.frame(sample_metadata, stringsAsFactors = F)
 
     ### Counts - non-zero/inf
     ## Prepare data - replace NA values by 0
-    otu_table_df <-  unclass(otu_table(physeq)) %>%
-                      as.data.frame(stringAsFactors = F) %>%
-                      tibble::rownames_to_column('rownames') %>%
-                      dplyr::mutate_all(function(x) ifelse(is.infinite(x) | is.na(x), 0, x)) %>%
-                      filter(rowSums(across(where(is.numeric), ~.x != 0))>0) %>%
-                      tibble::column_to_rownames('rownames')
+    ## Update 2024.10.05 - NA/Inf should not be there in the tables anymore.
 
-    ##### Replace infinite values by log2(min value * 1e-2) for the PCA
-    replace_val <- log((min(otu_table_df[otu_table_df >0 & !is.na(otu_table_df)]))*1e-2)
+    # Get the lowest value in table and its log() to replace 0s by log2(min value * 1e-2) for the PCA
+    otu_copy <- (
+                 profile
+                 [, lapply(.SD, function(x) min(x[x>0], na.rm = TRUE))]
+                 [, minv := min(.SD, na.rm = TRUE)]
+                )
+    min_value <- (min(otu_copy[, .(minv)]))
+    logmsg("  Min value in table: ", min_value)
+    replace_val <- log(min_value*1e-2)
 
-    ### Counts - Log transformed
-    otu_table_df_log <- log(otu_table_df) %>%
-                          tibble::rownames_to_column('ID') %>%
-                          dplyr::mutate_all(function(x) ifelse(is.infinite(x), replace_val, x)) %>%
-                          tibble::column_to_rownames('ID')
-
-    #min(otu_table_df_log[!is.na(otu_table_df_log)])
+    # Log transform values
+    pca_data <- data.table::transpose(profile[, lapply(.SD, function(x) ifelse(x==0, replace_val, log(x)))])
 
     #Plotting scores of PC1 and PC2 with log transformation
-    gene_expression_pca <- prcomp(t(otu_table_df_log), center = T, sca=T)
+    gene_expression_pca <- prcomp(pca_data, center = T, sca=T)
 
     # ***************** ggplot way - w coloring *****************
     dtp <- data.frame('sample' = sample_data_df[[label]],
                       'group' = sample_data_df[[color]],
-                       gene_expression_pca$x[,1:2]) # the first two componets are selected (NB: you can also select 3 for 3D plottings or 3+)
-    df_out <- as.data.frame(gene_expression_pca$x)
-    percentage <- round(gene_expression_pca$sdev / sum(gene_expression_pca$sdev) * 100, 2)
-    percentage <- paste0( colnames(df_out), " (", paste0(as.character(percentage), "%", ")"))
+                       gene_expression_pca$x[,1:2]) # the first two componets are selected
+    total_variance <- sum(gene_expression_pca$sdev)
+    axis_names <- head(colnames(data.table(gene_expression_pca$x)), 2)
+    percentage <- round(head(gene_expression_pca$sdev, 2) / total_variance * 100, 2)
+    percentage <- paste0(axis_names, " (", percentage, "%)")
 
     PCA_Sample_site_abundance <- (ggplot(data = dtp, aes(x = PC1, y = PC2, color = group)) +
                                   geom_text_repel(aes(label = sample),nudge_x = 0.04, size = 3.5, segment.alpha = 0.5) +
@@ -95,9 +312,9 @@ plot_PCA <- function(physeq, color, label) {
     return(PCA_Sample_site_abundance)
 }
 
-prepare_PCA <- function(physeq, type, color) {
+prepare_PCA <- function(profile, type, label, color) {
 
-    library(stringr)
+    logmsg(" Making PCA plots")
 
     # Colors
     manual_plot_colors =c('#9D0208', '#264653','#e9c46a','#D8DCDE','#B6D0E0',
@@ -112,9 +329,9 @@ prepare_PCA <- function(physeq, type, color) {
     # abundance  -> GA
     # transcript -> GT
     # expression -> GE
-    out_name <- paste0(visual_dir, 'G', str_sub(toupper(type), 1, 1), '.PCA.pdf')
+    out_name <- paste0(visual_dir, '/', label, '.PCA.pdf')
 
-    plot_PCA_out <- plot_PCA(physeq=physeq, color=color, label="sample_alias")
+    plot_PCA_out <- plot_PCA(profile=profile, color=color, label="sample_alias")
     pdf(out_name,width=8,height=8,paper="special" )
     print(plot_PCA_out  + scale_color_manual(values=manual_plot_colors, name=color) +
           #coord_fixed() +
@@ -128,248 +345,89 @@ prepare_PCA <- function(physeq, type, color) {
     dev.off()
 }
 
-#####
-# Gene abundance profile
-#####
-
-profiles_tpm <- input_file
-
-print('#################################### Paths ####################################')
-
-# Generate output directories ####
-
-dir.create(file.path(output_dir), showWarnings = FALSE)
-visual_dir=paste0(output_dir, '/plots/')
-dir.create(file.path(visual_dir), showWarnings = FALSE)
-phyloseq_dir=paste0(output_dir, '/phyloseq_obj/')
-dir.create(file.path(phyloseq_dir), showWarnings = FALSE)
-
-print('#################################### gene profiles ####################################')
-
-########################################################
-## Read input files
-########################################################
-
-# Get gene annotation
-# Replace , by ; in annotation IDs
-gene_annot_df <- as.data.frame(fread(annot_file,header=T), stringsAsFactors = F, row.names = T) %>%
-                        mutate(across(-ID, ~ gsub("\\,", "\\;", .))) %>%
-                        select(ID, all_of(unique(funcat_names))) %>%
-                        add_row(ID = 'Unknown')
-
-# Read the TPM/MG normalized profile csv file for this omics
-gene_profile_df <- fread(profiles_tpm, header=T) %>%
-                    as.data.frame(stringsAsFactors = F)
-
-########################################################
-## Get abundance and gene information into separate DFs
-########################################################
-
-
-bed_colnames <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
-if ( sum(bed_colnames %in% colnames(gene_profile_df)) == length(bed_colnames)) { # MAG-genes or refgenome-genes mode
-
-    # Get useful non-abundance information columns (BED columns) in a separate DF
-    # Modify some fields in the info DF
-    # Keep also coord, which will be used to merge info and abundance later
-    bed_info_only_df <- gene_profile_df %>%
-                            mutate(info = ifelse(name=='.', coord, info)) %>%
-                            select(coord, all_of(bed_colnames)) %>%
-                            mutate(ID = info) %>%
-                            mutate(name    = stringr::str_split(ID, '\\|') %>% map_chr(., 2)) # Get 2nd field
-
-    # Get abundance information in a separate DF
-    # And remove all rows with 0 sum
-    abundance_only_df <- gene_profile_df %>%
-                            select(-gene_length, -all_of(bed_colnames)) %>%
-                            distinct(coord, .keep_all = TRUE) %>%
-                            mutate(across(-coord, ~ as.numeric(replace(., . == '' | is.na(.), 0)))) %>%
-                            tibble::column_to_rownames('coord') %>%
-                            filter(rowSums(across(where(is.numeric), ~.x != 0))>0)
-
-    # Merge bed-info DF and annotation DF
-    names_list <- names(gene_annot_df)
-    gene_info_annotation_df <- merge(gene_annot_df, bed_info_only_df, by='ID', all.y=T) %>%
-                                    tibble::column_to_rownames('coord') %>%
-                                    select(name, all_of(names_list))
-
-    rm(bed_info_only_df)
-} else { # db-genes mode
-    # Profile file only has ID column other than abundance columns
-    # Remove all rows with 0 sum
-    abundance_only_df <- gene_profile_df %>%
-                            mutate(across(-ID, ~ as.numeric(replace(., . == '' | is.na(.), 0)))) %>%
-                            tibble::column_to_rownames('ID') %>%
-                            filter(rowSums(across(where(is.numeric), ~.x != 0))>0)
-    gene_info_annotation_df <- merge(gene_annot_df, gene_profile_df, by='ID', all.y=T) %>%
-                                    mutate(ID2 = ID) %>%
-                                    tibble::column_to_rownames('ID2')
-}
-
-# Write annotations into csv file
-fwrite(gene_annot_df, file=paste0(output_dir, '/Annotations.csv'), row.names = F, quote = F)
-
-# Free memory
-rm(gene_profile_df, gene_annot_df)
-gc()
-
-########################################################
-# Split df into metaG and metaT
-# Keep only common samples
-########################################################
-
-metaG_tpm_profile <- NULL
-metaT_tpm_profile <- NULL
-
-# Subset profile file by metaG and metaT
-if (omics %like% 'metaG') {
-    metaG_tpm_profile = abundance_only_df %>%
-                            select(starts_with("metaG")) %>%
-                            rename_with(~ gsub("metaG.", "", .x, fixed=TRUE))
-}
-if (omics %like% 'metaT') {
-    metaT_tpm_profile = abundance_only_df %>%
-                            select(starts_with("metaT")) %>%
-                            rename_with(~ gsub("metaT.", "", .x, fixed=TRUE))
-}
-
-# Free memory
-rm(abundance_only_df)
-gc()
-
-########################################################
-# Get samples in common metaG and metaT
-########################################################
-
-samples_intersect <- NULL
-if (is.null(metaG_tpm_profile)) {
-    samples_intersect <- colnames(metaT_tpm_profile)
-} else if (is.null(metaT_tpm_profile)) {
-    samples_intersect <- colnames(metaG_tpm_profile)
-} else {
-    samples_intersect <- intersect(colnames(metaG_tpm_profile), colnames(metaT_tpm_profile))
-}
-
-########################################################
-# Write profile data to files
-########################################################
-
-# If there is metadata file, use it instead of the dummy metadata created later
-metadata_df <- NULL
-if (metadata_file != 'None'){
-    metadata_df <- as.data.frame(fread(metadata_file,  header = T), stringsAsFactors = F)
-}
+# For PCA, if the table is too big, we will limit ourselves to maxN rows
+maxN = 500000
 
 # Write GA profile data for metaG
 if (omics == 'metaG') {
-    # Get profile
-    metaG_tpm_profile_sub <- metaG_tpm_profile %>%
-                                select(all_of(samples_intersect)) %>%
-                                tibble::rownames_to_column('ID') %>%
-                                dplyr::select(ID, everything())
+    make_output_files(profile=metaG_profile, type='abundance', label='GA')
 
-    # Write csv file
-    fwrite(metaG_tpm_profile_sub, file=paste0(output_dir, '/GA.csv'), row.names = F, quote = F)
-    metaG_tpm_profile_sub <- metaG_tpm_profile_sub %>%
-                                tibble::column_to_rownames('ID')
-
-    # Write phyloseq
-    if (is.null(metadata_df)) {
-        metadata_df <- data.frame(sample=names(metaG_tpm_profile_sub), group='control', sample_alias=names(metaG_tpm_profile_sub))
-    }
-    samp <- sample_data(metadata_df)
-    rownames(samp) <- samp$sample_alias
-    metaG_physeq <- phyloseq(otu_table(as.matrix(metaG_tpm_profile_sub), taxa_are_rows = T),
-                            tax_table(as.matrix(gene_info_annotation_df)), samp)
-    saveRDS(metaG_physeq, file = paste0(phyloseq_dir, '/GA.rds'))
+    # Get first maxN rows and remove ID
+    metaG_profile <- metaG_profile[, head(.SD, maxN)][, ID := NULL]
 
     # Make PCA plot
-    prepare_PCA(physeq=metaG_physeq, type="abundance",  color=main_factor)
-
-    # Free memory
-    rm(metaG_tpm_profile, metaG_physeq)
-    gc()
+    prepare_PCA(profile=metaG_profile, type='abundance', label='GA', color=main_factor)
 }
 
 # Write GT data for metaT
 if (omics == 'metaT') {
-    # Get profile
-    metaT_tpm_profile_sub <- metaT_tpm_profile %>%
-                                select(all_of(samples_intersect)) %>%
-                                tibble::rownames_to_column('ID') %>%
-                                dplyr::select(ID, everything())
+    make_output_files(profile=metaT_profile, type='transcript', label='GT')
 
-    # Write csv file
-    fwrite(metaT_tpm_profile_sub, file=paste0(output_dir, '/GT.csv'), row.names = F, quote = F)
-    metaT_tpm_profile_sub <- metaT_tpm_profile_sub %>%
-                                tibble::column_to_rownames('ID')
-
-    # Write phyloseq
-    if (is.null(metadata_df)) {
-        metadata_df <- data.frame(sample=names(metaT_tpm_profile_sub), group='control', sample_alias=names(metaT_tpm_profile_sub))
-    }
-    samp <- sample_data(metadata_df)
-    rownames(samp) <- samp$sample_alias
-    metaT_physeq <- phyloseq(otu_table(as.matrix(metaT_tpm_profile_sub), taxa_are_rows = T),
-                            tax_table(as.matrix(gene_info_annotation_df)), samp)
-    saveRDS(metaT_physeq, file = paste0(phyloseq_dir, '/GT.rds'))
+    # Get first maxN rows and remove ID
+    metaT_profile <- metaT_profile[, head(.SD, maxN)][, ID := NULL]
 
     # Make PCA plot
-
-    prepare_PCA(physeq=metaT_physeq, type="transcript", color=main_factor)
-
-    # Free memory
-    rm(metaT_tpm_profile, metaT_physeq)
-    gc()
+    prepare_PCA(profile=metaT_profile, type='transcript', label='GT', color=main_factor)
 }
 
-if (omics == 'metaG_metaT'){
-
-    ################################## GENE EXPRESSION  ##################################
-    print('#################################### GENE EXPRESSION  ####################################')
-
-    # Get profiles
-    metaG_tpm_profile_sub <- metaG_tpm_profile %>%
-                                select(all_of(samples_intersect))
-
-    metaT_tpm_profile_sub <- metaT_tpm_profile %>%
-                                select(all_of(samples_intersect))
-
+if (omics == 'metaG_metaT') {
 
     # # Normalization
     # When metaG is 0, just get metaT value (replace metaG 0 values by 1) ####
     # We don't do this anymore. These will become NaN
 
     # Gene Expression
-    print(paste("metaG-metaT match:", identical(names(metaG_tpm_profile_sub), names(metaT_tpm_profile_sub))))
-    gene_expression_tpm=(metaT_tpm_profile_sub)/(metaG_tpm_profile_sub)
-    gene_expression_tpm_noinf <- gene_expression_tpm %>%
-                                               tibble::rownames_to_column('ID') %>%
-                                               dplyr::mutate(across(-ID, function(x) ifelse(is.infinite(x) | is.nan(x), NA, x))) %>%
-                                               dplyr::select(ID, everything())
+    logmsg(paste("metaG-metaT match:", identical(names(metaG_profile), names(metaT_profile))))
+    sample_cols <- setdiff(colnames(metaG_profile), c("ID"))
 
-    # Write csv file
-    fwrite(gene_expression_tpm_noinf, file=paste0(output_dir, '/GE.csv'), row.names = F, quote = F)
-    gene_expression_tpm_noinf <- gene_expression_tpm_noinf %>%
-                                               tibble::column_to_rownames('ID')
+    # Since ID is non-numerical, we calculate the ratios after removing ID column
+    gene_expression <- metaT_profile[, ID := NULL]/metaG_profile[, ID := NULL]
+    gene_expression <- gene_expression[, lapply(.SD, function(x) ifelse(is.infinite(x) | is.nan(x), NA, x))]
 
-    # Write phyloseq
-    if (is.null(metadata_df)) {
-        metadata_df <- data.frame(sample=names(gene_expression_tpm_noinf), group='control', sample_alias=names(gene_expression_tpm_noinf))
-    }
-    samp <- sample_data(metadata_df)
-    rownames(samp) <- samp$sample_alias
-    GE_physeq <- phyloseq(otu_table(as.matrix(gene_expression_tpm_noinf), taxa_are_rows = T),
-                                                     tax_table(as.matrix(gene_info_annotation_df)), samp)
-    saveRDS(GE_physeq, file = paste0(phyloseq_dir, '/GE.rds'))
+    # Now let us add ID back
+    gene_expression <- cbind(gene_annot_dt[, .(ID)], gene_expression)
+
+    # Free up memory
+    logmsg("Freeing memory")
+    rm(metaG_profile, metaT_profile)
+    gc()
+
+    # Estimate rowSum but negate it so that setkey will sort by desc(rowSum)
+    logmsg("Estimating rowSum")
+    gene_expression <- gene_expression[, negRowSum := -rowSums(.SD, na.rm = TRUE), .SDcols = sample_cols]
+    logmsg("  done")
+
+    # Set key
+    logmsg("Indexing")
+    setkey(gene_expression, negRowSum)
+    logmsg("  done")
+
+    # Remove zerosum rows
+    logmsg("Removing zero-sum rows")
+    logmsg("  Before: ", dim(gene_expression))
+    gene_expression <- gene_expression[!J(0)][, negRowSum := NULL]
+    logmsg("  After : ", dim(gene_expression))
+    logmsg("  done")
+
+    # NOTE: By now, profile table is free of zerosum rows and sorted(desc) by rowSum
+
+    make_output_files(profile=gene_expression, type='expression', label='GE')
+
+    # Get first maxN rows
+    # Also replace NA's into 0
+    # NA originally means the value was 0/0 or n/0
+    gene_expression <- (
+                        gene_expression
+                        [, head(.SD, maxN)]
+                        [, ID := NULL]
+                        [, lapply(.SD, function(x) ifelse(is.na(x), 0, x))]
+                       )
 
     # Make PCA plot
-    prepare_PCA(physeq=GE_physeq, type="expression", color=main_factor)
-
-    # Delete data
-    rm(GE_physeq, gene_expression_tpm)
+    prepare_PCA(profile=gene_expression, type='expression', label='GE', color=main_factor)
 }
 
-rm(metadata_df, gene_info_annotation_df)
-
-print('Done!')
+# Freeing memory, but only to check what was the peak memory usage.
+logmsg("Freeing memory")
+gc()
+logmsg("Done!")

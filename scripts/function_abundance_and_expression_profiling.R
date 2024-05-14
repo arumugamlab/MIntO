@@ -15,6 +15,7 @@ library(tidyr)
 library(stringr)
 library(purrr)
 library(optparse)
+library(qs)
 
 # Parse command line arguments
 opt_list <- list(
@@ -334,13 +335,15 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
                          samp)
 
       # Write phyloseq object
-      saveRDS(physeq, file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.rds'))
+      qsave(physeq,
+            preset = "balanced",
+            file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.qs'))
 
       return(physeq)
 }
 
 process_phyloseq_obj <- function(physeq_file) {
-    physeq <- readRDS(physeq_file)
+    physeq <- qread(physeq_file, nthreads=threads_n)
     counts <- (
                 data.table(unclass(otu_table(physeq)), keep.rownames=TRUE)
                 [, lapply(.SD, function(x) ifelse(is.na(x), 0, x))]
@@ -389,7 +392,7 @@ ge_fe_df <- NULL
 # GE
 if (omics == 'metaG_metaT'){
     message(format(Sys.time(), digits=0), " - began reading phyloseq")
-    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GE.rds'))
+    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GE.qs'))
     message(format(Sys.time(), digits=0), " - done  reading phyloseq")
 
     ge_fe_df <- data.frame(DB='genes', feature_n=dim(res$taxa)[1], feature = 'Genes')
@@ -406,7 +409,7 @@ if (omics == 'metaG_metaT'){
 # metaG
 if (omics %like% "metaG") {
     message(format(Sys.time(), digits=0), " - began reading phyloseq")
-    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GA.rds'))
+    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GA.qs'))
     message(format(Sys.time(), digits=0), " - done  reading phyloseq")
 
     ga_fa_df <- data.frame(DB='genes', feature_n=dim(res$taxa)[1], feature = 'Genes')
@@ -425,7 +428,7 @@ if (omics %like% "metaG") {
 # metaT
 if (omics %like% "metaT") {
     message(format(Sys.time(), digits=0), " - began reading phyloseq")
-    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GT.rds'))
+    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GT.qs'))
     message(format(Sys.time(), digits=0), " - done  reading phyloseq")
 
     gt_ft_df <- data.frame(DB='genes', feature_n=dim(res$taxa)[1], feature = 'Genes')
@@ -570,7 +573,9 @@ if (dim(gene_annotation)[1] > 0) {
         FE_physeq <- phyloseq(otu_table(as.matrix(function_expression_norm), taxa_are_rows = T),
                                                tax_table(as.matrix(FE_annot_desc)),
                                                samp)
-        saveRDS(FE_physeq, file = paste0(phyloseq_dir, '/FE.', funcat_name ,'.rds'))
+        qsave(FE_physeq,
+              preset = "balanced",
+              file = paste0(phyloseq_dir, '/FE.', funcat_name ,'.qs'))
     }
 
 
@@ -613,13 +618,13 @@ if (dim(gene_annotation)[1] > 0) {
     message(format(Sys.time(), digits=0), " - ", funcat_name, " finished!")
 
 } else {
-    # create .tsv, .rds, .pdf
+    # create .tsv, .qs, .pdf
     file.create(paste0(output_dir, '/FA.', funcat_name ,'.tsv'))
     file.create(paste0(output_dir, '/FT.', funcat_name ,'.tsv'))
     file.create(paste0(output_dir, '/FE.', funcat_name ,'.tsv'))
-    file.create(paste0(phyloseq_dir, 'FA.', funcat_name ,'.rds'))
-    file.create(paste0(phyloseq_dir, 'FT.', funcat_name ,'.rds'))
-    file.create(paste0(phyloseq_dir, 'FE.', funcat_name ,'.rds'))
+    file.create(paste0(phyloseq_dir, 'FA.', funcat_name ,'.qs'))
+    file.create(paste0(phyloseq_dir, 'FT.', funcat_name ,'.qs'))
+    file.create(paste0(phyloseq_dir, 'FE.', funcat_name ,'.qs'))
     file.create(paste0(visual_dir, 'FA.', funcat_name ,'.PCA.pdf'))
     file.create(paste0(visual_dir, 'FT.', funcat_name ,'.PCA.pdf'))
     file.create(paste0(visual_dir, 'FE.', funcat_name ,'.PCA.pdf'))
