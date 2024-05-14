@@ -498,6 +498,12 @@ rule qc2_filter_rRNA:
         rsync -a out/aligned.log {output.rRNA_out} ) >& {log}
         """
 
+###############################################################################################
+# Create pseudo-samples that are created by merging multiple samples.
+# E.g., for time-series data, we can create a composite sample with all time points
+#       and create profiles for this composite sample.
+###############################################################################################
+
 if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != None:
 
     localrules: merge_fastqs_for_composite_samples
@@ -1103,6 +1109,7 @@ NAME_reference:
 # - eggNOG
 ANNOTATION:
  - dbCAN
+ - KEGG
  - eggNOG
 
 #########################

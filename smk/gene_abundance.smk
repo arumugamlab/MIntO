@@ -21,10 +21,18 @@ include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 
-if omics == 'metaG':
-    hq_dir="4-hostfree"
-if omics == 'metaT':
-    hq_dir="5-1-sortmerna"
+# We prefer original non-error-corrected reads for profiling to preserve strain variation in population
+read_dir=get_qc2_output_location(omics)
+
+# If the original reads have been removed for whatever reasons (running out of space, may be?),
+# then we look for error-corrected reads
+if path.exists("{}/{}/{}/".format(working_dir, omics, read_dir)) is False:
+    if path.exists("{}/{}/{}/".format(working_dir, omics, '6-corrected')) is True:
+        read_dir='6-corrected'
+    else:
+        raise Error("ERROR in {}: One of {} or 6-corrected must exist. Please correct {}".format(config_path, get_qc2_output_location(omics), working_dir))
+
+print("NOTE: MIntO is using '{}' as read directory".format(read_dir))
 
 main_factor = None
 if config['MAIN_factor'] is not None:
@@ -40,7 +48,7 @@ if 'ILLUMINA' in config:
         if 'ILLUMINA' in config:
             #print("Samples:")
             for ilmn in config["ILLUMINA"]:
-                if path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), ilmn)) is True:
+                if path.exists("{}/{}/{}/{}".format(working_dir, omics, read_dir, ilmn)) is True:
                     #print(ilmn)
                     ilmn_samples.append(ilmn)
                 else:
@@ -211,13 +219,42 @@ rule all:
         mapping_statistics(),
         config_yaml()
 
+###############################################################################################
+# Useful python functions
+###############################################################################################
+
 # Get a sorted list of runs for a sample
 
 def get_runs_for_sample(wildcards):
-    sample_dir = '{wd}/{omics}/{location}/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, location=get_qc2_output_location(wildcards.omics), sample=wildcards.sample)
-    runs = [ re.sub("\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
-    #print(runs)
-    return(sorted(runs))
+    if read_dir == '6-corrected':
+        runs = [wildcards.sample]
+    else:
+        sample_dir = '{wd}/{omics}/{location}/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, location=read_dir, sample=wildcards.sample)
+        runs = sorted([ re.sub("\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ])
+        #print(runs)
+    return(runs)
+
+# Get a sorted list of runs for a sample
+
+def get_fwd_files_only(wildcards):
+    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                location = read_dir,
+                sample = wildcards.sample,
+                run = get_runs_for_sample(wildcards),
+                pair = '1')
+    return(files)
+
+def get_rev_files_only(wildcards):
+    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
+                wd = wildcards.wd,
+                omics = wildcards.omics,
+                location = read_dir,
+                sample = wildcards.sample,
+                run = get_runs_for_sample(wildcards),
+                pair = '2')
+    return(files)
 
 def combine_profiles(input_list, output_file, log_file, key_columns):
     import pandas as pd
@@ -335,8 +372,8 @@ rule genome_mapping_profiling:
     input:
         bwaindex=rules.genome_bwaindex.output,
         genome_def=rules.make_genome_def.output.genome_def,
-        fwd=get_qc2_output_files_fwd_only,
-        rev=get_qc2_output_files_rev_only,
+        fwd=get_fwd_files_only,
+        rev=get_rev_files_only,
     output:
         sorted="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
         index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
@@ -511,8 +548,8 @@ rule gene_catalog_mapping_profiling:
                 gene_catalog_path=gene_catalog_db,
                 gene_catalog_name=gene_catalog_name,
                 ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac']),
-        fwd=get_qc2_output_files_fwd_only,
-        rev=get_qc2_output_files_rev_only,
+        fwd=get_fwd_files_only,
+        rev=get_rev_files_only,
     output:
         filtered="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.bam",
         bwa_log="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.log",
@@ -567,7 +604,7 @@ rule gene_catalog_mapping_profiling:
 
 rule gene_abund_compute:
     input:
-        sorted="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
+        bam="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
         index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
         bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_SUBSET.bed"
     output:
@@ -585,13 +622,13 @@ rule gene_abund_compute:
         """
         time (
         echo -e 'chr\\tstart\\tstop\\tname\\tscore\\tstrand\\tsource\\tfeature\\tframe\\tinfo\\t{wildcards.sample}' > bed_file
-        bedtools multicov -bams {input.sorted} -bed {input.bed_subset} >> bed_file
+        bedtools multicov -bams {input.bam} -bed {input.bed_subset} >> bed_file
         rsync bed_file {output.absolute_counts}) &> {log}
         """
 
 rule merge_gene_abund:
     input:
-        sorted=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed",
+        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed",
                     wd = wildcards.wd,
                     omics = wildcards.omics,
                     post_analysis_out = wildcards.post_analysis_out,
@@ -599,7 +636,7 @@ rule merge_gene_abund:
                     sample=ilmn_samples),
         bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_SUBSET.bed"
     output:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed.raw"
+        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed.raw"
     shadow:
         "minimal"
     log:
@@ -609,8 +646,8 @@ rule merge_gene_abund:
         mem=30
     run:
         import shutil
-        combine_profiles(input.sorted, 'combined.txt', log, key_columns=['chr','start','stop','name','score','strand','source','feature','frame','info'])
-        shutil.copy2('combined.txt', output.absolute_counts)
+        combine_profiles(input.single, 'combined.txt', log, key_columns=['chr','start','stop','name','score','strand','source','feature','frame','info'])
+        shutil.copy2('combined.txt', output.combined)
 
 # If this is a BED file, then sample names are just A, B, C.
 # If this is a gene-catalog mode TPM.csv, then it is metaG.A, metaG.B, metaG.C.
@@ -852,6 +889,11 @@ ANNOTATION_ids:
  - dbCAN.EC
  - eCAMI.subfamily
  - eCAMI.submodule
-" > {output.config_file}
+ - kofam_Pathway
+ - kofam_Module
+ - kofam_KO
+ - KEGG_Pathway
+ - KEGG_Module
+ - KEGG_KO" > {output.config_file}
 ) >& {log}
         """

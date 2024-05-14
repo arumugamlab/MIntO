@@ -137,12 +137,26 @@ def func_db_desc_out():
     return(result)
 
 def phylophlan_db_out():
+    # Hidden feature to turn off phylophlan download.
+    # Useful when testing workflows because phylophlan download could take a while and occupies space!
+    if ('enable_phylophlan' in config):
+        flag = str(config['enable_phylophlan'])
+        if (flag.lower() in ('no', 'false', '0')):
+            return(list())
+
     result=expand("{minto_dir}/data/phylophlan/SGB.{version}.txt.bz2",
         minto_dir=minto_dir,
         version=phylophlan_db_version)
     return(result)
 
 def metaphlan_db_out():
+    # Hidden feature to turn off metaphlan download.
+    # Useful when testing workflows because metaphlan download could take a while and occupies space!
+    if ('enable_metaphlan' in config):
+        flag = str(config['enable_metaphlan'])
+        if (flag.lower() in ('no', 'false', '0')):
+            return(list())
+
     result=expand("{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv",
         minto_dir=minto_dir,
         metaphlan_version=metaphlan_version,
@@ -150,6 +164,13 @@ def metaphlan_db_out():
     return(result)
 
 def motus_db_out():
+    # Hidden feature to turn off motus download.
+    # Useful when testing workflows because motus download could take a while and occupies space!
+    if ('enable_motus' in config):
+        flag = str(config['enable_motus'])
+        if (flag.lower() in ('no', 'false', '0')):
+            return(list())
+
     result=expand("{minto_dir}/logs/motus_{motus_version}.download_db.log",
         minto_dir=minto_dir,
         motus_version=motus_version)
@@ -166,6 +187,13 @@ def fetchMGs_out():
     return(result)
 
 def gtdb_db_out():
+    # Hidden feature to turn off GTDB download.
+    # Useful when testing workflows because GTDB download could take a full day and occupies space!
+    if ('enable_GTDB' in config):
+        flag = str(config['enable_GTDB'])
+        if (flag.lower() in ('no', 'false', '0')):
+            return(list())
+
     result=expand("{minto_dir}/data/GTDB/r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv",
         minto_dir=minto_dir,
         gtdb_release_number=gtdb_release_number)
