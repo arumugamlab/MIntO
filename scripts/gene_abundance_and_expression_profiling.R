@@ -154,35 +154,13 @@ if (omics != 'metaG_metaT') {
 }
 
 # Prepare separate tables
-logmsg("Preparing separate annotation and profile tables")
 # 1. Annotations
-#    Replace , by ; in annotations, since output will be csv
-#    Replace NA by "-" to catch later
-#    Concat all annotations
-#    Remove empty annotations (meaning '-' in every column
-#    Delete annotation column
-gene_annot_dt <- gene_combined_dt[, c("ID", funcat_names), with=FALSE]
-gene_annot_dt <- (
-                  gene_annot_dt
-                  [, lapply(.SD, function(x) str_replace_all(str_replace_na(x, replacement="-"), pattern=",", replacement=";"))]
-                  [, annot := do.call(paste, c(.SD, sep = "")), .SDcols = funcat_names]
-                 )
-setkey(gene_annot_dt, annot)
-empty_annotation <- strrep("-", length(funcat_names))
-gene_annot_dt <- gene_annot_dt[!J(empty_annotation)][, annot := NULL]
+#    Get ID and the relevant functional categories
 # 2. Profile
-#    Just get the ID and sample columns
+#    Get the ID and sample columns
+logmsg("Preparing separate annotation and profile tables")
+gene_annot_dt <- gene_combined_dt[, c("ID", funcat_names), with=FALSE]
 gene_combined_dt <- gene_combined_dt[, c("ID", sample_cols), with=FALSE]
-logmsg("  Annot   : ", dim(gene_annot_dt))
-logmsg("  Profile : ", dim(gene_combined_dt))
-logmsg("  done")
-
-# Write annotations into csv file
-logmsg("Writing out annotations")
-fwrite(gene_annot_dt,
-       file = paste0(output_dir, '/Annotations.csv'),
-       row.names = FALSE,
-       quote = FALSE)
 logmsg("  done")
 
 ########################################################
@@ -450,6 +428,32 @@ if (omics == 'metaG_metaT') {
     # Make PCA plot
     prepare_PCA(profile=gene_expression, type='expression', label='GE', color=main_factor)
 }
+
+
+# Write annotations into csv file
+#    Replace , by ; in annotations, since output will be csv
+#    Replace NA by "-" to catch later
+#    Concat all annotations
+#    Remove empty annotations (meaning '-' in every column
+#    Delete annotation column
+logmsg("Removing empty annotations")
+logmsg("  Before  : ", dim(gene_annot_dt))
+gene_annot_dt <- (
+                  gene_annot_dt
+                  [, lapply(.SD, function(x) str_replace_all(str_replace_na(x, replacement="-"), pattern=",", replacement=";"))]
+                  [, annot := do.call(paste, c(.SD, sep = "")), .SDcols = funcat_names]
+                 )
+setkey(gene_annot_dt, annot)
+empty_annotation <- strrep("-", length(funcat_names))
+gene_annot_dt <- gene_annot_dt[!J(empty_annotation)][, annot := NULL]
+logmsg("  After   : ", dim(gene_annot_dt))
+logmsg("  done")
+logmsg("Writing out annotations")
+fwrite(gene_annot_dt,
+       file = paste0(output_dir, '/Annotations.csv'),
+       row.names = FALSE,
+       quote = FALSE)
+logmsg("  done")
 
 # Freeing memory, but only to check what was the peak memory usage.
 logmsg("Freeing memory")
