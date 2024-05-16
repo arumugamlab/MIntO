@@ -260,13 +260,13 @@ make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
 #  'profile' should only have numeric columns - IDs should have been removed
 #  'profile' should have removed all zerosum rows
 #  'profile' should be sorted (desc) by rowSum
-plot_PCA <- function(profile, color, label) {
+plot_PCA <- function(profile, label, color, metadata) {
 
     library(ggplot2)
     library(ggrepel)
 
     ##### metadata:
-    sample_data_df <- data.frame(sample_metadata, stringsAsFactors = F)
+    sample_data_df <- data.frame(metadata, stringsAsFactors = F)
 
     ### Counts - non-zero/inf
     ## Prepare data - replace NA values by 0
@@ -290,15 +290,15 @@ plot_PCA <- function(profile, color, label) {
 
 
     #Plotting scores of PC1 and PC2 with log transformation
-    gene_expression_pca <- prcomp(pca_data, center = T, sca=T)
+    pca_results <- prcomp(pca_data, center = T, sca=T)
 
     # ***************** ggplot way - w coloring *****************
     dtp <- data.frame('sample' = sample_data_df[[label]],
                       'group' = sample_data_df[[color]],
-                       gene_expression_pca$x[,1:2]) # the first two componets are selected
-    total_variance <- sum(gene_expression_pca$sdev)
-    axis_names <- head(colnames(data.table(gene_expression_pca$x)), 2)
-    percentage <- round(head(gene_expression_pca$sdev, 2) / total_variance * 100, 2)
+                       pca_results$x[,1:2]) # the first two componets are selected
+    total_variance <- sum(pca_results$sdev)
+    axis_names <- head(colnames(data.table(pca_results$x)), 2)
+    percentage <- round(head(pca_results$sdev, 2) / total_variance * 100, 2)
     percentage <- paste0(axis_names, " (", percentage, "%)")
 
     PCA_Sample_site_abundance <- (ggplot(data = dtp, aes(x = PC1, y = PC2, color = group)) +
@@ -311,7 +311,7 @@ plot_PCA <- function(profile, color, label) {
     return(PCA_Sample_site_abundance)
 }
 
-prepare_PCA <- function(profile, type, label, color) {
+prepare_PCA <- function(profile, label, color, metadata, title) {
 
     logmsg(" Making PCA plots")
 
@@ -322,7 +322,7 @@ prepare_PCA <- function(profile, type, label, color) {
                           '#7AAFCA','#006699','#A9D181','#2F8475','#264445')
 
     # Title
-    title_name <- paste0('PCA - gene ', type)
+    title_name <- paste0('PCA - ', title)
 
     # File names
     # abundance  -> GA
@@ -330,7 +330,7 @@ prepare_PCA <- function(profile, type, label, color) {
     # expression -> GE
     out_name <- paste0(visual_dir, '/', label, '.PCA.pdf')
 
-    plot_PCA_out <- plot_PCA(profile=profile, color=color, label="sample_alias")
+    plot_PCA_out <- plot_PCA(profile=profile, color=color, label="sample_alias", metadata=metadata)
     pdf(out_name,width=8,height=8,paper="special" )
     print(plot_PCA_out  + scale_color_manual(values=manual_plot_colors, name=color) +
           #coord_fixed() +
@@ -356,7 +356,7 @@ if (omics == 'metaG') {
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=metaG_profile, type='abundance', label='GA', color=main_factor)
+    prepare_PCA(profile=metaG_profile, title='gene abundance', label='GA', color=main_factor, metadata=sample_metadata)
 }
 
 # Write GT data for metaT
@@ -368,7 +368,7 @@ if (omics == 'metaT') {
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=metaT_profile, type='transcript', label='GT', color=main_factor)
+    prepare_PCA(profile=metaT_profile, title='gene transcript', label='GT', color=main_factor, metadata=sample_metadata)
 }
 
 if (omics == 'metaG_metaT') {
@@ -382,15 +382,17 @@ if (omics == 'metaG_metaT') {
     sample_cols <- setdiff(colnames(metaG_profile), c("ID"))
 
     # Since ID is non-numerical, we calculate the ratios after removing ID column
+    IDs <- metaG_profile[, .(ID)]
     gene_expression <- metaT_profile[, ID := NULL]/metaG_profile[, ID := NULL]
-    gene_expression <- gene_expression[, lapply(.SD, function(x) ifelse(is.infinite(x) | is.nan(x), NA, x))]
 
     # Now let us add ID back
-    gene_expression <- cbind(gene_annot_dt[, .(ID)], gene_expression)
+    gene_expression <- gene_expression[, lapply(.SD, function(x) ifelse(is.infinite(x) | is.nan(x), NA, x))][, ID := IDs]
+    # Make ID the 1st column
+    setcolorder(gene_expression, c('ID'))
 
     # Free up memory
     logmsg("Freeing memory")
-    rm(metaG_profile, metaT_profile)
+    rm(metaG_profile, metaT_profile, IDs)
     gc()
 
     # Estimate rowSum but negate it so that setkey will sort by desc(rowSum)
@@ -414,9 +416,9 @@ if (omics == 'metaG_metaT') {
 
     make_output_files(profile=gene_expression, type='expression', label='GE')
 
+    # Prepare data for PCA
+
     # Get first maxN rows
-    # Also replace NA's into 0
-    # NA originally means the value was 0/0 or n/0
     gene_expression <- (
                         gene_expression
                         [, head(.SD, maxN)]
@@ -426,7 +428,8 @@ if (omics == 'metaG_metaT') {
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=gene_expression, type='expression', label='GE', color=main_factor)
+    prepare_PCA(profile=gene_expression, title='gene expression', label='GE', color=main_factor, metadata=sample_metadata)
+    rm(gene_expression)
 }
 
 
