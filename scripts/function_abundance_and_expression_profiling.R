@@ -667,7 +667,7 @@ if (nrow(gene_annotation) > 0) {
         function_expression <- function_expression[, Funct := NULL][, lapply(.SD, function(x) ifelse(is.na(x), 0, x))]
 
         # Make PCA
-        prepare_PCA(profile=function_expression, title=paste0("function expression - ", funcat_name), label=paste0('FE', funcat_name), color=main_factor, metadata=sample_metadata)
+        prepare_PCA(profile=function_expression, title=paste0("function expression - ", funcat_name), label=paste0('FE.', funcat_name), color=main_factor, metadata=sample_metadata)
     }
 
     logmsg(funcat_name, " finished!")
