@@ -641,7 +641,7 @@ if (nrow(gene_annotation) > 0) {
         metaG_counts <- metaG_counts[, `:=` (Funct = NULL, Description = NULL) ]
 
         # Make PCA
-        prepare_PCA(profile=metaG_counts, title=paste0("function abundance - ", funcat_name), label='FA', color=main_factor, metadata=sample_metadata)
+        prepare_PCA(profile=metaG_counts, title=paste0("function abundance - ", funcat_name), label=paste0('FA.', funcat_name), color=main_factor, metadata=sample_metadata)
     }
 
     # PCA - metaT ####
@@ -654,7 +654,7 @@ if (nrow(gene_annotation) > 0) {
         metaT_counts <- metaT_counts[, `:=` (Funct = NULL, Description = NULL) ]
 
         # Make PCA
-        prepare_PCA(profile=metaT_counts, title=paste0("function transcript - ", funcat_name), label='FT', color=main_factor, metadata=sample_metadata)
+        prepare_PCA(profile=metaT_counts, title=paste0("function transcript - ", funcat_name), label=paste0('FT.', funcat_name), color=main_factor, metadata=sample_metadata)
     }
 
     # PCA - GE ####
@@ -667,7 +667,7 @@ if (nrow(gene_annotation) > 0) {
         function_expression <- function_expression[, Funct := NULL][, lapply(.SD, function(x) ifelse(is.na(x), 0, x))]
 
         # Make PCA
-        prepare_PCA(profile=function_expression, title=paste0("function expression - ", funcat_name), label='FE', color=main_factor, metadata=sample_metadata)
+        prepare_PCA(profile=function_expression, title=paste0("function expression - ", funcat_name), label=paste0('FE', funcat_name), color=main_factor, metadata=sample_metadata)
     }
 
     logmsg(funcat_name, " finished!")
