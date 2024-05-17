@@ -126,7 +126,7 @@ def integration_gene_profiles():
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof),\
-    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds",
+    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs",
             wd = working_dir,
             omics = omics,
             post_analysis_out = post_analysis_out,
@@ -158,7 +158,7 @@ def integration_function_profiles():
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof),\
-    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.rds",
+    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.qs",
             wd = working_dir,
             omics = omics,
             post_analysis_out = post_analysis_out,
@@ -268,7 +268,7 @@ rule integration_gene_profiles:
         gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv"
     output:
         gene_abund_prof="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_alphabet}.csv",
-        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.rds",
+        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
         gene_abund_plots="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     params:
         metadata_file = metadata,
@@ -286,7 +286,7 @@ rule integration_gene_profiles:
     shell:
         """
         time ( echo 'integration of gene profiles'
-            Rscript {script_dir}/gene_abundance_and_expression_profiling.R \
+               Rscript {script_dir}/gene_abundance_and_expression_profiling.R \
                     --threads {threads} \
                     --outdir $(dirname {output.gene_abund_prof}) \
                     --main-factor {main_factor} \
@@ -354,7 +354,7 @@ rule merge_absolute_counts_TPM:
 
 if omics == 'metaG_metaT':
     def get_function_profile_integration_input_FE(wildcards):
-        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/GE.rds".format(
+        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/GE.qs".format(
                 wd = wildcards.wd,
                 omics = wildcards.omics,
                 post_analysis_out = wildcards.post_analysis_out,
@@ -383,15 +383,15 @@ if omics == 'metaG_metaT':
         output:
             abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FE.{funcat}.tsv",
             features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GE_FE_features.{funcat}.tsv",
-            physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FE.{funcat}.rds",
+            physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FE.{funcat}.qs",
             pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FE.{funcat}.PCA.pdf",
             FA_abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FA.{funcat}.tsv",
             FA_features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GA_FA_features.{funcat}.tsv",
-            FA_physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FA.{funcat}.rds",
+            FA_physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FA.{funcat}.qs",
             FA_pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FA.{funcat}.PCA.pdf",
             FT_abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FT.{funcat}.tsv",
             FT_features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GT_FT_features.{funcat}.tsv",
-            FT_physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FT.{funcat}.rds",
+            FT_physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FT.{funcat}.qs",
             FT_pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FT.{funcat}.PCA.pdf",
         wildcard_constraints:
             normalization='MG|TPM',
@@ -424,7 +424,7 @@ if omics == 'metaG_metaT':
         """
 else :
     def get_function_profile_integration_input_FA_FT(wildcards):
-        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.rds".format(
+        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs".format(
                 wd = wildcards.wd,
                 omics = wildcards.omics,
                 post_analysis_out = wildcards.post_analysis_out,
@@ -454,7 +454,7 @@ else :
         output:
             abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
             features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}_F{omics_prof}_features.{funcat}.tsv",
-            physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.rds",
+            physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.qs",
             pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
         wildcard_constraints:
             normalization='MG|TPM',
