@@ -9,7 +9,6 @@
 
 ##########################  ** Load libraries **  ##########################
 library(data.table)
-library(KEGGREST)
 library(optparse)
 library(phyloseq)
 library(stringr)
@@ -23,7 +22,7 @@ opt_list <- list(
                 make_option("--threads", type="integer", default=4, help="number of threads [default: %default]"),
                 make_option("--outdir", type="character", default=NULL, help="output directory to write normalized counts", metavar="directory"),
                 make_option("--omics", type="character", default=NULL, help="which omics to summarize: metaG, metaT or metaG_metaT", metavar="string"),
-                make_option("--funcat-names", type="character", default=NULL, help="comma-delimited list of functional categores to summarize: e.g., 'eggNOG_OGs,dbCAN.EC,KEGG_KO'", metavar="string"),
+                make_option("--funcat-names", type="character", default=NULL, help="comma-delimited list of functional categores to summarize: e.g., 'eggNOG.OGs,dbCAN.EC,kofam.KEGG_KO'", metavar="string"),
                 make_option("--gene-profile", type="character", default=NULL, help="file containing gene profiles in metaG and/or metaT space", metavar="file"),
                 make_option("--annotation", type="character", default=NULL, help="file with gene annotations", metavar="file"),
                 make_option("--metadata", type="character", default=NULL, help="file with sample metadata", metavar="file"),

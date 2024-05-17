@@ -10,6 +10,7 @@ Authors: Carmen Saenz, Mani Arumugam
 # import sys
 import os.path
 from os import path
+import re
 
 # Get common config variables
 # These are:
@@ -398,7 +399,7 @@ if omics == 'metaG_metaT':
         params:
             funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
                                                         location=minto_dir,
-                                                        name=wildcards.funcat.replace("kofam_", "KEGG_").replace("merged_", "KEGG_")),
+                                                        name=re.sub("eggNOG.KEGG_|kofam.KEGG_|merged.KEGG_", "KEGG_", wildcards.funcat)),
             weights_arg = lambda wildcards, input: "" if (wildcards.normalization == 'TPM') else f"--genome-weights-metaG {input.metaG_profile} --genome-weights-metaT {input.metaT_profile}"
         log:
             "{wd}/logs/output/data_integration/{post_analysis_out}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.FE.{funcat}.log"
@@ -462,7 +463,7 @@ else :
         params:
             funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
                                                         location=minto_dir,
-                                                        name=wildcards.funcat.replace("kofam_", "KEGG_").replace("merged_", "KEGG_")),
+                                                        name=re.sub("eggNOG.KEGG_|kofam.KEGG_|merged_", "KEGG_", wildcards.funcat)),
             weights_arg = lambda wildcards, input: "" if (wildcards.normalization == 'TPM') \
                                                    else (f"--genome-weights-metaG {input.metaG_profile}" if (wildcards.omics == 'metaG') \
                                                          else f"--genome-weights-metaT {input.metaT_profile}" \

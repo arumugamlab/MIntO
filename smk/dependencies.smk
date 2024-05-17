@@ -130,7 +130,7 @@ def func_db_desc_out():
                 "KEGG_Module.tsv",
                 "KEGG_KO.tsv",
                 "dbCAN.EC.tsv",
-                "eggNOG_OGs.tsv"]
+                "eggNOG.OGs.tsv"]
     result = expand("{somewhere}/data/descriptions/{file}",
                 somewhere = minto_dir,
                 file = files)
@@ -378,7 +378,7 @@ rule functional_db_descriptions:
         kegg_ko="{minto_dir}/data/descriptions/KEGG_KO.tsv",
         kegg_module="{minto_dir}/data/descriptions/KEGG_Module.tsv",
         kegg_pathway="{minto_dir}/data/descriptions/KEGG_Pathway.tsv",
-        eggnog_desc="{minto_dir}/data/descriptions/eggNOG_OGs.tsv",
+        eggnog_desc="{minto_dir}/data/descriptions/eggNOG.OGs.tsv",
         EC_desc="{minto_dir}/data/descriptions/dbCAN.EC.tsv",
     resources: mem=download_memory
     threads: download_threads
