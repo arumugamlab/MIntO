@@ -69,6 +69,7 @@ echo "DEPENDENCIES"
 echo "------------"
 
 cat $MINTO_DIR/testing/dependencies.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > dependencies.yaml
+echo "enable_GTDB: no" >> dependencies.yaml
 cmd="snakemake --snakefile $CODE_DIR/smk/dependencies.smk --configfile dependencies.yaml $SNAKE_PARAMS >& dependencies.log"
 echo $cmd > $COMMAND_LOG
 time (eval $cmd && echo "OK")
@@ -146,7 +147,8 @@ for OMICS in metaG metaT; do
   time (eval $cmd && echo "OK")
 
   echo -n "BINNING: "
-  cmd="snakemake --snakefile $CODE_DIR/smk/mags_generation.smk --configfile mags_generation.yaml $SNAKE_PARAMS >& mags.log"
+  sed "s/TAXONOMY_NAME: phylophlan,gtdb/TAXONOMY_NAME: phylophlan/" mags_generation.yaml > mags_generation.yaml.fixed
+  cmd="snakemake --snakefile $CODE_DIR/smk/mags_generation.smk --configfile mags_generation.yaml.fixed $SNAKE_PARAMS >& mags.log"
   echo $cmd >> $COMMAND_LOG
   time (eval $cmd && echo "OK")
 
