@@ -28,7 +28,7 @@ opt_list <- list(
                 make_option("--outdir", type="character", default=NULL, help="output directory to write normalized counts", metavar="directory"),
                 make_option("--omics", type="character", default=NULL, help="which omics to summarize: metaG, metaT or metaG_metaT", metavar="string"),
                 make_option("--normalization", type="character", default=NULL, help="normalization type: MG or TPM"),
-                make_option("--funcat-name", type="character", default=NULL, help="name of functional category to summarize: e.g., eggNOG_OGs, dbCAN.EC", metavar="string"),
+                make_option("--funcat-name", type="character", default=NULL, help="name of functional category to summarize: e.g., eggNOG.OGs, dbCAN.EC", metavar="string"),
                 make_option("--funcat-desc", type="character", default=NULL, help="file containing descriptions of functions", metavar="file"),
                 make_option("--genome-weights-metaG", type="character", default=NULL, help="file with metaG profiles", metavar="file"),
                 make_option("--genome-weights-metaT", type="character", default=NULL, help="file with metaT profiles", metavar="file"),
@@ -182,7 +182,7 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
     ### Annotation descriptions ####
     # library(purrr)
     # library(magrittr)
-    if  (db_name %in% c('eggNOG_OGs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO', 'kofam_Pathway', 'kofam_Module', 'kofam_KO', 'merged_KO', 'dbCAN.EC')){
+    if  (db_name %in% c('eggNOG.OGs', 'eggNOG.KEGG_Pathway', 'eggNOG.KEGG_Module', 'eggNOG.KEGG_KO', 'kofam.KEGG_Pathway', 'kofam.KEGG_Module', 'kofam.KEGG_KO', 'merged.KEGG_KO', 'dbCAN.EC')){
         annotations <- (fread(funcat_desc_file, header=T)
                         [, .(Funct, Description)]
                         [, Description := iconv(Description, from = "ISO-8859-1", to = "UTF-8")]
@@ -192,7 +192,7 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
                               [, Description := paste(sort(unique(Description)), collapse=';'), by=Funct]
                              )
     }
-    else if  (db_name %in% c('PFAMs')){
+    else if  (db_name %in% c('eggNOG.PFAMs')){
 
         library(PFAM.db)
 
@@ -217,7 +217,7 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
                              )
         rm(pfam_names, pfam_desc, pfam_table, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
     }
-    else if  (db_name %in% c('dbCAN.module', 'dbCAN.enzclass', 'CAZy')){
+    else if  (db_name %in% c('dbCAN.module', 'dbCAN.enzclass')){
 
         library(PFAM.db)
 
@@ -517,7 +517,7 @@ if (nrow(gene_annotation) > 0) {
 
     # Since KEGG annotations can have map12345 and ko12345 for the same pathway,
     # remove such redundancy.
-    if (funcat_name %in% c("KEGG_Pathway", "kofam_Pathway")) {
+    if (funcat_name %in% c("eggNOG.KEGG_Pathway", "kofam.KEGG_Pathway")) {
         Gene2FuncMap <- unique(Gene2FuncMap[, Funct := gsub('ko', 'map', Funct)])
     }
 

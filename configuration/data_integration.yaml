@@ -29,25 +29,31 @@ MAG_omics: metaG
 
 ANNOTATION_file:
 
-# List annotation IDs matching to generate function profiles.
-# If map_reference= 'MAG' or 'reference_genome', this list could contain elements from:
-# 'eggNOG_OGs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO', 'PFAMs', 'dbCAN.module', 'dbCAN.enzclass', 'dbCAN.subfamily', 'dbCAN.EC', 'eCAMI.subfamily', 'eCAMI.submodule'.
-# The names should match the ANNOTATION_file column names.
+# List annotation IDs to generate function profiles.
+#
+# If map_reference is 'MAG' or 'reference_genome', this list could contain elements from:
+# 'eggNOG.OGs', 'eggNOG.KEGG_Pathway', 'eggNOG.KEGG_Module', 'eggNOG.KEGG_KO', 'eggNOG.PFAMs',
+# 'kofam.KEGG_Pathway', 'kofam.KEGG_Module', 'kofam.KO',
+# 'dbCAN.module', 'dbCAN.enzclass', 'dbCAN.subfamily', 'dbCAN.EC', 'dbCAN.eCAMI_subfamily', 'dbCAN.eCAMI_submodule'.
+#
 #   E.g.:
-# - eggNOG_OGs
-# - KEGG_Pathway
+# - eggNOG.OGs
+# - kofam.KEGG_Pathway
+#
+# If map_reference is 'gene_catalog', the names should match the ANNOTATION_file column names.
+
 ANNOTATION_ids:
- - eggNOG_OGs
- - PFAMs
+ - eggNOG.OGs
+ - eggNOG.PFAMs
  - dbCAN.module
  - dbCAN.enzclass
  - dbCAN.subfamily
  - dbCAN.EC
- - eCAMI.subfamily
- - eCAMI.submodule
- - kofam_Pathway
- - kofam_Module
- - kofam_KO
- - KEGG_Pathway
- - KEGG_Module
- - KEGG_KO
+ - dbCAN.eCAMI_subfamily
+ - dbCAN.eCAMI_submodule
+ - kofam.KEGG_Pathway
+ - kofam.KEGG_Module
+ - kofam.KEGG_KO
+ - eggNOG.KEGG_Pathway
+ - eggNOG.KEGG_Module
+ - eggNOG.KEGG_KO

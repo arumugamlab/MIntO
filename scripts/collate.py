@@ -22,32 +22,44 @@ kofam  = pd.DataFrame()
 eggnogfile = mydir+"/"+name+"_eggNOG.tsv"
 if os.path.exists(eggnogfile):
     eggnog = pd.read_csv(eggnogfile, sep="\t", index_col=False)
-    eggnog = eggnog.rename(columns={"KEGG_ko" : "KEGG_KO"})
+    # Prefix all columns with 'eggNOG.'
+    eggnog = eggnog.rename(lambda x: f'eggNOG.{x}', axis='columns')
+    # Fix some names and remove prefix from ID
+    eggnog = eggnog.rename(columns={"eggNOG.KEGG_ko"    : "eggNOG.KEGG_KO",
+                                    "eggNOG.ID"         : "ID",
+                                    "eggNOG.eggNOG_OGs" : "eggNOG.OGs"})
     eggnog.set_index("ID", inplace=True)
     df = eggnog 
 
 dbcanfile = mydir+"/"+name+"_dbCAN.tsv"
 if os.path.exists(dbcanfile):
     dbcan = pd.read_csv(dbcanfile, sep="\t", index_col=False)
+    # Prefix eCAMI columns with 'dbCAN.'
+    dbcan = dbcan.rename(columns={"eCAMI.submodule" : "dbCAN.eCAMI_submodule",
+                                  "eCAMI.subfamily" : "dbCAN.eCAMI_subfamily"})
     dbcan.set_index("ID", inplace=True)
     df = dbcan 
 
-kofamfile = mydir+"/"+name+"_KEGG.tsv"
+kofamfile = mydir+"/"+name+"_kofam.tsv"
 if os.path.exists(kofamfile):
     kofam = pd.read_csv(kofamfile, sep="\t", index_col=False)
+    # Prefix all columns with 'kofam.'
+    kofam = kofam.rename(columns={"kofam_KO"      : "kofam.KEGG_KO",
+                                  "kofam_Module"  : "kofam.KEGG_Module",
+                                  "kofam_Pathway" : "kofam.KEGG_Pathway"})
     kofam.set_index("ID", inplace=True)
     df = kofam 
 
 # eggnog and kofam
 if (not eggnog.empty and not kofam.empty):
     KOdf = pd.merge(eggnog,kofam, on="ID", how="outer").fillna("-")
-    kegglist = KOdf['KEGG_KO'].tolist()
-    kofamlist = KOdf['kofam_KO'].tolist()
+    eggnoglist = KOdf['eggNOG.KEGG_KO'].tolist()
+    kofamlist = KOdf['kofam.KEGG_KO'].tolist()
     newlist = []
     final = []
     for i in range(len(kofamlist)):
         mydict = {}
-        myline = kegglist[i]+","+kofamlist[i]
+        myline = eggnoglist[i]+","+kofamlist[i]
         mylist = myline.split(",")
         for i in mylist:
             mydict[i] = ""
@@ -61,7 +73,7 @@ if (not eggnog.empty and not kofam.empty):
         else:
             mystring = "".join(newlist)
             final.append(mystring)
-    KOdf["merged_KO"] = final
+    KOdf["merged.KEGG_KO"] = final
     df = KOdf
 # eggnog and dbcan, no kofam
 elif (not eggnog.empty and not dbcan.empty and kofam.empty):
@@ -77,6 +89,4 @@ if (not eggnog.empty and not kofam.empty and not dbcan.empty):
     del df
     df = pd.merge(KOdf,dbcan, on="ID", how="outer").fillna("-")
 
-myoutfile = mydir+"/"+name+".annotations.tsv"
-
-df.to_csv(myoutfile, sep="\t")
+df.to_csv(sys.stdout, sep="\t")

@@ -42,18 +42,18 @@ if path.exists(reference_dir) is False:
 annot_list = list()
 if 'ANNOTATION' in config:
     if config['ANNOTATION'] is None:
-        print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete ', config_path)
+        print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, kofam and/or eggNOG. Please, complete ', config_path)
     else:
         try:
             for annot in config["ANNOTATION"]:
-                if annot in ['dbCAN', 'KEGG', 'eggNOG']:
+                if annot in ['dbCAN', 'kofam', 'eggNOG']:
                     annot_list.append(annot)
                 else:
                     raise TypeError
         except:
-            print('ERROR in ', config_path, ': ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete ', config_path)
+            print('ERROR in ', config_path, ': ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, kofam and/or eggNOG. Please, complete ', config_path)
 else:
-    print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, KEGG and/or eggNOG. Please, complete', config_path)
+    print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, kofam and/or eggNOG. Please, complete', config_path)
 
 eggNOG_dbmem = True
 if 'eggNOG' in annot_list and 'eggNOG_dbmem' in config:
@@ -258,7 +258,7 @@ rule make_merged_subset_bed:
 
 ################################################################################################
 # Genes annotation using 3 different tools to retrieve functions from:
-## KEGG
+## kofam
 ## eggNOG
 ## dbCAN
 ################################################################################################
@@ -271,7 +271,7 @@ rule gene_annot_kofamscan:
         module_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Module2KO.tsv".format(minto_dir = minto_dir),
         pathway_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv".format(minto_dir = minto_dir)
     output:
-        "{wd}/DB/{post_analysis_dir}/annot/KEGG/{genome}.{post_analysis_out}_translated_cds_SUBSET_KEGG.tsv",
+        "{wd}/DB/{post_analysis_dir}/annot/kofam/{genome}.{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
     shadow:
         "minimal"
     log:
@@ -400,5 +400,5 @@ rule predicted_gene_annotation_collate:
         config["minto_dir"]+"/envs/mags.yml" # python with pandas
     shell:
         """
-        time (python3 {script_dir}/collate.py {wildcards.wd}/DB/{post_analysis_dir}/annot/ {params.prefix})&> {log}
+        time (python3 {script_dir}/collate.py {wildcards.wd}/DB/{post_analysis_dir}/annot/ {params.prefix} > {output}) >& {log}
         """
