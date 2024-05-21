@@ -876,7 +876,9 @@ ANNOTATION_file:
 # List annotation IDs to generate function profiles.
 #
 # If map_reference is 'MAG' or 'reference_genome', this list could contain elements from:
-# 'eggNOG.OGs', 'eggNOG.KEGG_Pathway', 'eggNOG.KEGG_Module', 'eggNOG.KEGG_KO', 'eggNOG.PFAMs', 'dbCAN.module', 'dbCAN.enzclass', 'dbCAN.subfamily', 'dbCAN.EC', 'dbCAN.eCAMI_subfamily', 'dbCAN.eCAMI_submodule'.
+# 'eggNOG.OGs', 'eggNOG.KEGG_Pathway', 'eggNOG.KEGG_Module', 'eggNOG.KEGG_KO', 'eggNOG.PFAMs',
+# 'kofam.KEGG_Pathway', 'kofam.KEGG_Module', 'kofam.KO',
+# 'dbCAN.module', 'dbCAN.enzclass', 'dbCAN.subfamily', 'dbCAN.EC', 'dbCAN.eCAMI_subfamily', 'dbCAN.eCAMI_submodule'.
 #
 #   E.g.:
 # - eggNOG.OGs
