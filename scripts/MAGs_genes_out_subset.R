@@ -2,21 +2,14 @@
 args = commandArgs(trailingOnly=TRUE)
 
 library(dplyr)
-library(data.table)
 library(tidyr)
 library(Biostrings)
 library(stringr)
-library(rlang)
 
-threads_n <- args[1]
-bed_file <- args[2]
-cd_transl_file <- args[3]
-dir_out <- args[4]
-file_name <- args[5]
-
-##########################  ** Load directories **  ########################## 
-
-setDTthreads(threads = threads_n)
+bed_file <- args[1]
+cd_transl_file <- args[2]
+dir_out <- args[3]
+file_name <- args[4]
 
 ##########################  ** Read file **  ########################## 
 # Prokka genes - bed file ####

@@ -218,14 +218,14 @@ rule gene_annot_subset:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_subset_out.log"
     resources:
         mem=5
-    threads: 8
+    threads: 1
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
         remote_dir={wildcards.wd}/DB/{post_analysis_dir}/subset/
         file_prefix={wildcards.genome}.{post_analysis_out}
-        time (Rscript {script_dir}/MAGs_genes_out_subset.R {threads} {input.bed_file} {input.faa_cds} ${{remote_dir}} ${{file_prefix}}) &> {log}
+        time (Rscript {script_dir}/MAGs_genes_out_subset.R {input.bed_file} {input.faa_cds} ${{remote_dir}} ${{file_prefix}}) &> {log}
         """
 
 def get_genome_bed(wildcards):
