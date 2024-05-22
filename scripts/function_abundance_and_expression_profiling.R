@@ -22,8 +22,6 @@ library(this.path)
 ##########################  ** Load functions **  ##########################
 
 # Include common utility functions
-print("Including")
-print(this.path::here('include', 'utils.R'))
 source(this.path::here('include', 'utils.R'))
 
 # Include PCA functions
