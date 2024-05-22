@@ -1,54 +1,55 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # '''
 # integrates the different gene annotations from eggnog-mapper, dbcan and kofamscan
 
-# Authors: Vithiagaran Gunalan
+# Authors: Vithiagaran Gunalan, Mani Arumugam
 # '''
 
 import pandas as pd
-import numpy as np
 import sys
 import os
-import sys
-
-mydir = sys.argv[1]
-name = sys.argv[2]
 
 eggnog = pd.DataFrame()
 dbcan  = pd.DataFrame()
 kofam  = pd.DataFrame()
 
-eggnogfile = mydir+"/"+name+"_eggNOG.tsv"
-if os.path.exists(eggnogfile):
-    eggnog = pd.read_csv(eggnogfile, sep="\t", index_col=False)
-    # Prefix all columns with 'eggNOG.'
-    eggnog = eggnog.rename(lambda x: f'eggNOG.{x}', axis='columns')
-    # Fix some names and remove prefix from ID
-    eggnog = eggnog.rename(columns={"eggNOG.KEGG_ko"    : "eggNOG.KEGG_KO",
-                                    "eggNOG.ID"         : "ID",
-                                    "eggNOG.eggNOG_OGs" : "eggNOG.OGs"})
-    eggnog.set_index("ID", inplace=True)
-    df = eggnog 
+for filename in sys.argv:
 
-dbcanfile = mydir+"/"+name+"_dbCAN.tsv"
-if os.path.exists(dbcanfile):
-    dbcan = pd.read_csv(dbcanfile, sep="\t", index_col=False)
-    # Prefix eCAMI columns with 'dbCAN.'
-    dbcan = dbcan.rename(columns={"eCAMI.submodule" : "dbCAN.eCAMI_submodule",
-                                  "eCAMI.subfamily" : "dbCAN.eCAMI_subfamily"})
-    dbcan.set_index("ID", inplace=True)
-    df = dbcan 
+    # Make sure file exists
+    if os.path.exists(filename) == False:
+        raise Exception("File {} not found!".format(filename))
 
-kofamfile = mydir+"/"+name+"_kofam.tsv"
-if os.path.exists(kofamfile):
-    kofam = pd.read_csv(kofamfile, sep="\t", index_col=False)
-    # Prefix all columns with 'kofam.'
-    kofam = kofam.rename(columns={"kofam_KO"      : "kofam.KEGG_KO",
-                                  "kofam_Module"  : "kofam.KEGG_Module",
-                                  "kofam_Pathway" : "kofam.KEGG_Pathway"})
-    kofam.set_index("ID", inplace=True)
-    df = kofam 
+    # eggNOG annotations
+    if filename.endswith('_eggNOG.tsv'):
+        eggnog = pd.read_csv(filename, sep="\t", index_col=False)
+        # Prefix all columns with 'eggNOG.'
+        eggnog = eggnog.rename(lambda x: f'eggNOG.{x}', axis='columns')
+        # Fix some names and remove prefix from ID
+        eggnog = eggnog.rename(columns={"eggNOG.KEGG_ko"    : "eggNOG.KEGG_KO",
+                                        "eggNOG.ID"         : "ID",
+                                        "eggNOG.eggNOG_OGs" : "eggNOG.OGs"})
+        eggnog.set_index("ID", inplace=True)
+        df = eggnog
+
+    # dbCAN annotations
+    if filename.endswith('_dbCAN.tsv'):
+        dbcan = pd.read_csv(filename, sep="\t", index_col=False)
+        # Prefix eCAMI columns with 'dbCAN.'
+        dbcan = dbcan.rename(columns={"eCAMI.submodule" : "dbCAN.eCAMI_submodule",
+                                      "eCAMI.subfamily" : "dbCAN.eCAMI_subfamily"})
+        dbcan.set_index("ID", inplace=True)
+        df = dbcan
+
+    # kofam annotations
+    if filename.endswith('_kofam.tsv'):
+        kofam = pd.read_csv(filename, sep="\t", index_col=False)
+        # Prefix all columns with 'kofam.'
+        kofam = kofam.rename(columns={"kofam_KO"      : "kofam.KEGG_KO",
+                                      "kofam_Module"  : "kofam.KEGG_Module",
+                                      "kofam_Pathway" : "kofam.KEGG_Pathway"})
+        kofam.set_index("ID", inplace=True)
+        df = kofam
 
 # eggnog and kofam
 if (not eggnog.empty and not kofam.empty):

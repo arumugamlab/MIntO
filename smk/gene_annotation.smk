@@ -110,7 +110,7 @@ genomes = get_genomes_from_refdir(reference_dir)
 # But they might be different after resolution when compared between studies.
 
 rule generate_locus_ids:
-    input: 
+    input:
         expand("{ref_dir}/{genome}.fna", ref_dir = reference_dir, genome = genomes)
     output:
         "{wd}/DB/{post_analysis_dir}/genomes/locus_id_list.txt"
@@ -150,7 +150,7 @@ rule generate_locus_ids:
 ########################
 
 rule prokka_for_genome:
-    input: 
+    input:
         fna=lambda wildcards: "{reference_dir}/{genome}.fna".format(reference_dir=reference_dir, genome=wildcards.genome),
         locus_ids=lambda wildcards: "{wd}/DB/{post_analysis_dir}/genomes/locus_id_list.txt".format(wd=wildcards.wd, post_analysis_dir=wildcards.post_analysis_dir)
     output:
@@ -400,5 +400,5 @@ rule predicted_gene_annotation_collate:
         config["minto_dir"]+"/envs/mags.yml" # python with pandas
     shell:
         """
-        time (python3 {script_dir}/collate.py {wildcards.wd}/DB/{post_analysis_dir}/annot/ {params.prefix} > {output}) >& {log}
+        time (python3 {script_dir}/collate.py {input} > {output}) >& {log}
         """
