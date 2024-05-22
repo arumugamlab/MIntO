@@ -559,6 +559,7 @@ if (nrow(gene_annotation) > 0) {
 
         # Make PCA
         prepare_PCA(profile=metaG_counts, title=paste0("function abundance - ", funcat_name), label=paste0('FA.', funcat_name), color=main_factor, metadata=sample_metadata)
+        rm(metaG_counts)
     }
 
     # PCA - metaT ####
@@ -572,6 +573,7 @@ if (nrow(gene_annotation) > 0) {
 
         # Make PCA
         prepare_PCA(profile=metaT_counts, title=paste0("function transcript - ", funcat_name), label=paste0('FT.', funcat_name), color=main_factor, metadata=sample_metadata)
+        rm(metaT_counts)
     }
 
     # PCA - GE ####
@@ -585,6 +587,7 @@ if (nrow(gene_annotation) > 0) {
 
         # Make PCA
         prepare_PCA(profile=function_expression, title=paste0("function expression - ", funcat_name), label=paste0('FE.', funcat_name), color=main_factor, metadata=sample_metadata)
+        rm(function_expression)
     }
 
     logmsg(funcat_name, " finished!")
@@ -603,8 +606,7 @@ if (nrow(gene_annotation) > 0) {
     ge_fe_df <- rbind(ge_fe_df, c(funcat_name, 0, 'Functions'))
 }
 
-# Free memory
-rm(metaG_counts, metaT_counts, function_expression)
+# Garbage-collect
 gc()
 
 #####################################
