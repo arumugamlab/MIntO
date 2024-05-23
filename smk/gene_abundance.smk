@@ -654,6 +654,7 @@ rule merge_gene_abund:
 # We use --prefix to prepend before relabeling.
 rule relabel_merged_gene_abund:
     input:
+        metadata=metadata,
         original="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.{suffix}.raw"
     output:
         relabeled="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.{suffix}"
@@ -674,7 +675,7 @@ rule relabel_merged_gene_abund:
         mem=30
     shell:
         """
-        time Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {metadata} --input {input.original} --output {output.relabeled} {params.prefix} >& {log}
+        time Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {input.metadata} --input {input.original} --output {output.relabeled} {params.prefix} >& {log}
         """
 
 ###############################################################################################
