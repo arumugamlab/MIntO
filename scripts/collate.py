@@ -3,7 +3,7 @@
 # '''
 # integrates the different gene annotations from eggnog-mapper, dbcan and kofamscan
 
-# Authors: Vithiagaran Gunalan, Mani Arumugam
+# Authors: Vithiagaran Gunalan, Mani Arumugam, Judit Szarvas
 # '''
 
 import pandas as pd
@@ -13,11 +13,14 @@ import os
 eggnog = pd.DataFrame()
 dbcan  = pd.DataFrame()
 kofam  = pd.DataFrame()
+df  = pd.DataFrame()
 
-for filename in sys.argv:
+input_annotations = sys.argv[1:]
+invalid_inputs = []
+for filename in input_annotations:
 
     # Make sure file exists
-    if os.path.exists(filename) == False:
+    if os.path.exists(filename) == False or os.path.getsize(filename) == 0:
         raise Exception("File {} not found!".format(filename))
 
     # eggNOG annotations
@@ -33,7 +36,7 @@ for filename in sys.argv:
         df = eggnog
 
     # dbCAN annotations
-    if filename.endswith('_dbCAN.tsv'):
+    elif filename.endswith('_dbCAN.tsv'):
         dbcan = pd.read_csv(filename, sep="\t", index_col=False)
         # Prefix eCAMI columns with 'dbCAN.'
         dbcan = dbcan.rename(columns={"eCAMI.submodule" : "dbCAN.eCAMI_submodule",
@@ -42,7 +45,7 @@ for filename in sys.argv:
         df = dbcan
 
     # kofam annotations
-    if filename.endswith('_kofam.tsv'):
+    elif filename.endswith('_kofam.tsv'):
         kofam = pd.read_csv(filename, sep="\t", index_col=False)
         # Prefix all columns with 'kofam.'
         kofam = kofam.rename(columns={"kofam_KO"      : "kofam.KEGG_KO",
@@ -50,44 +53,43 @@ for filename in sys.argv:
                                       "kofam_Pathway" : "kofam.KEGG_Pathway"})
         kofam.set_index("ID", inplace=True)
         df = kofam
+    else:
+        invalid_inputs.append(filename)
+        print("WARNING:", filename, "not supported", file=sys.stderr)
 
-# eggnog and kofam
-if (not eggnog.empty and not kofam.empty):
-    KOdf = pd.merge(eggnog,kofam, on="ID", how="outer").fillna("-")
-    eggnoglist = KOdf['eggNOG.KEGG_KO'].tolist()
-    kofamlist = KOdf['kofam.KEGG_KO'].tolist()
-    newlist = []
-    final = []
-    for i in range(len(kofamlist)):
-        mydict = {}
-        myline = eggnoglist[i]+","+kofamlist[i]
-        mylist = myline.split(",")
-        for i in mylist:
-            mydict[i] = ""
-        newlist = list(mydict.keys())
-        mystring = ""
-        if len(newlist) > 1:
-            if "-" in newlist:
-                newlist.remove("-")
-            mystring = ",".join(newlist)
-            final.append(mystring)
-        else:
-            mystring = "".join(newlist)
-            final.append(mystring)
-    KOdf["merged.KEGG_KO"] = final
-    df = KOdf
-# eggnog and dbcan, no kofam
-elif (not eggnog.empty and not dbcan.empty and kofam.empty):
-    del df
-    df = pd.merge(eggnog,dbcan, on="ID", how="outer").fillna("-")
-# kofam and dbcan, no eggnog
-elif (not kofam.empty and not dbcan.empty and eggnog.empty):
-    del df
-    df = pd.merge(dbcan,kofam, on="ID", how="outer").fillna("-")
+for fn in invalid_inputs:
+    input_annotations.remove(fn)
 
-# eggnog, kofam and dbcan
-if (not eggnog.empty and not kofam.empty and not dbcan.empty):
-    del df
-    df = pd.merge(KOdf,dbcan, on="ID", how="outer").fillna("-")
-
-df.to_csv(sys.stdout, sep="\t")
+if len(input_annotations) > 1:
+    # eggnog and kofam
+    if (not eggnog.empty and not kofam.empty):
+        KOdf = pd.merge(eggnog,kofam, on="ID", how="outer").fillna("-")
+        eggnoglist = KOdf['eggNOG.KEGG_KO'].tolist()
+        kofamlist = KOdf['kofam.KEGG_KO'].tolist()
+        final_kos = []
+        for i in range(len(kofamlist)):
+            mergedlist = eggnoglist[i].split(",") + kofamlist[i].split(",")
+            uniqmergedlist = list(set(mergedlist))
+            mystring = ""
+            if len(uniqmergedlist) > 1:
+                if "-" in uniqmergedlist:
+                    uniqmergedlist.remove("-")
+                mystring = ",".join(uniqmergedlist)
+            else:
+                mystring = uniqmergedlist[0]
+            final_kos.append(mystring)
+        KOdf["merged.KEGG_KO"] = final_kos
+        df = KOdf
+        # eggnog, kofam and dbcan
+        if not dbcan.empty:
+            df = pd.merge(KOdf,dbcan, on="ID", how="outer").fillna("-")
+    # eggnog and dbcan, no kofam
+    elif (not eggnog.empty and not dbcan.empty and kofam.empty):
+        df = pd.merge(eggnog,dbcan, on="ID", how="outer").fillna("-")
+    # kofam and dbcan, no eggnog
+    elif (not kofam.empty and not dbcan.empty and eggnog.empty):
+        df = pd.merge(dbcan,kofam, on="ID", how="outer").fillna("-")
+if not df.empty:
+    df.to_csv(sys.stdout, sep="\t")
+else:
+    print("WARNING: no supported input", file=sys.stderr)
