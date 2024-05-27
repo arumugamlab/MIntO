@@ -675,7 +675,8 @@ rule relabel_merged_gene_abund:
         mem=30
     shell:
         """
-        time Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {input.metadata} --input {input.original} --output {output.relabeled} {params.prefix} >& {log}
+        time (Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {input.metadata} --input {input.original} --output relabeled.txt {params.prefix}) >& {log}
+        rsync -a relabeled.txt {output.relabeled}
         """
 
 ###############################################################################################
