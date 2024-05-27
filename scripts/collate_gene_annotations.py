@@ -68,8 +68,10 @@ if len(input_annotations) > 1:
         kofamlist = KOdf['kofam.KEGG_KO'].tolist()
         final_kos = []
         for i in range(len(kofamlist)):
-            mergedlist = eggnoglist[i].split(",") + kofamlist[i].split(",")
-            uniqmergedlist = list(set(mergedlist))
+            uniqmergedlist = eggnoglist[i].split(",")
+            for kofam_ko in kofamlist[i].split(","):
+                if kofam_ko not in uniqmergedlist:
+                    uniqmergedlist.append(kofam_ko)
             mystring = ""
             if len(uniqmergedlist) > 1:
                 if "-" in uniqmergedlist:
