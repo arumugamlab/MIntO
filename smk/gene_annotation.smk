@@ -389,16 +389,14 @@ rule predicted_gene_annotation_collate:
         annot_out=expand("{{wd}}/DB/{{post_analysis_dir}}/annot/{{post_analysis_out}}_translated_cds_SUBSET_{annot}.tsv", annot=annot_list)
     output:
         annot_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.annotations.tsv",
-    params:
-        prefix="{post_analysis_out}_translated_cds_SUBSET",
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_annot.log"
     resources:
         mem=10
-    threads: 9
+    threads: 1
     conda:
         config["minto_dir"]+"/envs/mags.yml" # python with pandas
     shell:
         """
-        time (python3 {script_dir}/collate_gene_annotations.py {wildcards.wd}/DB/{post_analysis_dir}/annot/ {params.prefix} > {output}) >& {log}
+        time (python3 {script_dir}/collate_gene_annotations.py {input} > {output}) >& {log}
         """
