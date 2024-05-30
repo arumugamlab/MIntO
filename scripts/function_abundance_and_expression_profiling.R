@@ -10,12 +10,8 @@
 
 ##########################  ** Load libraries **  ##########################
 library(phyloseq)
-library(tidyr)
-library(stringr)
-library(purrr)
 library(optparse)
 library(qs)
-library(dplyr)
 library(data.table)
 library(this.path)
 
@@ -97,11 +93,11 @@ if (normalization == 'MG') {
 
 get_annotation_descriptions <- function(db_name, functionListDT) {
     ### Annotation descriptions ####
-    # library(purrr)
-    # library(magrittr)
     if  (db_name %in% c('eggNOG.OGs', 'eggNOG.KEGG_Pathway', 'eggNOG.KEGG_Module', 'eggNOG.KEGG_KO', 'kofam.KEGG_Pathway', 'kofam.KEGG_Module', 'kofam.KEGG_KO', 'merged.KEGG_KO', 'dbCAN.EC')){
-        annotations <- (fread(funcat_desc_file, header=T)
-                        [, .(Funct, Description)]
+        annotations <- (fread(funcat_desc_file,
+                              header=TRUE,
+                              data.table=TRUE,
+                              select=c('Funct', 'Description'))
                         [, Description := iconv(Description, from = "ISO-8859-1", to = "UTF-8")]
                        )
         setkey(annotations, Funct)
@@ -132,28 +128,31 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
         annotations <- unique(merge(functionListDT, pfam_table, by='Funct', all.x=T)
                                     [,Description := paste(sort(unique(Description)), collapse=';'), by='Funct']
                              )
-        rm(pfam_names, pfam_desc, pfam_table, x, xx, keyMap_funct_desc,keyMap_funct_desc2)
+        rm(pfam_names, pfam_desc, pfam_table)
     }
     else if  (db_name %in% c('dbCAN.module', 'dbCAN.enzclass')){
 
         library(PFAM.db)
 
-        x <- PFAMCAZY
-        mapped_keys <- mappedkeys(x)
-        xx <- as.list(x[mapped_keys])
-        test <- as.data.frame(do.call(rbind, xx))
-        #data.frame(matrix((xx), nrow=length(xx), byrow=F))
-        #names(test) <- 'CAZY_id'
-        test$Pfam_id <- rownames(test)
-        test_cazy <- as.data.frame(test %>% group_by(Pfam_id) %>%
-          mutate(CAZY_id = paste(unique(c(V1, V2, V3, V4)), collapse = ',')))
-        test_cazy$V1 <- test_cazy$V2 <- test_cazy$V3 <- test_cazy$V4 <- NULL
-        test_cazy.singleKeys <- strsplit(test_cazy$CAZY_id, split = "\\  |\\,")
-        if (length(test_cazy.singleKeys) > 0){
-          test_cazy.keyMap <- data.table(
-                                        Pfam_id = rep(test_cazy$Pfam_id, sapply(test_cazy.singleKeys, length)),
-                                        Funct = unlist(test_cazy.singleKeys)
-          )
+        # Get the PFAM identifiers that are mapped to a CAZY
+        mapped_keys <- mappedkeys(PFAMCAZY)
+        # Convert to a list
+        map_list <- as.list(PFAMCAZY[mapped_keys])
+        map_table <- data.table(do.call(rbind, map_list), keep.rownames=TRUE)
+        setnames(map_table, 'rn', 'Pfam_id')
+
+        # Get unique dbCAN entities for each PFAM key
+        map_table <- (
+                      map_table
+                      [, CAZY_id := paste(unique(unlist(.SD)), collapse = ','), by='Pfam_id']
+                      [, c("V1", "V2", "V3", "V4") := NULL]
+                     )
+
+        cazy_singleKeys <- strsplit(map_table[['CAZY_id']], split = "\\  |\\,")
+        if (length(cazy_singleKeys) > 0) {
+            cazy_keyMap <- data.table(
+                                      Pfam_id = rep(map_table$Pfam_id, sapply(cazy_singleKeys, length)),
+                                      Funct = unlist(cazy_singleKeys))
         }
 
         # Get PFAM descriptions
@@ -163,7 +162,7 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
         setnames(pfam_desc, "V1", "Description")
 
         # Merge based on PFAM_ID and delete that join key
-        cazy_table <- merge(test_cazy.keyMap, pfam_desc, by='Pfam_id')[, Pfam_id := NULL]
+        cazy_table <- merge(cazy_keyMap, pfam_desc, by='Pfam_id')[, Pfam_id := NULL]
 
         # Merge descriptions for the relevant PFAMs
         annotations <- unique(merge(functionListDT, cazy_table, by='Funct', all.x=T)
@@ -198,7 +197,7 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
           logmsg("Summarizing by MAG-Function pairs")
           counts <- (
                      counts
-                     [, MAG := stringr::str_split(gene_id, "\\|") %>% map_chr(., 1)] # Get the first field
+                     [, MAG := sub('\\|.*', '', gene_id)] # Retain the first pipe-delimited field
                      [, gene_id := NULL]
                      [, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
                     )
