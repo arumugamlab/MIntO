@@ -11,7 +11,7 @@ Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
 import pathlib
 from os import path
 
-localrules: make_bed_for_genome, make_cd_transl_faa_for_genome, combine_annotation_outputs, make_merged_subset_bed
+localrules: make_bed_for_genome, rename_prokka_output_faa, combine_annotation_outputs, combine_individual_beds
 
 # Get common config variables
 # These are:
@@ -78,16 +78,15 @@ if map_reference == 'genes_db':
         return(result)
 
 def predicted_genes_collate_out():
-    result = expand("{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.annotations.tsv",
+    result = expand("{wd}/DB/{post_analysis_dir}/4-annotations/combined_annotations.tsv",
                     wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out)
+                    post_analysis_dir = post_analysis_dir)
     return(result)
 
 rule all:
     input:
         predicted_genes_collate_out(),
-        "{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed".format(wd = working_dir,
+        "{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed".format(wd = working_dir,
                     post_analysis_dir = post_analysis_dir,
                     post_analysis_out = post_analysis_out)
 
@@ -113,7 +112,7 @@ rule generate_locus_ids:
     input:
         expand("{ref_dir}/{genome}.fna", ref_dir = reference_dir, genome = genomes)
     output:
-        "{wd}/DB/{post_analysis_dir}/genomes/locus_id_list.txt"
+        "{wd}/DB/{post_analysis_dir}/1-prokka/locus_id_list.txt"
     localrule: True
     run:
         from hashlib import md5
@@ -152,13 +151,15 @@ rule generate_locus_ids:
 rule prokka_for_genome:
     input:
         fna=lambda wildcards: "{reference_dir}/{genome}.fna".format(reference_dir=reference_dir, genome=wildcards.genome),
-        locus_ids=lambda wildcards: "{wd}/DB/{post_analysis_dir}/genomes/locus_id_list.txt".format(wd=wildcards.wd, post_analysis_dir=wildcards.post_analysis_dir)
+        locus_ids="{wd}/DB/{post_analysis_dir}/1-prokka/locus_id_list.txt"
     output:
-        fna="{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.fna",
-        faa="{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.faa",
-        gff="{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.gff",
+        fna="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.fna",
+        faa="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.faa",
+        gff="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.gff",
+    shadow:
+        "minimal"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/prokka/{genome}.log"
+        "{wd}/logs/DB/{post_analysis_dir}/1-prokka/{genome}.log"
     resources:
         mem=10
     threads: 8
@@ -166,16 +167,22 @@ rule prokka_for_genome:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        rm -rf $(dirname {output})
-        locus_tag=$(grep "{wildcards.genome}$(printf '\t')" {input.locus_ids} | cut -f 2 )
-        prokka --outdir $(dirname {output.fna}) --prefix {wildcards.genome} --locustag $locus_tag --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input} >& {log}
+        time (
+            locus_tag=$(grep "{wildcards.genome}$(printf '\\t')" {input.locus_ids} | cut -f 2 )
+            prokka --outdir out --prefix tmp --locustag $locus_tag --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input.fna}
+            rsync -a out/tmp.fna {output.fna}
+            rsync -a out/tmp.faa {output.faa}
+            rsync -a out/tmp.gff {output.gff}
+        ) >& {log}
         """
 
 # Dont combine FAA files ####
 
-rule make_cd_transl_faa_for_genome:
-    input: rules.prokka_for_genome.output.faa
-    output: "{wd}/DB/{post_analysis_dir}/CD_transl/{genome}.faa"
+rule rename_prokka_output_faa:
+    input:
+        rules.prokka_for_genome.output.faa
+    output:
+        faa="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.faa"
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.reformat_faa.log"
     conda:
@@ -188,34 +195,38 @@ rule make_cd_transl_faa_for_genome:
 # Convert GFF file into BED file ####
 
 rule make_bed_for_genome:
-    input: rules.prokka_for_genome.output.gff
+    input:
+        gff=rules.prokka_for_genome.output.gff
     output:
-        bed=                      "{wd}/DB/{post_analysis_dir}/GFF/{genome}.bed",
-        bed_hdr_mod=              "{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.bed",
-        bed_hdr_mod_coord_correct="{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.coord_correct.bed"
+        bed="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed"
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.make_bed_from_gff.log"
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
     shell:
         """
-        time (\
-            gff2bed < {input} > {output.bed}
-            sed -e "s/^gnl|X|/{wildcards.genome}|/g" {output.bed} > {output.bed_hdr_mod}
-            awk -v FS='\\t' -v OFS='\\t' '{{$2+=1; print $0}}' {output.bed_hdr_mod} > {output.bed_hdr_mod_coord_correct} \
+        time (
+            # Get BED file
+            gff2bed < {input.gff} > bed.1
+
+            # Modify header
+            sed -e "s/^gnl|X|/{wildcards.genome}|/g" bed.1 > bed.2
+
+            # Fix coordinate for 0-based vs 1-based
+            awk -v FS='\\t' -v OFS='\\t' '{{$2+=1; print $0}}' bed.2 > {output.bed}
         ) >& {log}
         """
 
-
-rule gene_annot_subset:
+# Combine multiple GFF/BED entries for the same entity - e.g., gene/CDS, gene/tRNA
+rule merge_features_in_locus:
     input:
-        bed_file = "{wd}/DB/{post_analysis_dir}/GFF/{genome}.header-modif.coord_correct.bed",
-        faa_cds = "{wd}/DB/{post_analysis_dir}/CD_transl/{genome}.faa"
+        bed = rules.make_bed_for_genome.output.bed,
+        faa = rules.rename_prokka_output_faa.output.faa
     output:
-        bed_subset="{wd}/DB/{post_analysis_dir}/subset/{genome}.{post_analysis_out}_SUBSET.bed",
-        fasta_subset="{wd}/DB/{post_analysis_dir}/subset/{genome}.{post_analysis_out}_translated_cds_SUBSET.faa"
+        bed="{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.bed",
+        faa="{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.faa"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_subset_out.log"
+        "{wd}/logs/DB/{post_analysis_dir}/3-merged-features/{genome}.merge_bed_items.log"
     resources:
         mem=5
     threads: 1
@@ -223,25 +234,24 @@ rule gene_annot_subset:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        remote_dir={wildcards.wd}/DB/{post_analysis_dir}/subset/
-        file_prefix={wildcards.genome}.{post_analysis_out}
-        time (Rscript {script_dir}/MAGs_genes_out_subset.R {input.bed_file} {input.faa_cds} {output.bed_subset} {output.fasta_subset}) &> {log}
+        time (
+            Rscript {script_dir}/MAGs_genes_out_subset.R {input.bed} {input.faa} {output.bed} {output.faa}
+        ) >& {log}
         """
 
 def get_genome_bed(wildcards):
     #Collect the BED files for MAGs
     genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/{post_analysis_dir}/subset/{genome}.{post_analysis_out}_SUBSET.bed",
+    result = expand("{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.bed",
                     wd=wildcards.wd,
                     post_analysis_dir=wildcards.post_analysis_dir,
-                    post_analysis_out=wildcards.post_analysis_out,
                     genome=genomes)
     return(result)
 
-rule make_merged_subset_bed:
+rule combine_individual_beds:
     input: get_genome_bed
     output:
-        bed_file="{wd}/DB/{post_analysis_dir}/{post_analysis_out}_SUBSET.bed",
+        bed_file="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed",
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}.merge_bed.log"
     wildcard_constraints:
@@ -265,17 +275,17 @@ rule make_merged_subset_bed:
 
 rule gene_annot_kofamscan:
     input:
-        fasta_subset=rules.gene_annot_subset.output.fasta_subset,
+        faa=rules.merge_features_in_locus.output.faa,
         ko_list=lambda wildcards: "{minto_dir}/data/kofam_db/ko_list".format(minto_dir = minto_dir),
         prok_hal=lambda wildcards: "{minto_dir}/data/kofam_db/profiles/prokaryote.hal".format(minto_dir = minto_dir),
         module_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Module2KO.tsv".format(minto_dir = minto_dir),
         pathway_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv".format(minto_dir = minto_dir)
     output:
-        "{wd}/DB/{post_analysis_dir}/annot/kofam/{genome}.{post_analysis_out}_translated_cds_SUBSET_kofam.tsv",
+        "{wd}/DB/{post_analysis_dir}/4-annotations/kofam/{genome}.kofam.tsv",
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_kofamscan.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.kofamscan.log"
     resources:
         mem=10
     threads: 16
@@ -285,23 +295,22 @@ rule gene_annot_kofamscan:
         """
         remote_dir=$(dirname {output})
         time (
-            exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.fasta_subset}
+            exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.faa}
             {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt > {output}
-        ) &> {log}
+        ) >& {log}
         """
 
 rule gene_annot_dbcan:
     input:
-        fasta_subset=rules.gene_annot_subset.output.fasta_subset
+        faa=rules.merge_features_in_locus.output.faa
     output:
-        "{wd}/DB/{post_analysis_dir}/annot/dbCAN/{genome}.{post_analysis_out}_translated_cds_SUBSET_dbCAN.tsv",
+        "{wd}/DB/{post_analysis_dir}/4-annotations/dbCAN/{genome}.dbCAN.tsv",
     shadow:
         "minimal"
     params:
-        prefix="{post_analysis_out}_translated_cds_SUBSET",
         dbcan_db=lambda wildcards: "{minto_dir}/data/dbCAN_db/V12/".format(minto_dir = minto_dir)
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_dbcan.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.dbcan.log"
     resources:
         mem=10
     threads: 16
@@ -314,23 +323,24 @@ rule gene_annot_dbcan:
           exit 1;
         fi
 
-        time (run_dbcan {input.fasta_subset} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre {params.prefix}_ --out_dir out
-        {script_dir}/process_dbcan_overview.pl out/{params.prefix}_overview.txt > {output} )&> {log}
+        time (
+            run_dbcan {input.faa} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre dbcan_ --out_dir out
+            {script_dir}/process_dbcan_overview.pl out/dbcan_overview.txt > {output}
+        ) >& {log}
         """
 
 rule gene_annot_eggnog:
     input:
-        fasta_subset=rules.gene_annot_subset.output.fasta_subset
+        faa=rules.merge_features_in_locus.output.faa
     output:
-        "{wd}/DB/{post_analysis_dir}/annot/eggNOG/{genome}.{post_analysis_out}_translated_cds_SUBSET_eggNOG.tsv",
+        "{wd}/DB/{post_analysis_dir}/4-annotations/eggNOG/{genome}.eggNOG.tsv",
     shadow:
         "minimal"
     params:
-        prefix="{post_analysis_out}_translated_cds_SUBSET",
         eggnog_inmem = lambda wildcards: "--dbmem" if eggNOG_dbmem else "",
         eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.{post_analysis_out}_eggnog.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.eggnog.log"
     resources:
         mem=lambda wildcards: 50 if eggNOG_dbmem else 16
     threads: lambda wildcards: 24 if eggNOG_dbmem else 10
@@ -339,16 +349,17 @@ rule gene_annot_eggnog:
     shell:
         """
         time (
-        mkdir out
-        emapper.py --data_dir {params.eggnog_db} -o {params.prefix} \
-                   --no_annot --no_file_comments --report_no_hits --override --output_dir out -m diamond -i {input.fasta_subset} --cpu {threads}
-        emapper.py --annotate_hits_table out/{params.prefix}.emapper.seed_orthologs \
-                   --data_dir {params.eggnog_db} -m no_search --no_file_comments --override -o {params.prefix} --output_dir out --cpu {threads} {params.eggnog_inmem}
-        cut -f 1,5,12,13,14,21 out/{params.prefix}.emapper.annotations > out/{params.prefix}.eggNOG
-        {script_dir}/process_eggNOG_OGs.pl out/{params.prefix}.eggNOG > out/{params.prefix}_eggNOG.tsv
-        rm out/{params.prefix}.eggNOG
-        sed -i 's/\#query/ID/' out/{params.prefix}_eggNOG.tsv
-        sed 's/ko\://g' out/{params.prefix}_eggNOG.tsv > {output} )&> {log}
+            mkdir out
+            emapper.py --data_dir {params.eggnog_db} -o tmp \
+                       --no_annot --no_file_comments --report_no_hits --override --output_dir out -m diamond -i {input.faa} --cpu {threads}
+            emapper.py --annotate_hits_table out/tmp.emapper.seed_orthologs \
+                       --data_dir {params.eggnog_db} -m no_search --no_file_comments --override -o tmp --output_dir out --cpu {threads} {params.eggnog_inmem}
+            cut -f 1,5,12,13,14,21 out/tmp.emapper.annotations > out/emapper.out
+            {script_dir}/process_eggNOG_OGs.pl out/emapper.out \
+                    | sed 's/\#query/ID/; s/ko\://g' \
+                    > out/eggNOG.tsv
+            rsync -a out/eggNOG.tsv {output}
+        ) >& {log}
         """
 
 ################################################################################################
@@ -358,11 +369,10 @@ rule gene_annot_eggnog:
 def get_genome_annotation_tsvs(wildcards):
     #Collect the CDS faa files for MAGs
     genomes = get_genomes_from_refdir(reference_dir)
-    inputs = expand("{wd}/DB/{post_analysis_dir}/annot/{annot}/{genome}.{post_analysis_out}_translated_cds_SUBSET_{annot}.tsv",
+    inputs = expand("{wd}/DB/{post_analysis_dir}/4-annotations/{annot}/{genome}.{annot}.tsv",
                     wd=wildcards.wd,
                     annot=wildcards.annot,
                     post_analysis_dir=wildcards.post_analysis_dir,
-                    post_analysis_out=wildcards.post_analysis_out,
                     genome=genomes)
     return(inputs)
 
@@ -370,27 +380,30 @@ rule combine_annotation_outputs:
     input:
         get_genome_annotation_tsvs
     output:
-        "{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET_{annot}.tsv"
+        "{wd}/DB/{post_analysis_dir}/4-annotations/{annot}.tsv"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_combine_{annot}.log"
+        "{wd}/logs/DB/{post_analysis_dir}/combine_{annot}.log"
     wildcard_constraints:
-        post_analysis_out='MAG-genes|refgenome-genes'
+        annot="eggNOG|kofam|dbCAN"
     shadow:
         "minimal"
     shell:
         """
-        time (head -n 1 {input[0]} > {output};
-        FOLDER=$(dirname {input[0]})
-        tail -n +2 -q $FOLDER/*.tsv >> {output} ) &> {log}
+        time (
+            head -n 1 {input[0]} > out.txt
+            FOLDER=$(dirname {input[0]})
+            tail -n +2 -q $FOLDER/*.tsv >> out.txt
+            rsync -a out.txt {output}
+        ) >& {log}
         """
 
 rule predicted_gene_annotation_collate:
     input:
-        annot_out=expand("{{wd}}/DB/{{post_analysis_dir}}/annot/{{post_analysis_out}}_translated_cds_SUBSET_{annot}.tsv", annot=annot_list)
+        annot_out=expand("{{wd}}/DB/{{post_analysis_dir}}/4-annotations/{annot}.tsv", annot=annot_list)
     output:
-        annot_out="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_out}_translated_cds_SUBSET.annotations.tsv",
+        annot_out="{wd}/DB/{post_analysis_dir}/4-annotations/combined_annotations.tsv",
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}_annot.log"
+        "{wd}/logs/DB/{post_analysis_dir}/combine_annot.log"
     resources:
         mem=10
     threads: 1

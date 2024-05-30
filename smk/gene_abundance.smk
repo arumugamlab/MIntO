@@ -606,7 +606,7 @@ rule gene_abund_compute:
     input:
         bam="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
         index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
-        bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_SUBSET.bed"
+        bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.bed"
     output:
         absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed"
     shadow:
@@ -634,7 +634,7 @@ rule merge_gene_abund:
                     post_analysis_out = wildcards.post_analysis_out,
                     identity = wildcards.identity,
                     sample=ilmn_samples),
-        bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_SUBSET.bed"
+        bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.bed"
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed.raw"
     shadow:
@@ -697,7 +697,7 @@ rule modify_cds_faa_header_for_fetchMG:
 # Run fetchMGs
 rule fetchMG_genome_cds_faa:
     input:
-        cds_faa='{wd}/DB/{post_analysis_dir}/CD_transl/{genome}_SUBSET.faa',
+        cds_faa='{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.faa',
         fetchMGs_dir=str(fetchMGs_dir)
     output: '{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}_SUBSET.all.marker_genes_scores.table'
     shadow:

@@ -89,12 +89,12 @@ if map_reference == 'MAG':
     post_analysis_dir="9-MAG-genes-post-analysis"
     post_analysis_out="MAG-genes"
     post_analysis_genome="MAG-genes"
-    annot_file="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir, post_analysis_genome = post_analysis_genome)
+    annot_file="{wd}/DB/{post_analysis_dir}/4-annotations/combined_annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir)
 elif map_reference == 'reference_genome':
     post_analysis_dir="9-refgenome-genes-post-analysis"
     post_analysis_out="refgenome-genes"
     post_analysis_genome="refgenome-genes"
-    annot_file="{wd}/DB/{post_analysis_dir}/annot/{post_analysis_genome}_translated_cds_SUBSET.annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir, post_analysis_genome = post_analysis_genome)
+    annot_file="{wd}/DB/{post_analysis_dir}/4-annotations/combined_annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir)
 elif map_reference == 'genes_db':
     post_analysis_dir="9-db-genes-post-analysis"
     post_analysis_out="db-genes"

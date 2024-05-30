@@ -24,7 +24,7 @@ for filename in input_annotations:
         raise Exception("File {} not found!".format(filename))
 
     # eggNOG annotations
-    if filename.endswith('_eggNOG.tsv'):
+    if filename.endswith('eggNOG.tsv'):
         eggnog = pd.read_csv(filename, sep="\t", index_col=False)
         # Prefix all columns with 'eggNOG.'
         eggnog = eggnog.rename(lambda x: f'eggNOG.{x}', axis='columns')
@@ -36,7 +36,7 @@ for filename in input_annotations:
         df = eggnog
 
     # dbCAN annotations
-    elif filename.endswith('_dbCAN.tsv'):
+    elif filename.endswith('dbCAN.tsv'):
         dbcan = pd.read_csv(filename, sep="\t", index_col=False)
         # Prefix eCAMI columns with 'dbCAN.'
         dbcan = dbcan.rename(columns={"eCAMI.submodule" : "dbCAN.eCAMI_submodule",
@@ -45,7 +45,7 @@ for filename in input_annotations:
         df = dbcan
 
     # kofam annotations
-    elif filename.endswith('_kofam.tsv'):
+    elif filename.endswith('kofam.tsv'):
         kofam = pd.read_csv(filename, sep="\t", index_col=False)
         # Prefix all columns with 'kofam.'
         kofam = kofam.rename(columns={"kofam_KO"      : "kofam.KEGG_KO",
