@@ -235,7 +235,7 @@ rule merge_features_in_locus:
     shell:
         """
         time (
-            Rscript {script_dir}/MAGs_genes_out_subset.R {input.bed} {input.faa} {output.bed} {output.faa}
+            Rscript {script_dir}/merge_features_in_locus.R {input.bed} {input.faa} {output.bed} {output.faa}
         ) >& {log}
         """
 
