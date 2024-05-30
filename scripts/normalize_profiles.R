@@ -32,70 +32,70 @@ library(purrr)
 
 setDTthreads(threads = threads_n)
 
-## Bed file colnames - not to mutate when applying threshold
-gene_info <- c("chr","start","stop","name","score","strand","source","feature","frame","info")
+## Bed file colnames - remove these, but keep 'info' that is the actual gene ID.
+gene_info <- c("chr","start","stop","name","score","strand","source","feature","frame")
 
 ## GENE ABUNDANCES per SAMPLE
 # Load data - raw counts
-# Filter number of mapped reads bellow the threshold
 # Calculate gene length
-# Add 'coord' field
-# If name is '.', then his is refgenome mode, so set header=coord.
-# fetchMG cannot handle '.' in gene names, so we had replaced '.' with '-' in gene IDs.
-# To match that, we do a gsub from '.' to '-' here
-gene_rpk_bed_DT <- (
-                     unique(fread(gene_abund_bed, header=T, data.table=TRUE)[, coord := paste0(chr, '_', start, '_', stop)],
-                            by='coord')
-                     [, `:=`(
-                             header =  gsub('\\.', '-', info),
-                             gene_length = abs(stop-start) + 1
-                            )
-                     ]
-                     [, ID_MAG := stringr::str_split(header, "\\|") %>% map_chr(., 1)] # Get the first field
-                     [name=='.', header := coord]
-                   )
+# Remove useless columns
+gene_abundance <- (
+                   fread(gene_abund_bed, header=T, data.table=TRUE)
+                   [, `:=`(
+                           gene_length = abs(stop-start) + 1,
+                           ID_MAG = stringr::str_split(info, "\\|") %>% map_chr(., 1) # Get the first field
+                          )]
+                   [, c(gene_info) := NULL]
+                  )
+setnames(gene_abundance, "info", "ID")
+setkey(gene_abundance, ID)
 
 # Make a list of sample columns for easy lookup later
-sample_cols <- setdiff(colnames(gene_rpk_bed_DT), c(gene_info, "coord", "header", "gene_length", "ID_MAG"))
+sample_cols <- setdiff(colnames(gene_abundance), c("ID", "gene_length", "ID_MAG"))
 
-# Filter gene abundances df by gene coordinates
-# Calculate RPK from gene abundances (gene abundances normalized by gene length)
+# Normalize gene abundances by gene length and MG/TPM
 if (normalize == 'MG') {
     # Define 10 marker genes as subset of COGs
     marker_COGs <- c('COG0012', 'COG0016', 'COG0018', 'COG0172', 'COG0215',
                      'COG0495', 'COG0525', 'COG0533', 'COG0541', 'COG0552')
 
     ## Get marker genes in this genome-set
-    MGs_in_MAGs <- (
-                     fread(fetchMG_table,
-                                header=T,
-                                data.table=TRUE,
-                                col.names = c('header', 'HMM_score', 'COG', 'taxid.projectid')
-                               )
-                     [COG %in% marker_COGs, c('header', 'COG')]
-                     [, ID_MAG := stringr::str_split(header, '\\|') %>% map_chr(., 1)] # Get the first field
-                   )
+    MGs_in_MAGs <- fread(fetchMG_table,
+                         header=T,
+                         data.table=TRUE,
+                         select=c('#protein_sequence_id', 'COG')
+                        )
+    setnames(MGs_in_MAGs, c('ID', 'COG'))
+    setkey(MGs_in_MAGs, COG)
+    MGs_in_MAGs <- MGs_in_MAGs[J(marker_COGs), ]
+    setkey(MGs_in_MAGs, ID)
 
     # Filter genes by min_read and then length-normalize
-
-    cols_to_remove <- c("coord", "gene_length", gene_info)
-    gene_rpk_only_DT <- (
-                          gene_rpk_bed_DT
-                          [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
-                          [, -cols_to_remove, with = FALSE]
-                        )
+    gene_abundance <- (
+                       gene_abundance
+                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
+                       [, gene_length := NULL]
+                      )
 
     # Calculate median abundance of the 10 single-copy marker genes per MAG in each sample
-    median_MG_rpk_per_MAG_DT <- (
-                                   merge(MGs_in_MAGs, gene_rpk_only_DT, by=c('ID_MAG', 'header'), sort = FALSE)
-                                   [, lapply(.SD, median) , by = ID_MAG, .SDcols = sample_cols]
-                                   [, header := "MG"]
-                                )
+    median_MG_per_MAG <- (
+                          merge(MGs_in_MAGs, gene_abundance, by='ID')
+                          [, lapply(.SD, median) , by = ID_MAG, .SDcols = sample_cols]
+                          [, ID := "MG"]
+                         )
 
     # Merge median abundance of the 10 single-copy marker genes and transcript abundance
-    gene_rpk_plus_median_MG_rpk <- rbind(median_MG_rpk_per_MAG_DT, gene_rpk_only_DT)
+    gene_abundance <- rbind(median_MG_per_MAG, gene_abundance)
 
-    # normalize with the median abundance of the 10 single-copy marker genes
+    ########################################################################################################
+    # MG NORMALIZATION FUNCTION:
+    # --------------------------
+    # normalize with the median abundance of the 10 single-copy marker genes.
+    # Each time, x is a vector of RPK values for a single MAG within a single sample.
+    # Since we rbind'ed median-MG-rpk and then gene-level-RPK, x[1] is always median-MG-rpk.
+    # x[2:] are the actual genes.
+    # When we divide each vector by its first element, we essentially normalize all genes by median-MG-rpk.
+    ########################################################################################################
     norm_rpk_per_MG <- function(x){
       if (is.character(x[1])){
         return(x)
@@ -105,54 +105,69 @@ if (normalize == 'MG') {
       }
     }
 
-    rpk_final_norm <- (
-                        gene_rpk_plus_median_MG_rpk
-                        [, lapply(.SD, norm_rpk_per_MG), by = ID_MAG]
-                        [! header == 'MG']
-                        [, lapply(.SD, function(x) ifelse(is.infinite(x) | is.nan(x), 0, x))]
-                        [, -c('ID_MAG')]
+    gene_abundance <- (
+                       gene_abundance
+                       [, lapply(.SD, norm_rpk_per_MG), by = ID_MAG]
+                       [, ID_MAG := NULL]
+                       [! ID == 'MG']
+                       [, lapply(.SD, function(x) ifelse(is.infinite(x) | is.nan(x), 0, x))]
+                      )
+} else {
+
+    # Calculate colSums before min-read filtering; and scale to million for TPM normalization
+    sample_rpk_sums <- (
+                        gene_abundance
+                        [, lapply(.SD, function(x) x / get("gene_length")), .SDcols = sample_cols]
+                        [, lapply(.SD, sum)]
+                        [, lapply(.SD, function(x) x / 1e6)]
+                        [, ID := 'SUM']
+                       )
+
+    #Apply min-read filtering, length-normalize
+    gene_abundance <- (
+                       gene_abundance
+                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
+                       [, c('ID_MAG', 'gene_length') := NULL]
                       )
 
-} else {
-    # Remove extra columns
-    cols_to_remove <- c("coord", gene_info)
-    gene_rpk_only_DT <- (
-                          gene_rpk_bed_DT
-                          [, -cols_to_remove, with = FALSE]
-                        )
+    # Merge median abundance of the 10 single-copy marker genes and transcript abundance
+    gene_abundance <- rbind(sample_rpk_sums, gene_abundance)
 
-    # Calculate colSums before min-read filtering
-    sample_rpk_sums_DT <- (
-                            gene_rpk_only_DT
-                            [, lapply(.SD, function(x) x / get("gene_length")), .SDcols = sample_cols]
-                            [, lapply(.SD, sum)]
-                          )
+    ########################################################################################################
+    # TPM NORMALIZATION FUNCTION:
+    # --------------------------
+    # normalize with the total length-normalized read-counts.
+    # Each time, x is a vector of RPK values for a single sample.
+    # Since we rbind'ed SUM and then gene-level-RPK, x[1] is always SUM.
+    # x[2:] are the actual genes.
+    # When we divide each vector by its first element, we essentially normalize all genes by SUM.
+    ########################################################################################################
+    norm_rpk_TPM <- function(x){
+      if (is.character(x[1])){
+        return(x)
+      }else{
+        x = x/x[1]
+        return(x)
+      }
+    }
 
-    #Apply min-read filtering and then length-normalize
-    sample_rpk_DT <- (
-                        gene_rpk_only_DT
-                        [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
-                        [,-c("ID_MAG", "header", "gene_length")]
-                     )
-
-    # Normalize with backed-up sum to get TPM, but it may not sum to 1M due to min-read
-    sample_rpk_norm <- mapply('/', sample_rpk_DT*1e6 , sample_rpk_sums_DT)
-
-    # Get ID_MAG and header back
-    rpk_final_norm <- cbind(gene_rpk_only_DT[, c('ID_MAG', 'header')], sample_rpk_norm)
+    # Normalize with backed-up 'sum / 1M' to get TPM, but it may not sum to 1M due to min-read
+    gene_abundance <- (
+                       gene_abundance
+                       [, lapply(.SD, norm_rpk_TPM)]
+                       [! ID == 'SUM', ]
+                      )
 }
 
 # For the sample columns, add 'metaG.' or 'metaT.' prefix from --sample-prefix
 renamed_sample_cols <- paste0(prefix, sample_cols)
-setnames(rpk_final_norm, sample_cols, renamed_sample_cols)
+setnames(gene_abundance, sample_cols, renamed_sample_cols)
+setcolorder(gene_abundance, "ID")
 
-# Merge normalized rpk with gene_info and pick cols to print
-cols_to_print <- c('coord', gene_info, 'gene_length', renamed_sample_cols)
-final_table <- (
-                 merge(gene_rpk_bed_DT, rpk_final_norm, by=c('header'), sort = FALSE)
-                 [, cols_to_print, with = FALSE]
-               )
-print(dim(final_table))
+print(dim(gene_abundance))
 
 # Write the table
-fwrite(final_table, file = gene_norm_csv, row.names = F, col.names = T, sep = "\t", quote = F)
+fwrite(gene_abundance, file = gene_norm_csv, row.names = F, col.names = T, sep = "\t", quote = F)
+
+# Call gc() to report peak memory usage
+gc()

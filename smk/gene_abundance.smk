@@ -11,7 +11,7 @@ Authors: Carmen Saenz, Mani Arumugam
 from os import path
 import pathlib
 
-localrules: modify_cds_faa_header_for_fetchMG, make_merged_genome_fna, make_genome_def, merge_MG_tables, fetchMG_genome_cds_faa, \
+localrules: make_merged_genome_fna, make_genome_def, merge_MG_tables, fetchMG_genome_cds_faa, \
         modify_genome_fasta_header, config_yml_integration, read_map_stats, merge_msamtools_genome_mapping_profiles
 
 # Get common config variables
@@ -685,21 +685,13 @@ rule relabel_merged_gene_abund:
 ## (COG0012, COG0016, COG0018, COG0172, COG0215, COG0495, COG0525, COG0533, COG0541, and COG0552)
 ###############################################################################################
 
-# fetchMG cannot handle '.' in gene names, so we replace '.' with '-' in fasta headers.
-rule modify_cds_faa_header_for_fetchMG:
-    input: '{something}.faa'
-    output: '{something}_SUBSET.faa'
-    shell:
-        """
-        sed 's/\\s.*//;s/\\./-/g' {input} > {output}
-        """
-
 # Run fetchMGs
+# fetchMG cannot handle '.' in gene names, so we replace '.' with '__MINTO_DOT__' in fasta headers; then change back in output.
 rule fetchMG_genome_cds_faa:
     input:
         cds_faa='{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.faa',
         fetchMGs_dir=str(fetchMGs_dir)
-    output: '{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}_SUBSET.all.marker_genes_scores.table'
+    output: '{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}.marker_genes.table'
     shadow:
         "minimal"
     log: '{wd}/logs/DB/{post_analysis_dir}/fetchMGs/{genome}.log'
@@ -708,15 +700,17 @@ rule fetchMG_genome_cds_faa:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        {input.fetchMGs_dir}/fetchMGs.pl -outdir {wildcards.genome} -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction {input.cds_faa} >& {log}
-        rm -rf {wildcards.genome}/temp
-        rsync -a {wildcards.genome}/* $(dirname {output})/
+        time (
+            sed 's/\\s.*//;s/\\./__MINTO_DOT__/g' {input.cds_faa} > HEADER_FIXED.faa
+            {input.fetchMGs_dir}/fetchMGs.pl -outdir out -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction HEADER_FIXED.faa
+            sed 's/__MINTO_DOT__/./g' out/HEADER_FIXED.all.marker_genes_scores.table > {output}
+            ) >& {log}
         """
 
 def get_genome_MG_tables(wildcards):
     #Collect the CDS faa files for MAGs
     genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}_SUBSET.all.marker_genes_scores.table",
+    result = expand("{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}.marker_genes.table",
                     wd=wildcards.wd,
                     post_analysis_dir=wildcards.post_analysis_dir,
                     genome=genomes)
@@ -724,16 +718,16 @@ def get_genome_MG_tables(wildcards):
 
 rule merge_MG_tables:
     input: get_genome_MG_tables
-    output: "{wd}/DB/{post_analysis_dir}/all.marker_genes_scores.table"
+    output: "{wd}/DB/{post_analysis_dir}/genomes.marker_genes.table"
     log: "{wd}/logs/DB/{post_analysis_dir}/merge_marker_genes_scores.table.log"
     shell:
         """
-        time (\
+        time (
                 head -n 1 {input[0]} > {output}
                 for file in {input}; do
                     awk 'FNR>1' ${{file}} >> {output}
-                done\
-            ) &> {log}
+                done
+            ) >& {log}
         """
 
 ###############################################################################################
@@ -753,7 +747,7 @@ def get_gene_abund_normalization_input(wildcards):
                     omics = wildcards.omics,
                     post_analysis_out = wildcards.post_analysis_out,
                     identity = wildcards.identity),
-            'genomes_marker_genes' : "{wd}/DB/9-{post_analysis_out}-post-analysis/all.marker_genes_scores.table".format(
+            'genomes_marker_genes' : "{wd}/DB/9-{post_analysis_out}-post-analysis/genomes.marker_genes.table".format(
                     wd = wildcards.wd,
                     post_analysis_out = wildcards.post_analysis_out)
             }
