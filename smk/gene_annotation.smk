@@ -285,7 +285,7 @@ rule gene_annot_kofamscan:
         """
         remote_dir=$(dirname {output})
         time (
-            exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp --create-alignment -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.fasta_subset}
+            exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.fasta_subset}
             {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt > {output}
         ) &> {log}
         """
