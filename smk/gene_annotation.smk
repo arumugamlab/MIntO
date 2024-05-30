@@ -199,6 +199,8 @@ rule make_bed_for_genome:
         gff=rules.prokka_for_genome.output.gff
     output:
         bed="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed"
+    shadow:
+        "minimal"
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.make_bed_from_gff.log"
     conda:
@@ -207,13 +209,14 @@ rule make_bed_for_genome:
         """
         time (
             # Get BED file
-            gff2bed < {input.gff} > bed.1
-
             # Modify header
-            sed -e "s/^gnl|X|/{wildcards.genome}|/g" bed.1 > bed.2
-
             # Fix coordinate for 0-based vs 1-based
-            awk -v FS='\\t' -v OFS='\\t' '{{$2+=1; print $0}}' bed.2 > {output.bed}
+            cat {input.gff} \
+                | gff2bed \
+                | sed -e "s/^gnl|X|/{wildcards.genome}|/g" \
+                | awk -v FS='\\t' -v OFS='\\t' '{{$2+=1; print $0}}' \
+                > out.bed
+            rsync -a out.bed {output.bed}
         ) >& {log}
         """
 
