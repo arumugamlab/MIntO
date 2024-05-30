@@ -243,10 +243,7 @@ rule integration_merge_profiles:
         import shutil
 
         # Set key columns to merge metaG and metaT profiles
-        if (wildcards.map_reference == 'db-genes'):
-            key_columns = ['ID']
-        else:
-            key_columns = ['coord', 'chr', 'start', 'stop', 'name', 'score', 'strand', 'source', 'feature', 'frame', 'info', 'gene_length']
+        key_columns = ['ID']
 
         # Merge metaG and metaT profiles if the input is of length 2
         # Or just read and write the single input if length is 1
