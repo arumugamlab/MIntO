@@ -156,6 +156,8 @@ rule prokka_for_genome:
         fna="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.fna",
         faa="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.faa",
         gff="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.gff",
+        gbk="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.gbk",
+        summary="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.summary",
     shadow:
         "minimal"
     log:
@@ -173,6 +175,8 @@ rule prokka_for_genome:
             rsync -a out/tmp.fna {output.fna}
             rsync -a out/tmp.faa {output.faa}
             rsync -a out/tmp.gff {output.gff}
+            rsync -a out/tmp.gbk {output.gbk}
+            rsync -a out/tmp.txt {output.summary}
         ) >& {log}
         """
 
