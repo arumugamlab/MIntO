@@ -151,8 +151,8 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
         test_cazy.singleKeys <- strsplit(test_cazy$CAZY_id, split = "\\  |\\,")
         if (length(test_cazy.singleKeys) > 0){
           test_cazy.keyMap <- data.table(
-            Pfam_id = rep(test_cazy$Pfam_id, sapply(test_cazy.singleKeys, length)),
-            Funct = unlist(test_cazy.singleKeys)
+                                        Pfam_id = rep(test_cazy$Pfam_id, sapply(test_cazy.singleKeys, length)),
+                                        Funct = unlist(test_cazy.singleKeys)
           )
         }
 
@@ -176,29 +176,37 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
     return(annotations)
 }
 
+# Assumptions:
+# keys and profile are already indexed by gene_id
 make_profile_files <- function(keys, profile, file_label, database, annotations, weights) {
 
       # Make a list of sample-names
       sample_cols <- setdiff(colnames(profile), c('gene_id'))
 
-      # Get abundance information by gene and select only relevant columns.
-      logmsg("total genes ", nrow(profile))
-      counts <- (merge.data.table(keys, profile, on="Funct", all.x=FALSE, all.y=TRUE)
-                 [, MAG := stringr::str_split(gene_id, "\\|") %>% map_chr(., 1)] # Get the first field
-                 [, gene_id := NULL]
-                )
-      logmsg("clean genes ", nrow(counts))
+      # Merge abundance and annotation information by gene
+      logmsg("Mapping genes to ", database, " items")
+      counts <- merge(keys, profile, all.x=FALSE, all.y=TRUE) # right join, implicitly by 'gene_id' that is keyed in both
+      logmsg("  done")
+      logmsg("Profiled genes      ", nrow(profile))
+      logmsg("Gene-Function pairs ", nrow(counts))
 
       # From count-per-gene, make count-per-function
       # If necessary, weight the functions by REL of genomes
       if (!is.null(weights)) {
 
           # Summarize by MAG,Funct
-          # And prepend with weights
-          counts <- rbind(weights,
-                          counts[, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
-                         )
-          logmsg("MAGxfunctions ", nrow(counts))
+          logmsg("Summarizing by MAG-Function pairs")
+          counts <- (
+                     counts
+                     [, MAG := stringr::str_split(gene_id, "\\|") %>% map_chr(., 1)] # Get the first field
+                     [, gene_id := NULL]
+                     [, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
+                    )
+          logmsg("  done")
+
+          # Prepend with weights to prepare for weighing by MAG abundance
+          counts <- rbind(weights, counts)
+          logmsg("MAG-Function  pairs ", nrow(counts))
 
           # weigh by the given weights per MAG
           weight_MAG_by_proportions <- function(x){
@@ -212,41 +220,52 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
 
           # Normalize by weighting by 'weights'
           # Remove REL rows
+          logmsg("Weighting functions by MAG abundance, and summarizing")
           # Summarize by Funct
           counts <- (
                       counts
                       [, lapply(.SD, weight_MAG_by_proportions), by = MAG]
-                      [! Funct == 'REL']
+                      [Funct != 'REL', ]
                       [, MAG := NULL]
                       [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
                     )
+          logmsg("  done")
       } else {
 
           # Summarize by Funct
+          logmsg("Summarizing functions")
           counts <- (
                       counts
-                      [, MAG := NULL]
+                      [, gene_id := NULL]
                       [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
                     )
+          logmsg("  done")
       }
 
-      # Estimate 'Unknown' functions - genes with no annotation
-      counts <- counts[is.na(Funct), Funct := "Unknown"]
-#print(counts[Funct == '28HG4',])
+      setkey(counts, 'Funct')
 
-      logmsg("functions ", nrow(counts))
+      # Estimate 'Unknown' functions - genes with no annotation
+      counts <- counts[.(NA), Funct := "Unknown"]
+
+      logmsg("Profiled functions  ", nrow(counts))
 
       # Add annotations
-      counts <- merge(annotations, counts, by='Funct', all.x=FALSE, all.y=TRUE)
+      logmsg("Merging function profiles and annotations")
+      counts <- merge(annotations, counts, by='Funct', all.x=FALSE, all.y=TRUE) # Right join
+      logmsg("  done")
 
       # Write annotated functional profile as tsv
+      logmsg("Writing function profile into text file")
       fwrite(counts,
              file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'),
              sep='\t',
              row.names = F,
              quote = F)
+      logmsg("  done")
 
       #### Create phyloseq object ####
+
+      logmsg("Creating phyloseq object")
 
       my_otu_table <- as.matrix(counts[, -c('Funct', 'Description')])
       rownames(my_otu_table) <- counts$Funct
@@ -258,11 +277,14 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       physeq <- phyloseq(otu_table(my_otu_table, taxa_are_rows = T),
                          tax_table(my_tax_table),
                          sample_metadata)
+      logmsg("  done")
 
       # Write phyloseq object
+      logmsg("Writing phyloseq object")
       qsave(physeq,
             preset = "balanced",
             file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.qs'))
+      logmsg("  done")
 
       # Index on Funct
       setkey(counts, Funct)
@@ -270,7 +292,7 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       # Remove Unknown functions
       # It has been written out in tsv files for metaG and metaT
       # And it should NOT be calculated for FE
-      counts <- counts[!J("Unknown")]
+      counts <- counts[!J("Unknown"),]
 
       return(counts)
 }
@@ -427,16 +449,20 @@ if (nrow(gene_annotation) > 0) {
     # Replicate the gene annotation table by having N rows for gene with N annotations.
 
     singleKeys <- strsplit(gene_annotation[[funcat_name]], split = "\\; |\\;|\\, |\\,")
-    Gene2FuncMap <- unique(data.table(gene_id = rep(gene_annotation$gene_id, sapply(singleKeys, length)),
-                                Funct = unlist(singleKeys)))
-    setkey(Gene2FuncMap, gene_id)
-    rm(gene_annotation)
+    Gene2FuncMap <- data.table(gene_id = rep(gene_annotation$gene_id, sapply(singleKeys, length)),
+                               Funct = unlist(singleKeys))
 
     # Since KEGG annotations can have map12345 and ko12345 for the same pathway,
     # remove such redundancy.
     if (funcat_name %in% c("eggNOG.KEGG_Pathway", "kofam.KEGG_Pathway")) {
-        Gene2FuncMap <- unique(Gene2FuncMap[, Funct := gsub('ko', 'map', Funct)])
+        Gene2FuncMap <- Gene2FuncMap[, Funct := gsub('ko', 'map', Funct)]
     }
+
+    # Get unique annotations
+    Gene2FuncMap <- unique(Gene2FuncMap)
+    setkey(Gene2FuncMap, gene_id)
+
+    rm(gene_annotation)
 
     myFunctions <- data.table(Funct = c(unique(Gene2FuncMap$Funct)))
     setkey(myFunctions, Funct)
