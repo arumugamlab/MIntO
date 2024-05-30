@@ -31,8 +31,8 @@ library(data.table)
 
 setDTthreads(threads = threads_n)
 
-## Bed file colnames - remove these, but keep 'info' that is the actual gene ID.
-gene_info <- c("chr","start","stop","name","score","strand","source","feature","frame")
+## Mini BED file colnames - remove these, but keep 'ID' that is the actual gene ID.
+gene_info <- c("chr","start","stop","strand","feature")
 
 ## GENE ABUNDANCES per SAMPLE
 # Load data - raw counts
@@ -42,11 +42,10 @@ gene_abundance <- (
                    fread(gene_abund_bed, header=T, data.table=TRUE)
                    [, `:=`(
                            gene_length = abs(stop-start) + 1,
-                           ID_MAG = sub('\\|.*', '', info) # Retain the first pipe-delimited field
+                           ID_MAG = sub('\\|.*', '', ID) # Retain the first pipe-delimited field
                           )]
                    [, c(gene_info) := NULL]
                   )
-setnames(gene_abundance, "info", "ID")
 setkey(gene_abundance, ID)
 
 # Make a list of sample columns for easy lookup later
