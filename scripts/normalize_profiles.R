@@ -28,7 +28,6 @@ read_n <- opt[['min-read-count']]
 ##########################  ** Load libraries **  ##########################
 
 library(data.table)
-library(purrr)
 
 setDTthreads(threads = threads_n)
 
@@ -43,7 +42,7 @@ gene_abundance <- (
                    fread(gene_abund_bed, header=T, data.table=TRUE)
                    [, `:=`(
                            gene_length = abs(stop-start) + 1,
-                           ID_MAG = stringr::str_split(info, "\\|") %>% map_chr(., 1) # Get the first field
+                           ID_MAG = sub('\\|.*', '', info) # Retain the first pipe-delimited field
                           )]
                    [, c(gene_info) := NULL]
                   )
