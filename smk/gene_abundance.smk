@@ -867,8 +867,6 @@ MIN_mapped_reads: {params.mapped_reads_threshold}
 MERGE_threads: 4
 MERGE_memory: 5
 
-MAG_omics: {mag_omics}
-
 ANNOTATION_file:
 
 # List annotation IDs to generate function profiles.
