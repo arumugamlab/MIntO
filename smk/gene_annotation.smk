@@ -156,6 +156,8 @@ rule prokka_for_genome:
         fna="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.fna",
         faa="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.faa",
         gff="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.gff",
+        gbk="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.gbk",
+        summary="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.summary",
     shadow:
         "minimal"
     log:
@@ -173,6 +175,8 @@ rule prokka_for_genome:
             rsync -a out/tmp.fna {output.fna}
             rsync -a out/tmp.faa {output.faa}
             rsync -a out/tmp.gff {output.gff}
+            rsync -a out/tmp.gbk {output.gbk}
+            rsync -a out/tmp.txt {output.summary}
         ) >& {log}
         """
 
@@ -251,21 +255,25 @@ def get_genome_bed(wildcards):
                     genome=genomes)
     return(result)
 
+# Combine individual BEDs but only select chr,start,stop,strand,feature,ID
 rule combine_individual_beds:
     input: get_genome_bed
     output:
-        bed_file="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed",
+        bed_full="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed",
+        bed_mini="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed.mini",
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}.merge_bed.log"
     wildcard_constraints:
         post_analysis_out='MAG-genes|refgenome-genes'
     shell:
         """
-        time (\
+        time (
             cat {input} \
                     | awk -F'\\t' '{{gsub(/[;]/, "\\t", $10)}} 1' OFS='\\t' \
                     | cut -f 1-10 \
-                    > {output.bed_file} \
+                    | tee {output.bed_full} \
+                    | cut -f 1-3,6,8,10 \
+                    > {output.bed_mini}
         ) >& {log}
         """
 

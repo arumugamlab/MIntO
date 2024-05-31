@@ -124,11 +124,6 @@ logmsg("Subsetting profile columns")
 # Get all column names in profile
 all_column_names <- names(gene_profile_dt)
 
-# Rename the key column info --> ID in refgenome/MAG mode
-if (!"ID" %in% all_column_names && "info" %in% all_column_names) {
-    setnames(gene_profile_dt, c("info"), c("ID"))
-}
-
 # If single omic mode but multi-omic input file, subset columns to relevant samples only
 sample_names <- grep(paste0("^", omics, "\\."), all_column_names, fixed=FALSE, perl=TRUE, value=TRUE)
 if (omics == 'metaG_metaT') {

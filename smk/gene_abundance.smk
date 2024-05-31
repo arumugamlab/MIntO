@@ -606,7 +606,7 @@ rule gene_abund_compute:
     input:
         bam="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
         index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
-        bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.bed"
+        bed_mini="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.bed.mini"
     output:
         absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed"
     shadow:
@@ -621,9 +621,10 @@ rule gene_abund_compute:
     shell:
         """
         time (
-        echo -e 'chr\\tstart\\tstop\\tname\\tscore\\tstrand\\tsource\\tfeature\\tframe\\tinfo\\t{wildcards.sample}' > bed_file
-        bedtools multicov -bams {input.bam} -bed {input.bed_subset} >> bed_file
-        rsync bed_file {output.absolute_counts}) &> {log}
+            echo -e 'chr\\tstart\\tstop\\tstrand\\tfeature\\tID\\t{wildcards.sample}' > bed_file
+            bedtools multicov -bams {input.bam} -bed {input.bed_mini} >> bed_file
+            rsync bed_file {output.absolute_counts}
+        ) >& {log}
         """
 
 rule merge_gene_abund:
@@ -634,7 +635,6 @@ rule merge_gene_abund:
                     post_analysis_out = wildcards.post_analysis_out,
                     identity = wildcards.identity,
                     sample=ilmn_samples),
-        bed_subset="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.bed"
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed.raw"
     shadow:
@@ -646,7 +646,7 @@ rule merge_gene_abund:
         mem=30
     run:
         import shutil
-        combine_profiles(input.single, 'combined.txt', log, key_columns=['chr','start','stop','name','score','strand','source','feature','frame','info'])
+        combine_profiles(input.single, 'combined.txt', log, key_columns=['chr','start','stop','strand','feature','ID'])
         shutil.copy2('combined.txt', output.combined)
 
 # If this is a BED file, then sample names are just A, B, C.
