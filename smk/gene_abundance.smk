@@ -301,15 +301,15 @@ def get_genomes_from_refdir(ref_dir):
 def get_genome_fna(wildcards):
     #Collect the fna files for MAGs
     genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/9-{post_analysis_out}-post-analysis/fasta/{genome}.fna.hdr-mod",
+    result = expand("{wd}/DB/9-{post_analysis_out}-post-analysis/2-postprocessed/{genome}.fna",
                     wd=wildcards.wd,
                     post_analysis_out=wildcards.post_analysis_out,
                     genome=genomes)
     return(result)
 
 rule modify_genome_fasta_header:
-    input: "{wd}/DB/{post_analysis_dir}/genomes/{genome}/{genome}.fna",
-    output: "{wd}/DB/{post_analysis_dir}/fasta/{genome}.fna.hdr-mod"
+    input: "{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.fna",
+    output: "{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.fna"
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.reformat_fna.log"
     shell:
@@ -336,7 +336,7 @@ rule make_genome_def:
         genome_def="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.genome.def"
     shell:
         """
-        grep '^>' {input} | sed 's^.*/^^' | sed 's/.fna.hdr-mod:>/\\t/' >> {output}
+        grep '^>' {input} | sed 's^.*/^^' | sed 's/.fna:>/\\t/' >> {output}
         """
 
 # Memory is based on number of MAGs - 50 MB per genome; increase by 50 MB each new attempt.
