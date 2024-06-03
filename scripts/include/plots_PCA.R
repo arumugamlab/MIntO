@@ -30,6 +30,7 @@ plot_PCA <- function(profile, label, color, metadata) {
                     )
     min_value <- (min(profile_copy[, .(minv)]))
     logmsg("  Min value in table: ", min_value)
+    logmsg("  Replacement for 0 : ", min_value*1e-2)
     replace_val <- log(min_value*1e-2)
 
     # Log transform values
