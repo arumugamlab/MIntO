@@ -11,7 +11,7 @@ Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
 import pathlib
 from os import path
 
-localrules: make_bed_for_genome, rename_prokka_output_faa, combine_annotation_outputs, combine_individual_beds
+localrules: rename_prokka_sequences, combine_annotation_outputs, combine_individual_beds
 
 # Get common config variables
 # These are:
@@ -182,74 +182,68 @@ rule prokka_for_genome:
 
 # Dont combine FAA files ####
 
-rule rename_prokka_output_faa:
+rule rename_prokka_sequences:
     input:
-        rules.prokka_for_genome.output.faa
+        gff=rules.prokka_for_genome.output.gff,
+        fna=rules.prokka_for_genome.output.fna,
+        faa=rules.prokka_for_genome.output.faa
     output:
+        bed="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed",
+        fna="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.fna",
         faa="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.faa"
-    log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.reformat_faa.log"
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #seqtk
-    shell:
-        """
-        time (seqtk seq -l 0 {input} | sed -e "s/^>/>{wildcards.genome}|/g" > {output}) >& {log}
-        """
-
-# Convert GFF file into BED file ####
-
-rule make_bed_for_genome:
-    input:
-        gff=rules.prokka_for_genome.output.gff
-    output:
-        bed="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed"
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.make_bed_from_gff.log"
+        "{wd}/logs/DB/{post_analysis_dir}/{genome}.rename_prokka.log"
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
     shell:
         """
         time (
-            # Get BED file
-            # Modify header
-            # Fix coordinate for 0-based vs 1-based
-            cat {input.gff} \
-                | gff2bed \
-                | sed -e "s/^gnl|X|/{wildcards.genome}|/g" \
-                | awk -v FS='\\t' -v OFS='\\t' '{{$2+=1; print $0}}' \
-                > out.bed
-            rsync -a out.bed {output.bed}
-        ) >& {log}
-        """
+            # Change sequence names in fna
+            sed "s/^>gnl|X|/>{wildcards.genome}|/" {input.fna} > out.fna
 
-# Combine multiple GFF/BED entries for the same entity - e.g., gene/CDS, gene/tRNA
-rule merge_features_in_locus:
-    input:
-        bed = rules.make_bed_for_genome.output.bed,
-        faa = rules.rename_prokka_output_faa.output.faa
-    output:
-        bed="{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.bed",
-        faa="{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.faa"
-    log:
-        "{wd}/logs/DB/{post_analysis_dir}/3-merged-features/{genome}.merge_bed_items.log"
-    resources:
-        mem=5
-    threads: 1
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
-    shell:
-        """
-        time (
-            Rscript {script_dir}/merge_features_in_locus.R {input.bed} {input.faa} {output.bed} {output.faa}
+            # Change sequence names in faa and keep only first word
+            sed -e "s/^>/>{wildcards.genome}|/" -e "s/\\s.*//" {input.faa} > out.faa
+
+            # Change sequence names and make BED:
+            # -----------------------------------
+            # Ignore 'gene' lines
+            # Call gff2bed
+            # Modify header
+            # Set ID based on ID=X
+            # If no ID=X then set ID as <chr>_<start>_<stop>
+            # When relevant, set feature_type to CRISPR (compliant with GFF3)
+            # Fix coordinate for 0-based vs 1-based
+
+            cat {input.gff} \
+                | awk -F '\\t' '$3 != "gene"' \
+                | gff2bed \
+                | perl -lan -F"\\t" \
+                    -e '$F[0] =~ s/^gnl\\|X\\|/{wildcards.genome}|/;' \
+                    -e 'if ($F[9] =~ /ID=([^;]*);.*/) {{
+                            $F[9] = "{wildcards.genome}|$1";
+                        }} else {{
+                            if ($F[9] =~ /note=CRISPR/) {{
+                                $F[7] = "CRISPR";
+                            }}
+                            $F[9] = sprintf("%s_%s_%s", $F[0], $F[1]+1, $F[2]);
+                        }}' \
+                    -e '$F[1]++;' \
+                    -e 'print join("\\t", @F);' \
+                > out.bed
+
+            # Save output files
+            rsync -a out.bed {output.bed}
+            rsync -a out.fna {output.fna}
+            rsync -a out.faa {output.faa}
         ) >& {log}
         """
 
 def get_genome_bed(wildcards):
     #Collect the BED files for MAGs
     genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.bed",
+    result = expand("{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed",
                     wd=wildcards.wd,
                     post_analysis_dir=wildcards.post_analysis_dir,
                     genome=genomes)
@@ -286,7 +280,7 @@ rule combine_individual_beds:
 
 rule gene_annot_kofamscan:
     input:
-        faa=rules.merge_features_in_locus.output.faa,
+        faa=rules.rename_prokka_sequences.output.faa,
         ko_list=lambda wildcards: "{minto_dir}/data/kofam_db/ko_list".format(minto_dir = minto_dir),
         prok_hal=lambda wildcards: "{minto_dir}/data/kofam_db/profiles/prokaryote.hal".format(minto_dir = minto_dir),
         module_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Module2KO.tsv".format(minto_dir = minto_dir),
@@ -313,7 +307,7 @@ rule gene_annot_kofamscan:
 
 rule gene_annot_dbcan:
     input:
-        faa=rules.merge_features_in_locus.output.faa
+        faa=rules.rename_prokka_sequences.output.faa
     output:
         "{wd}/DB/{post_analysis_dir}/4-annotations/dbCAN/{genome}.dbCAN.tsv",
     shadow:
@@ -342,7 +336,7 @@ rule gene_annot_dbcan:
 
 rule gene_annot_eggnog:
     input:
-        faa=rules.merge_features_in_locus.output.faa
+        faa=rules.rename_prokka_sequences.output.faa
     output:
         "{wd}/DB/{post_analysis_dir}/4-annotations/eggNOG/{genome}.eggNOG.tsv",
     shadow:

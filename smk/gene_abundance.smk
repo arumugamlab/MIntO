@@ -12,7 +12,7 @@ from os import path
 import pathlib
 
 localrules: make_merged_genome_fna, make_genome_def, merge_MG_tables, fetchMG_genome_cds_faa, \
-        modify_genome_fasta_header, config_yml_integration, read_map_stats, merge_msamtools_genome_mapping_profiles
+            config_yml_integration, read_map_stats, merge_msamtools_genome_mapping_profiles
 
 # Get common config variables
 # These are:
@@ -281,16 +281,6 @@ def get_genome_fna(wildcards):
                     post_analysis_out=wildcards.post_analysis_out,
                     genome=genomes)
     return(result)
-
-rule modify_genome_fasta_header:
-    input: "{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.fna",
-    output: "{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.fna"
-    log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.reformat_fna.log"
-    shell:
-        """
-        time (sed "s/^>gnl|X|/>{wildcards.genome}|/" {input} > {output}) >& {log}
-        """
 
 rule make_merged_genome_fna:
     input: get_genome_fna
