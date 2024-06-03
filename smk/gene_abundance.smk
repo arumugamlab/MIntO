@@ -173,30 +173,6 @@ if map_reference == 'genes_db':
     def combined_genome_profiles():
         return()
 
-    def gene_abundances_bwa_out(): # CHECK THIS PART - do not generate bwa index, normalization in a different way
-        result = expand("{gene_catalog_path}/BWA_index/{gene_catalog_name}.pac",
-                    gene_catalog_path=gene_catalog_db,
-                    gene_catalog_name=gene_catalog_name),\
-        expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.bam",
-                    wd = working_dir,
-                    omics = omics,
-                    post_analysis_out = "db-genes",
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    identity = identity),\
-        expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.log",
-                    wd = working_dir,
-                    omics = omics,
-                    post_analysis_out = "db-genes",
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    identity = identity),\
-        expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
-                    wd = working_dir,
-                    omics = omics,
-                    post_analysis_out = "db-genes",
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
-                    identity = identity)
-        return(result)
-
 def mapping_statistics():
     result = expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.{stats}.txt",
                     wd = working_dir,
@@ -213,7 +189,6 @@ def config_yaml():
 
 rule all:
     input:
-        #gene_abundances_bwa_out(),
         combined_genome_profiles(),
         combined_gene_abundance_profiles(),
         mapping_statistics(),
@@ -393,7 +368,8 @@ rule genome_mapping_profiling:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.p{identity}_bwa.log"
     wildcard_constraints:
-        identity=r'\d+'
+        identity=r'\d+',
+        post_analysis_out='MAG-genes|refgenome-genes'
     threads:
         config["BWA_threads"]
     resources:
@@ -484,19 +460,18 @@ rule merge_msamtools_genome_mapping_profiles:
 
 rule merge_msamtools_gene_mapping_profiles:
     input:
-        profile_tpm=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
+        profile_tpm=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             post_analysis_out = wildcards.post_analysis_out,
                                             identity = wildcards.identity,
-                                            type = wildcards.type,
                                             sample=ilmn_samples)
     output:
-        profile_tpm_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{type}.csv.raw"
+        profile_tpm_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv.raw"
     shadow:
         "minimal"
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.TPM.log"
     resources:
         mem=30
     wildcard_constraints:
@@ -661,7 +636,7 @@ rule relabel_merged_gene_abund:
     wildcard_constraints:
         label="all|genes_abundances",
         identity=r'\d+',
-        suffix="|".join(['profile.abund.prop.txt', 'profile.abund.prop.genome.txt', 'profile.relabund.prop.genome.txt', 'bed'])
+        suffix="|".join(['profile.abund.prop.txt', 'profile.abund.prop.genome.txt', 'profile.relabund.prop.genome.txt', 'bed', 'TPM.csv'])
     shadow:
         "minimal"
     log:
@@ -770,6 +745,8 @@ rule gene_abund_normalization:
         optional_arg_MG = lambda wildcards, input: "" if wildcards.norm == "TPM" else "--MG " + input.genomes_marker_genes
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{norm}.log"
+    wildcard_constraints:
+        post_analysis_out='MAG-genes|refgenome-genes'
     threads: 4
     resources:
         mem=config["BWA_memory"]
