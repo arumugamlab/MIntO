@@ -164,7 +164,7 @@ if (omics != 'metaG_metaT') {
 
     # Estimate rowSum but negate it so that setkey will sort by desc(rowSum)
     logmsg("Estimating rowSum")
-    gene_combined_dt <- gene_combined_dt[, negRowSum := rowSums(.SD, na.rm = TRUE), .SDcols = sample_cols]
+    gene_combined_dt <- gene_combined_dt[, negRowSum := -rowSums(.SD, na.rm = TRUE), .SDcols = sample_cols]
     logmsg("  done")
 
     # Set key
