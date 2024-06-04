@@ -586,7 +586,7 @@ rule gene_abund_compute:
     shell:
         """
         time (
-            echo -e 'gene_length\\tID\\t{wildcards.sample}' > bed_file
+            echo -e 'gene_length\\tID\\t{wildcards.omics}.{wildcards.sample}' > bed_file
             bedtools multicov -bams {input.bam} -bed {input.bed_mini} | perl -lane 'print join("\\t", $F[2]-$F[1]+1, @F[5..$#F]);' >> bed_file
             rsync bed_file {output.absolute_counts}
         ) >& {log}
@@ -614,9 +614,37 @@ rule merge_gene_abund:
         combine_profiles(input.single, 'combined.txt', log, key_columns=['gene_length','ID'])
         shutil.copy2('combined.txt', output.combined)
 
-# If this is a BED file, then sample names are just A, B, C.
-# If this is a gene-catalog mode TPM.csv, then it is metaG.A, metaG.B, metaG.C.
-# We use --prefix to prepend before relabeling.
+# Relabel sample names in profile file using 'sample_alias'
+# ---------------------------------------------------------
+#
+# Metadata file only has sample names <sample> in columns. But profile file has <omics>.<sample> as column header.
+# We use --prefix to prepend '<omics>.' to the name in metadata file  relabeling.
+#
+# Example:
+#
+# Metadata file looks like this:
+#
+# sample    sample_alias
+# CD136     CD1_36
+#
+# which give a mapping:
+# CD136 --> CD1_36
+#
+# However, profile file looks like this:
+#
+# ID    metaG.CD136
+# E_coli    0.80
+# B_ovatus  0.20
+#
+# We want the profile file to end up like this:
+#
+# ID    metaG.CD1_36
+# E_coli    0.80
+# B_ovatus  0.20
+#
+# By sending the prefix via --prefix, the mapping now becomes:
+# metaG.CD136 --> metaG.CD1_36
+
 rule relabel_merged_gene_abund:
     input:
         metadata=metadata,
@@ -631,8 +659,6 @@ rule relabel_merged_gene_abund:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/relabel_{label}.p{identity}.{suffix}.log"
-    params:
-        prefix = lambda wildcards: "" if (wildcards.suffix.endswith('bed')) else "--prefix {}.".format(omics)
     threads: 4
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
@@ -640,7 +666,7 @@ rule relabel_merged_gene_abund:
         mem=30
     shell:
         """
-        time (Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {input.metadata} --input {input.original} --output relabeled.txt {params.prefix}) >& {log}
+        time (Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {input.metadata} --input {input.original} --output relabeled.txt --prefix {wildcards.omics}.) >& {log}
         rsync -a relabeled.txt {output.relabeled}
         """
 
@@ -744,7 +770,7 @@ rule gene_abund_normalization:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --sample-prefix {wildcards.omics}. --min-read-count {params.mapped_reads_threshold}) &> {log}
+        time (Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --min-read-count {params.mapped_reads_threshold}) &> {log}
         """
 
 ###############################################################################################

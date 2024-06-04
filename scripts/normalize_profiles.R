@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# Normalize gene abundances and write profiles with '<prefix><sample>' as sample-id.
+# Normalize gene abundances and write profiles.
 
 # Parse command line arguments
 library(optparse)
@@ -8,7 +8,6 @@ opt_list <- list(
                 make_option("--normalize", type="character", default=NULL, help="normalization type: MG or TPM"),
                 make_option("--bed", type="character", default=NULL, help="gene mapped-read-count bed file", metavar="file"),
                 make_option(c("--out"), type="character", default=NULL, help="output file to write normalized counts", metavar="file"),
-                make_option("--sample-prefix", type="character", default="", help="prefix for sample-id in the output table: typically, 'metaG.' or 'metaT.' [default: none]", metavar="sample-prefix"),
                 make_option("--min-read-count", type="integer", default=2, help="minimum mapped read-count to consider gene is present [default: %default]"),
                 make_option("--MG", type="character", default=NULL, help="marker gene table", metavar="file"),
                 make_option("--threads", type="integer", default=4, help="number of threads [default: %default]"),
@@ -22,7 +21,6 @@ gene_norm_csv <- opt$out
 threads_n <- opt$threads
 memory_lim <- opt$memory
 fetchMG_table <- opt$MG
-prefix <- opt[['sample-prefix']]
 read_n <- opt[['min-read-count']]
 
 ##########################  ** Load libraries **  ##########################
@@ -148,9 +146,6 @@ if (normalize == 'MG') {
                       )
 }
 
-# For the sample columns, add 'metaG.' or 'metaT.' prefix from --sample-prefix
-renamed_sample_cols <- paste0(prefix, sample_cols)
-setnames(gene_abundance, sample_cols, renamed_sample_cols)
 setcolorder(gene_abundance, "ID")
 
 print(dim(gene_abundance))
