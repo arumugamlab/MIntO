@@ -654,7 +654,7 @@ rule relabel_merged_gene_abund:
 # fetchMG cannot handle '.' in gene names, so we replace '.' with '__MINTO_DOT__' in fasta headers; then change back in output.
 rule fetchMG_genome_cds_faa:
     input:
-        cds_faa='{wd}/DB/{post_analysis_dir}/3-merged-features/{genome}.faa',
+        cds_faa='{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.faa',
         fetchMGs_dir=str(fetchMGs_dir)
     output: '{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}.marker_genes.table'
     shadow:
