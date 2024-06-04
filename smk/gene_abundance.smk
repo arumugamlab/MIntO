@@ -148,6 +148,22 @@ elif map_reference == 'genes_db':
 
 bwaindex_db="DB/{analysis_dir}/BWA_index/{analysis_name}".format(analysis_dir=post_analysis_dir, analysis_name=post_analysis_out)
 
+######
+# Make a lookup table for sample --> sample_alias using metadata file
+######
+
+def get_sample2alias_map(in_file):
+    import pandas
+    df = pandas.read_csv(in_file, comment='#', header=0, sep = "\t")
+    if 'sample' not in df.columns:
+        raise Exception("Need 'sample' column in metadata file")
+    if 'sample_alias' not in df.columns:
+        raise Exception("Need 'sample_alias' column in metadata file")
+    df = df.set_index('sample')['sample_alias']
+    return(df.to_dict())
+
+sample2alias = get_sample2alias_map(metadata)
+
 def combined_genome_profiles():
     result = expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.profile.{extension}",
                 label = 'all',
@@ -350,6 +366,7 @@ rule genome_mapping_profiling:
     shadow:
         "minimal"
     params:
+        sample_alias=lambda wildcards: sample2alias[wildcards.sample],
         length=config["msamtools_filter_length"],
         sort_threads=lambda wildcards, threads, resources: int(1+threads/4),
         sort_memory=lambda wildcards, threads, resources: int(resources.mem/int(1+threads/4)),
@@ -385,7 +402,7 @@ rule genome_mapping_profiling:
                 msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
         total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         #echo $total_reads
-        common_args="--label {wildcards.omics}.{wildcards.sample} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
+        common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
         msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=all  --unit=abund --nolen
         msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
         msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
@@ -434,7 +451,7 @@ rule merge_msamtools_genome_mapping_profiles:
                                             type = wildcards.type,
                                             sample = ilmn_samples)
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.{type}.txt.raw"
+        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.{type}.txt"
     shadow:
         "minimal"
     log:
@@ -457,7 +474,7 @@ rule merge_msamtools_gene_mapping_profiles:
                                             identity = wildcards.identity,
                                             sample=ilmn_samples)
     output:
-        profile_tpm_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv.raw"
+        profile_tpm_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv"
     shadow:
         "minimal"
     log:
@@ -523,6 +540,7 @@ rule gene_catalog_mapping_profiling:
     shadow:
         "minimal"
     params:
+        sample_alias=lambda wildcards: sample2alias[wildcards.sample],
         length=config["msamtools_filter_length"],
         mapped_reads_threshold=config["MIN_mapped_reads"],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
@@ -553,7 +571,7 @@ rule gene_catalog_mapping_profiling:
                 msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
         total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
         #echo $total_reads
-        common_args="--label {wildcards.omics}.{wildcards.sample} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
+        common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
         msamtools profile aligned.bam $common_args -o profile.TPM.txt.gz --multi prop --unit tpm
         msamtools profile aligned.bam $common_args -o profile.abund.all.txt.gz --multi all --unit abund --nolen
 
@@ -576,6 +594,8 @@ rule gene_abund_compute:
         absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed"
     shadow:
         "minimal"
+    params:
+        sample_alias=lambda wildcards: sample2alias[wildcards.sample],
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.genes_abundances_counts.p{identity}.log"
     threads: 1
@@ -586,7 +606,7 @@ rule gene_abund_compute:
     shell:
         """
         time (
-            echo -e 'gene_length\\tID\\t{wildcards.omics}.{wildcards.sample}' > bed_file
+            echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}' > bed_file
             bedtools multicov -bams {input.bam} -bed {input.bed_mini} | perl -lane 'print join("\\t", $F[2]-$F[1]+1, @F[5..$#F]);' >> bed_file
             rsync bed_file {output.absolute_counts}
         ) >& {log}
@@ -601,7 +621,7 @@ rule merge_gene_abund:
                     identity = wildcards.identity,
                     sample=ilmn_samples),
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed.raw"
+        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed"
     shadow:
         "minimal"
     log:
@@ -613,62 +633,6 @@ rule merge_gene_abund:
         import shutil
         combine_profiles(input.single, 'combined.txt', log, key_columns=['gene_length','ID'])
         shutil.copy2('combined.txt', output.combined)
-
-# Relabel sample names in profile file using 'sample_alias'
-# ---------------------------------------------------------
-#
-# Metadata file only has sample names <sample> in columns. But profile file has <omics>.<sample> as column header.
-# We use --prefix to prepend '<omics>.' to the name in metadata file  relabeling.
-#
-# Example:
-#
-# Metadata file looks like this:
-#
-# sample    sample_alias
-# CD136     CD1_36
-#
-# which give a mapping:
-# CD136 --> CD1_36
-#
-# However, profile file looks like this:
-#
-# ID    metaG.CD136
-# E_coli    0.80
-# B_ovatus  0.20
-#
-# We want the profile file to end up like this:
-#
-# ID    metaG.CD1_36
-# E_coli    0.80
-# B_ovatus  0.20
-#
-# By sending the prefix via --prefix, the mapping now becomes:
-# metaG.CD136 --> metaG.CD1_36
-
-rule relabel_merged_gene_abund:
-    input:
-        metadata=metadata,
-        original="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.{suffix}.raw"
-    output:
-        relabeled="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.{suffix}"
-    wildcard_constraints:
-        label="all|genes_abundances",
-        identity=r'\d+',
-        suffix="|".join(['profile.abund.prop.txt', 'profile.abund.prop.genome.txt', 'profile.relabund.prop.genome.txt', 'bed', 'TPM.csv'])
-    shadow:
-        "minimal"
-    log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/relabel_{label}.p{identity}.{suffix}.log"
-    threads: 4
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
-    resources:
-        mem=30
-    shell:
-        """
-        time (Rscript {script_dir}/relabel_profiles_using_metadata.R --from sample --to sample_alias --threads {threads} --metadata {input.metadata} --input {input.original} --output relabeled.txt --prefix {wildcards.omics}.) >& {log}
-        rsync -a relabeled.txt {output.relabeled}
-        """
 
 ###############################################################################################
 # Normalization of read counts to 10 marker genes (MG normalization)
