@@ -586,8 +586,8 @@ rule gene_abund_compute:
     shell:
         """
         time (
-            echo -e 'chr\\tstart\\tstop\\tstrand\\tfeature\\tID\\t{wildcards.sample}' > bed_file
-            bedtools multicov -bams {input.bam} -bed {input.bed_mini} >> bed_file
+            echo -e 'gene_length\\tID\\t{wildcards.sample}' > bed_file
+            bedtools multicov -bams {input.bam} -bed {input.bed_mini} | perl -lane 'print join("\\t", $F[2]-$F[1]+1, @F[5..$#F]);' >> bed_file
             rsync bed_file {output.absolute_counts}
         ) >& {log}
         """
@@ -611,7 +611,7 @@ rule merge_gene_abund:
         mem=30
     run:
         import shutil
-        combine_profiles(input.single, 'combined.txt', log, key_columns=['chr','start','stop','strand','feature','ID'])
+        combine_profiles(input.single, 'combined.txt', log, key_columns=['gene_length','ID'])
         shutil.copy2('combined.txt', output.combined)
 
 # If this is a BED file, then sample names are just A, B, C.

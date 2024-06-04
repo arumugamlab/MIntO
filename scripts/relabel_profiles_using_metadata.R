@@ -54,8 +54,8 @@ if (!is.null(prefix)) {
 }
 
 # Which columns not to relabel
-# ID is from msamtools profile. Rest are gene_info from BED
-do_not_relabel <- c("ID", "chr","start","stop","name","score","strand","source","feature","frame","info")
+# ID is common for all. gene_length comes from MAG/refgenome mode.
+do_not_relabel <- c("ID", "gene_length")
 
 # Which columns to relabel
 columns_to_rename <- names(profile_df)

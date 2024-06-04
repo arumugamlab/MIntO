@@ -31,21 +31,11 @@ library(data.table)
 
 setDTthreads(threads = threads_n)
 
-## Mini BED file colnames - remove these, but keep 'ID' that is the actual gene ID.
-gene_info <- c("chr","start","stop","strand","feature")
-
 ## GENE ABUNDANCES per SAMPLE
 # Load data - raw counts
 # Calculate gene length
 # Remove useless columns
-gene_abundance <- (
-                   fread(gene_abund_bed, header=T, data.table=TRUE)
-                   [, `:=`(
-                           gene_length = abs(stop-start) + 1,
-                           ID_MAG = sub('\\|.*', '', ID) # Retain the first pipe-delimited field
-                          )]
-                   [, c(gene_info) := NULL]
-                  )
+gene_abundance <- fread(gene_abund_bed, header=T, data.table=TRUE)
 setkey(gene_abundance, ID)
 
 # Make a list of sample columns for easy lookup later
@@ -71,6 +61,7 @@ if (normalize == 'MG') {
     # Filter genes by min_read and then length-normalize
     gene_abundance <- (
                        gene_abundance
+                       [, ID_MAG := sub('\\|.*', '', ID)] # Retain the first pipe-delimited field
                        [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
                        [, gene_length := NULL]
                       )
@@ -125,7 +116,7 @@ if (normalize == 'MG') {
     gene_abundance <- (
                        gene_abundance
                        [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
-                       [, c('ID_MAG', 'gene_length') := NULL]
+                       [, gene_length := NULL]
                       )
 
     # Merge median abundance of the 10 single-copy marker genes and transcript abundance
