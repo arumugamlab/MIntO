@@ -263,12 +263,19 @@ rule combine_individual_beds:
         post_analysis_out='MAG-genes|refgenome-genes'
     shell:
         """
+        # Retain only first word in 10th column
+        # Replace 5th column in GFF: score --> length.
+        # Write full info into full BED file.
+        # Write only chr,start,stop,length,ID in mini BED file.
         time (
+            echo -e 'chr\\tstart\\tstop\\tname\\tlength\\tstrand\\tsource\\tfeature\\tframe\\tID\\t' > full.bed
             cat {input} \
-                    | awk -F'\\t' '{{gsub(/[;]/, "\\t", $10)}} 1' OFS='\\t' \
-                    | cut -f 1-10 \
-                    | tee full.bed \
-                    | cut -f 1-3,6,8,10 \
+                    | perl -lan -F"\\t" \
+                        -e '$F[9] =~ s/[;\\s].*//;' \
+                        -e '$F[4] = $F[2]-$F[1]+1;' \
+                        -e 'print join("\\t", @F);' \
+                    | tee --append full.bed \
+                    | cut -f 1-3,5,10 \
                     > mini.bed
             rsync -a full.bed {output.bed_full}
             rsync -a mini.bed {output.bed_mini}

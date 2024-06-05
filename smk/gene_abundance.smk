@@ -610,7 +610,7 @@ rule gene_abund_compute:
             rsync -a {input.index} in.bam.bai
             rsync -a {input.bed_mini} in.bed
             echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}' > out.bed
-            bedtools multicov -bams in.bam -bed in.bed | perl -lane 'print join("\\t", $F[2]-$F[1]+1, @F[5..$#F]);' >> out.bed
+            bedtools multicov -bams in.bam -bed in.bed | cut -f4- >> out.bed
             rsync -a out.bed {output.absolute_counts}
         ) >& {log}
         """
