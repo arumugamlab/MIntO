@@ -257,6 +257,8 @@ rule combine_individual_beds:
         bed_mini="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed.mini",
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}.merge_bed.log"
+    shadow:
+        "minimal"
     wildcard_constraints:
         post_analysis_out='MAG-genes|refgenome-genes'
     shell:
@@ -265,9 +267,11 @@ rule combine_individual_beds:
             cat {input} \
                     | awk -F'\\t' '{{gsub(/[;]/, "\\t", $10)}} 1' OFS='\\t' \
                     | cut -f 1-10 \
-                    | tee {output.bed_full} \
+                    | tee full.bed \
                     | cut -f 1-3,6,8,10 \
-                    > {output.bed_mini}
+                    > mini.bed
+            rsync -a full.bed {output.bed_full}
+            rsync -a mini.bed {output.bed_mini}
         ) >& {log}
         """
 
