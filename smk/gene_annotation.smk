@@ -99,8 +99,8 @@ rule all:
 # Get a sorted list of genomes
 
 def get_genomes_from_refdir(ref_dir):
-    genomes = [ pathlib.Path(f).stem for f in os.scandir(ref_dir) if f.is_file() and f.name.endswith('.fna') ]
-    return(sorted(genomes))
+    g= [ pathlib.Path(f).stem for f in os.scandir(ref_dir) if f.is_file() and f.name.endswith('.fna') ]
+    return(sorted(g))
 
 genomes = get_genomes_from_refdir(reference_dir)
 
@@ -242,7 +242,6 @@ rule rename_prokka_sequences:
 
 def get_genome_bed(wildcards):
     #Collect the BED files for MAGs
-    genomes = get_genomes_from_refdir(reference_dir)
     result = expand("{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed",
                     wd=wildcards.wd,
                     post_analysis_dir=wildcards.post_analysis_dir,
@@ -384,7 +383,6 @@ rule gene_annot_eggnog:
 
 def get_genome_annotation_tsvs(wildcards):
     #Collect the CDS faa files for MAGs
-    genomes = get_genomes_from_refdir(reference_dir)
     inputs = expand("{wd}/DB/{post_analysis_dir}/4-annotations/{annot}/{genome}.{annot}.tsv",
                     wd=wildcards.wd,
                     annot=wildcards.annot,
