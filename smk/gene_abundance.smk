@@ -592,11 +592,19 @@ rule gene_abund_compute:
     shell:
         """
         time (
+            # Random sleep to avoid choking NFS
+            sleep $((1 + $RANDOM % 120))
+
+            # Rsync input files
             rsync -a {input.bam} in.bam
             rsync -a {input.index} in.bam.bai
             rsync -a {input.bed_mini} in.bed
+
+            # Do the calculation
             (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
             bedtools multicov -bams in.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
+
+            # Rsync output files
             rsync -a out.bed.gz {output.absolute_counts}
         ) >& {log}
         """
