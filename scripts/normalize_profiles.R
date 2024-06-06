@@ -65,8 +65,14 @@ if (normalize == 'MG') {
                       )
 
     # Calculate median abundance of the 10 single-copy marker genes per MAG in each sample
+    #
+    # Sometimes there are multiple copies of the same COG in a genome.
+    # This could be biological but also spurios from genome assembly.
+    # To avoid issues, we first take max value for a MAG-COG pair, and then take median.
+    # This way, each COG contributes at most once for estimating median COG abundance.
     median_MG_per_MAG <- (
                           merge(MGs_in_MAGs, gene_abundance, by='ID')
+                          [, lapply(.SD, max) , by = c('COG', 'ID_MAG'), .SDcols = sample_cols]
                           [, lapply(.SD, median) , by = ID_MAG, .SDcols = sample_cols]
                           [, ID := "MG"]
                          )
