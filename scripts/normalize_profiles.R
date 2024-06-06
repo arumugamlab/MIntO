@@ -60,7 +60,7 @@ if (normalize == 'MG') {
     gene_abundance <- (
                        gene_abundance
                        [, ID_MAG := sub('\\|.*', '', ID)] # Retain the first pipe-delimited field
-                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
+                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x < read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
                        [, gene_length := NULL]
                       )
 
@@ -119,7 +119,7 @@ if (normalize == 'MG') {
     #Apply min-read filtering, length-normalize
     gene_abundance <- (
                        gene_abundance
-                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
+                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x < read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
                        [, gene_length := NULL]
                       )
 
