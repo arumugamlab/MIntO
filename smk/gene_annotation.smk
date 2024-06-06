@@ -240,6 +240,7 @@ rule rename_prokka_sequences:
         ) >& {log}
         """
 
+# Get a list of genome bed files
 def get_genome_bed(wildcards):
     #Collect the BED files for MAGs
     result = expand("{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed",
@@ -247,6 +248,45 @@ def get_genome_bed(wildcards):
                     post_analysis_dir=wildcards.post_analysis_dir,
                     genome=genomes)
     return(result)
+
+# Replace 'score' in 5th column with 'length' = stop - start + 1.
+# Retain only first word in ID column
+# Write full info into full BED file.
+# Write only chr,start,stop,length,ID in mini BED file.
+
+def process_genome_bed_list(input_list, output_full, output_mini, log_file):
+    import pandas as pd
+    import datetime
+
+    def logme(stream, msg):
+        print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
+
+    colnames = ['chr', 'start', 'stop', 'name', 'length', 'strand', 'source', 'feature', 'frame', 'ID']
+    drop_cols = ['name', 'strand', 'source', 'feature', 'frame']
+    with open(str(log_file), 'w') as f:
+        logme(f, "INFO: reading file 0")
+
+        df = pd.read_csv(input_list[0], header=None, names=colnames, sep="\t", memory_map=True)
+        df['length'] = df['stop'] - df['start'] + 1
+        df = df.replace(to_replace={'ID': r'[;\s].*'}, value='', regex=True)
+        df.to_csv(output_full, sep="\t", index=False, header=True)
+
+        df = df.drop(drop_cols, axis='columns')
+        df.to_csv(output_mini, sep="\t", index=False, header=False)
+
+        with open(str(output_full), 'a') as full, open(str(output_mini), 'a') as mini:
+            for i in range(1, len(input_list)):
+                logme(f, "INFO: reading file {}".format(i))
+
+                df = pd.read_csv(input_list[i], header=None, names=colnames, sep="\t", memory_map=True)
+                df['length'] = df['stop'] - df['start'] + 1
+                df = df.replace(to_replace={'ID': r'[;\s].*'}, value='', regex=True)
+                df.to_csv(full, sep="\t", index=False, header=False, mode='a')
+
+                df = df.drop(drop_cols, axis='columns')
+                df.to_csv(mini, sep="\t", index=False, header=False, mode='a')
+
+        logme(f, "INFO: done")
 
 # Combine individual BEDs but only select chr,start,stop,strand,feature,ID
 rule combine_individual_beds:
@@ -260,26 +300,11 @@ rule combine_individual_beds:
         "minimal"
     wildcard_constraints:
         post_analysis_out='MAG-genes|refgenome-genes'
-    shell:
-        """
-        # Retain only first word in 10th column
-        # Replace 5th column in GFF: score --> length.
-        # Write full info into full BED file.
-        # Write only chr,start,stop,length,ID in mini BED file.
-        time (
-            echo -e 'chr\\tstart\\tstop\\tname\\tlength\\tstrand\\tsource\\tfeature\\tframe\\tID\\t' > full.bed
-            cat {input} \
-                    | perl -lan -F"\\t" \
-                        -e '$F[9] =~ s/[;\\s].*//;' \
-                        -e '$F[4] = $F[2]-$F[1]+1;' \
-                        -e 'print join("\\t", @F);' \
-                    | tee --append full.bed \
-                    | cut -f 1-3,5,10 \
-                    > mini.bed
-            rsync -a full.bed {output.bed_full}
-            rsync -a mini.bed {output.bed_mini}
-        ) >& {log}
-        """
+    run:
+        import shutil
+        process_genome_bed_list(input, 'full.bed', 'mini.bed', log)
+        shutil.copy2('full.bed', output.bed_full)
+        shutil.copy2('mini.bed', output.bed_mini)
 
 ################################################################################################
 # Genes annotation using 3 different tools to retrieve functions from:
