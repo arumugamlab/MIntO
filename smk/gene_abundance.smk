@@ -30,7 +30,7 @@ if path.exists("{}/{}/{}/".format(working_dir, omics, read_dir)) is False:
     if path.exists("{}/{}/{}/".format(working_dir, omics, '6-corrected')) is True:
         read_dir='6-corrected'
     else:
-        raise Error("ERROR in {}: One of {} or 6-corrected must exist. Please correct {}".format(config_path, get_qc2_output_location(omics), working_dir))
+        raise Exception("ERROR in {}: One of {} or 6-corrected must exist. Please correct {}".format(config_path, get_qc2_output_location(omics), working_dir))
 
 print("NOTE: MIntO is using '{}' as read directory".format(read_dir))
 
@@ -52,7 +52,7 @@ if 'ILLUMINA' in config:
                     #print(ilmn)
                     ilmn_samples.append(ilmn)
                 else:
-                    raise TypeError('ERROR in ', config_path, ': ILLUMINA sample', ilmn, 'does not exist. Please, complete ', config_path)
+                    raise Exception('ERROR in ', config_path, ': ILLUMINA sample', ilmn, 'does not exist. Please, complete ', config_path)
         n_samples=len(ilmn_samples)+3
 else:
     print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)

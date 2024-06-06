@@ -41,7 +41,7 @@ if 'ILLUMINA' in config:
             elif path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), x)) is True:
                 ilmn_samples.append(x)
             else:
-                raise NameError("ERROR in {}: ILLUMINA sequence does not exist for sample {}".format(config_path, x))
+                raise Exception("ERROR in {}: ILLUMINA sequence does not exist for sample {}".format(config_path, x))
 else:
     print('ERROR in', config_path, ': ILLUMINA list of samples is empty. Please, complete', config_path)
 
@@ -255,7 +255,7 @@ def get_runs_for_sample(wildcards):
             runs = [ re.sub(r"\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
             if (len(runs) > 0):
                 return(sorted(runs))
-    raise Error("Cannot find fastq files for sample: ", wildcards.illumina)
+    raise Exception("Cannot find fastq files for sample: ", wildcards.illumina)
 
 rule merge_runs:
     input:
