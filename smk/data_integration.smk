@@ -105,10 +105,6 @@ print('NOTE: MIntO is using "' + annot_file + '" as ANNOTATION_file variable.')
 funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 print('NOTE: MIntO is using ', funct_opt, ' as ANNOTATION_ids variable.')
 
-if normalization == 'TPM' and (map_reference == 'MAG' or map_reference == 'reference_genome'):
-    post_analysis_TPM=post_analysis_out
-else:
-    post_analysis_TPM="None"
 
 def integration_merge_profiles():
     result = expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv",
@@ -184,71 +180,38 @@ rule all:
         integration_gene_profiles(),
         integration_function_profiles()
 
-# Function to column-wise combine profiles, after checking whether they all agree on values in key_columns.
-# TODO: This is duplicated between here and gene_abundance.smk. Should be moved to 'include/' directory.
-
-def combine_profiles(input_list, output_file, log_file, key_columns):
-    import pandas as pd
-    import hashlib
-    import pickle
-    import datetime
-
-    def logme(stream, msg):
-        print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
-
-    df_list = list()
-    with open(str(log_file), 'w') as f:
-        logme(f, "INFO: reading file 0")
-        df = pd.read_csv(input_list[0], comment='#', header=0, sep = "\t", memory_map=True)
-        df_list.append(df)
-        md5_first = hashlib.md5(pickle.dumps(df[key_columns])).hexdigest() # make hash for sequence feature ID
-        for i in range(1, len(input_list)):
-            logme(f, "INFO: reading file {}".format(i))
-            df = pd.read_csv(input_list[i], comment='#', header=0, sep = "\t", memory_map=True)
-            md5_next = hashlib.md5(pickle.dumps(df[key_columns])).hexdigest()
-            if md5_next != md5_first:
-                raise Exception("combine_profiles: Features don't match between {} and {}, using keys {}".format(input_list[0], input_list[i], ",".join(key_columns)))
-            df_list.append(df.drop(columns=key_columns))
-        logme(f, "INFO: concatenating {} files".format(len(input_list)))
-        df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
-        logme(f, "INFO: writing to output file")
-        if output_file.endswith('.gz'):
-            df.to_csv(output_file, sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
-        else:
-            df.to_csv(output_file, sep = "\t", index = False)
-        logme(f, "INFO: done")
-
 ###############################################################################################
 # Prepare gene profile
 ## Merge gene abundance and gene transcript profiles
 ###############################################################################################
 rule integration_merge_profiles:
     input:
-        gene_abund = lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/{map_reference}/genes_abundances.p{identity}.{normalization}.csv",
+        single=lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{normalization}.csv",
                                             wd = wildcards.wd,
                                             omics_individual = wildcards.omics.split("_"),
-                                            map_reference = wildcards.map_reference,
+                                            post_analysis_out = wildcards.post_analysis_out,
                                             identity = wildcards.identity,
                                             normalization = wildcards.normalization),
     output:
-        gene_abund_merge="{wd}/output/data_integration/{map_reference}/{omics}.genes_abundances.p{identity}.{normalization}.csv"
+        merged="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv"
+    params:
+        files = lambda wildcards, input: ",".join(input.single)
     shadow:
         "minimal"
     log:
-        "{wd}/logs/output/data_integration/{map_reference}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
+        "{wd}/logs/output/data_integration/{post_analysis_out}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
     resources:
         mem=config["MERGE_memory"]
     threads: 1
-    run:
-        import shutil
-
-        # Set key columns to merge metaG and metaT profiles
-        key_columns = ['ID']
-
-        # Merge metaG and metaT profiles if the input is of length 2
-        # Or just read and write the single input if length is 1
-        combine_profiles(input.gene_abund, 'combined.txt', log, key_columns=key_columns)
-        shutil.copy2('combined.txt', output.gene_abund_merge)
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
+    shell:
+        """
+        time (
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID
+            rsync -a out.txt {output.merged}
+        ) >& {log}
+        """
 
 ###############################################################################################
 # Generate gene profile
@@ -263,7 +226,7 @@ rule integration_merge_profiles:
 rule integration_gene_profiles:
     input:
         annot_file = annot_file,
-        gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv"
+        gene_abund_merge=rules.integration_merge_profiles.output.merged
     output:
         gene_abund_prof="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_alphabet}.csv",
         gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
@@ -299,23 +262,6 @@ rule integration_gene_profiles:
 ##################################################################################################
 # Generate function expression profile for the different databases included in the annotation file
 ##################################################################################################
-rule merge_absolute_counts_TPM:
-    input:
-        gene_abund_merge="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv".format(wd = working_dir, omics = omics, post_analysis_out = post_analysis_out, identity = identity, normalization = normalization),
-        absolute_counts = expand("{wd}/{omics_opt}/9-mapping-profiles/{post_analysis_TPM}/genes_abundances.p{identity}.bed", wd = working_dir, omics_opt = omics_opt, post_analysis_TPM = post_analysis_TPM, identity = identity),
-    output:
-        absolute_counts_merge="{wd}/output/data_integration/{post_analysis_TPM}/{omics}.genes_abundances.p{identity}.bed".format(wd = working_dir, omics = omics, post_analysis_TPM = post_analysis_TPM, identity = identity),
-    log:
-        "{wd}/logs/output/data_integration/{post_analysis_TPM}/merge_raw_counts.{omics}.TPM.log".format(wd = working_dir, post_analysis_TPM = post_analysis_TPM, omics = omics),
-    resources:
-        mem=config["MERGE_memory"]
-    threads: config["MERGE_threads"]
-    conda:
-        config["minto_dir"]+"/envs/mags.yml" # python with pandas
-    shell:
-        """
-        time (python3 {script_dir}/gene_abundances_merge_raw_profiles.py {threads} {resources.mem} {working_dir} {omics} {post_analysis_TPM} {normalization} {identity}) &> {log}
-        """
 
 #################################################################
 # Quantify functions by functional category of interest.
