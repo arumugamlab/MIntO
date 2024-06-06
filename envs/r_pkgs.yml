@@ -14,6 +14,7 @@ dependencies:
   - r-ggrepel=0.9.3
   - r-optparse=1.7.3
   - r-qs=0.25.7
+  - r-r.utils=2.12.3
   - r-reshape2=1.4.4
   - r-stringr=1.5.0
   - r-this.path=2.4.0

@@ -247,37 +247,6 @@ def get_rev_files_only(wildcards):
                 pair = '2')
     return(files)
 
-def combine_profiles(input_list, output_file, log_file, key_columns):
-    import pandas as pd
-    import hashlib
-    import pickle
-    import datetime
-
-    def logme(stream, msg):
-        print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
-
-    df_list = list()
-    with open(str(log_file), 'w') as f:
-        logme(f, "INFO: reading file 0")
-        df = pd.read_csv(input_list[0], comment='#', header=0, sep = "\t", memory_map=True)
-        df_list.append(df)
-        md5_first = hashlib.md5(pickle.dumps(df[key_columns])).hexdigest() # make hash for sequence feature ID
-        for i in range(1, len(input_list)):
-            logme(f, "INFO: reading file {}".format(i))
-            df = pd.read_csv(input_list[i], comment='#', header=0, sep = "\t", memory_map=True)
-            md5_next = hashlib.md5(pickle.dumps(df[key_columns])).hexdigest()
-            if md5_next != md5_first:
-                raise Exception("combine_profiles: Features don't match between {} and {}, using keys {}".format(input_list[0], input_list[i], ",".join(key_columns)))
-            df_list.append(df.drop(columns=key_columns))
-        logme(f, "INFO: concatenating {} files".format(len(input_list)))
-        df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
-        logme(f, "INFO: writing to output file")
-        if output_file.endswith('.gz'):
-            df.to_csv(output_file, sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
-        else:
-            df.to_csv(output_file, sep = "\t", index = False)
-        logme(f, "INFO: done")
-
 ###############################################################################################
 # Prepare genes for mapping to MAGs or publicly available genomes
 ## Generate MAGs or publicly available genomes index
@@ -439,7 +408,8 @@ rule old_merge_individual_msamtools_profiles:
 # The following two rules are identical. But first is for reference_genomes and MAGs. Second is for gene-catalogs
 ###############################################################################################
 
-# Merge individual profiles from genome mapping
+# Merge individual msamtools profiles from genome mapping
+# We set '--zeroes' because msamtools output leaves zero entries in individual profile files.
 
 rule merge_msamtools_genome_mapping_profiles:
     input:
@@ -452,18 +422,26 @@ rule merge_msamtools_genome_mapping_profiles:
                                             sample = ilmn_samples)
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.{type}.txt"
+    params:
+        files = lambda wildcards, input: ",".join(input.single)
     shadow:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
     resources:
         mem=30
-    run:
-        import shutil
-        combine_profiles(input.single, 'combined.txt', log, key_columns=['ID'])
-        shutil.copy2('combined.txt', output.combined)
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
+    shell:
+        """
+        time (
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID --zeroes
+            rsync -a out.txt {output.combined}
+        ) >& {log}
+        """
 
-# Merge normalized gene abundance or transcript profiles from gene catalog (TPM normalization)
+# Merge msamtools normalized gene abundance or transcript profiles from gene catalog (TPM normalization)
+# We set '--zeroes' because msamtools output leaves zero entries in individual profile files.
 
 rule merge_msamtools_gene_mapping_profiles:
     input:
@@ -475,18 +453,26 @@ rule merge_msamtools_gene_mapping_profiles:
                                             sample=ilmn_samples)
     output:
         profile_tpm_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv"
+    params:
+        files = lambda wildcards, input: ",".join(input.profile_tpm)
     shadow:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.TPM.log"
     resources:
         mem=30
+    threads: 4
     wildcard_constraints:
         post_analysis_out='db-genes'
-    run:
-        import shutil
-        combine_profiles(input.profile_tpm, 'combined.txt', log, key_columns=['ID'])
-        shutil.copy2('combined.txt', output.profile_tpm_all)
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
+    shell:
+        """
+        time (
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID --zeroes
+            rsync -a out.txt {output.profile_tpm_all}
+        ) >& {log}
+        """
 
 ###############################################################################################
 # Prepare genes for mapping to gene-database
@@ -591,7 +577,7 @@ rule gene_abund_compute:
         index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
         bed_mini="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.bed.mini"
     output:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed"
+        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed.gz"
     shadow:
         "minimal"
     params:
@@ -609,33 +595,43 @@ rule gene_abund_compute:
             rsync -a {input.bam} in.bam
             rsync -a {input.index} in.bam.bai
             rsync -a {input.bed_mini} in.bed
-            echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}' > out.bed
-            bedtools multicov -bams in.bam -bed in.bed | cut -f4- >> out.bed
-            rsync -a out.bed {output.absolute_counts}
+            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
+            bedtools multicov -bams in.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
+            rsync -a out.bed.gz {output.absolute_counts}
         ) >& {log}
         """
 
+# Merge individual bedtools multicov BED files from genome mapping
+# We don't set '--zeroes' because rule 'gene_abund_compute' removed all zero entries in individual BED files.
+
 rule merge_gene_abund:
     input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed",
+        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed.gz",
                     wd = wildcards.wd,
                     omics = wildcards.omics,
                     post_analysis_out = wildcards.post_analysis_out,
                     identity = wildcards.identity,
                     sample=ilmn_samples),
+    params:
+        files = lambda wildcards, input: ",".join(input.single)
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed"
     shadow:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances_counts.p{identity}.log"
-    threads: 1
+    threads: lambda wildcards,input: min(10, len(input.single))
     resources:
         mem=30
-    run:
-        import shutil
-        combine_profiles(input.single, 'combined.txt', log, key_columns=['gene_length','ID'])
-        shutil.copy2('combined.txt', output.combined)
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
+    shell:
+        """
+        time (
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys gene_length,ID
+            rsync -a out.txt {output.combined}
+        ) >& {log}
+        """
 
 ###############################################################################################
 # Normalization of read counts to 10 marker genes (MG normalization)
