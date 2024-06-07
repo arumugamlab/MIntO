@@ -430,6 +430,7 @@ rule merge_msamtools_genome_mapping_profiles:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
     resources:
         mem=30
+    threads: lambda wildcards,input: min(10, len(input.single))
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
@@ -445,23 +446,23 @@ rule merge_msamtools_genome_mapping_profiles:
 
 rule merge_msamtools_gene_mapping_profiles:
     input:
-        profile_tpm=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
+        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
                                             post_analysis_out = wildcards.post_analysis_out,
                                             identity = wildcards.identity,
                                             sample=ilmn_samples)
     output:
-        profile_tpm_all="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv"
+        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv"
     params:
-        files = lambda wildcards, input: ",".join(input.profile_tpm)
+        files = lambda wildcards, input: ",".join(input.single)
     shadow:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.TPM.log"
     resources:
         mem=30
-    threads: 4
+    threads: lambda wildcards,input: min(10, len(input.single))
     wildcard_constraints:
         post_analysis_out='db-genes'
     conda:
@@ -470,7 +471,7 @@ rule merge_msamtools_gene_mapping_profiles:
         """
         time (
             Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID --zeroes
-            rsync -a out.txt {output.profile_tpm_all}
+            rsync -a out.txt {output.combined}
         ) >& {log}
         """
 
