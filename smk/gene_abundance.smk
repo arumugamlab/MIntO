@@ -827,7 +827,6 @@ MAIN_factor: {main_factor}
 alignment_identity: {identity}
 abundance_normalization: MG
 map_reference: {map_reference}
-MIN_mapped_reads: {params.mapped_reads_threshold}
 
 MERGE_threads: 4
 MERGE_memory: 5
