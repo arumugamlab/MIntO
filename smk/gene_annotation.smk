@@ -264,27 +264,17 @@ def process_genome_bed_list(input_list, output_full, output_mini, log_file):
     colnames = ['chr', 'start', 'stop', 'name', 'length', 'strand', 'source', 'feature', 'frame', 'ID']
     drop_cols = ['name', 'strand', 'source', 'feature', 'frame']
     with open(str(log_file), 'w') as f:
-        logme(f, "INFO: reading file 0")
-
-        df = pd.read_csv(input_list[0], header=None, names=colnames, sep="\t", memory_map=True)
-        df['length'] = df['stop'] - df['start'] + 1
-        df = df.replace(to_replace={'ID': r'[;\s].*'}, value='', regex=True)
-        df.to_csv(output_full, sep="\t", index=False, header=True)
-
-        df = df.drop(drop_cols, axis='columns')
-        df.to_csv(output_mini, sep="\t", index=False, header=False)
-
-        with open(str(output_full), 'a') as full, open(str(output_mini), 'a') as mini:
-            for i in range(1, len(input_list)):
+        with open(str(output_full), 'w') as full, open(str(output_mini), 'w') as mini:
+            for i in range(0, len(input_list)):
                 logme(f, "INFO: reading file {}".format(i))
 
                 df = pd.read_csv(input_list[i], header=None, names=colnames, sep="\t", memory_map=True)
                 df['length'] = df['stop'] - df['start'] + 1
                 df = df.replace(to_replace={'ID': r'[;\s].*'}, value='', regex=True)
-                df.to_csv(full, sep="\t", index=False, header=False, mode='a')
+                df.to_csv(full, sep="\t", index=False, header=(i==0)) # Only write header the first time around
 
                 df = df.drop(drop_cols, axis='columns')
-                df.to_csv(mini, sep="\t", index=False, header=False, mode='a')
+                df.to_csv(mini, sep="\t", index=False, header=False)
 
         logme(f, "INFO: done")
 
