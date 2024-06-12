@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# Normalize gene abundances and write profiles with '<prefix><sample>' as sample-id.
+# Normalize gene abundances and write profiles.
 
 # Parse command line arguments
 library(optparse)
@@ -8,7 +8,6 @@ opt_list <- list(
                 make_option("--normalize", type="character", default=NULL, help="normalization type: MG or TPM"),
                 make_option("--bed", type="character", default=NULL, help="gene mapped-read-count bed file", metavar="file"),
                 make_option(c("--out"), type="character", default=NULL, help="output file to write normalized counts", metavar="file"),
-                make_option("--sample-prefix", type="character", default="", help="prefix for sample-id in the output table: typically, 'metaG.' or 'metaT.' [default: none]", metavar="sample-prefix"),
                 make_option("--min-read-count", type="integer", default=2, help="minimum mapped read-count to consider gene is present [default: %default]"),
                 make_option("--MG", type="character", default=NULL, help="marker gene table", metavar="file"),
                 make_option("--threads", type="integer", default=4, help="number of threads [default: %default]"),
@@ -22,7 +21,6 @@ gene_norm_csv <- opt$out
 threads_n <- opt$threads
 memory_lim <- opt$memory
 fetchMG_table <- opt$MG
-prefix <- opt[['sample-prefix']]
 read_n <- opt[['min-read-count']]
 
 ##########################  ** Load libraries **  ##########################
@@ -31,21 +29,11 @@ library(data.table)
 
 setDTthreads(threads = threads_n)
 
-## Mini BED file colnames - remove these, but keep 'ID' that is the actual gene ID.
-gene_info <- c("chr","start","stop","strand","feature")
-
 ## GENE ABUNDANCES per SAMPLE
 # Load data - raw counts
 # Calculate gene length
 # Remove useless columns
-gene_abundance <- (
-                   fread(gene_abund_bed, header=T, data.table=TRUE)
-                   [, `:=`(
-                           gene_length = abs(stop-start) + 1,
-                           ID_MAG = sub('\\|.*', '', ID) # Retain the first pipe-delimited field
-                          )]
-                   [, c(gene_info) := NULL]
-                  )
+gene_abundance <- fread(gene_abund_bed, header=T, data.table=TRUE)
 setkey(gene_abundance, ID)
 
 # Make a list of sample columns for easy lookup later
@@ -71,13 +59,20 @@ if (normalize == 'MG') {
     # Filter genes by min_read and then length-normalize
     gene_abundance <- (
                        gene_abundance
-                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
+                       [, ID_MAG := sub('\\|.*', '', ID)] # Retain the first pipe-delimited field
+                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x < read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
                        [, gene_length := NULL]
                       )
 
     # Calculate median abundance of the 10 single-copy marker genes per MAG in each sample
+    #
+    # Sometimes there are multiple copies of the same COG in a genome.
+    # This could be biological but also spurios from genome assembly.
+    # To avoid issues, we first take max value for a MAG-COG pair, and then take median.
+    # This way, each COG contributes at most once for estimating median COG abundance.
     median_MG_per_MAG <- (
                           merge(MGs_in_MAGs, gene_abundance, by='ID')
+                          [, lapply(.SD, max) , by = c('COG', 'ID_MAG'), .SDcols = sample_cols]
                           [, lapply(.SD, median) , by = ID_MAG, .SDcols = sample_cols]
                           [, ID := "MG"]
                          )
@@ -124,8 +119,8 @@ if (normalize == 'MG') {
     #Apply min-read filtering, length-normalize
     gene_abundance <- (
                        gene_abundance
-                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x <= read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
-                       [, c('ID_MAG', 'gene_length') := NULL]
+                       [, c(sample_cols) := lapply(.SD, function(x) ifelse(x < read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
+                       [, gene_length := NULL]
                       )
 
     # Merge median abundance of the 10 single-copy marker genes and transcript abundance
@@ -157,9 +152,6 @@ if (normalize == 'MG') {
                       )
 }
 
-# For the sample columns, add 'metaG.' or 'metaT.' prefix from --sample-prefix
-renamed_sample_cols <- paste0(prefix, sample_cols)
-setnames(gene_abundance, sample_cols, renamed_sample_cols)
 setcolorder(gene_abundance, "ID")
 
 print(dim(gene_abundance))

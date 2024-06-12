@@ -20,7 +20,6 @@ MAIN_factor: participant_ID2
 alignment_identity: 97
 abundance_normalization: MG
 map_reference: MAG
-MIN_mapped_reads: 2
 
 MERGE_threads: 4
 MERGE_memory: 5
