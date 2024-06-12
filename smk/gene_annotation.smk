@@ -28,10 +28,25 @@ use rule annotation_base from print_versions as version_*
 
 snakefile_name = print_versions.get_smk_filename()
 
-if config['map_reference'] in ("MAG", "reference_genome"):
-    map_reference=config["map_reference"]
+# MIntO mode and database-mapping
+
+# Define the 2 modes ('catalog' mode is not allowed here)
+valid_minto_modes = ['MAG', 'refgenome']
+
+# Which database are we mapping reads to?
+if 'map_reference' in config and config['map_reference'] != None:
+    map_reference=config['map_reference']
 else:
-    print('ERROR in ', config_path, ': map_reference variable is not correct. "map_reference" variable should be MAG or reference_genome.')
+    raise Exception("ERROR in {}: 'map_reference' variable must be defined".format(config_path))
+
+# Backward compatibility and common misnomers
+if map_reference in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
+    map_reference = 'refgenome'
+elif map_reference in ['MAGs', 'mag', 'mags']:
+    map_reference = 'MAG'
+
+if not map_reference in valid_minto_modes:
+    raise Exception("ERROR in {}: 'map_reference' variable must be {}.".format(config_path, valid_minto_modes))
 
 mag_omics = 'metaG'
 if map_reference == 'MAG':
@@ -39,7 +54,7 @@ if map_reference == 'MAG':
         mag_omics = config['MAG_omics']
     reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd=working_dir, mag_omics=mag_omics)
     print('NOTE: MIntO is using "' + reference_dir + '" as PATH_reference variable')
-elif map_reference == 'reference_genome':
+elif map_reference == 'refgenome':
     if config['PATH_reference'] is None:
         print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
     reference_dir=config["PATH_reference"]
@@ -71,36 +86,24 @@ if 'eggNOG' in annot_list and 'eggNOG_dbmem' in config:
 
 # Define all the outputs needed by target 'all'
 
-if map_reference == 'MAG':
-    post_analysis_dir="9-MAG-genes-post-analysis"
-    post_analysis_out="MAG-genes"
-elif map_reference == 'reference_genome':
-    post_analysis_dir="9-refgenome-genes-post-analysis"
-    post_analysis_out="refgenome-genes"
-elif map_reference == 'genes_db':
-    post_analysis_dir="9-db-genes-post-analysis"
-    post_analysis_out="db-genes"
-
-if map_reference == 'genes_db':
-    def merge_genes_output(): # CHECK THIS PART - do not output anything when map_reference == 'genes_db'
-        result = expand()
-        return(result)
+MINTO_MODE = map_reference
+GENE_DB_TYPE = MINTO_MODE + '-genes'
 
 def predicted_genes_collate_out():
-    result = expand("{wd}/DB/{post_analysis_dir}/4-annotations/combined_annotations.tsv",
+    result = "{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(
                     wd = working_dir,
-                    post_analysis_dir = post_analysis_dir)
+                    subdir = MINTO_MODE)
     return(result)
 
 rule all:
     input:
         predicted_genes_collate_out(),
-        "{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed".format(wd = working_dir,
-                    post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out),
+        "{wd}/DB/{subdir}/{filename}.bed".format(
+                    wd = working_dir,
+                    subdir = MINTO_MODE,
+                    filename = GENE_DB_TYPE),
         print_versions.get_version_output(snakefile_name)
     default_target: True
-
 
 ###############################################################################################
 # Prepare predicted genes for annotation
@@ -123,7 +126,7 @@ rule generate_locus_ids:
     input:
         expand("{ref_dir}/{genome}.fna", ref_dir = reference_dir, genome = genomes)
     output:
-        "{wd}/DB/{post_analysis_dir}/1-prokka/locus_id_list.txt"
+        "{wd}/DB/{minto_mode}/1-prokka/locus_id_list.txt"
     localrule: True
     run:
         from hashlib import md5
@@ -162,17 +165,17 @@ rule generate_locus_ids:
 rule prokka_for_genome:
     input:
         fna=lambda wildcards: "{reference_dir}/{genome}.fna".format(reference_dir=reference_dir, genome=wildcards.genome),
-        locus_ids="{wd}/DB/{post_analysis_dir}/1-prokka/locus_id_list.txt"
+        locus_ids="{wd}/DB/{minto_mode}/1-prokka/locus_id_list.txt"
     output:
-        fna="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.fna",
-        faa="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.faa",
-        gff="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.gff",
-        gbk="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.gbk",
-        summary="{wd}/DB/{post_analysis_dir}/1-prokka/{genome}/{genome}.summary",
+        fna="{wd}/DB/{minto_mode}/1-prokka/{genome}/{genome}.fna",
+        faa="{wd}/DB/{minto_mode}/1-prokka/{genome}/{genome}.faa",
+        gff="{wd}/DB/{minto_mode}/1-prokka/{genome}/{genome}.gff",
+        gbk="{wd}/DB/{minto_mode}/1-prokka/{genome}/{genome}.gbk",
+        summary="{wd}/DB/{minto_mode}/1-prokka/{genome}/{genome}.summary",
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/1-prokka/{genome}.log"
+        "{wd}/logs/DB/{minto_mode}/1-prokka/{genome}.log"
     resources:
         mem=10
     threads: 8
@@ -199,13 +202,13 @@ rule rename_prokka_sequences:
         fna=rules.prokka_for_genome.output.fna,
         faa=rules.prokka_for_genome.output.faa
     output:
-        bed="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed",
-        fna="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.fna",
-        faa="{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.faa"
+        bed="{wd}/DB/{minto_mode}/2-postprocessed/{genome}.bed",
+        fna="{wd}/DB/{minto_mode}/2-postprocessed/{genome}.fna",
+        faa="{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa"
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.rename_prokka.log"
+        "{wd}/logs/DB/{minto_mode}/{genome}.rename_prokka.log"
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
     shell:
@@ -254,9 +257,9 @@ rule rename_prokka_sequences:
 # Get a list of genome bed files
 def get_genome_bed(wildcards):
     #Collect the BED files for MAGs
-    result = expand("{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.bed",
+    result = expand("{wd}/DB/{minto_mode}/2-postprocessed/{genome}.bed",
                     wd=wildcards.wd,
-                    post_analysis_dir=wildcards.post_analysis_dir,
+                    minto_mode=wildcards.minto_mode,
                     genome=genomes)
     return(result)
 
@@ -293,14 +296,14 @@ def process_genome_bed_list(input_list, output_full, output_mini, log_file):
 rule combine_individual_beds:
     input: get_genome_bed
     output:
-        bed_full="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed",
-        bed_mini="{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed.mini",
+        bed_full="{wd}/DB/{minto_mode}/{filename}.bed",
+        bed_mini="{wd}/DB/{minto_mode}/{filename}.bed.mini",
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{post_analysis_out}.merge_bed.log"
+        "{wd}/logs/DB/{minto_mode}/{filename}.merge_bed.log"
     shadow:
         "minimal"
     wildcard_constraints:
-        post_analysis_out='MAG-genes|refgenome-genes'
+        minto_mode='MAG|refgenome'
     run:
         import shutil
         process_genome_bed_list(input, 'full.bed', 'mini.bed', log)
@@ -322,11 +325,11 @@ rule gene_annot_kofamscan:
         module_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Module2KO.tsv".format(minto_dir = minto_dir),
         pathway_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv".format(minto_dir = minto_dir)
     output:
-        "{wd}/DB/{post_analysis_dir}/4-annotations/kofam/{genome}.kofam.tsv",
+        "{wd}/DB/{minto_mode}/4-annotations/kofam/{genome}.kofam.tsv",
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.kofamscan.log"
+        "{wd}/logs/DB/{minto_mode}/{genome}.kofamscan.log"
     resources:
         mem=10
     threads: 16
@@ -348,11 +351,11 @@ rule gene_annot_dbcan:
         faa=rules.rename_prokka_sequences.output.faa,
         dbcan_db="{}/data/dbCAN_db/V12/fam-substrate-mapping.tsv".format(minto_dir)
     output:
-        "{wd}/DB/{post_analysis_dir}/4-annotations/dbCAN/{genome}.dbCAN.tsv",
+        "{wd}/DB/{minto_mode}/4-annotations/dbCAN/{genome}.dbCAN.tsv",
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.dbcan.log"
+        "{wd}/logs/DB/{minto_mode}/{genome}.dbcan.log"
     resources:
         mem=10
     threads: 16
@@ -373,13 +376,13 @@ rule gene_annot_eggnog:
         faa=rules.rename_prokka_sequences.output.faa,
         eggnog_db="{}/data/eggnog_data/data/eggnog.db".format(minto_dir)
     output:
-        "{wd}/DB/{post_analysis_dir}/4-annotations/eggNOG/{genome}.eggNOG.tsv",
+        "{wd}/DB/{minto_mode}/4-annotations/eggNOG/{genome}.eggNOG.tsv",
     shadow:
         "minimal"
     params:
         eggnog_inmem = lambda wildcards: "--dbmem" if eggNOG_dbmem else ""
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/{genome}.eggnog.log"
+        "{wd}/logs/DB/{minto_mode}/{genome}.eggnog.log"
     resources:
         mem=lambda wildcards: 50 if eggNOG_dbmem else 16
     threads: lambda wildcards: 24 if eggNOG_dbmem else 10
@@ -409,10 +412,10 @@ rule gene_annot_eggnog:
 
 def get_genome_annotation_tsvs(wildcards):
     #Collect the CDS faa files for MAGs
-    inputs = expand("{wd}/DB/{post_analysis_dir}/4-annotations/{annot}/{genome}.{annot}.tsv",
+    inputs = expand("{wd}/DB/{minto_mode}/4-annotations/{annot}/{genome}.{annot}.tsv",
                     wd=wildcards.wd,
                     annot=wildcards.annot,
-                    post_analysis_dir=wildcards.post_analysis_dir,
+                    minto_mode=wildcards.minto_mode,
                     genome=genomes)
     return(inputs)
 
@@ -420,9 +423,9 @@ rule combine_annotation_outputs:
     input:
         get_genome_annotation_tsvs
     output:
-        "{wd}/DB/{post_analysis_dir}/4-annotations/{annot}.tsv"
+        "{wd}/DB/{minto_mode}/4-annotations/{annot}.tsv"
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/combine_{annot}.log"
+        "{wd}/logs/DB/{minto_mode}/combine_{annot}.log"
     wildcard_constraints:
         annot="eggNOG|kofam|dbCAN"
     shadow:
@@ -439,11 +442,11 @@ rule combine_annotation_outputs:
 
 rule predicted_gene_annotation_collate:
     input:
-        annot_out=expand("{{wd}}/DB/{{post_analysis_dir}}/4-annotations/{annot}.tsv", annot=annot_list)
+        annot_out=expand("{{wd}}/DB/{{minto_mode}}/4-annotations/{annot}.tsv", annot=annot_list)
     output:
-        annot_out="{wd}/DB/{post_analysis_dir}/4-annotations/combined_annotations.tsv",
+        annot_out="{wd}/DB/{minto_mode}/4-annotations/combined_annotations.tsv",
     log:
-        "{wd}/logs/DB/{post_analysis_dir}/combine_annot.log"
+        "{wd}/logs/DB/{minto_mode}/combine_annot.log"
     resources:
         mem=10
     threads: 1

@@ -157,7 +157,7 @@ for OMICS in metaG metaT; do
   cmd="snakemake --snakefile $CODE_DIR/smk/gene_abundance.smk --configfile mapping.yaml $SNAKE_PARAMS >& abundance.log"
   profile_command "$cmd"
 
-  sed "s@map_reference: MAG@map_reference: reference_genome@; s@PATH_reference:@PATH_reference: $TEST_DIR/genomes@;" mapping.yaml > mapping.yaml.refgenome
+  sed "s@map_reference: MAG@map_reference: refgenome@; s@PATH_reference:@PATH_reference: $TEST_DIR/genomes@;" mapping.yaml > mapping.yaml.refgenome
   echo -n "GENE_ANNOTATION - refgenome: "
   cmd="snakemake --snakefile $CODE_DIR/smk/gene_annotation.smk --configfile mapping.yaml.refgenome $SNAKE_PARAMS >& annotation.refgenome.log"
   profile_command "$cmd"
@@ -166,7 +166,7 @@ for OMICS in metaG metaT; do
   profile_command "$cmd"
 
   echo -n "GENE_ABUNDANCE - gene catalog: "
-  sed "s@map_reference: MAG@map_reference: genes_db@; s@PATH_reference:@PATH_reference: $TEST_DIR/gene_catalog@; s@NAME_reference:@NAME_reference: gene_catalog.fna@; s@abundance_normalization: TPM,MG@abundance_normalization: TPM@" mapping.yaml > mapping.yaml.catalog
+  sed "s@map_reference: MAG@map_reference: catalog@; s@PATH_reference:@PATH_reference: $TEST_DIR/gene_catalog@; s@NAME_reference:@NAME_reference: gene_catalog.fna@; s@abundance_normalization: TPM,MG@abundance_normalization: TPM@" mapping.yaml > mapping.yaml.catalog
   cmd="snakemake --snakefile $CODE_DIR/smk/gene_abundance.smk --configfile mapping.yaml.catalog $SNAKE_PARAMS >& abundance.catalog.log"
   profile_command "$cmd"
 
@@ -200,7 +200,7 @@ for OMICS in metaG_metaT metaG metaT; do
   profile_command "$cmd"
 
   echo -n "MODE - refgenome, MG: "
-  sed "s/map_reference: .*/map_reference: reference_genome/" data_integration.yaml.MG.$OMICS > data_integration.yaml.refgenome.MG.$OMICS
+  sed "s/map_reference: .*/map_reference: refgenome/" data_integration.yaml.MG.$OMICS > data_integration.yaml.refgenome.MG.$OMICS
   cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.MG.$OMICS $SNAKE_PARAMS >& integration.refgenome.MG.$OMICS.log"
   profile_command "$cmd"
   sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.refgenome.MG.$OMICS > data_integration.yaml.refgenome.TPM.$OMICS
@@ -209,7 +209,7 @@ for OMICS in metaG_metaT metaG metaT; do
   profile_command "$cmd"
 
   echo -n "MODE - gene-catalog, TPM: "
-  sed "s/map_reference: .*/map_reference: genes_db/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
+  sed "s/map_reference: .*/map_reference: catalog/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
   cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.catalog.TPM.$OMICS $SNAKE_PARAMS >& integration.catalog.TPM.$OMICS.log"
   profile_command "$cmd"
 
