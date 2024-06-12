@@ -637,6 +637,7 @@ rule gene_abund_compute:
 
 # Merge individual bedtools multicov BED files from genome mapping
 # We don't set '--zeroes' because rule 'gene_abund_compute' removed all zero entries in individual BED files.
+# Memory is estimated based on a regression using 9Gb metagenomes.
 
 rule merge_gene_abund:
     input:
@@ -657,7 +658,7 @@ rule merge_gene_abund:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances_counts.p{identity}.log"
     threads: lambda wildcards,input: min(10, len(input.single))
     resources:
-        mem=30
+        mem=lambda wildcards,input: 5 + 0.3*len(input.single)
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
