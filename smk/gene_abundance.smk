@@ -419,6 +419,12 @@ rule old_merge_individual_msamtools_profiles:
 # The following two rules are identical. But first is for reference_genomes and MAGs. Second is for gene-catalogs
 ###############################################################################################
 
+def strip_commonpath(list_of_paths):
+    topdir = os.path.commonpath(list_of_paths)
+    stripped = [x.replace(topdir, '') for x in list_of_paths]
+    stripped = [re.sub(r'^/+', '', x) for x in stripped]
+    return(stripped)
+
 # Merge individual msamtools profiles from genome mapping
 # We set '--zeroes' because msamtools output leaves zero entries in individual profile files.
 
@@ -434,20 +440,24 @@ rule merge_msamtools_genome_mapping_profiles:
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.{type}.txt"
     params:
-        files = lambda wildcards, input: ",".join(input.single)
+        topdir = lambda wildcards, input: os.path.commonpath(input.single),
+        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
     shadow:
         "minimal"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
     resources:
         mem=30
-    threads: lambda wildcards,input: min(10, len(input.single))
+    threads: 1
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
         time (
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID --zeroes
+            shadowdir=$(pwd)
+            cd {params.topdir}
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys ID --zeroes
+            cd $shadowdir
             rsync -a out.txt {output.combined}
         ) >& {log}
         """
@@ -466,7 +476,8 @@ rule merge_msamtools_gene_mapping_profiles:
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv"
     params:
-        files = lambda wildcards, input: ",".join(input.single)
+        topdir = lambda wildcards, input: os.path.commonpath(input.single),
+        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
     shadow:
         "minimal"
     log:
@@ -481,7 +492,10 @@ rule merge_msamtools_gene_mapping_profiles:
     shell:
         """
         time (
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID --zeroes
+            shadowdir=$(pwd)
+            cd {params.topdir}
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys ID --zeroes
+            cd $shadowdir
             rsync -a out.txt {output.combined}
         ) >& {log}
         """
@@ -633,7 +647,8 @@ rule merge_gene_abund:
                     identity = wildcards.identity,
                     sample=ilmn_samples),
     params:
-        files = lambda wildcards, input: ",".join(input.single)
+        topdir = lambda wildcards, input: os.path.commonpath(input.single),
+        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed"
     shadow:
@@ -648,7 +663,10 @@ rule merge_gene_abund:
     shell:
         """
         time (
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys gene_length,ID
+            shadowdir=$(pwd)
+            cd {params.topdir}
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys gene_length,ID
+            cd $shadowdir
             rsync -a out.txt {output.combined}
         ) >& {log}
         """
