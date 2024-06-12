@@ -19,6 +19,16 @@ localrules: qc1_check_read_length_merge, qc1_cumulative_read_len_plot, qc2_confi
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
+include: 'include/versions.smk'
+
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule QC_1_base, QC_1_rpkg from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
 
 if config['raw_reads_dir'] is None:
     print('ERROR in ', config_path, ': raw_reads_dir variable in configuration yaml file is empty. Please, complete ', config_path)
@@ -106,7 +116,9 @@ rule all:
         #qc1_trim_quality_output(),
         #qc1_check_read_length_output(),
         qc1_read_length_cutoff_output(),
-        qc1_config_yml_output()
+        qc1_config_yml_output(),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 
 ###############################################################################################

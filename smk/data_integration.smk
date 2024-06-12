@@ -18,6 +18,15 @@ import re
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule integration_rpkg from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 # some variables
 
 main_factor = None
@@ -178,7 +187,9 @@ rule all:
     input:
         integration_merge_profiles(),
         integration_gene_profiles(),
-        integration_function_profiles()
+        integration_function_profiles(),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 ###############################################################################################
 # Prepare gene profile

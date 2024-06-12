@@ -22,6 +22,15 @@ include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 include: 'include/fasta_bam_helpers.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule assembly_base from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 # Variables from configuration yaml file
 
 # Make list of illumina samples, if ILLUMINA in config
@@ -198,7 +207,9 @@ rule all:
         illumina_single_assembly_output(),
         illumina_co_assembly_output(),
         nanopore_single_assembly_output(),
-        hybrid_assembly_output()
+        hybrid_assembly_output(),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 ###############################################################################################
 # Correct Illumina reads using SPAdes' spadeshammer

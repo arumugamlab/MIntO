@@ -21,6 +21,15 @@ localrules: qc0_fake_move_for_multiqc, qc0_create_multiqc, \
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule QC_0_base, QC_0_rpkg from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 if config['raw_reads_dir'] is None:
     print('ERROR in ', config_path, ': raw_reads_dir variable in configuration yaml file is empty. Please, complete ', config_path)
 else:
@@ -120,7 +129,9 @@ rule all:
         qc1_read_length_output(),
         qc1_read_length_cutoff_output(),
         qc1_config_yml_output(),
-        qc0_multiqc_summary_output()
+        qc0_multiqc_summary_output(),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 
 ###############################################################################################

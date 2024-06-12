@@ -11,6 +11,15 @@ import snakemake
 include: 'include/cmdline_validator.smk'
 include: 'include/fasta_bam_helpers.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule binning_preparation_base, binning_preparation_avamb from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 localrules: filter_contigs_illumina_single, filter_contigs_illumina_coas, \
             filter_contigs_nanopore, filter_contigs_illumina_single_nanopore, \
             check_depth_batches, combine_contigs_depth_batches, combine_fasta_batches, \
@@ -268,7 +277,9 @@ rule all:
                 min_seq_length = config['MIN_FASTA_LENGTH']),
         config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
                 wd = working_dir,
-                omics = config['omics'])
+                omics = config['omics']),
+        versions = print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 ###############################################################################################
 # Filter contigs from

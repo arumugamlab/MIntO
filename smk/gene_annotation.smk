@@ -19,6 +19,15 @@ localrules: rename_prokka_sequences, combine_annotation_outputs, combine_individ
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule annotation_base from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 if config['map_reference'] in ("MAG", "reference_genome"):
     map_reference=config["map_reference"]
 else:
@@ -88,7 +97,9 @@ rule all:
         predicted_genes_collate_out(),
         "{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed".format(wd = working_dir,
                     post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out)
+                    post_analysis_out = post_analysis_out),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 
 ###############################################################################################

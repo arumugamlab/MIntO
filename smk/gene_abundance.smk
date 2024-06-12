@@ -21,6 +21,15 @@ include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule abundance_base, abundance_rpkg from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 # We prefer original non-error-corrected reads for profiling to preserve strain variation in population
 read_dir=get_qc2_output_location(omics)
 
@@ -208,7 +217,9 @@ rule all:
         combined_genome_profiles(),
         combined_gene_abundance_profiles(),
         mapping_statistics(),
-        config_yaml()
+        config_yaml(),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 ###############################################################################################
 # Useful python functions

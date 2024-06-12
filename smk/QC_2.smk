@@ -22,6 +22,15 @@ include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule QC_2_base, QC_2_rpkg, QC_2_mpl, QC_2_motus from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
             metaphlan_combine_profiles, motus_combine_profiles, motus_calc_motu, \
             plot_taxonomic_profile, plot_sourmash_kmers 
@@ -154,7 +163,11 @@ else:
 
 # TODO: Read this from yaml file and remove hard-coding
 metaphlan_version = "4.0.6"
+if metaphlan_version in config and config['metaphlan_version'] is not None:
+    metaphlan_version = config['metaphlan_version']
 motus_version = "3.0.3"
+if motus_version in config and config['motus_version'] is not None:
+    motus_version = config['motus_version']
 
 taxonomies = taxonomy.split(",")
 for t in taxonomies:
@@ -295,7 +308,9 @@ rule all:
         merged_sample_output(),
         taxonomy_plot_output(),
         smash_plot_output(),
-        next_step_config_yml_output()
+        next_step_config_yml_output(),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 # Get a sorted list of runs for a sample
 
