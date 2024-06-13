@@ -84,9 +84,10 @@ rule QC_0_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        fastqc --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo $(fastp --version 2>&1) >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > $VOUT
+        fastqc --version >> $VOUT
+        echo $(fastp --version 2>&1) >> $VOUT
         touch {output}
         """
 
@@ -123,8 +124,9 @@ rule QC_1_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "trimmomatic v$(trimmomatic -version)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > $VOUT
+        echo "trimmomatic v$(trimmomatic -version)" >> $VOUT
         touch {output}
         """
 
@@ -161,13 +163,14 @@ rule QC_2_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        seqkit version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "samtools $(samtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "$(sortmerna 2>&1 | grep "Program" | cut -d" " -f 9-11)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        sourmash --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > $VOUT
+        seqkit version >> $VOUT
+        echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> $VOUT
+        echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
+        echo "samtools $(samtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
+        echo "$(sortmerna 2>&1 | grep "Program" | cut -d" " -f 9-11)" >> $VOUT
+        sourmash --version >> $VOUT
         touch {output}
         """
 
@@ -184,8 +187,9 @@ rule QC_2_mpl:
         config["minto_dir"]+"/envs/metaphlan.yml"
     shell:
         """
-        metaphlan --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "metaphlan database $(basename $(ls {minto_dir}/data/metaphlan/{metaphlan_version}/*.csv) | sed 's|_VINFO.csv||')" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        metaphlan --version >> $VOUT
+        echo "metaphlan database $(basename $(ls {minto_dir}/data/metaphlan/{metaphlan_version}/*.csv) | sed 's|_VINFO.csv||')" >> $VOUT
         touch {output}
         """
 
@@ -241,10 +245,11 @@ rule assembly_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        $(which {spades_script}) --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        megahit --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "flye v$(flye --version)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > $VOUT
+        $(which {spades_script}) --version >> $VOUT
+        megahit --version >> $VOUT
+        echo "flye v$(flye --version)" >> $VOUT
         touch {output}
         """
 
@@ -264,11 +269,12 @@ rule binning_preparation_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "samtools $(samtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        coverm --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > $VOUT
+        echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> $VOUT
+        echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
+        echo "samtools $(samtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
+        coverm --version >> $VOUT
         touch {output}
         """
 
@@ -305,8 +311,9 @@ rule mags_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        coverm --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > $VOUT
+        coverm --version >> $VOUT
         touch {output}
         """
 
@@ -359,8 +366,9 @@ rule mags_ppl:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
         """
-        phylophlan --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "phylophlan database {params.db}" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        phylophlan --version >> $VOUT
+        echo "phylophlan database {params.db}" >> $VOUT
         touch {output}
         """
 
@@ -379,8 +387,9 @@ rule mags_gtdb:
         config["minto_dir"]+"/envs/gtdb.yml"
     shell:
         """
-        echo "gtdbtk v$(gtdbtk --version | cut -d" " -f 3 | head -n 1)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "gtdbtk database {params.db}" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "gtdbtk v$(gtdbtk --version | cut -d" " -f 3 | head -n 1)" >> $VOUT
+        echo "gtdbtk database {params.db}" >> $VOUT
         touch {output}
         """
 
@@ -444,11 +453,12 @@ rule abundance_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "samtools $(samtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        bedtools --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > $VOUT
+        echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> $VOUT
+        echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
+        echo "samtools $(samtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
+        bedtools --version >> $VOUT
         touch {output}
         """
 
@@ -485,9 +495,10 @@ rule integration_rpkg:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        Rscript --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        conda list | sed -E 's|[[:space:]]+| |g' | cut -d" " -f 1-2 | grep -P "^r-.*" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        conda list | sed -E 's|[[:space:]]+| |g' | cut -d" " -f 1-2 | grep -P "^bioconductor-.*" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference && cd - > /dev/null)" > $VOUT
+        Rscript --version >> $VOUT
+        conda list | sed -E 's|[[:space:]]+| |g' | cut -d" " -f 1-2 | grep -P "^r-.*" >> $VOUT
+        conda list | sed -E 's|[[:space:]]+| |g' | cut -d" " -f 1-2 | grep -P "^bioconductor-.*" >> $VOUT
         touch {output}
         """
