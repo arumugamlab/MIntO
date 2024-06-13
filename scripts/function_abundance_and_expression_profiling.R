@@ -197,7 +197,7 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
           logmsg("Summarizing by MAG-Function pairs")
           counts <- (
                      counts
-                     [, MAG := sub('\\|.*', '', gene_id)] # Retain the first pipe-delimited field
+                     [, MAG := sub('_.*', '', gene_id)] # Retain the first underscore-delimited field
                      [, gene_id := NULL]
                      [, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
                     )

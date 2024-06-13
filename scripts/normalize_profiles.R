@@ -57,9 +57,10 @@ if (normalize == 'MG') {
     setkey(MGs_in_MAGs, ID)
 
     # Filter genes by min_read and then length-normalize
+    # Genes are named '<locus-tag>_<number>', therefore we use locus_tag as proxy for MAG
     gene_abundance <- (
                        gene_abundance
-                       [, ID_MAG := sub('\\|.*', '', ID)] # Retain the first pipe-delimited field
+                       [, ID_MAG := sub('_.*', '', ID)] # Retain the first pipe-delimited field
                        [, c(sample_cols) := lapply(.SD, function(x) ifelse(x < read_n, 0, x / get("gene_length"))), .SDcols = sample_cols]
                        [, gene_length := NULL]
                       )

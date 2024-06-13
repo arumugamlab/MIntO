@@ -301,13 +301,14 @@ rule make_merged_genome_fna:
         time (cat {input} > {output}) >& {log}
         """
 
+# For each sequence name '<seqname> = <locustag>_<seqid>', make '<locustag>\t<seqname>'
 rule make_genome_def:
     input: get_genome_fna
     output:
         genome_def="{wd}/DB/{minto_mode}/{minto_mode}.genome.def"
     shell:
         """
-        grep '^>' {input} | sed 's^.*/^^' | sed 's/.fna:>/\\t/' >> {output}
+        cat {input} | grep '^>' | sed -e 's/^>\([^_]\+\)_\(.*\)/\\1\\t\\1_\\2/' > {output}
         """
 
 # Memory is based on number of MAGs - 50 MB per genome; increase by 50 MB each new attempt.

@@ -215,10 +215,10 @@ rule rename_prokka_sequences:
         """
         time (
             # Change sequence names in fna
-            sed "s/^>gnl|X|/>{wildcards.genome}|/" {input.fna} > out.fna
+            sed "s/^>gnl|X|/>/" {input.fna} > out.fna
 
             # Change sequence names in faa and keep only first word
-            sed -e "s/^>/>{wildcards.genome}|/" -e "s/\\s.*//" {input.faa} > out.faa
+            sed -e "s/\\s.*//" {input.faa} > out.faa
 
             # Change sequence names and make BED:
             # -----------------------------------
@@ -234,9 +234,9 @@ rule rename_prokka_sequences:
                 | awk -F '\\t' '$3 != "gene"' \
                 | gff2bed \
                 | perl -lan -F"\\t" \
-                    -e '$F[0] =~ s/^gnl\\|X\\|/{wildcards.genome}|/;' \
+                    -e '$F[0] =~ s/^gnl\\|X\\|//;' \
                     -e 'if ($F[9] =~ /ID=([^;]*);.*/) {{
-                            $F[9] = "{wildcards.genome}|$1";
+                            $F[9] = "$1";
                         }} else {{
                             if ($F[9] =~ /note=CRISPR/) {{
                                 $F[7] = "CRISPR";
