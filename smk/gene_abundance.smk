@@ -346,6 +346,7 @@ rule genome_mapping_profiling:
         genome_def=rules.make_genome_def.output.genome_def,
         fwd=get_fwd_files_only,
         rev=get_rev_files_only,
+        bed_mini="{wd}/DB/{minto_mode}/{minto_mode}-genes.bed.mini"
     output:
         sorted=         "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
         index=          "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
@@ -354,6 +355,7 @@ rule genome_mapping_profiling:
         raw_prop_seq=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",
         raw_prop_genome="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz",
         rel_prop_genome="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz",
+        absolute_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.gene_abundances.p{identity}.bed.gz"
     shadow:
         "minimal"
     params:
@@ -364,7 +366,7 @@ rule genome_mapping_profiling:
         mapped_reads_threshold=config["MIN_mapped_reads"],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}_bwa.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}.map_profile.log"
     wildcard_constraints:
         identity=r'\d+',
         minto_mode='MAG|refgenome'
@@ -373,7 +375,7 @@ rule genome_mapping_profiling:
     resources:
         mem=config["BWA_memory"]
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl
+        config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl + parallel
     shell:
         """
         # Make named pipes if needed
@@ -389,21 +391,40 @@ rule genome_mapping_profiling:
 
         bwaindex_prefix={input.bwaindex[0]}
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
+
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
-                msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
-        total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
-        #echo $total_reads
-        common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
-        msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=all  --unit=abund --nolen
-        msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
-        msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
-        msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=prop --unit=rel           --genome {input.genome_def}
+                    msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
+            total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
+            #echo $total_reads
 
-        samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m {params.sort_memory}G --output-fmt=BAM
-        samtools index sorted.bam sorted.bam.bai -@ {threads}
+            # Run multiple msamtools modes + samtools sort in parallel using GNU parallel.
+            # We need 4 threads for msamtools and 'params.sort_threads' threads for samtools sort.
+            # We cap it by 'threads' limit to parallel.
+            common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
+            parallel --jobs {threads} <<__EOM__
+msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=all  --unit=abund --nolen
+msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
+msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
+msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=prop --unit=rel           --genome {input.genome_def}
+samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m {params.sort_memory}G --output-fmt=BAM
+__EOM__
 
-        rsync -a sorted.bam {output.sorted}
-        rsync -a sorted.bam.bai {output.index}
+            # Index sorted.bam file, while also exporting it
+            parallel --jobs {threads} <<__EOM__
+samtools index sorted.bam sorted.bam.bai -@ {threads}
+rsync -a sorted.bam {output.sorted}
+__EOM__
+
+            # Use bedtools multicov to generate read-counts per gene
+            rsync -a {input.bed_mini} in.bed
+            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
+             bedtools multicov -bams sorted.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
+
+            # Rsync output files
+            parallel --jobs {threads} <<__EOM__
+rsync -a sorted.bam.bai {output.index}
+rsync -a out.bed.gz {output.absolute_counts}
+__EOM__
         ) >& {log}
         """
 
@@ -594,15 +615,20 @@ rule gene_catalog_mapping_profiling:
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                 msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
-        total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
-        #echo $total_reads
-        common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
-        msamtools profile aligned.bam $common_args -o profile.TPM.txt.gz --multi prop --unit tpm
-        msamtools profile aligned.bam $common_args -o profile.abund.all.txt.gz --multi all --unit abund --nolen
+            total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
+            #echo $total_reads
 
-        rsync -a aligned.bam {output.filtered}
-        rsync -a profile.TPM.txt.gz {output.profile_tpm}
-        rsync -a profile.abund.all.txt.gz {output.map_profile}
+            # Run multiple msamtools modes in parallel using GNU parallel.
+            # We cap it by 'threads' limit to parallel.
+            common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
+            parallel --jobs {threads} <<__EOM__
+msamtools profile aligned.bam $common_args -o profile.TPM.txt.gz --multi prop --unit tpm
+msamtools profile aligned.bam $common_args -o profile.abund.all.txt.gz --multi all --unit abund --nolen
+__EOM__
+
+            rsync -a aligned.bam {output.filtered}
+            rsync -a profile.TPM.txt.gz {output.profile_tpm}
+            rsync -a profile.abund.all.txt.gz {output.map_profile}
         ) >& {log}
         """
 
@@ -610,13 +636,20 @@ rule gene_catalog_mapping_profiling:
 # Computation of read counts to genes belonging to MAGs or publicly available genomes
 ###############################################################################################
 
+# Ideally, bedtools multicov is run in the same rule as bwa-mapping to avoid reading BAM file over NFS.
+# However, if the BAM file exists already, just running bedtools on the BAM files on NFS will be faster.
+# I have currently disabled this competition between the rules for making 'bed.gz' by renaming output file.
+# Could be turned back on in the future.
+
+ruleorder: gene_abund_compute > genome_mapping_profiling
+
 rule gene_abund_compute:
     input:
         bam=     "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
         index=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
         bed_mini="{wd}/DB/{minto_mode}/{minto_mode}-genes.bed.mini"
     output:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.gene_abundances.p{identity}.bed.gz"
+        absolute_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.gene_abundances.p{identity}.bed.gz2"
     shadow:
         "minimal"
     params:
