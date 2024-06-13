@@ -1111,7 +1111,8 @@ MAIN_factor: {main_factor}
 # Annotation settings
 ######################
 
-# Where should we map reads to? MAG, reference_genomes, reference_genomes
+# Set MIntO mode
+# Where should we map reads to? MAG, refgenome, catalog
 map_reference: MAG
 
 # Which omics for MAGs?
