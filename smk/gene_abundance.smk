@@ -298,7 +298,9 @@ rule make_merged_genome_fna:
         minto_mode='MAG|refgenome'
     shell:
         """
-        time (cat {input} > {output}) >& {log}
+        time (
+            cat {input} > {output}
+        ) >& {log}
         """
 
 # For each sequence name '<seqname> = <locustag>_<seqid>', make '<locustag>\t<seqname>'
@@ -333,7 +335,7 @@ rule genome_bwaindex:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time (\
+        time (
                 bwa-mem2 index {input.fasta_merge} -p {wildcards.minto_mode}
                 ls {wildcards.minto_mode}.*
                 rsync -a {wildcards.minto_mode}.* $(dirname {output[0]})/
@@ -563,9 +565,11 @@ rule gene_catalog_bwaindex:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time (bwa-mem2 index {wildcards.gene_catalog_path}/{wildcards.gene_catalog_name} -p {wildcards.gene_catalog_name}
-        ls {wildcards.gene_catalog_name}.*
-        rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/ ) &> {log}
+        time (
+            bwa-mem2 index {wildcards.gene_catalog_path}/{wildcards.gene_catalog_name} -p {wildcards.gene_catalog_name}
+            ls {wildcards.gene_catalog_name}.*
+            rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/
+        ) &> {log}
         """
 
 rule gene_catalog_mapping_profiling:
@@ -743,7 +747,7 @@ rule fetchMG_genome_cds_faa:
             sed 's/\\s.*//;s/\\./__MINTO_DOT__/g' {input.cds_faa} > HEADER_FIXED.faa
             {input.fetchMGs_dir}/fetchMGs.pl -outdir out -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction HEADER_FIXED.faa
             sed 's/__MINTO_DOT__/./g' out/HEADER_FIXED.all.marker_genes_scores.table > {output}
-            ) >& {log}
+        ) >& {log}
         """
 
 def get_genome_MG_tables(wildcards):
@@ -766,7 +770,7 @@ rule merge_MG_tables:
                 for file in {input}; do
                     awk 'FNR>1' ${{file}} >> {output}
                 done
-            ) >& {log}
+        ) >& {log}
         """
 
 ###############################################################################################
@@ -819,7 +823,7 @@ rule gene_abund_normalization:
     shell:
         """
         time (
-        Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --min-read-count {params.mapped_reads_threshold}
+            Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --min-read-count {params.mapped_reads_threshold}
         ) &> {log}
         """
 
@@ -858,12 +862,12 @@ rule read_map_stats:
 
         # Generate content
         time (
-        for file in {input.map_profile}; do
-            sample=$(basename $file); sample=${{sample%%.p{wildcards.identity}*}}
-            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.maprate}
-            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d':' | sed 's/^ //'"  ) >> {output.mapstats}
-            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Multiple mapped' | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.multimap}
-        done
+            for file in {input.map_profile}; do
+                sample=$(basename $file); sample=${{sample%%.p{wildcards.identity}*}}
+                (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.maprate}
+                (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d':' | sed 's/^ //'"  ) >> {output.mapstats}
+                (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Multiple mapped' | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.multimap}
+            done
         ) &> {log}
         """
 

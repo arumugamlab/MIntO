@@ -454,5 +454,7 @@ rule predicted_gene_annotation_collate:
         config["minto_dir"]+"/envs/mags.yml" # python with pandas
     shell:
         """
-        time (python3 {script_dir}/collate_gene_annotations.py {input} > {output}) >& {log}
+        time (
+            python3 {script_dir}/collate_gene_annotations.py {input} > {output}
+        ) >& {log}
         """

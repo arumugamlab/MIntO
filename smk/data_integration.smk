@@ -267,8 +267,9 @@ rule integration_gene_profiles:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        time ( echo 'integration of gene profiles'
-               Rscript {script_dir}/gene_abundance_and_expression_profiling.R \
+        echo 'integration of gene profiles'
+        time (
+            Rscript {script_dir}/gene_abundance_and_expression_profiling.R \
                     --threads {threads} \
                     --outdir $(dirname {output.gene_abund_prof}) \
                     --main-factor {main_factor} \
@@ -494,22 +495,22 @@ rule make_feature_count_plot:
     shell:
         """
         R --vanilla --silent --no-echo <<___EOF___
-        library(data.table)
-        library(ggplot2)
-        library(dplyr)
+library(data.table)
+library(ggplot2)
+library(dplyr)
 
-        count_df <- fread('{input.tsv}', header=T) %>%
-                        as.data.frame(stringsAsFactors = F, row.names = T) %>%
-                        distinct() %>%
-                        mutate(DB = reorder(DB, feature_n))
+count_df <- fread('{input.tsv}', header=T) %>%
+                as.data.frame(stringsAsFactors = F, row.names = T) %>%
+                distinct() %>%
+                mutate(DB = reorder(DB, feature_n))
 
-        pdf('{output.pdf}', width=6, height=5, paper="special" )
-        print(ggplot(data=count_df, aes(x=DB, y=feature_n)) +
-                geom_bar(stat="identity")+ theme_minimal()+
-                facet_wrap(feature~., scales= "free") + labs(y='Number of features', x='')+
-                theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))+
-                geom_text(aes(label=feature_n), position=position_dodge(width=0.9), vjust=-0.25, size = 3)
-             )
-        dev.off()
+pdf('{output.pdf}', width=6, height=5, paper="special" )
+print(ggplot(data=count_df, aes(x=DB, y=feature_n)) +
+        geom_bar(stat="identity")+ theme_minimal()+
+        facet_wrap(feature~., scales= "free") + labs(y='Number of features', x='')+
+        theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))+
+        geom_text(aes(label=feature_n), position=position_dodge(width=0.9), vjust=-0.25, size = 3)
+     )
+dev.off()
 ___EOF___
         """

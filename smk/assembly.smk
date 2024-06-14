@@ -244,7 +244,7 @@ rule correct_spadeshammer:
     shell:
         """
         mkdir -p $(dirname {output.fwd})
-        time (\
+        time (
             {spades_script} --only-error-correction -1 {input.reads[0]} -2 {input.reads[1]} -t {threads} -m {resources.mem} -o {wildcards.run} --phred-offset {params.qoffset}
             rsync -a {wildcards.run}/corrected/{wildcards.run}.1.fq.00.0_0.cor.fastq.gz {output.fwd}; rsync -a {wildcards.run}/corrected/{wildcards.run}.2.fq.00.0_0.cor.fastq.gz {output.rev}
         ) >& {log}
@@ -322,7 +322,7 @@ rule illumina_assembly_metaspades:
         """
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
-        time (\
+        time (
             {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
             rsync -a {params.kmer_dir}/* $remote_dir/
         ) >& {log}
@@ -362,7 +362,7 @@ rule hybrid_assembly_metaspades:
         """
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
-        time (\
+        time (
             {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
             rsync -a {params.kmer_dir}/* $remote_dir/
         ) >& {log}
@@ -414,7 +414,7 @@ rule coassembly_megahit:
     shell:
         """
         # Don't create the --out-dir directory as MEGAHIT wants it to not exist before
-        time (\
+        time (
             megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir assembly {params.asm_params}
         ) >& {log}
         cd assembly
@@ -445,7 +445,7 @@ rule nanopore_assembly_metaflye:
     shell:
         """
         mkdir -p $(dirname {output[0]})
-        time (\
+        time (
             flye --nano-raw {input} --out-dir $(dirname {output[0]}) --threads {threads} --meta {params.options}
         ) >& {log}
         """

@@ -310,9 +310,11 @@ if config['TRIMMOMATIC_adaptors'] == 'Skip':
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
         shell:
             """
-            (ln -s --force {input.read_fw} {output.pairead1}
-            ln -s --force {input.read_rv} {output.pairead2}
-            echo "Skipped trimming and linked raw files to trimmed files.") >& {log}
+            time (
+                ln -s --force {input.read_fw} {output.pairead1}
+                ln -s --force {input.read_rv} {output.pairead2}
+                echo "Skipped trimming and linked raw files to trimmed files."
+            ) >& {log}
             """
 
 else:
@@ -338,7 +340,7 @@ else:
         shell:
             """
             remote_dir=$(dirname {output.pairead1})
-            time ( \
+            time (
                 trimmomatic PE -threads {threads} \
                     -summary {output.summary} \
                     -phred33 \
@@ -376,7 +378,7 @@ rule qc1_trim_quality_and_adapter:
     shell:
         """
         remote_dir=$(dirname {output.pairead1})
-        time ( \
+        time (
             trimmomatic PE -threads {threads} \
                 -summary {output.summary} \
                 -phred33 \
@@ -408,7 +410,9 @@ rule qc1_check_read_length:
         2
     shell:
         """
-        time (sh -c 'gzip -cd {input.pairead} | awk -v f="{wildcards.sample}_{wildcards.group}" "{{if(NR%4==2) print length(\$1),f}}" | sort -n | uniq -c > {output.length}') >& {log}
+        time (
+            sh -c 'gzip -cd {input.pairead} | awk -v f="{wildcards.sample}_{wildcards.group}" "{{if(NR%4==2) print length(\$1),f}}" | sort -n | uniq -c > {output.length}'
+        ) >& {log}
         """
 
 rule qc1_check_read_length_merge:
@@ -421,7 +425,9 @@ rule qc1_check_read_length_merge:
     threads: 1
     shell:
         """
-        time (cat {input.length} > {output.readlen_dist}) >& {log}
+        time (
+            cat {input.length} > {output.readlen_dist}
+        ) >& {log}
         """
 
 rule qc1_cumulative_read_len_plot:
@@ -440,7 +446,9 @@ rule qc1_cumulative_read_len_plot:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        time (Rscript {script_dir}/QC_cumulative_read_length_plot.R --input {input.readlen_dist} --frac {params.cutoff} --out_plot {output.plot} --out_cutoff {output.cutoff_file}) >& {log}
+        time (
+            Rscript {script_dir}/QC_cumulative_read_length_plot.R --input {input.readlen_dist} --frac {params.cutoff} --out_plot {output.plot} --out_cutoff {output.cutoff_file}
+        ) >& {log}
         """
 
 ##########################################################################################################
