@@ -511,9 +511,11 @@ rule qc2_filter_rRNA:
                         --ref {params.db_dir}/silva-euk-18s-id95.fasta \
                         --ref {params.db_dir}/silva-euk-28s-id98.fasta \
                         --reads {input.host_free_fw} --reads {input.host_free_rv}
-            rsync -a out/other_fwd.fq.gz {output.rRNA_free_fw}
-            rsync -a out/other_rev.fq.gz {output.rRNA_free_rv}
-            rsync -a out/aligned.log {output.rRNA_out}
+            parallel --jobs {threads} <<__EOM__
+rsync -a out/other_fwd.fq.gz {output.rRNA_free_fw}
+rsync -a out/other_rev.fq.gz {output.rRNA_free_rv}
+rsync -a out/aligned.log {output.rRNA_out}
+__EOM__
         ) >& {log}
         """
 
@@ -679,8 +681,10 @@ rule motus_calc_motu:
     shell:
         """
         time (
-            motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.rel} -p -q
-            motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.raw} -p -q -c
+            parallel --jobs {threads} <<__EOM__
+motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.rel} -p -q
+motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.raw} -p -q -c
+__EOM__
         ) >& {log}
         """
 
