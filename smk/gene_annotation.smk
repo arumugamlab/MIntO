@@ -337,7 +337,9 @@ rule gene_annot_kofamscan:
         remote_dir=$(dirname {output})
         time (
             exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.faa}
-            {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt > {output}
+            echo -e "#Definitions downloaded\t$(stat -c '%y' {minto_dir}/data/kofam_db/ko_list | cut -d' ' -f 1)\t$(stat -c '%y' {input.module_map} | cut -d' ' -f 1)\t$(stat -c '%y' {input.pathway_map} | cut -d' ' -f 1)" > kofam_processed.txt
+            {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt >>  kofam_processed.txt
+            rsync -a  kofam_processed.txt {output}
         ) >& {log}
         """
 
@@ -366,7 +368,9 @@ rule gene_annot_dbcan:
 
         time (
             run_dbcan {input.faa} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre dbcan_ --out_dir out
-            {script_dir}/process_dbcan_overview.pl out/dbcan_overview.txt > {output}
+            echo -e "#Database downloaded\t$(conda list | sed -E 's|[[:space:]]+| |g' | cut -d' ' -f 1-2 | grep -P dbcan)\t$(stat -c '%y' {params.dbcan_db}/fam-substrate-mapping.tsv | cut -d' ' -f 1)" > dbcan_processed.txt
+            {script_dir}/process_dbcan_overview.pl out/dbcan_overview.txt >> dbcan_processed.txt
+            rsync -a dbcan_processed.txt {output}
         ) >& {log}
         """
 
@@ -396,9 +400,10 @@ rule gene_annot_eggnog:
             emapper.py --annotate_hits_table out/tmp.emapper.seed_orthologs \
                        --data_dir {params.eggnog_db} -m no_search --no_file_comments --override -o tmp --output_dir out --cpu {threads} {params.eggnog_inmem}
             cut -f 1,5,12,13,14,21 out/tmp.emapper.annotations > out/emapper.out
+            echo -e "#Database version\t$(sqlite3 {params.eggnog_db}/eggnog.db 'select * from version;')" > out/eggNOG.tsv
             {script_dir}/process_eggNOG_OGs.pl out/emapper.out \
                     | sed 's/\#query/ID/; s/ko\://g' \
-                    > out/eggNOG.tsv
+                    >> out/eggNOG.tsv
             rsync -a out/eggNOG.tsv {output}
         ) >& {log}
         """
