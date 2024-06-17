@@ -64,7 +64,7 @@ rule test_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
@@ -84,7 +84,7 @@ rule QC_0_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         fastqc --version >> $VOUT
         echo $(fastp --version 2>&1) >> $VOUT
@@ -93,7 +93,7 @@ rule QC_0_base:
 
 rule QC_0_rpkg:
     input:
-        "{wd}/output/versions/QC_0_base.flag".format(wd=working_dir)
+        "{wd}/output/versions/QC_0_base.flag"
     output:
         temp("{wd}/output/versions/QC_0.flag")
     resources:
@@ -104,7 +104,7 @@ rule QC_0_rpkg:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        Rscript --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        Rscript --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
@@ -124,7 +124,7 @@ rule QC_1_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         echo "trimmomatic v$(trimmomatic -version)" >> $VOUT
         touch {output}
@@ -132,7 +132,7 @@ rule QC_1_base:
 
 rule QC_1_rpkg:
     input:
-        "{wd}/output/versions/QC_1_base.flag".format(wd=working_dir)
+        "{wd}/output/versions/QC_1_base.flag"
     output:
         temp("{wd}/output/versions/QC_1.flag")
     resources:
@@ -143,7 +143,7 @@ rule QC_1_rpkg:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        Rscript --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        Rscript --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
@@ -163,7 +163,7 @@ rule QC_2_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         seqkit version >> $VOUT
         echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> $VOUT
@@ -176,7 +176,7 @@ rule QC_2_base:
 
 rule QC_2_mpl:
     input:
-        "{wd}/output/versions/QC_2_base.flag".format(wd=working_dir)
+        "{wd}/output/versions/QC_2_base.flag"
     output:
         temp("{wd}/output/versions/QC_2_mpl.flag")
     resources:
@@ -187,7 +187,7 @@ rule QC_2_mpl:
         config["minto_dir"]+"/envs/metaphlan.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         metaphlan --version >> $VOUT
         echo "metaphlan database $(basename $(ls {minto_dir}/data/metaphlan/{metaphlan_version}/*.csv) | sed 's|_VINFO.csv||')" >> $VOUT
         touch {output}
@@ -195,7 +195,7 @@ rule QC_2_mpl:
 
 rule QC_2_motus:
     input:
-        "{wd}/output/versions/QC_2_mpl.flag".format(wd=working_dir)
+        "{wd}/output/versions/QC_2_mpl.flag"
     output:
         temp("{wd}/output/versions/QC_2_motus.flag")
     resources:
@@ -206,13 +206,13 @@ rule QC_2_motus:
         config["minto_dir"]+"/envs/motus_env.yml"
     shell:
         """
-        motus --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        motus --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
 rule QC_2_rpkg:
     input:
-        "{wd}/output/versions/QC_2_motus.flag".format(wd=working_dir)
+        "{wd}/output/versions/QC_2_motus.flag"
     output:
         temp("{wd}/output/versions/QC_2.flag")
     params:
@@ -225,7 +225,7 @@ rule QC_2_rpkg:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        Rscript --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        Rscript --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
@@ -245,7 +245,7 @@ rule assembly_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         $(which {spades_script}) --version >> $VOUT
         megahit --version >> $VOUT
@@ -269,7 +269,7 @@ rule binning_preparation_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> $VOUT
         echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
@@ -280,7 +280,7 @@ rule binning_preparation_base:
 
 rule binning_preparation_avamb:
     input:
-        "{wd}/output/versions/binprep_base.flag".format(wd=working_dir)
+        "{wd}/output/versions/binprep_base.flag"
     output:
         temp("{wd}/output/versions/binning_preparation.flag")
     resources:
@@ -291,7 +291,7 @@ rule binning_preparation_avamb:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
         """
-        vamb --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        vamb --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
@@ -311,7 +311,7 @@ rule mags_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         coverm --version >> $VOUT
         touch {output}
@@ -319,7 +319,7 @@ rule mags_base:
 
 rule mags_avamb:
     input:
-        "{wd}/output/versions/mags_base.flag".format(wd=working_dir)
+        "{wd}/output/versions/mags_base.flag"
     output:
         temp("{wd}/output/versions/mags_avamb.flag")
     resources:
@@ -330,13 +330,13 @@ rule mags_avamb:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
         """
-        vamb --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        vamb --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
 rule mags_checkm2:
     input:
-        "{wd}/output/versions/mags_base.flag".format(wd=working_dir)
+        "{wd}/output/versions/mags_base.flag"
     output:
         temp("{wd}/output/versions/mags_checkm.flag")
     resources:
@@ -347,13 +347,13 @@ rule mags_checkm2:
         config["minto_dir"]+"/envs/checkm2.yml"
     shell:
         """
-        echo "checkm2 v$(checkm2 predict --version)" >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "checkm2 v$(checkm2 predict --version)" >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
 rule mags_ppl:
     input:
-        "{wd}/output/versions/mags_checkm.flag".format(wd=working_dir)
+        "{wd}/output/versions/mags_checkm.flag"
     output:
         temp("{wd}/output/versions/mags_ppl.flag")
     params:
@@ -366,7 +366,7 @@ rule mags_ppl:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         phylophlan --version >> $VOUT
         echo "phylophlan database {params.db}" >> $VOUT
         touch {output}
@@ -374,7 +374,7 @@ rule mags_ppl:
 
 rule mags_gtdb:
     input:
-        "{wd}/output/versions/mags_ppl.flag".format(wd=working_dir)
+        "{wd}/output/versions/mags_ppl.flag"
     output:
         temp("{wd}/output/versions/mags_generation.flag")
     params:
@@ -387,7 +387,7 @@ rule mags_gtdb:
         config["minto_dir"]+"/envs/gtdb.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "gtdbtk v$(gtdbtk --version | cut -d" " -f 3 | head -n 1)" >> $VOUT
         echo "gtdbtk database {params.db}" >> $VOUT
         touch {output}
@@ -413,7 +413,7 @@ rule annotation_base:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         prokka --version >> $VOUT 2>&1
         echo "kofamscan v$(exec_annotation --version | cut -d" " -f 2)" >> $VOUT
@@ -453,7 +453,7 @@ rule abundance_base:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> $VOUT
         echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
@@ -475,7 +475,7 @@ rule abundance_rpkg:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        Rscript --version >> {working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        Rscript --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
@@ -495,7 +495,7 @@ rule integration_rpkg:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        VOUT={working_dir}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         Rscript --version >> $VOUT
         conda list | sed -E 's|[[:space:]]+| |g' | cut -d" " -f 1-2 | grep -P "^r-.*" >> $VOUT
