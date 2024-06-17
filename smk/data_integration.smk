@@ -82,17 +82,21 @@ elif map_reference in ('genes_db'):
         print('ERROR in ', config_path, ': ANNOTATION_ids variable in configuration yaml file is empty. Please, complete ', config_path)
     else:
         funct_opt=config['ANNOTATION_ids']
-
+funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 
 if omics == 'metaG':
-    omics_opt='metaG'
     omics_prof='A'
 elif omics == 'metaT':
-    omics_opt='metaT'
     omics_prof='T'
 elif omics == 'metaG_metaT':
-    omics_opt=['metaG','metaT']
     omics_prof=['A','T','E']
+
+print('NOTE: MIntO is using ', omics, ' as omics variable.')
+
+for omics_type in omics.split("_"):
+    omics_folder = path.join(working_dir, omics_type)
+    if not path.exists(omics_folder):
+        print('ERROR in ', omics, ': setting, the folder', omics_folder, 'does not exist.')
 
 if map_reference == 'MAG':
     post_analysis_dir="9-MAG-genes-post-analysis"
@@ -109,9 +113,8 @@ elif map_reference == 'genes_db':
     post_analysis_out="db-genes"
     post_analysis_genome="None"
 
-print('NOTE: MIntO is using "' + annot_file + '" as ANNOTATION_file variable.')
+print('NOTE: MIntO is using ', annot_file ,' as ANNOTATION_file variable.')
 
-funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
 print('NOTE: MIntO is using ', funct_opt, ' as ANNOTATION_ids variable.')
 
 
@@ -456,6 +459,7 @@ rule combine_feature_counts:
                                             funcat=funct_opt)
     output:
         combined="{somewhere}/{something}_features.tsv",
+    localrule: True
     run:
         import pandas as pd
 
@@ -475,6 +479,9 @@ rule make_feature_count_plot:
         tsv=rules.combine_feature_counts.output.combined
     output:
         pdf="{somewhere}/plots/{something}_features.pdf"
+    resources:
+        mem=config["MERGE_memory"]
+    threads: 1
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
