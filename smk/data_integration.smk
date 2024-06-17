@@ -96,7 +96,7 @@ print('NOTE: MIntO is using ', omics, ' as omics variable.')
 for omics_type in omics.split("_"):
     omics_folder = path.join(working_dir, omics_type)
     if not path.exists(omics_folder):
-        raise Exception('ERROR in ', omics, ': setting, the folder', omics_folder, 'does not exist.')
+        raise Exception(f"ERROR in {omics} setting, the folder {omics_folder} does not exist.")
 
 if map_reference == 'MAG':
     post_analysis_dir="9-MAG-genes-post-analysis"
