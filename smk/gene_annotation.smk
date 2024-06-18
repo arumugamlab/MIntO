@@ -346,7 +346,7 @@ rule gene_annot_kofamscan:
 rule gene_annot_dbcan:
     input:
         faa=rules.rename_prokka_sequences.output.faa,
-        dbcan_db="{minto_dir}/data/dbCAN_db/V12/fam-substrate-mapping.tsv"
+        dbcan_db="{}/data/dbCAN_db/V12/fam-substrate-mapping.tsv".format(minto_dir)
     output:
         "{wd}/DB/{post_analysis_dir}/4-annotations/dbCAN/{genome}.dbCAN.tsv",
     shadow:
@@ -371,7 +371,7 @@ rule gene_annot_dbcan:
 rule gene_annot_eggnog:
     input:
         faa=rules.rename_prokka_sequences.output.faa,
-        eggnog_db="{minto_dir}/data/eggnog_data/data/eggnog.db"
+        eggnog_db="{}/data/eggnog_data/data/eggnog.db".format(minto_dir)
     output:
         "{wd}/DB/{post_analysis_dir}/4-annotations/eggNOG/{genome}.eggNOG.tsv",
     shadow:
