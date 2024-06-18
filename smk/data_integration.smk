@@ -94,8 +94,6 @@ if config['ANNOTATION_ids'] is None:
 else:
     funct_opt=config['ANNOTATION_ids']
 
-funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
-
 # Define all the outputs needed by target 'all'
 
 if omics == 'metaG':
@@ -252,7 +250,7 @@ rule integration_gene_profiles:
         gene_abund_plots=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     params:
         metadata_file = metadata,
-        funcat_names = funct_opt_list,
+        funcat_names = ','.join(['"' + id + '"' for id in funct_opt]),
         script_omics = lambda wildcards: 'metaG' if wildcards.omics_alphabet == 'A' \
                                          else ('metaT' if wildcards.omics_alphabet == 'T' \
                                                else 'metaG_metaT')
