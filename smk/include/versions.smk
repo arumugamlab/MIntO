@@ -401,7 +401,7 @@ rule annotation_base:
     output:
         temp("{wd}/output/versions/gene_annotation.flag")
     params:
-        p1="|".join(["dbcan", "eggnog-mapper"]),
+        p1="|".join(["dbcan"]),
         p2="|".join(["aragorn", "barrnap", "infernal"]),
         p3="|".join(["prodigal", "bedtools", "biopython", "blast", "hmmer", "parallel", "diamond", "mmseqs2"])
     resources:
@@ -426,7 +426,7 @@ rule annotation_base:
         find $(dirname $(which dbcan_build))/.. -iname "dbcan_build.py" -type f -exec grep "dbCAN2/download/Databases" {{}} \; | grep -o -P "fam-substrate-mapping-.*.tsv|dbCAN-PUL_.*.xlsx|V12/CAZyDB.*.fa" >> $VOUT || echo "Error: dbcan_build.py not found"
 
         echo "#----" >> $VOUT
-        echo "eggNOG database file $(sqlite3 {minto_dir}/data/eggnog_data/data/eggnog.db 'select * from version;')" >> $VOUT
+        emapper.py --data_dir {minto_dir}/data/eggnog_data/data -v | cut -d"/" -f 1,3 >> $VOUT
 
         echo "#----" >> $VOUT
         echo "KEGG/kofamscan files" >> $VOUT

@@ -337,7 +337,7 @@ rule gene_annot_kofamscan:
         remote_dir=$(dirname {output})
         time (
             exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.faa}
-            echo -e "#Definitions downloaded\t$(stat -c '%y' {minto_dir}/data/kofam_db/ko_list | cut -d' ' -f 1)\t$(stat -c '%y' {input.module_map} | cut -d' ' -f 1)\t$(stat -c '%y' {input.pathway_map} | cut -d' ' -f 1)" > kofam_processed.txt
+            echo -e "#Definitions downloaded\\t$(stat -c '%y' {input.ko_list} | cut -d' ' -f 1)\\t$(stat -c '%y' {input.module_map} | cut -d' ' -f 1)\\t$(stat -c '%y' {input.pathway_map} | cut -d' ' -f 1)" > kofam_processed.txt
             {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt >>  kofam_processed.txt
             rsync -a  kofam_processed.txt {output}
         ) >& {log}
@@ -345,13 +345,12 @@ rule gene_annot_kofamscan:
 
 rule gene_annot_dbcan:
     input:
-        faa=rules.rename_prokka_sequences.output.faa
+        faa=rules.rename_prokka_sequences.output.faa,
+        dbcan_db="{minto_dir}/data/dbCAN_db/V12/fam-substrate-mapping.tsv"
     output:
         "{wd}/DB/{post_analysis_dir}/4-annotations/dbCAN/{genome}.dbCAN.tsv",
     shadow:
         "minimal"
-    params:
-        dbcan_db=lambda wildcards: "{minto_dir}/data/dbCAN_db/V12/".format(minto_dir = minto_dir)
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.dbcan.log"
     resources:
@@ -361,14 +360,9 @@ rule gene_annot_dbcan:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        if [[ ! -f {params.dbcan_db}/fam-substrate-mapping.tsv ]]; then
-          echo "Error: dbCAN database needs to be re-built, run dependencies.smk" > {log};
-          exit 1;
-        fi
-
         time (
-            run_dbcan {input.faa} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre dbcan_ --out_dir out
-            echo -e "#Database downloaded\t$(conda list | sed -E 's|[[:space:]]+| |g' | cut -d' ' -f 1-2 | grep -P dbcan)\t$(stat -c '%y' {params.dbcan_db}/fam-substrate-mapping.tsv | cut -d' ' -f 1)" > dbcan_processed.txt
+            run_dbcan {input.faa} protein --db_dir $(dirname {input.dbcan_db}) --dia_cpu {threads} --out_pre dbcan_ --out_dir out
+            echo -e "#Database downloaded\\t$(conda list | sed -E 's|[[:space:]]+| |g' | cut -d' ' -f 1-2 | grep -P dbcan)\\t$(stat -c '%y' {input.dbcan_db} | cut -d' ' -f 1)" > dbcan_processed.txt
             {script_dir}/process_dbcan_overview.pl out/dbcan_overview.txt >> dbcan_processed.txt
             rsync -a dbcan_processed.txt {output}
         ) >& {log}
@@ -376,14 +370,14 @@ rule gene_annot_dbcan:
 
 rule gene_annot_eggnog:
     input:
-        faa=rules.rename_prokka_sequences.output.faa
+        faa=rules.rename_prokka_sequences.output.faa,
+        eggnog_db="{minto_dir}/data/eggnog_data/data/eggnog.db"
     output:
         "{wd}/DB/{post_analysis_dir}/4-annotations/eggNOG/{genome}.eggNOG.tsv",
     shadow:
         "minimal"
     params:
-        eggnog_inmem = lambda wildcards: "--dbmem" if eggNOG_dbmem else "",
-        eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
+        eggnog_inmem = lambda wildcards: "--dbmem" if eggNOG_dbmem else ""
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.eggnog.log"
     resources:
@@ -395,12 +389,13 @@ rule gene_annot_eggnog:
         """
         time (
             mkdir out
-            emapper.py --data_dir {params.eggnog_db} -o tmp \
+            emapper.py --data_dir $(dirname {input.eggnog_db}) -o tmp \
                        --no_annot --no_file_comments --report_no_hits --override --output_dir out -m diamond -i {input.faa} --cpu {threads}
             emapper.py --annotate_hits_table out/tmp.emapper.seed_orthologs \
-                       --data_dir {params.eggnog_db} -m no_search --no_file_comments --override -o tmp --output_dir out --cpu {threads} {params.eggnog_inmem}
+                       --data_dir $(dirname {input.eggnog_db}) -m no_search --no_file_comments --override -o tmp --output_dir out --cpu {threads} {params.eggnog_inmem}
             cut -f 1,5,12,13,14,21 out/tmp.emapper.annotations > out/emapper.out
-            echo -e "#Database version\t$(sqlite3 {params.eggnog_db}/eggnog.db 'select * from version;')" > out/eggNOG.tsv
+            echo -e "#Database version\\t$(emapper.py --data_dir $(dirname {input.eggnog_db}) -v | cut
+ -d"/" -f3 | cut -d" " -f 6)" > out/eggNOG.tsv
             {script_dir}/process_eggNOG_OGs.pl out/emapper.out \
                     | sed 's/\#query/ID/; s/ko\://g' \
                     >> out/eggNOG.tsv
