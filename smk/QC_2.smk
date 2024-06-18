@@ -22,6 +22,15 @@ include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule QC_2_base, QC_2_rpkg, QC_2_mpl, QC_2_motus from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
             metaphlan_combine_profiles, motus_combine_profiles, motus_calc_motu, \
             plot_taxonomic_profile, plot_sourmash_kmers 
@@ -152,9 +161,15 @@ if sum(flags) == 0:
 else:
     print('ERROR in ', config_path, ': TAXA_profiler variable is not correct. "TAXA_profiler" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
 
-# TODO: Read this from yaml file and remove hard-coding
 metaphlan_version = "4.0.6"
+if metaphlan_version in config and config['metaphlan_version'] is not None:
+    metaphlan_version = config['metaphlan_version']
 motus_version = "3.0.3"
+if motus_version in config and config['motus_version'] is not None:
+    motus_version = config['motus_version']
+motus_db_path = path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
+if not path.exists(motus_db_path):
+    motus_db_path = ""
 
 taxonomies = taxonomy.split(",")
 for t in taxonomies:
@@ -295,7 +310,9 @@ rule all:
         merged_sample_output(),
         taxonomy_plot_output(),
         smash_plot_output(),
-        next_step_config_yml_output()
+        next_step_config_yml_output(),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 # Get a sorted list of runs for a sample
 
@@ -621,7 +638,8 @@ rule motus_map_db:
         "minimal"
     params:
         fwd_files = lambda wildcards, input: ",".join(get_qc2_output_files_fwd_only(wildcards)),
-        rev_files = lambda wildcards, input: ",".join(get_qc2_output_files_rev_only(wildcards))
+        rev_files = lambda wildcards, input: ",".join(get_qc2_output_files_rev_only(wildcards)),
+        motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else ""
     resources:
         mem=TAXA_memory
     threads:
@@ -633,8 +651,8 @@ rule motus_map_db:
     shell:
         """
         time (\
-            motus map_tax   -t {threads} -f {params.fwd_files} -r {params.rev_files} -o {wildcards.sample}.motus.bam -b
-            motus calc_mgc  -n {wildcards.sample} -i {wildcards.sample}.motus.bam -o {wildcards.sample}.motus.mgc
+            motus map_tax   -t {threads} -f {params.fwd_files} -r {params.rev_files} {params.motus_db} -o {wildcards.sample}.motus.bam -b
+            motus calc_mgc  -n {wildcards.sample} {params.motus_db} -i {wildcards.sample}.motus.bam -o {wildcards.sample}.motus.mgc
             rsync -a {wildcards.sample}.motus.mgc {output.mgc}
             ) >& {log}
         """
@@ -645,6 +663,8 @@ rule motus_calc_motu:
     output:
         raw="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw.{version}.tsv",
         rel="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel.{version}.tsv"
+    params:
+        motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else ""
     resources:
         mem=TAXA_memory
     threads: 2
@@ -655,8 +675,8 @@ rule motus_calc_motu:
     shell:
         """
         time (\
-            motus calc_motu -n {wildcards.sample} -i {input.mgc} -o {output.rel} -p -q
-            motus calc_motu -n {wildcards.sample} -i {input.mgc} -o {output.raw} -p -q -c
+            motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.rel} -p -q
+            motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.raw} -p -q -c
             ) >& {log}
         """
 

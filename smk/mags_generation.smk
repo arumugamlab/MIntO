@@ -28,6 +28,15 @@ localrules: aae_tsv, vae_tsv, collect_genomes_from_all_binners, copy_best_genome
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule mags_base, mags_rpkg, mags_checkm2, mags_ppl, mags_gtdb from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 # Variables from configuration yaml file
 
 # some variables
@@ -181,7 +190,9 @@ def mags_recovery():
 
 rule all:
     input:
-        mags_recovery()
+        mags_recovery(),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 ##############################
 

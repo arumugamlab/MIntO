@@ -25,7 +25,7 @@ for filename in input_annotations:
 
     # eggNOG annotations
     if filename.endswith('eggNOG.tsv'):
-        eggnog = pd.read_csv(filename, sep="\t", index_col=False)
+        eggnog = pd.read_csv(filename, sep="\t", index_col=False, comment='#')
         # Prefix all columns with 'eggNOG.'
         eggnog = eggnog.rename(lambda x: f'eggNOG.{x}', axis='columns')
         # Fix some names and remove prefix from ID
@@ -37,7 +37,7 @@ for filename in input_annotations:
 
     # dbCAN annotations
     elif filename.endswith('dbCAN.tsv'):
-        dbcan = pd.read_csv(filename, sep="\t", index_col=False)
+        dbcan = pd.read_csv(filename, sep="\t", index_col=False, comment='#')
         # Prefix eCAMI columns with 'dbCAN.'
         dbcan = dbcan.rename(columns={"eCAMI.submodule" : "dbCAN.eCAMI_submodule",
                                       "eCAMI.subfamily" : "dbCAN.eCAMI_subfamily"})
@@ -46,7 +46,7 @@ for filename in input_annotations:
 
     # kofam annotations
     elif filename.endswith('kofam.tsv'):
-        kofam = pd.read_csv(filename, sep="\t", index_col=False)
+        kofam = pd.read_csv(filename, sep="\t", index_col=False, comment='#')
         # Prefix all columns with 'kofam.'
         kofam = kofam.rename(columns={"kofam_KO"      : "kofam.KEGG_KO",
                                       "kofam_Module"  : "kofam.KEGG_Module",

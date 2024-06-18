@@ -19,6 +19,15 @@ localrules: rename_prokka_sequences, combine_annotation_outputs, combine_individ
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
+module print_versions:
+    snakefile:
+        'include/versions.smk'
+    config: config
+
+use rule annotation_base from print_versions as version_*
+
+snakefile_name = print_versions.get_smk_filename()
+
 if config['map_reference'] in ("MAG", "reference_genome"):
     map_reference=config["map_reference"]
 else:
@@ -88,7 +97,9 @@ rule all:
         predicted_genes_collate_out(),
         "{wd}/DB/{post_analysis_dir}/{post_analysis_out}.bed".format(wd = working_dir,
                     post_analysis_dir = post_analysis_dir,
-                    post_analysis_out = post_analysis_out)
+                    post_analysis_out = post_analysis_out),
+        print_versions.get_version_output(snakefile_name)
+    default_target: True
 
 
 ###############################################################################################
@@ -326,19 +337,20 @@ rule gene_annot_kofamscan:
         remote_dir=$(dirname {output})
         time (
             exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.faa}
-            {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt > {output}
+            echo -e "#Definitions downloaded\\t$(stat -c '%y' {input.ko_list} | cut -d' ' -f 1)\\t$(stat -c '%y' {input.module_map} | cut -d' ' -f 1)\\t$(stat -c '%y' {input.pathway_map} | cut -d' ' -f 1)" > kofam_processed.txt
+            {script_dir}/kofam_hits.pl --pathway-map {input.pathway_map} --module-map {input.module_map} kofam_mapper.txt >>  kofam_processed.txt
+            rsync -a  kofam_processed.txt {output}
         ) >& {log}
         """
 
 rule gene_annot_dbcan:
     input:
-        faa=rules.rename_prokka_sequences.output.faa
+        faa=rules.rename_prokka_sequences.output.faa,
+        dbcan_db="{}/data/dbCAN_db/V12/fam-substrate-mapping.tsv".format(minto_dir)
     output:
         "{wd}/DB/{post_analysis_dir}/4-annotations/dbCAN/{genome}.dbCAN.tsv",
     shadow:
         "minimal"
-    params:
-        dbcan_db=lambda wildcards: "{minto_dir}/data/dbCAN_db/V12/".format(minto_dir = minto_dir)
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.dbcan.log"
     resources:
@@ -348,27 +360,24 @@ rule gene_annot_dbcan:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
-        if [[ ! -f {params.dbcan_db}/fam-substrate-mapping.tsv ]]; then
-          echo "Error: dbCAN database needs to be re-built, run dependencies.smk" > {log};
-          exit 1;
-        fi
-
         time (
-            run_dbcan {input.faa} protein --db_dir {params.dbcan_db} --dia_cpu {threads} --out_pre dbcan_ --out_dir out
-            {script_dir}/process_dbcan_overview.pl out/dbcan_overview.txt > {output}
+            run_dbcan {input.faa} protein --db_dir $(dirname {input.dbcan_db}) --dia_cpu {threads} --out_pre dbcan_ --out_dir out
+            echo -e "#Database downloaded\\t$(conda list | sed -E 's|[[:space:]]+| |g' | cut -d' ' -f 1-2 | grep -P dbcan)\\t$(stat -c '%y' {input.dbcan_db} | cut -d' ' -f 1)" > dbcan_processed.txt
+            {script_dir}/process_dbcan_overview.pl out/dbcan_overview.txt >> dbcan_processed.txt
+            rsync -a dbcan_processed.txt {output}
         ) >& {log}
         """
 
 rule gene_annot_eggnog:
     input:
-        faa=rules.rename_prokka_sequences.output.faa
+        faa=rules.rename_prokka_sequences.output.faa,
+        eggnog_db="{}/data/eggnog_data/data/eggnog.db".format(minto_dir)
     output:
         "{wd}/DB/{post_analysis_dir}/4-annotations/eggNOG/{genome}.eggNOG.tsv",
     shadow:
         "minimal"
     params:
-        eggnog_inmem = lambda wildcards: "--dbmem" if eggNOG_dbmem else "",
-        eggnog_db= lambda wildcards: "{minto_dir}/data/eggnog_data/data/".format(minto_dir = minto_dir) #config["EGGNOG_db"]
+        eggnog_inmem = lambda wildcards: "--dbmem" if eggNOG_dbmem else ""
     log:
         "{wd}/logs/DB/{post_analysis_dir}/{genome}.eggnog.log"
     resources:
@@ -380,14 +389,16 @@ rule gene_annot_eggnog:
         """
         time (
             mkdir out
-            emapper.py --data_dir {params.eggnog_db} -o tmp \
+            emapper.py --data_dir $(dirname {input.eggnog_db}) -o tmp \
                        --no_annot --no_file_comments --report_no_hits --override --output_dir out -m diamond -i {input.faa} --cpu {threads}
             emapper.py --annotate_hits_table out/tmp.emapper.seed_orthologs \
-                       --data_dir {params.eggnog_db} -m no_search --no_file_comments --override -o tmp --output_dir out --cpu {threads} {params.eggnog_inmem}
+                       --data_dir $(dirname {input.eggnog_db}) -m no_search --no_file_comments --override -o tmp --output_dir out --cpu {threads} {params.eggnog_inmem}
             cut -f 1,5,12,13,14,21 out/tmp.emapper.annotations > out/emapper.out
+            echo -e "#Database version\\t$(emapper.py --data_dir $(dirname {input.eggnog_db}) -v | cut
+ -d"/" -f3 | cut -d" " -f 6)" > out/eggNOG.tsv
             {script_dir}/process_eggNOG_OGs.pl out/emapper.out \
                     | sed 's/\#query/ID/; s/ko\://g' \
-                    > out/eggNOG.tsv
+                    >> out/eggNOG.tsv
             rsync -a out/eggNOG.tsv {output}
         ) >& {log}
         """
