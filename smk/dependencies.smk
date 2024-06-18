@@ -3,12 +3,10 @@
 '''
 Download and install dependencies
 
-Authors: Carmen Saenz
+Authors: Carmen Saenz, Mani Arumugam, Judit Szarvas
 '''
 
 # configuration yaml file
-#import sys
-import os.path
 from os import path
 import glob
 
@@ -22,10 +20,6 @@ phylophlan_db_version = 'Jul20'
 motus_version = '3.0.3'
 gtdb_release_number = '214'
 
-#args = sys.argv
-#print(args)
-#args_idx = sys.argv.index('--configfile')
-#print(args_idx)
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
 print(" Reading configuration yaml file: ") #, config_path)

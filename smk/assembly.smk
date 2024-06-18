@@ -11,7 +11,6 @@ localrules: merge_runs, mark_circular_metaspades_contigs, mark_circular_flye_con
 #
 # configuration yaml file
 # import sys
-import os.path
 from os import path
 
 # Get common config variables
