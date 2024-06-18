@@ -559,8 +559,8 @@ rule download_fetchMGs:
         """
         time (\
             cd {minto_dir}/data/
-            wget -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs/archive/refs/tags/v1.2.tar.gz
-            tar xfz fetchMGs-1.2.tar.gz
+            wget -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs.pl/archive/refs/tags/v1.2.tar.gz
+            tar xfz fetchMGs-1.2.tar.gz && mv fetchMGs.pl-1.2 fetchMGs-1.2
             if [ $? -eq 0 ]; then
                 echo 'fetchMGs download: OK'
                 echo OK > {output.done}
