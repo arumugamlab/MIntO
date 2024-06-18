@@ -115,9 +115,7 @@ for omics_type in omics.split("_"):
 MINTO_MODE = map_reference
 GENE_DB_TYPE = MINTO_MODE + '-genes'
 
-if map_reference == 'MAG':
-    annot_file="{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(wd = working_dir, subdir = MINTO_MODE)
-elif map_reference == 'refgenome':
+if map_reference in ['MAG', 'refgenome']:
     annot_file="{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(wd = working_dir, subdir = MINTO_MODE)
 
 print('NOTE: MIntO is using ', annot_file ,' as ANNOTATION_file variable.')
