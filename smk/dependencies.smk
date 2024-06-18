@@ -503,7 +503,7 @@ rule motus_db:
                 echo OK > {output}
 
                 # place db into data folder
-                $MOTUS_DB_PATH=$(find "$(dirname $(which motus))/../lib" -type d -iname db_mOTU | head -1 )
+                MOTUS_DB_PATH=$(find "$(dirname $(which motus))/../lib" -type d -iname db_mOTU | head -1 )
                 mkdir -p {minto_dir}/data/motus/{motus_version}
                 rsync -a $MOTUS_DB_PATH {minto_dir}/data/motus/{motus_version}/
 
