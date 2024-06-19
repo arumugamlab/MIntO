@@ -72,21 +72,21 @@ else:
 valid_minto_modes = ['MAG', 'refgenome', 'catalog']
 
 # Which database are we mapping reads to?
-if 'map_reference' in config and config['map_reference'] != None:
-    map_reference=config['map_reference']
+if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
+    MINTO_MODE=config['MINTO_MODE']
 else:
-    raise Exception("ERROR in {}: 'map_reference' variable must be defined".format(config_path))
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be defined".format(config_path))
 
 # Backward compatibility and common misnomers
-if map_reference in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
-    map_reference = 'catalog'
-elif map_reference in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
-    map_reference = 'refgenome'
-elif map_reference in ['MAGs', 'mag', 'mags']:
-    map_reference = 'MAG'
+if MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
+    MINTO_MODE = 'catalog'
+elif MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
+    MINTO_MODE = 'refgenome'
+elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
+    MINTO_MODE = 'MAG'
 
-if not map_reference in valid_minto_modes:
-    raise Exception("ERROR in {}: 'map_reference' variable must be {}.".format(config_path, valid_minto_modes))
+if not MINTO_MODE in valid_minto_modes:
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be {}.".format(config_path, valid_minto_modes))
 
 # Normalization
 if config['abundance_normalization'] is None:
@@ -110,13 +110,13 @@ if config['msamtools_filter_length'] is None:
 elif type(config['msamtools_filter_length']) != int:
     print('ERROR in ', config_path, ': msamtools_filter_length variable is not an integer. Please, complete ', config_path)
 
-if config['NAME_reference'] is None and map_reference == 'catalog':
+if config['NAME_reference'] is None and MINTO_MODE == 'catalog':
     raise Exception("ERROR in {}: 'NAME_reference' variable must be defined".format(config_path))
 
 mag_omics = 'metaG'
 gene_catalog_db="None"
 gene_catalog_name="None"
-if map_reference == 'MAG':
+if MINTO_MODE == 'MAG':
     if 'MAG_omics' in config and config['MAG_omics'] != None:
         mag_omics = config['MAG_omics']
     reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd = working_dir, mag_omics = mag_omics)
@@ -127,10 +127,10 @@ else:
     elif path.exists(config['PATH_reference']) is False:
         print('ERROR in ', config_path, ': PATH_reference variable path does not exit. Please, complete ', config_path)
     else:
-        if map_reference == 'refgenome':
+        if MINTO_MODE == 'refgenome':
             reference_dir=config["PATH_reference"]
             print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
-        elif map_reference == 'catalog':
+        elif MINTO_MODE == 'catalog':
             if path.exists(config['PATH_reference']+'/'+config['NAME_reference']) is True:
                 print('NOTE: MIntO is using "'+ config['PATH_reference']+'/'+config['NAME_reference']+'" as PATH_reference and NAME_reference variables.')
                 gene_catalog_db=config["PATH_reference"]
@@ -149,19 +149,18 @@ elif type(config['BWA_memory']) != int:
     print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)
 
 fetchMGs_dir=None
-if 'MG' in normalization_modes and map_reference in ("MAG", "refgenome"):
+if 'MG' in normalization_modes and MINTO_MODE in ("MAG", "refgenome"):
     if config['fetchMGs_dir'] is None:
         raise Exception("ERROR in {}: fetchMGs_dir variable is empty. Please, fix.".format(config_path))
     elif path.exists(config['fetchMGs_dir']) is False:
         raise Exception("ERROR in {}: fetchMGs_dir variable path does not exist. Please, fix.".format(config_path))
     fetchMGs_dir=config["fetchMGs_dir"]
 
-if 'MG' in normalization_modes and map_reference == 'catalog':
+if 'MG' in normalization_modes and MINTO_MODE == 'catalog':
     raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
 
 # Define all the outputs needed by target 'all'
 
-MINTO_MODE = map_reference
 GENE_DB_TYPE = MINTO_MODE + '-genes'
 
 bwaindex_db="DB/{subdir}/BWA_index/{analysis_name}".format(subdir=MINTO_MODE, analysis_name=MINTO_MODE)
@@ -203,7 +202,7 @@ def combined_gene_abundance_profiles():
                 identity = identity)
     return(result)
 
-if map_reference == 'catalog':
+if MINTO_MODE == 'catalog':
     reference_dir=config["PATH_reference"]
     def combined_genome_profiles():
         return()
@@ -908,7 +907,7 @@ MAIN_factor: {main_factor}
 
 alignment_identity: {identity}
 abundance_normalization: MG
-map_reference: {map_reference}
+MINTO_MODE: {MINTO_MODE}
 
 MERGE_threads: 4
 MERGE_memory: 5
@@ -917,7 +916,7 @@ ANNOTATION_file:
 
 # List annotation IDs to generate function profiles.
 #
-# If map_reference is 'MAG' or 'refgenome', this list could contain elements from:
+# If MINTO_MODE is 'MAG' or 'refgenome', this list could contain elements from:
 # 'eggNOG.OGs', 'eggNOG.KEGG_Pathway', 'eggNOG.KEGG_Module', 'eggNOG.KEGG_KO', 'eggNOG.PFAMs',
 # 'kofam.KEGG_Pathway', 'kofam.KEGG_Module', 'kofam.KO',
 # 'dbCAN.module', 'dbCAN.enzclass', 'dbCAN.subfamily', 'dbCAN.EC', 'dbCAN.eCAMI_subfamily', 'dbCAN.eCAMI_submodule'.
@@ -926,7 +925,7 @@ ANNOTATION_file:
 # - eggNOG.OGs
 # - kofam.KEGG_Pathway
 #
-# If map_reference is 'catalog', the names should match the ANNOTATION_file column names.
+# If MINTO_MODE is 'catalog', the names should match the ANNOTATION_file column names.
 
 ANNOTATION_ids:
  - eggNOG.OGs

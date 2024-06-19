@@ -34,27 +34,27 @@ snakefile_name = print_versions.get_smk_filename()
 valid_minto_modes = ['MAG', 'refgenome']
 
 # Which database are we mapping reads to?
-if 'map_reference' in config and config['map_reference'] != None:
-    map_reference=config['map_reference']
+if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
+    MINTO_MODE=config['MINTO_MODE']
 else:
-    raise Exception("ERROR in {}: 'map_reference' variable must be defined".format(config_path))
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be defined".format(config_path))
 
 # Backward compatibility and common misnomers
-if map_reference in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
-    map_reference = 'refgenome'
-elif map_reference in ['MAGs', 'mag', 'mags']:
-    map_reference = 'MAG'
+if MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
+    MINTO_MODE = 'refgenome'
+elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
+    MINTO_MODE = 'MAG'
 
-if not map_reference in valid_minto_modes:
-    raise Exception("ERROR in {}: 'map_reference' variable must be {}.".format(config_path, valid_minto_modes))
+if not MINTO_MODE in valid_minto_modes:
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be {}.".format(config_path, valid_minto_modes))
 
 mag_omics = 'metaG'
-if map_reference == 'MAG':
+if MINTO_MODE == 'MAG':
     if 'MAG_omics' in config and config['MAG_omics'] != None:
         mag_omics = config['MAG_omics']
     reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd=working_dir, mag_omics=mag_omics)
     print('NOTE: MIntO is using "' + reference_dir + '" as PATH_reference variable')
-elif map_reference == 'refgenome':
+elif MINTO_MODE == 'refgenome':
     if config['PATH_reference'] is None:
         print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
     reference_dir=config["PATH_reference"]
@@ -86,7 +86,6 @@ if 'eggNOG' in annot_list and 'eggNOG_dbmem' in config:
 
 # Define all the outputs needed by target 'all'
 
-MINTO_MODE = map_reference
 GENE_DB_TYPE = MINTO_MODE + '-genes'
 
 def predicted_genes_collate_out():

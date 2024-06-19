@@ -39,28 +39,28 @@ if config['MAIN_factor'] is not None:
 valid_minto_modes = ['MAG', 'refgenome', 'catalog']
 
 # Which database are we mapping reads to?
-if 'map_reference' in config and config['map_reference'] != None:
-    map_reference=config['map_reference']
+if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
+    MINTO_MODE=config['MINTO_MODE']
 else:
-    raise Exception("ERROR in {}: 'map_reference' variable must be defined".format(config_path))
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be defined".format(config_path))
 
 # Backward compatibility and common misnomers
-if map_reference in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
-    map_reference = 'catalog'
-elif map_reference in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
-    map_reference = 'refgenome'
-elif map_reference in ['MAGs', 'mag', 'mags']:
-    map_reference = 'MAG'
+if MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
+    MINTO_MODE = 'catalog'
+elif MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
+    MINTO_MODE = 'refgenome'
+elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
+    MINTO_MODE = 'MAG'
 
-if not map_reference in valid_minto_modes:
-    raise Exception("ERROR in {}: 'map_reference' variable must be {}.".format(config_path, " or ".join(valid_minto_modes)))
+if not MINTO_MODE in valid_minto_modes:
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be {}.".format(config_path, " or ".join(valid_minto_modes)))
 
 if config['abundance_normalization'] in ("MG", "TPM"):
     normalization=config['abundance_normalization']
 else:
     print('ERROR in ', config_path, ': abundance_normalization variable is not correct. "abundance_normalization" variable should be MG or TPM.')
 
-if normalization == 'MG' and map_reference in ("catalog"):
+if normalization == 'MG' and MINTO_MODE in ("catalog"):
     raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
 
 
@@ -81,7 +81,7 @@ if config['MERGE_threads'] is None:
 elif type(config['MERGE_threads']) != int:
     raise Exception("ERROR in {}: MERGE_threads variable is not an integer. Please, fix.".format(config_path))
 
-if map_reference == 'catalog':
+if MINTO_MODE == 'catalog':
     if config['ANNOTATION_file'] is None:
         raise Exception("Gene functional annotation needs to be provided via ANNOTATION_file variable")
     elif path.exists(config['ANNOTATION_file']) is False:
@@ -110,10 +110,9 @@ for omics_type in omics.split("_"):
     if not path.exists(omics_folder):
         raise Exception(f"ERROR in {omics} setting, the folder {omics_folder} does not exist.")
 
-MINTO_MODE = map_reference
 GENE_DB_TYPE = MINTO_MODE + '-genes'
 
-if map_reference in ['MAG', 'refgenome']:
+if MINTO_MODE in ['MAG', 'refgenome']:
     annot_file="{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(wd = working_dir, subdir = MINTO_MODE)
 
 print('NOTE: MIntO is using ', annot_file ,' as ANNOTATION_file variable.')

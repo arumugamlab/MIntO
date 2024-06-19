@@ -1126,7 +1126,7 @@ MAIN_factor: {main_factor}
 
 # Set MIntO mode
 # Where should we map reads to? MAG, refgenome, catalog
-map_reference: MAG
+MINTO_MODE: MAG
 
 # Which omics for MAGs?
 MAG_omics: metaG
