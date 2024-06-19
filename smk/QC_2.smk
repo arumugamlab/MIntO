@@ -681,10 +681,8 @@ rule motus_calc_motu:
     shell:
         """
         time (
-            parallel --jobs {threads} <<__EOM__
-motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.rel} -p -q
-motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.raw} -p -q -c
-__EOM__
+            motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.rel} -p -q
+            motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.raw} -p -q -c
         ) >& {log}
         """
 
