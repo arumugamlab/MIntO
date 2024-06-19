@@ -695,6 +695,7 @@ rule motus_combine_profiles:
     wildcard_constraints:
         taxonomy='motus_(raw|rel)'
     params:
+        motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else "",
         cut_fields='1,3-',
         files=lambda wildcards, input: ",".join(input.profiles)
     threads: 1
@@ -705,7 +706,7 @@ rule motus_combine_profiles:
     shell:
         """
         time (
-            motus merge -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/'| cut -f{params.cut_fields}  > {output.merged}
+            motus merge {params.motus_db} -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/'| cut -f{params.cut_fields}  > {output.merged}
             grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
         ) >& {log}
         """
