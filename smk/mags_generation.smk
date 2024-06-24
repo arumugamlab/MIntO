@@ -326,9 +326,9 @@ rule make_avamb_mags:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
         """
-        time (\
-                mkdir -p {output.bin_folder}
-                python {script_dir}/take_all_genomes.py \
+        time (
+            mkdir -p {output.bin_folder}
+            python {script_dir}/take_all_genomes.py \
                     --vamb_cluster_tsv {input.tsv} \
                     --binsplit_char {params.binsplit_char} \
                     --contigs_file {input.contigs_file} \
@@ -399,8 +399,8 @@ rule checkm_batch:
         """
         mkdir -p $(dirname {output})
         mkdir tmp
-        time ( \
-        checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input}) --tmpdir tmp -o out
+        time (
+            checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input}) --tmpdir tmp -o out
         ) >& {log}
         rsync -a out/quality_report.tsv {output}
         """
@@ -459,14 +459,14 @@ rule collect_genomes_from_all_binners:
         rm -rf {output.all_genomes}
         mkdir {output.all_genomes}
         time (
-        for i in {input.checkm_out}; do
-          location=$(dirname $i)
-          echo "Collecting $(basename $location) in batches of {params.batch_size}"
-          find $location/bins/ -name "*.fna" |
-                  while readarray -t -n {params.batch_size} FILES && ((${{#FILES[@]}})); do
-                      ln --symbolic --relative ${{FILES[@]}} {output.all_genomes}/
-                  done
-        done
+            for i in {input.checkm_out}; do
+                location=$(dirname $i)
+                echo "Collecting $(basename $location) in batches of {params.batch_size}"
+                find $location/bins/ -name "*.fna" |
+                      while readarray -t -n {params.batch_size} FILES && ((${{#FILES[@]}})); do
+                          ln --symbolic --relative ${{FILES[@]}} {output.all_genomes}/
+                      done
+            done
         ) >& {log}
         touch {output.collected}
         """
@@ -544,7 +544,7 @@ rule collect_HQ_genomes:
 rule run_coverm:
     input:
         HQ_table=rules.collect_HQ_genomes.output.HQ_table,
-        checkm_total = rules.make_comprehensive_table.output 
+        checkm_total = rules.make_comprehensive_table.output
     output:
         cluster_tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
     params:
@@ -559,7 +559,9 @@ rule run_coverm:
         config["minto_dir"]+"/envs/MIntO_base.yml" # coverm
     shell:
         """
-        time (coverm cluster --genome-fasta-directory {params.HQ_folder} --checkm2-quality-report {input.checkm_total} -x fna --cluster-method fastani --ani 99 --fragment-length 2500 --min-aligned-fraction 30 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch --precluster-ani 93) &> {log}
+        time (
+            coverm cluster --genome-fasta-directory {params.HQ_folder} --checkm2-quality-report {input.checkm_total} -x fna --cluster-method fastani --ani 99 --fragment-length 2500 --min-aligned-fraction 30 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch --precluster-ani 93
+        ) &> {log}
         """
 
 ## Run retrieving scored
@@ -571,7 +573,6 @@ rule calculate_score_genomes:
         scored_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
     params:
         HQ_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes",
-        #calculate_genomes_score="{script_dir}/calculate_genomes_score.py"
         score_method = config["SCORE_METHOD"]
     log:
         "{wd}/logs/{omics}/mags_generation/calculate_score_genomes.log"
@@ -583,7 +584,9 @@ rule calculate_score_genomes:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
         """
-        time (python {script_dir}/calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}) &> {log}
+        time (
+            python {script_dir}/calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}
+        ) &> {log}
         """
 
 
@@ -664,11 +667,12 @@ checkpoint copy_best_genomes:
         1 # Decide number of threads
     shell:
         """
-        time (mkdir -p {output.genome_dir}
-        while read line; do
-          cp --dereference {wildcards.wd}/{wildcards.omics}/8-1-binning/mags_generation_pipeline/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
-        done < {input.best_unique_genomes}
-        )&> {log}
+        time (
+            mkdir -p {output.genome_dir}
+            while read line; do
+                cp --dereference {wildcards.wd}/{wildcards.omics}/8-1-binning/mags_generation_pipeline/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
+            done < {input.best_unique_genomes}
+        ) &> {log}
         """
 
 ########################
@@ -696,7 +700,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     shell:
         """
         time (
-        phylophlan_metagenomic -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
+            phylophlan_metagenomic -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
         ) >& {log}
         rsync -a taxonomy.tsv {output}
         """
@@ -726,10 +730,10 @@ rule gtdb_taxonomy_for_genome_collection:
     shell:
         """
         time (
-        export GTDBTK_DATA_PATH={params.db_folder}
-        gtdbtk classify_wf --genome_dir {input.genomes} -x fna --out_dir tmp --cpus {threads} --skip_ani_screen
-        cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
-        cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
+            export GTDBTK_DATA_PATH={params.db_folder}
+            gtdbtk classify_wf --genome_dir {input.genomes} -x fna --out_dir tmp --cpus {threads} --skip_ani_screen
+            cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
+            cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
         ) >& {log}
         rsync -a taxonomy.tsv {output}
         """

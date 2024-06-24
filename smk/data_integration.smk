@@ -33,38 +33,55 @@ main_factor = None
 if config['MAIN_factor'] is not None:
     main_factor = config['MAIN_factor']
 
-if config['map_reference'] in ("MAG", "reference_genome","genes_db"):
-    map_reference=config["map_reference"]
+# MIntO mode and database-mapping
+
+# Define the 3 modes
+valid_minto_modes = ['MAG', 'refgenome', 'catalog']
+
+# Which database are we mapping reads to?
+if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
+    MINTO_MODE=config['MINTO_MODE']
 else:
-    print('ERROR in ', config_path, ': map_reference variable is not correct. "map_reference" variable should be MAG, reference_genome or genes_db.')
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be defined".format(config_path))
+
+# Backward compatibility and common misnomers
+if MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
+    MINTO_MODE = 'catalog'
+elif MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
+    MINTO_MODE = 'refgenome'
+elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
+    MINTO_MODE = 'MAG'
+
+if not MINTO_MODE in valid_minto_modes:
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be {}.".format(config_path, " or ".join(valid_minto_modes)))
 
 if config['abundance_normalization'] in ("MG", "TPM"):
     normalization=config['abundance_normalization']
 else:
     print('ERROR in ', config_path, ': abundance_normalization variable is not correct. "abundance_normalization" variable should be MG or TPM.')
 
-if normalization == 'MG' and map_reference in ("genes_db"):
-    print('ERROR in ', config_path, ': In "genes_db" mode, TPM nomralization is only allowed.')
+if normalization == 'MG' and MINTO_MODE in ("catalog"):
+    raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
 
 
+# Mapping percent identity
 if config['alignment_identity'] is None:
-    print('ERROR in ', config_path, ': alignment_identity variable is empty. Please, complete ', config_path)
+    raise Exception("ERROR in {}: alignment_identity variable is empty. Please, fix.".format(config_path))
 elif type(config['alignment_identity']) != int:
-    print('ERROR in ', config_path, ': alignment_identity variable is not an integer. Please, complete ', config_path)
-elif type(config['alignment_identity']) == int:
-    identity=config['alignment_identity']
+    raise Exception("ERROR in {}: alignment_identity variable is not an integer. Please, fix.".format(config_path))
+identity=config['alignment_identity']
 
 if config['MERGE_memory'] is None:
-    print('ERROR in ', config_path, ': MERGE_memory variable is empty. Please, complete ', config_path)
+    raise Exception("ERROR in {}: MERGE_memory variable is empty. Please, fix.".format(config_path))
 elif type(config['MERGE_memory']) != int:
-    print('ERROR in ', config_path, ': MERGE_memory variable is not an integer. Please, complete ', config_path)
+    raise Exception("ERROR in {}: MERGE_memory variable is not an integer. Please, fix.".format(config_path))
 
 if config['MERGE_threads'] is None:
-    print('ERROR in ', config_path, ': MERGE_threads variable is empty. Please, complete ', config_path)
+    raise Exception("ERROR in {}: MERGE_threads variable is empty. Please, fix.".format(config_path))
 elif type(config['MERGE_threads']) != int:
-    print('ERROR in ', config_path, ': MERGE_threads variable is not an integer. Please, complete ', config_path)
+    raise Exception("ERROR in {}: MERGE_threads variable is not an integer. Please, fix.".format(config_path))
 
-if map_reference == 'genes_db':
+if MINTO_MODE == 'catalog':
     if config['ANNOTATION_file'] is None:
         raise Exception("Gene functional annotation needs to be provided via ANNOTATION_file variable")
     elif path.exists(config['ANNOTATION_file']) is False:
@@ -72,17 +89,12 @@ if map_reference == 'genes_db':
     elif path.exists(config['ANNOTATION_file']) is True:
         annot_file=config['ANNOTATION_file']
 
-if map_reference in ('MAG', 'reference_genome'):
-    if config['ANNOTATION_ids'] is None:
-        print('ERROR in ', config_path, ': ANNOTATION_ids variable in configuration yaml file is empty. Please, complete ', config_path)
-    else:
-        funct_opt=config['ANNOTATION_ids']
-elif map_reference in ('genes_db'):
-    if config['ANNOTATION_ids'] is None:
-        print('ERROR in ', config_path, ': ANNOTATION_ids variable in configuration yaml file is empty. Please, complete ', config_path)
-    else:
-        funct_opt=config['ANNOTATION_ids']
-funct_opt_list = ','.join(['"' + id + '"' for id in funct_opt])
+if config['ANNOTATION_ids'] is None:
+    raise Exception("ERROR in {}: ANNOTATION_ids variable in configuration yaml file is empty. Please, complete.".format(config_path))
+else:
+    funct_opt=config['ANNOTATION_ids']
+
+# Define all the outputs needed by target 'all'
 
 if omics == 'metaG':
     omics_prof='A'
@@ -98,20 +110,10 @@ for omics_type in omics.split("_"):
     if not path.exists(omics_folder):
         raise Exception(f"ERROR in {omics} setting, the folder {omics_folder} does not exist.")
 
-if map_reference == 'MAG':
-    post_analysis_dir="9-MAG-genes-post-analysis"
-    post_analysis_out="MAG-genes"
-    post_analysis_genome="MAG-genes"
-    annot_file="{wd}/DB/{post_analysis_dir}/4-annotations/combined_annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir)
-elif map_reference == 'reference_genome':
-    post_analysis_dir="9-refgenome-genes-post-analysis"
-    post_analysis_out="refgenome-genes"
-    post_analysis_genome="refgenome-genes"
-    annot_file="{wd}/DB/{post_analysis_dir}/4-annotations/combined_annotations.tsv".format(wd = working_dir,post_analysis_dir = post_analysis_dir)
-elif map_reference == 'genes_db':
-    post_analysis_dir="9-db-genes-post-analysis"
-    post_analysis_out="db-genes"
-    post_analysis_genome="None"
+GENE_DB_TYPE = MINTO_MODE + '-genes'
+
+if MINTO_MODE in ['MAG', 'refgenome']:
+    annot_file="{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(wd = working_dir, subdir = MINTO_MODE)
 
 print('NOTE: MIntO is using ', annot_file ,' as ANNOTATION_file variable.')
 
@@ -119,66 +121,66 @@ print('NOTE: MIntO is using ', funct_opt, ' as ANNOTATION_ids variable.')
 
 
 def integration_merge_profiles():
-    result = expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv",
+    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}.csv",
             wd = working_dir,
             omics = omics,
-            post_analysis_out = post_analysis_out,
+            subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization)
     return(result)
 
 def integration_gene_profiles():
-    result = expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}.csv",
+    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_prof}.csv",
             wd = working_dir,
             omics = omics,
-            post_analysis_out = post_analysis_out,
+            subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
-            omics_prof = omics_prof),\
-    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs",
+            omics_prof = omics_prof),
+    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs",
             wd = working_dir,
             omics = omics,
-            post_analysis_out = post_analysis_out,
+            subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
-            omics_prof = omics_prof),\
-    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_prof}.PCA.pdf",
+            omics_prof = omics_prof),
+    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_prof}.PCA.pdf",
             wd = working_dir,
             omics = omics,
-            post_analysis_out = post_analysis_out,
+            subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof)
     return(result)
 
 def integration_function_profiles():
-    result = expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.tsv",
+    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.tsv",
             wd = working_dir,
             omics = omics,
-            post_analysis_out = post_analysis_out,
+            subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof,
-            funct_opt = funct_opt),\
-    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_prof}_F{omics_prof}_features.pdf",
+            funct_opt = funct_opt),
+    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_prof}_F{omics_prof}_features.pdf",
             wd = working_dir,
             omics = omics,
-            post_analysis_out = post_analysis_out,
+            subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
-            omics_prof = omics_prof),\
-    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.qs",
+            omics_prof = omics_prof),
+    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.qs",
             wd = working_dir,
             omics = omics,
-            post_analysis_out = post_analysis_out,
+            subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof,
-            funct_opt = funct_opt),\
-    expand("{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funct_opt}.PCA.pdf",
+            funct_opt = funct_opt),
+    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funct_opt}.PCA.pdf",
             wd = working_dir,
             omics = omics,
-            post_analysis_out = post_analysis_out,
+            subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof,
@@ -200,20 +202,20 @@ rule all:
 ###############################################################################################
 rule integration_merge_profiles:
     input:
-        single=lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{normalization}.csv",
+        single=lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{normalization}.csv",
                                             wd = wildcards.wd,
                                             omics_individual = wildcards.omics.split("_"),
-                                            post_analysis_out = wildcards.post_analysis_out,
+                                            minto_mode = wildcards.gene_db.replace('-genes', ''),
                                             identity = wildcards.identity,
                                             normalization = wildcards.normalization),
     output:
-        merged="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}.csv"
+        merged="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}.csv"
     params:
         files = lambda wildcards, input: ",".join(input.single)
     shadow:
         "minimal"
     log:
-        "{wd}/logs/output/data_integration/{post_analysis_out}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
+        "{wd}/logs/output/data_integration/{gene_db}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
     resources:
         mem=config["MERGE_memory"]
     threads: 1
@@ -242,17 +244,17 @@ rule integration_gene_profiles:
         annot_file = annot_file,
         gene_abund_merge=rules.integration_merge_profiles.output.merged
     output:
-        gene_abund_prof="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_alphabet}.csv",
-        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
-        gene_abund_plots="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
+        gene_abund_prof=    "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.csv",
+        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
+        gene_abund_plots=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     params:
         metadata_file = metadata,
-        funcat_names = funct_opt_list,
+        funcat_names = ','.join(['"' + id + '"' for id in funct_opt]),
         script_omics = lambda wildcards: 'metaG' if wildcards.omics_alphabet == 'A' \
                                          else ('metaT' if wildcards.omics_alphabet == 'T' \
                                                else 'metaG_metaT')
     log:
-        "{wd}/logs/output/data_integration/{post_analysis_out}/integration_gene_profiles.{omics}.p{identity}.{normalization}.G{omics_alphabet}.log"
+        "{wd}/logs/output/data_integration/{gene_db}/integration_gene_profiles.{omics}.p{identity}.{normalization}.G{omics_alphabet}.log"
     resources:
         mem=25
     threads: config["MERGE_threads"]
@@ -260,8 +262,9 @@ rule integration_gene_profiles:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        time ( echo 'integration of gene profiles'
-               Rscript {script_dir}/gene_abundance_and_expression_profiling.R \
+        echo 'integration of gene profiles'
+        time (
+            Rscript {script_dir}/gene_abundance_and_expression_profiling.R \
                     --threads {threads} \
                     --outdir $(dirname {output.gene_abund_prof}) \
                     --main-factor {main_factor} \
@@ -312,19 +315,19 @@ rule integration_gene_profiles:
 
 if omics == 'metaG_metaT':
     def get_function_profile_integration_input_FE(wildcards):
-        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/GE.qs".format(
+        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/GE.qs".format(
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                post_analysis_out = wildcards.post_analysis_out,
+                gene_db = wildcards.gene_db,
                 identity = wildcards.identity,
                 normalization = wildcards.normalization)
         ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
 
         # Add genome-weights if it is MG-normalization
-        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.relabund.prop.genome.txt",
+        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.profile.relabund.prop.genome.txt",
                 wd = working_dir,
                 omics = ['metaG', 'metaT'],
-                post_analysis_out = wildcards.post_analysis_out,
+                minto_mode = wildcards.gene_db.replace('-genes', ''),
                 identity = wildcards.identity,
                 normalization = wildcards.normalization)
         if (normalization == 'MG'):
@@ -339,18 +342,18 @@ if omics == 'metaG_metaT':
         input:
             unpack(get_function_profile_integration_input_FE)
         output:
-            abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FE.{funcat}.tsv",
-            features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GE_FE_features.{funcat}.tsv",
-            physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FE.{funcat}.qs",
-            pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FE.{funcat}.PCA.pdf",
-            FA_abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FA.{funcat}.tsv",
-            FA_features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GA_FA_features.{funcat}.tsv",
-            FA_physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FA.{funcat}.qs",
-            FA_pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FA.{funcat}.PCA.pdf",
-            FT_abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/FT.{funcat}.tsv",
-            FT_features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/GT_FT_features.{funcat}.tsv",
-            FT_physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/FT.{funcat}.qs",
-            FT_pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/FT.{funcat}.PCA.pdf",
+            abundance=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/FE.{funcat}.tsv",
+            features=    "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/GE_FE_features.{funcat}.tsv",
+            physeq=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/FE.{funcat}.qs",
+            pca=         "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/FE.{funcat}.PCA.pdf",
+            FA_abundance="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/FA.{funcat}.tsv",
+            FA_features= "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/GA_FA_features.{funcat}.tsv",
+            FA_physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/FA.{funcat}.qs",
+            FA_pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/FA.{funcat}.PCA.pdf",
+            FT_abundance="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/FT.{funcat}.tsv",
+            FT_features= "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/GT_FT_features.{funcat}.tsv",
+            FT_physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/FT.{funcat}.qs",
+            FT_pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/FT.{funcat}.PCA.pdf",
         wildcard_constraints:
             normalization='MG|TPM',
         params:
@@ -359,7 +362,7 @@ if omics == 'metaG_metaT':
                                                         name=re.sub("eggNOG.KEGG_|kofam.KEGG_|merged.KEGG_", "KEGG_", wildcards.funcat)),
             weights_arg = lambda wildcards, input: "" if (wildcards.normalization == 'TPM') else f"--genome-weights-metaG {input.metaG_profile} --genome-weights-metaT {input.metaT_profile}"
         log:
-            "{wd}/logs/output/data_integration/{post_analysis_out}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.FE.{funcat}.log"
+            "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.FE.{funcat}.log"
         resources:
             mem=config["MERGE_memory"]
         threads: config["MERGE_threads"]
@@ -382,20 +385,20 @@ if omics == 'metaG_metaT':
         """
 else :
     def get_function_profile_integration_input_FA_FT(wildcards):
-        gene_abund_phyloseq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs".format(
+        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs".format(
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                post_analysis_out = wildcards.post_analysis_out,
+                gene_db = wildcards.gene_db,
                 identity = wildcards.identity,
                 omics_prof = wildcards.omics_prof,
                 normalization = wildcards.normalization)
         ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
 
         # Add genome-weights if it is MG-normalization
-        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.relabund.prop.genome.txt",
+        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.profile.relabund.prop.genome.txt",
                 wd = working_dir,
                 omics = ['metaG', 'metaT'],
-                post_analysis_out = wildcards.post_analysis_out,
+                minto_mode = wildcards.gene_db.replace('-genes', ''),
                 identity = wildcards.identity,
                 normalization = wildcards.normalization)
         if (normalization == 'MG'):
@@ -410,10 +413,10 @@ else :
         input:
             unpack(get_function_profile_integration_input_FA_FT)
         output:
-            abundance="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
-            features="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/G{omics_prof}_F{omics_prof}_features.{funcat}.tsv",
-            physeq="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.qs",
-            pca="{wd}/output/data_integration/{post_analysis_out}/{omics}.genes_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
+            abundance="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
+            features= "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_prof}_F{omics_prof}_features.{funcat}.tsv",
+            physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.qs",
+            pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
         wildcard_constraints:
             normalization='MG|TPM',
             omics_prof='A|T'
@@ -426,7 +429,7 @@ else :
                                                          else f"--genome-weights-metaT {input.metaT_profile}" \
                                                         )
         log:
-            "{wd}/logs/output/data_integration/{post_analysis_out}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_prof}.{funcat}.log"
+            "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_prof}.{funcat}.log"
         resources:
             mem=config["MERGE_memory"]
         threads: config["MERGE_threads"]
@@ -487,22 +490,22 @@ rule make_feature_count_plot:
     shell:
         """
         R --vanilla --silent --no-echo <<___EOF___
-        library(data.table)
-        library(ggplot2)
-        library(dplyr)
+library(data.table)
+library(ggplot2)
+library(dplyr)
 
-        count_df <- fread('{input.tsv}', header=T) %>%
-                        as.data.frame(stringsAsFactors = F, row.names = T) %>%
-                        distinct() %>%
-                        mutate(DB = reorder(DB, feature_n))
+count_df <- fread('{input.tsv}', header=T) %>%
+                as.data.frame(stringsAsFactors = F, row.names = T) %>%
+                distinct() %>%
+                mutate(DB = reorder(DB, feature_n))
 
-        pdf('{output.pdf}', width=6, height=5, paper="special" )
-        print(ggplot(data=count_df, aes(x=DB, y=feature_n)) +
-                geom_bar(stat="identity")+ theme_minimal()+
-                facet_wrap(feature~., scales= "free") + labs(y='Number of features', x='')+
-                theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))+
-                geom_text(aes(label=feature_n), position=position_dodge(width=0.9), vjust=-0.25, size = 3)
-             )
-        dev.off()
+pdf('{output.pdf}', width=6, height=5, paper="special" )
+print(ggplot(data=count_df, aes(x=DB, y=feature_n)) +
+        geom_bar(stat="identity")+ theme_minimal()+
+        facet_wrap(feature~., scales= "free") + labs(y='Number of features', x='')+
+        theme(axis.text.x = element_text(angle = 45, vjust = 0.9, hjust=1))+
+        geom_text(aes(label=feature_n), position=position_dodge(width=0.9), vjust=-0.25, size = 3)
+     )
+dev.off()
 ___EOF___
         """

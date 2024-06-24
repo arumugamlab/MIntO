@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 
 library(optparse)
+library(R.utils)
 library(data.table)
 library(this.path)
 library(parallel)
@@ -29,12 +30,17 @@ setDTthreads(threads = threads_n)
 
 get_dt_from_file <- function(filename, index_keys=c('ID'), remove_zeroes) {
     # Load libraries, for parallel
+    library(R.utils)
     library(data.table)
+
+    logmsg <- function(...) {
+        message("# ", format(Sys.time(), digits=0), " - ", paste(list(...)), collapse=" ")
+    }
 
     # Read file
     logmsg("FILE: ", filename)
     logmsg("  Reading")
-    dt = fread(filename, header=T, data.table=TRUE, sep='\t')
+    dt = fread(filename, skip='ID\t', header=T, data.table=TRUE, sep='\t')
 
     if (remove_zeroes == TRUE) {
         # Index by sample data
@@ -64,10 +70,13 @@ merged_dt = NULL
 
 # Get list of DT from list of filenames
 logmsg("Reading ", length(in_files), " files using ", threads_n, " threads")
-cluster <- makeCluster(threads_n)
-clusterExport(cluster, varlist=c("logmsg"))
-dt_list = parLapply(cluster, in_files, get_dt_from_file, index_keys=c('ID', secondary_keys), remove_zeroes=zeroes)
-stopCluster(cluster)
+if (threads_n > 1) {
+    cluster <- makeCluster(threads_n)
+    dt_list = parLapply(cluster, in_files, get_dt_from_file, index_keys=c('ID', secondary_keys), remove_zeroes=zeroes)
+    stopCluster(cluster)
+} else {
+    dt_list = lapply(in_files, get_dt_from_file, index_keys=c('ID', secondary_keys), remove_zeroes=zeroes)
+}
 logmsg("  done")
 
 # Merge dt_list into a single dt

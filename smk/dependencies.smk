@@ -3,12 +3,10 @@
 '''
 Download and install dependencies
 
-Authors: Carmen Saenz
+Authors: Carmen Saenz, Mani Arumugam, Judit Szarvas
 '''
 
 # configuration yaml file
-#import sys
-import os.path
 from os import path
 import glob
 
@@ -22,10 +20,6 @@ phylophlan_db_version = 'Jul20'
 motus_version = '3.0.3'
 gtdb_release_number = '214'
 
-#args = sys.argv
-#print(args)
-#args_idx = sys.argv.index('--configfile')
-#print(args_idx)
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
 print(" Reading configuration yaml file: ") #, config_path)
@@ -274,9 +268,11 @@ rule rRNA_db_index:
         """
         mkdir -p sortmerna/idx/
         dboption=$(echo {input} | sed "s/ / --ref /g")
-        time (sortmerna --workdir sortmerna --idx-dir sortmerna/idx/ --index 1 --ref $dboption --threads {threads}
-        rsync sortmerna/idx/* {output.rRNA_db_index}
-        echo 'SortMeRNA indexed rRNA_databases done' > {output.rRNA_db_index_file}) >& {log}
+        time (
+            sortmerna --workdir sortmerna --idx-dir sortmerna/idx/ --index 1 --ref $dboption --threads {threads}
+            rsync sortmerna/idx/* {output.rRNA_db_index}
+            echo 'SortMeRNA indexed rRNA_databases done' > {output.rRNA_db_index_file}
+        ) >& {log}
         """
 
 ###############################################################################################
@@ -303,8 +299,9 @@ rule eggnog_db:
         """
         mkdir -p {minto_dir}/data/eggnog_data/data
         time (
-        download_eggnog_data.py -y --data_dir {minto_dir}/data/eggnog_data/data -P -M -f
-        echo 'eggNOG database downloaded') &> {log}
+            download_eggnog_data.py -y --data_dir {minto_dir}/data/eggnog_data/data -P -M -f
+            echo 'eggNOG database downloaded'
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -402,7 +399,7 @@ rule functional_db_descriptions:
 
             ## eggNOG
 
-            (echo -e 'Funct\tCategory\tDescription';
+            (echo -e 'Funct\\tCategory\\tDescription';
              curl --silent http://eggnog5.embl.de/download/eggnog_5.0/per_tax_level/1/1_annotations.tsv.gz | gzip -dc | cut -f2-4 | grep -v '^COG';
              curl --silent https://ftp.ncbi.nih.gov/pub/COG/COG2020/data/cog-20.def.tab | cut -f1,2,3) > {output.eggnog_desc}
 
@@ -410,7 +407,7 @@ rule functional_db_descriptions:
 
             ## EC numbers for dbCAN
 
-            (echo -e 'Funct\tDescription';
+            (echo -e 'Funct\\tDescription';
              curl --silent https://rest.kegg.jp/list/enzyme;
              curl --silent https://ftp.expasy.org/databases/enzyme/enzclass.txt | {script_dir}/format_ec_classes.pl) > {output.EC_desc}
 
@@ -445,9 +442,9 @@ rule dbCAN_db:
         mkdir -p {minto_dir}/data/dbCAN_db/V12
         cd {minto_dir}/data/dbCAN_db
         time (
-        dbcan_build --cpus 2 --db-dir V12 --clean
-
-        echo 'dbCAN database downloaded and installed') &> {log}
+            dbcan_build --cpus 2 --db-dir V12 --clean
+            echo 'dbCAN database downloaded and installed'
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -468,15 +465,16 @@ rule metaphlan_db:
     shell:
         """
         mkdir -p {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}
-        time (\
-                metaphlan --version
-                metaphlan --install --index {wildcards.metaphlan_index} --bowtie2db {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/
-                if [ $? -eq 0 ]; then
-                    echo 'MetaPhlAn database download: OK'
-                    echo "{wildcards.metaphlan_index}" > {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/mpa_latest
-                else
-                    echo 'MetaPhlAn database download: FAIL'
-                fi) &> {log}
+        time (
+            metaphlan --version
+            metaphlan --install --index {wildcards.metaphlan_index} --bowtie2db {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/
+            if [ $? -eq 0 ]; then
+                echo 'MetaPhlAn database download: OK'
+                echo "{wildcards.metaphlan_index}" > {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/mpa_latest
+            else
+                echo 'MetaPhlAn database download: FAIL'
+            fi
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -496,14 +494,14 @@ rule motus_db:
         config["minto_dir"]+"/envs/motus_env.yml"
     shell:
         """
-        time (\
+        time (
             motus downloadDB
             if [ $? -eq 0 ]; then
                 echo 'mOTUs3 database download: OK'
                 echo OK > {output}
 
                 # place db into data folder
-                $MOTUS_DB_PATH=$(find "$(dirname $(which motus))/../lib" -type d -iname db_mOTU | head -1 )
+                MOTUS_DB_PATH=$(find "$(dirname $(which motus))/../lib" -type d -iname db_mOTU | head -1 )
                 mkdir -p {minto_dir}/data/motus/{motus_version}
                 rsync -a $MOTUS_DB_PATH {minto_dir}/data/motus/{motus_version}/
 
@@ -511,7 +509,7 @@ rule motus_db:
             else
                 echo 'mOTUs3 database download: FAIL'
             fi
-            ) &> {log}
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -531,14 +529,14 @@ rule checkm2_db:
         config["minto_dir"]+"/envs/checkm2.yml"
     shell:
         """
-        time (\
+        time (
             checkm2 database --download --path {minto_dir}/data
             if [ $? -eq 0 ]; then
                 echo 'CheckM2 database download: OK'
             else
                 echo 'CheckM2 database download: FAIL'
             fi
-            ) &> {log}
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -557,10 +555,10 @@ rule download_fetchMGs:
         "{minto_dir}/logs/fetchMGs_download.log"
     shell:
         """
-        time (\
+        time (
             cd {minto_dir}/data/
-            wget -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs/archive/refs/tags/v1.2.tar.gz
-            tar xfz fetchMGs-1.2.tar.gz
+            wget -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs.pl/archive/refs/tags/v1.2.tar.gz
+            tar xfz fetchMGs-1.2.tar.gz && mv fetchMGs.pl-1.2 fetchMGs-1.2
             if [ $? -eq 0 ]; then
                 echo 'fetchMGs download: OK'
                 echo OK > {output.done}
@@ -568,7 +566,7 @@ rule download_fetchMGs:
                 echo 'fetchMGs download: FAIL'
             fi
             rm fetchMGs-1.2.tar.gz
-            ) &> {log}
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -590,7 +588,7 @@ rule download_phylophlan_db:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
         """
-        time (\
+        time (
             tar xvfz {minto_dir}/tutorial/genomes.tar.gz
             phylophlan_metagenomic --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp
             if [ $? -eq 0 ]; then
@@ -600,7 +598,7 @@ rule download_phylophlan_db:
             fi
             rm {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.tar
             rm {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.md5
-            ) &> {log}
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -620,7 +618,7 @@ rule download_GTDB_db:
         config["minto_dir"]+"/envs/gtdb.yml"
     shell:
         """
-        time (\
+        time (
             mkdir -p {minto_dir}/data/GTDB/r{gtdb_release_number}
             cd {minto_dir}/data/GTDB
             wget -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_r{gtdb_release_number}_data.tar.gz
@@ -633,7 +631,7 @@ rule download_GTDB_db:
             mv release{gtdb_release_number}/* r{gtdb_release_number}/
             rmdir release{gtdb_release_number}
             rm gtdb.tar.gz
-            ) &> {log}
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -651,7 +649,9 @@ rule r_pkgs:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        time (echo 'r_pkgs environment generated') &> {output}
+        time (
+            echo 'r_pkgs environment generated'
+        ) &> {output}
         """
 
 rule mags_gen_vamb:
@@ -668,7 +668,8 @@ rule mags_gen_vamb:
     shell:
         """
         time (
-        echo 'VAMB environment generated') &> {log}
+            echo 'VAMB environment generated'
+        ) &> {log}
         """
 
 rule mags_gen:
@@ -682,5 +683,7 @@ rule mags_gen:
         config["minto_dir"]+"/envs/mags.yml"
     shell:
         """
-        time (echo 'mags environment generated') &> {output}
+        time (
+            echo 'mags environment generated'
+        ) &> {output}
         """

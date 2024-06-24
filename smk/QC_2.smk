@@ -33,7 +33,7 @@ snakefile_name = print_versions.get_smk_filename()
 
 localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
             metaphlan_combine_profiles, motus_combine_profiles, motus_calc_motu, \
-            plot_taxonomic_profile, plot_sourmash_kmers 
+            plot_taxonomic_profile, plot_sourmash_kmers
 
 taxonomies_versioned = list()
 ilmn_samples = list()
@@ -389,7 +389,7 @@ rule bwaindex_host_genome:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
     shell:
         """
-        time (\
+        time (
                 bwa-mem2 index {input} -p {wildcards.genome}
                 rsync -a {wildcards.genome}.* {wildcards.somewhere}/BWA_index/
             ) &> {log}
@@ -418,12 +418,12 @@ rule qc2_host_filter:
     shell:
         """
         remote_dir=$(dirname {output.host_free_fw})
-        time (\
+        time (
                 bwa-mem2 mem -t {threads} -v 3 {params.bwaindex} {input.pairead_fw} {input.pairead_rv} \
                   | msamtools filter -S -l 30 --invert --keep_unmapped -bu - \
                   | samtools fastq -1 $(basename {output.host_free_fw}) -2 $(basename {output.host_free_rv}) -s /dev/null -c 6 -N -
                 rsync -a * $remote_dir/
-            ) >& {log}
+        ) >& {log}
         """
 
 ###############################################################################################
@@ -461,7 +461,7 @@ rule qc2_filter_rRNA_index:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell:
         """
-        time (\
+        time (
             sortmerna --workdir . --idx-dir ./idx/ -index 1 \
                 --ref {input.rRNA_db[0]} \
                 --ref {input.rRNA_db[1]} \
@@ -473,7 +473,7 @@ rule qc2_filter_rRNA_index:
                 --ref {input.rRNA_db[7]}
             rsync -a ./idx/* {output.rRNA_db_index}
             echo 'SortMeRNA indexed rRNA_databases done' > {sortmeRNA_db_idx}/rRNA_db_index.log
-            ) >& {log}
+        ) >& {log}
         """
 
 rule qc2_filter_rRNA:
@@ -500,19 +500,23 @@ rule qc2_filter_rRNA:
         config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
     shell:
         """
-        (time sortmerna --paired_in --fastx --out2 --other --threads {threads} --no-best --num_alignments 1 --workdir . --idx-dir {params.db_idx_dir}/ \
---ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
---ref {params.db_dir}/rfam-5s-database-id98.fasta \
---ref {params.db_dir}/silva-arc-16s-id95.fasta \
---ref {params.db_dir}/silva-arc-23s-id98.fasta \
---ref {params.db_dir}/silva-bac-16s-id90.fasta \
---ref {params.db_dir}/silva-bac-23s-id98.fasta \
---ref {params.db_dir}/silva-euk-18s-id95.fasta \
---ref {params.db_dir}/silva-euk-28s-id98.fasta \
---reads {input.host_free_fw} --reads {input.host_free_rv}
-        rsync -a out/other_fwd.fq.gz {output.rRNA_free_fw}
-        rsync -a out/other_rev.fq.gz {output.rRNA_free_rv}
-        rsync -a out/aligned.log {output.rRNA_out} ) >& {log}
+        time (
+            sortmerna --paired_in --fastx --out2 --other --threads {threads} --no-best --num_alignments 1 --workdir . --idx-dir {params.db_idx_dir}/ \
+                        --ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
+                        --ref {params.db_dir}/rfam-5s-database-id98.fasta \
+                        --ref {params.db_dir}/silva-arc-16s-id95.fasta \
+                        --ref {params.db_dir}/silva-arc-23s-id98.fasta \
+                        --ref {params.db_dir}/silva-bac-16s-id90.fasta \
+                        --ref {params.db_dir}/silva-bac-23s-id98.fasta \
+                        --ref {params.db_dir}/silva-euk-18s-id95.fasta \
+                        --ref {params.db_dir}/silva-euk-28s-id98.fasta \
+                        --reads {input.host_free_fw} --reads {input.host_free_rv}
+            parallel --jobs {threads} <<__EOM__
+rsync -a out/other_fwd.fq.gz {output.rRNA_free_fw}
+rsync -a out/other_rev.fq.gz {output.rRNA_free_rv}
+rsync -a out/aligned.log {output.rRNA_out}
+__EOM__
+        ) >& {log}
         """
 
 ###############################################################################################
@@ -598,8 +602,10 @@ rule metaphlan_tax_profile:
             input_files="{input.fwd},{input.rev}"
         fi
 
-        time (metaphlan --bowtie2db {minto_dir}/data/metaphlan/{wildcards.version} $input_files --input_type fastq --bowtie2out {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 --nproc {threads} -o {wildcards.sample}.metaphlan.{wildcards.version}.tsv -t rel_ab_w_read_stats --index {metaphlan_index}
-        rsync -a {wildcards.sample}.metaphlan.* $remote_dir) >& {log}
+        time (
+            metaphlan --bowtie2db {minto_dir}/data/metaphlan/{wildcards.version} $input_files --input_type fastq --bowtie2out {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 --nproc {threads} -o {wildcards.sample}.metaphlan.{wildcards.version}.tsv -t rel_ab_w_read_stats --index {metaphlan_index}
+            rsync -a {wildcards.sample}.metaphlan.* $remote_dir
+        ) >& {log}
         """
 
 rule metaphlan_combine_profiles:
@@ -617,10 +623,10 @@ rule metaphlan_combine_profiles:
         config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
     shell:
         """
-        time (\
-                merge_metaphlan_tables.py {input.ra} | sed 's/\.{wildcards.taxonomy}\.{wildcards.version}//g' > {output.merged}
-                grep -E "s__|clade_name" {output.merged} | grep -v "t__" | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
-            ) >& {log}
+        time (
+            merge_metaphlan_tables.py {input.ra} | sed 's/\.{wildcards.taxonomy}\.{wildcards.version}//g' > {output.merged}
+            grep -E "s__|clade_name" {output.merged} | grep -v "t__" | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
+        ) >& {log}
         """
 
 # motus can take in multiple runs as comma-separated files.
@@ -650,11 +656,11 @@ rule motus_map_db:
         config["minto_dir"]+"/envs/motus_env.yml" #motus3
     shell:
         """
-        time (\
+        time (
             motus map_tax   -t {threads} -f {params.fwd_files} -r {params.rev_files} {params.motus_db} -o {wildcards.sample}.motus.bam -b
-            motus calc_mgc  -n {wildcards.sample} {params.motus_db} -i {wildcards.sample}.motus.bam -o {wildcards.sample}.motus.mgc
+            motus calc_mgc  -n {wildcards.sample}                                    {params.motus_db} -i {wildcards.sample}.motus.bam -o {wildcards.sample}.motus.mgc
             rsync -a {wildcards.sample}.motus.mgc {output.mgc}
-            ) >& {log}
+        ) >& {log}
         """
 
 rule motus_calc_motu:
@@ -674,10 +680,10 @@ rule motus_calc_motu:
         config["minto_dir"]+"/envs/motus_env.yml" #motus3
     shell:
         """
-        time (\
+        time (
             motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.rel} -p -q
             motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.raw} -p -q -c
-            ) >& {log}
+        ) >& {log}
         """
 
 rule motus_combine_profiles:
@@ -689,6 +695,7 @@ rule motus_combine_profiles:
     wildcard_constraints:
         taxonomy='motus_(raw|rel)'
     params:
+        motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else "",
         cut_fields='1,3-',
         files=lambda wildcards, input: ",".join(input.profiles)
     threads: 1
@@ -698,10 +705,10 @@ rule motus_combine_profiles:
         config["minto_dir"]+"/envs/motus_env.yml" #motus3
     shell:
         """
-        time (\
-                motus merge -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/'| cut -f{params.cut_fields}  > {output.merged}
-                grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
-            ) >& {log}
+        time (
+            motus merge {params.motus_db} -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/'| cut -f{params.cut_fields}  > {output.merged}
+            grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
+        ) >& {log}
         """
 
 rule plot_taxonomic_profile:
@@ -721,9 +728,9 @@ rule plot_taxonomic_profile:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (\
-                Rscript {script_dir}/plot_6_taxa_profile.R --table {input.merged} --profiler {wildcards.omics}.{wildcards.taxonomy}.{wildcards.version} --metadata {metadata} --outdir $(dirname {output.pcoa}) {params.plot_args}
-            ) >& {log}
+        time (
+            Rscript {script_dir}/plot_6_taxa_profile.R --table {input.merged} --profiler {wildcards.omics}.{wildcards.taxonomy}.{wildcards.version} --metadata {metadata} --outdir $(dirname {output.pcoa}) {params.plot_args}
+        ) >& {log}
         """
 
 ###############################################################################################
@@ -754,7 +761,9 @@ rule sourmash_sketch:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time (sourmash sketch dna -p k={params.k},scaled={params.scaled},abund --name {wildcards.sample} -o {output} {input.fwd} {input.rev}) >& {log}
+        time (
+            sourmash sketch dna -p k={params.k},scaled={params.scaled},abund --name {wildcards.sample} -o {output} {input.fwd} {input.rev}
+        ) >& {log}
         """
 
 rule sourmash_filter:
@@ -778,7 +787,9 @@ rule sourmash_filter:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time ( sourmash signature filter -k {params.k} -m {params.m} -M {params.M} -o {output} {input} ) >& {log}
+        time (
+            sourmash signature filter -k {params.k} -m {params.m} -M {params.M} -o {output} {input}
+        ) >& {log}
         """
 
 rule sourmash_compare:
@@ -804,7 +815,9 @@ rule sourmash_compare:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time (sourmash compare -k {params.k} -p {threads} --csv {output.csv} -o {output.npy} {input}) >& {log}
+        time (
+            sourmash compare -k {params.k} -p {threads} --csv {output.csv} -o {output.npy} {input}
+        ) >& {log}
         """
 
 rule plot_sourmash_kmers:
@@ -821,7 +834,7 @@ rule plot_sourmash_kmers:
         tsv="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.sourmash_clusters.tsv"
     params:
         cutoff=config['SOURMASH_cutoff'],
-        plot_args=plot_args_str        
+        plot_args=plot_args_str
     threads:
         1
     log:
@@ -830,9 +843,9 @@ rule plot_sourmash_kmers:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (\
-                Rscript {script_dir}/plot_6-1_sourmash.R --csv {input.csv} --cutoff {params.cutoff} --table {input.merged} --metadata {metadata} --outdir $(dirname {output.barplot}) {params.plot_args}
-            ) >& {log}
+        time (
+            Rscript {script_dir}/plot_6-1_sourmash.R --csv {input.csv} --cutoff {params.cutoff} --table {input.merged} --metadata {metadata} --outdir $(dirname {output.barplot}) {params.plot_args}
+        ) >& {log}
         """
 
 rule dummy_sourmash_clusters:
@@ -842,7 +855,7 @@ rule dummy_sourmash_clusters:
                         omics = omics,
                         taxonomy_versioned = taxonomies_versioned[0])
     output:
-        "{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv"       
+        "{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv"
     threads:
         1
     localrule: True
@@ -918,7 +931,7 @@ MEGAHIT_presets:
  - meta-sensitive
  - meta-large
 #MEGAHIT_custom:
-# - 
+# -
 
 # MetaFlye settings
 #
@@ -1111,8 +1124,9 @@ MAIN_factor: {main_factor}
 # Annotation settings
 ######################
 
-# Where should we map reads to? MAG, reference_genomes, reference_genomes
-map_reference: MAG
+# Set MIntO mode
+# Where should we map reads to? MAG, refgenome, catalog
+MINTO_MODE: MAG
 
 # Which omics for MAGs?
 MAG_omics: metaG

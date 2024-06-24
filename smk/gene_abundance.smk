@@ -66,11 +66,29 @@ if 'ILLUMINA' in config:
 else:
     print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
 
-if config['map_reference'] in ("MAG", "reference_genome","genes_db"):
-    map_reference=config["map_reference"]
-else:
-    print('ERROR in ', config_path, ': map_reference variable is not correct. "map_reference" variable should be MAG, reference_genome or genes_db.')
+# MIntO mode and database-mapping
 
+# Define the 3 modes
+valid_minto_modes = ['MAG', 'refgenome', 'catalog']
+
+# Which database are we mapping reads to?
+if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
+    MINTO_MODE=config['MINTO_MODE']
+else:
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be defined".format(config_path))
+
+# Backward compatibility and common misnomers
+if MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
+    MINTO_MODE = 'catalog'
+elif MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
+    MINTO_MODE = 'refgenome'
+elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
+    MINTO_MODE = 'MAG'
+
+if not MINTO_MODE in valid_minto_modes:
+    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be {}.".format(config_path, valid_minto_modes))
+
+# Normalization
 if config['abundance_normalization'] is None:
     print('ERROR in ', config_path, ': abundance_normalization variable is not set. "abundance_normalization" variable should be MG or TPM.')
 else:
@@ -92,13 +110,13 @@ if config['msamtools_filter_length'] is None:
 elif type(config['msamtools_filter_length']) != int:
     print('ERROR in ', config_path, ': msamtools_filter_length variable is not an integer. Please, complete ', config_path)
 
-if config['NAME_reference'] is None and map_reference == 'genes_db':
-    print('ERROR in ', config_path, ': NAME_reference variable does not exit. Please, complete ', config_path)
+if config['NAME_reference'] is None and MINTO_MODE == 'catalog':
+    raise Exception("ERROR in {}: 'NAME_reference' variable must be defined".format(config_path))
 
 mag_omics = 'metaG'
 gene_catalog_db="None"
 gene_catalog_name="None"
-if map_reference == 'MAG':
+if MINTO_MODE == 'MAG':
     if 'MAG_omics' in config and config['MAG_omics'] != None:
         mag_omics = config['MAG_omics']
     reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd = working_dir, mag_omics = mag_omics)
@@ -109,10 +127,10 @@ else:
     elif path.exists(config['PATH_reference']) is False:
         print('ERROR in ', config_path, ': PATH_reference variable path does not exit. Please, complete ', config_path)
     else:
-        if map_reference == 'reference_genome':
-            print('NOTE: MIntO is using "'+ config['PATH_reference']+'" as PATH_reference variable')
+        if MINTO_MODE == 'refgenome':
             reference_dir=config["PATH_reference"]
-        elif map_reference == 'genes_db':
+            print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
+        elif MINTO_MODE == 'catalog':
             if path.exists(config['PATH_reference']+'/'+config['NAME_reference']) is True:
                 print('NOTE: MIntO is using "'+ config['PATH_reference']+'/'+config['NAME_reference']+'" as PATH_reference and NAME_reference variables.')
                 gene_catalog_db=config["PATH_reference"]
@@ -131,31 +149,21 @@ elif type(config['BWA_memory']) != int:
     print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)
 
 fetchMGs_dir=None
-if 'MG' in normalization_modes and map_reference in ("MAG", "reference_genome"):
+if 'MG' in normalization_modes and MINTO_MODE in ("MAG", "refgenome"):
     if config['fetchMGs_dir'] is None:
-        print('ERROR in ', config_path, ': fetchMGs_dir variable is empty. Please, complete ', config_path)
+        raise Exception("ERROR in {}: fetchMGs_dir variable is empty. Please, fix.".format(config_path))
     elif path.exists(config['fetchMGs_dir']) is False:
-        print('ERROR in ', config_path, ': fetchMGs_dir variable path does not exit. Please, complete ', config_path)
-    elif path.exists(config['fetchMGs_dir']) is True:
-        fetchMGs_dir=config["fetchMGs_dir"]
-if 'MG' in normalization_modes and map_reference in ("genes_db"):
-    print('WARNING in ', config_path, ': In "genes_db" mode, only TPM normalization is allowed.')
+        raise Exception("ERROR in {}: fetchMGs_dir variable path does not exist. Please, fix.".format(config_path))
+    fetchMGs_dir=config["fetchMGs_dir"]
 
+if 'MG' in normalization_modes and MINTO_MODE == 'catalog':
+    raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
 
 # Define all the outputs needed by target 'all'
-if map_reference == 'MAG':
-    post_analysis_out="MAG-genes"
-    post_analysis_dir="9-MAG-genes-post-analysis"
 
-elif map_reference == 'reference_genome':
-    post_analysis_out="refgenome-genes"
-    post_analysis_dir="9-refgenome-genes-post-analysis"
+GENE_DB_TYPE = MINTO_MODE + '-genes'
 
-elif map_reference == 'genes_db':
-    post_analysis_out="db-genes"
-    post_analysis_dir="9-genes-db-post-analysis"
-
-bwaindex_db="DB/{analysis_dir}/BWA_index/{analysis_name}".format(analysis_dir=post_analysis_dir, analysis_name=post_analysis_out)
+bwaindex_db="DB/{subdir}/BWA_index/{analysis_name}".format(subdir=MINTO_MODE, analysis_name=MINTO_MODE)
 
 ######
 # Make a lookup table for sample --> sample_alias using metadata file
@@ -174,35 +182,36 @@ def get_sample2alias_map(in_file):
 sample2alias = get_sample2alias_map(metadata)
 
 def combined_genome_profiles():
-    result = expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{label}.p{identity}.profile.{extension}",
-                label = 'all',
+    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/{label}.p{identity}.profile.{extension}",
+                label = 'genome_abundances',
                 wd = working_dir,
                 omics = omics,
-                post_analysis_out = post_analysis_out,
+                subdir = MINTO_MODE,
                 identity = identity,
                 extension = ['abund.prop.txt', 'abund.prop.genome.txt', 'relabund.prop.genome.txt']
                 )
     return(result)
 
 def combined_gene_abundance_profiles():
-    result = expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{norm}.csv",
+    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/{label}.p{identity}.{norm}.csv",
+                label = 'gene_abundances',
                 wd = working_dir,
                 omics = omics,
-                post_analysis_out = post_analysis_out,
+                subdir = MINTO_MODE,
                 norm = normalization_modes,
                 identity = identity)
     return(result)
 
-if map_reference == 'genes_db':
+if MINTO_MODE == 'catalog':
     reference_dir=config["PATH_reference"]
     def combined_genome_profiles():
         return()
 
 def mapping_statistics():
-    result = expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.{stats}.txt",
+    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/mapping.p{identity}.{stats}.txt",
                     wd = working_dir,
                     omics = omics,
-                    post_analysis_out = post_analysis_out,
+                    subdir = MINTO_MODE,
                     identity = identity,
                     stats = ['maprate', 'mapstats', 'multimap'])
     return(result)
@@ -272,32 +281,35 @@ def get_genomes_from_refdir(ref_dir):
 def get_genome_fna(wildcards):
     #Collect the fna files for MAGs
     genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/9-{post_analysis_out}-post-analysis/2-postprocessed/{genome}.fna",
+    result = expand("{wd}/DB/{minto_mode}/2-postprocessed/{genome}.fna",
                     wd=wildcards.wd,
-                    post_analysis_out=wildcards.post_analysis_out,
+                    minto_mode=wildcards.minto_mode,
                     genome=genomes)
     return(result)
 
 rule make_merged_genome_fna:
     input: get_genome_fna
     output:
-        fasta_merge="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.fna"
+        fasta_merge="{wd}/DB/{minto_mode}/{minto_mode}.fna"
     log:
-        "{wd}/logs/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.merge_genome.log"
+        "{wd}/logs/DB/{minto_mode}/{minto_mode}.merge_genome.log"
     wildcard_constraints:
-        post_analysis_out='MAG-genes|refgenome-genes'
+        minto_mode='MAG|refgenome'
     shell:
         """
-        time (cat {input} > {output}) >& {log}
+        time (
+            cat {input} > {output}
+        ) >& {log}
         """
 
+# For each sequence name '<seqname> = <locustag>_<seqid>', make '<locustag>\t<seqname>'
 rule make_genome_def:
     input: get_genome_fna
     output:
-        genome_def="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.genome.def"
+        genome_def="{wd}/DB/{minto_mode}/{minto_mode}.genome.def"
     shell:
         """
-        grep '^>' {input} | sed 's^.*/^^' | sed 's/.fna:>/\\t/' >> {output}
+        cat {input} | grep '^>' | sed -e 's/^>\([^_]\+\)_\(.*\)/\\1\\t\\1_\\2/' > {output}
         """
 
 # Memory is based on number of MAGs - 50 MB per genome; increase by 50 MB each new attempt.
@@ -306,15 +318,15 @@ rule genome_bwaindex:
         fna=get_genome_fna,
         fasta_merge=rules.make_merged_genome_fna.output.fasta_merge
     output:
-        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.0123",
-        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.amb",
-        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.ann",
-        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.bwt.2bit.64",
-        "{wd}/DB/9-{post_analysis_out}-post-analysis/BWA_index/{post_analysis_out}.pac",
+        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.0123",
+        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.amb",
+        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.ann",
+        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.bwt.2bit.64",
+        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.pac",
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}_bwaindex.log"
+        "{wd}/logs/DB/{minto_mode}/{minto_mode}_bwaindex.log"
     threads: 2
     resources:
         mem = lambda wildcards, input, attempt: 0.05*len(input.fna)*attempt
@@ -322,10 +334,10 @@ rule genome_bwaindex:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time (\
-                bwa-mem2 index {input.fasta_merge} -p {wildcards.post_analysis_out}
-                ls {wildcards.post_analysis_out}.*
-                rsync -a {wildcards.post_analysis_out}.* $(dirname {output[0]})/
+        time (
+                bwa-mem2 index {input.fasta_merge} -p {wildcards.minto_mode}
+                ls {wildcards.minto_mode}.*
+                rsync -a {wildcards.minto_mode}.* $(dirname {output[0]})/
             ) >& {log}
         """
 
@@ -335,14 +347,16 @@ rule genome_mapping_profiling:
         genome_def=rules.make_genome_def.output.genome_def,
         fwd=get_fwd_files_only,
         rev=get_rev_files_only,
+        bed_mini="{wd}/DB/{minto_mode}/{minto_mode}-genes.bed.mini"
     output:
-        sorted="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
-        index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
-        bwa_log="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.log",
-        raw_all_seq="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
-        raw_prop_seq="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",
-        raw_prop_genome="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz",
-        rel_prop_genome="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz",
+        sorted=         "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
+        index=          "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
+        bwa_log=        "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.log",
+        raw_all_seq=    "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
+        raw_prop_seq=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",
+        raw_prop_genome="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz",
+        rel_prop_genome="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.relabund.prop.genome.txt.gz",
+        absolute_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.gene_abundances.p{identity}.bed.gz"
     shadow:
         "minimal"
     params:
@@ -353,16 +367,16 @@ rule genome_mapping_profiling:
         mapped_reads_threshold=config["MIN_mapped_reads"],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.p{identity}_bwa.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}.map_profile.log"
     wildcard_constraints:
         identity=r'\d+',
-        post_analysis_out='MAG-genes|refgenome-genes'
+        minto_mode='MAG|refgenome'
     threads:
         config["BWA_threads"]
     resources:
         mem=config["BWA_memory"]
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl
+        config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl + parallel
     shell:
         """
         # Make named pipes if needed
@@ -378,35 +392,55 @@ rule genome_mapping_profiling:
 
         bwaindex_prefix={input.bwaindex[0]}
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
+
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
-                msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
-        total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
-        #echo $total_reads
-        common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
-        msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=all  --unit=abund --nolen
-        msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
-        msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
-        msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=prop --unit=rel           --genome {input.genome_def}
+                    msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
+            total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
+            #echo $total_reads
 
-        samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m {params.sort_memory}G --output-fmt=BAM
-        samtools index sorted.bam sorted.bam.bai -@ {threads}
+            # Run multiple msamtools modes + samtools sort in parallel using GNU parallel.
+            # We need 4 threads for msamtools and 'params.sort_threads' threads for samtools sort.
+            # We cap it by 'threads' limit to parallel.
+            common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
+            parallel --jobs {threads} <<__EOM__
+msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=all  --unit=abund --nolen
+msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
+msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
+msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=prop --unit=rel           --genome {input.genome_def}
+samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m {params.sort_memory}G --output-fmt=BAM
+__EOM__
 
-        rsync -a sorted.bam {output.sorted}
-        rsync -a sorted.bam.bai {output.index}
+            # Index sorted.bam file, while also exporting it
+            # Get mini-bed into shadowdir
+            parallel --jobs {threads} <<__EOM__
+samtools index sorted.bam sorted.bam.bai -@ {threads}
+rsync -a sorted.bam {output.sorted}
+rsync -a {input.bed_mini} in.bed
+__EOM__
+
+            # Use bedtools multicov to generate read-counts per gene
+            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
+             bedtools multicov -bams sorted.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
+
+            # Rsync output files
+            parallel --jobs {threads} <<__EOM__
+rsync -a sorted.bam.bai {output.index}
+rsync -a out.bed.gz {output.absolute_counts}
+__EOM__
         ) >& {log}
         """
 
 rule old_merge_individual_msamtools_profiles:
     input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
+        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
                 wd = wildcards.wd,
                 omics = wildcards.omics,
-                post_analysis_out = wildcards.post_analysis_out,
+                minto_mode = wildcards.minto_mode,
                 identity = wildcards.identity,
                 type = wildcards.type,
                 sample = ilmn_samples)
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/Combined.p{identity}.profile.{type}.txt"
+        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/Combined.p{identity}.profile.{type}.txt"
     run:
         import pandas as pd
         df = pd.read_csv(input.single[0], comment='#', header=0, index_col='ID', sep = "\t")
@@ -419,35 +453,45 @@ rule old_merge_individual_msamtools_profiles:
 # The following two rules are identical. But first is for reference_genomes and MAGs. Second is for gene-catalogs
 ###############################################################################################
 
+def strip_commonpath(list_of_paths):
+    topdir = os.path.commonpath(list_of_paths)
+    stripped = [x.replace(topdir, '') for x in list_of_paths]
+    stripped = [re.sub(r'^/+', '', x) for x in stripped]
+    return(stripped)
+
 # Merge individual msamtools profiles from genome mapping
 # We set '--zeroes' because msamtools output leaves zero entries in individual profile files.
 
 rule merge_msamtools_genome_mapping_profiles:
     input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
+        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
-                                            post_analysis_out = wildcards.post_analysis_out,
+                                            minto_mode = wildcards.minto_mode,
                                             identity = wildcards.identity,
                                             type = wildcards.type,
                                             sample = ilmn_samples)
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.profile.{type}.txt"
+        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.profile.{type}.txt"
     params:
-        files = lambda wildcards, input: ",".join(input.single)
+        topdir = lambda wildcards, input: os.path.commonpath(input.single),
+        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
     shadow:
         "minimal"
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
     resources:
         mem=30
-    threads: lambda wildcards,input: min(10, len(input.single))
+    threads: 1
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
         time (
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID --zeroes
+            shadowdir=$(pwd)
+            cd {params.topdir}
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys ID --zeroes
+            cd $shadowdir
             rsync -a out.txt {output.combined}
         ) >& {log}
         """
@@ -457,31 +501,35 @@ rule merge_msamtools_genome_mapping_profiles:
 
 rule merge_msamtools_gene_mapping_profiles:
     input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
+        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
-                                            post_analysis_out = wildcards.post_analysis_out,
+                                            minto_mode = wildcards.minto_mode,
                                             identity = wildcards.identity,
                                             sample=ilmn_samples)
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.TPM.csv"
+        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.TPM.csv"
     params:
-        files = lambda wildcards, input: ",".join(input.single)
+        topdir = lambda wildcards, input: os.path.commonpath(input.single),
+        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
     shadow:
         "minimal"
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/merge_msamtools_profiles.p{identity}.profile.TPM.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/merge_msamtools_profiles.p{identity}.profile.TPM.log"
     resources:
         mem=30
     threads: lambda wildcards,input: min(10, len(input.single))
     wildcard_constraints:
-        post_analysis_out='db-genes'
+        minto_mode='catalog'
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
         time (
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID --zeroes
+            shadowdir=$(pwd)
+            cd {params.topdir}
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys ID --zeroes
+            cd $shadowdir
             rsync -a out.txt {output.combined}
         ) >& {log}
         """
@@ -517,9 +565,11 @@ rule gene_catalog_bwaindex:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time (bwa-mem2 index {wildcards.gene_catalog_path}/{wildcards.gene_catalog_name} -p {wildcards.gene_catalog_name}
-        ls {wildcards.gene_catalog_name}.*
-        rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/ ) &> {log}
+        time (
+            bwa-mem2 index {wildcards.gene_catalog_path}/{wildcards.gene_catalog_name} -p {wildcards.gene_catalog_name}
+            ls {wildcards.gene_catalog_name}.*
+            rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/
+        ) &> {log}
         """
 
 rule gene_catalog_mapping_profiling:
@@ -531,10 +581,10 @@ rule gene_catalog_mapping_profiling:
         fwd=get_fwd_files_only,
         rev=get_rev_files_only,
     output:
-        filtered="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.bam",
-        bwa_log="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.log",
-        profile_tpm="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
-        map_profile="{wd}/{omics}/9-mapping-profiles/db-genes/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz"
+        filtered=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.bam",
+        bwa_log=    "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.log",
+        profile_tpm="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
+        map_profile="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz"
     shadow:
         "minimal"
     params:
@@ -543,7 +593,9 @@ rule gene_catalog_mapping_profiling:
         mapped_reads_threshold=config["MIN_mapped_reads"],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/db-genes/{sample}.p{identity}_bwa.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}_bwa.log"
+    wildcard_constraints:
+        minto_mode='catalog'
     threads:
         config["BWA_threads"]
     resources:
@@ -567,15 +619,23 @@ rule gene_catalog_mapping_profiling:
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                 msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
-        total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
-        #echo $total_reads
-        common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
-        msamtools profile aligned.bam $common_args -o profile.TPM.txt.gz --multi prop --unit tpm
-        msamtools profile aligned.bam $common_args -o profile.abund.all.txt.gz --multi all --unit abund --nolen
+            total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
+            #echo $total_reads
 
-        rsync -a aligned.bam {output.filtered}
-        rsync -a profile.TPM.txt.gz {output.profile_tpm}
-        rsync -a profile.abund.all.txt.gz {output.map_profile}
+            # Run multiple msamtools modes in parallel using GNU parallel.
+            # We cap it by 'threads' limit to parallel.
+            common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
+            parallel --jobs {threads} <<__EOM__
+msamtools profile aligned.bam $common_args -o profile.TPM.txt.gz --multi prop --unit tpm
+msamtools profile aligned.bam $common_args -o profile.abund.all.txt.gz --multi all --unit abund --nolen
+__EOM__
+
+            # rsync outputs to output dir
+            parallel --jobs {threads} <<__EOM__
+rsync -a aligned.bam {output.filtered}
+rsync -a profile.TPM.txt.gz {output.profile_tpm}
+rsync -a profile.abund.all.txt.gz {output.map_profile}
+__EOM__
         ) >& {log}
         """
 
@@ -583,19 +643,26 @@ rule gene_catalog_mapping_profiling:
 # Computation of read counts to genes belonging to MAGs or publicly available genomes
 ###############################################################################################
 
+# Ideally, bedtools multicov is run in the same rule as bwa-mapping to avoid reading BAM file over NFS.
+# However, if the BAM file exists already, just running bedtools on the BAM files on NFS will be faster.
+# I have currently disabled this competition between the rules for making 'bed.gz' by renaming output file.
+# Could be turned back on in the future.
+
+ruleorder: gene_abund_compute > genome_mapping_profiling
+
 rule gene_abund_compute:
     input:
-        bam="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
-        index="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
-        bed_mini="{wd}/DB/9-{post_analysis_out}-post-analysis/{post_analysis_out}.bed.mini"
+        bam=     "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
+        index=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
+        bed_mini="{wd}/DB/{minto_mode}/{minto_mode}-genes.bed.mini"
     output:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed.gz"
+        absolute_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.gene_abundances.p{identity}.bed.gz2"
     shadow:
         "minimal"
     params:
         sample_alias=lambda wildcards: sample2alias[wildcards.sample],
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}.genes_abundances_counts.p{identity}.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.gene_abundances.p{identity}.log"
     threads: 1
     resources:
         mem=5
@@ -623,32 +690,37 @@ rule gene_abund_compute:
 
 # Merge individual bedtools multicov BED files from genome mapping
 # We don't set '--zeroes' because rule 'gene_abund_compute' removed all zero entries in individual BED files.
+# Memory is estimated based on a regression using 9Gb metagenomes.
 
 rule merge_gene_abund:
     input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.genes_abundances.p{identity}.bed.gz",
+        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.gene_abundances.p{identity}.bed.gz",
                     wd = wildcards.wd,
                     omics = wildcards.omics,
-                    post_analysis_out = wildcards.post_analysis_out,
+                    minto_mode = wildcards.minto_mode,
                     identity = wildcards.identity,
                     sample=ilmn_samples),
     params:
-        files = lambda wildcards, input: ",".join(input.single)
+        topdir = lambda wildcards, input: os.path.commonpath(input.single),
+        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed"
+        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.bed"
     shadow:
         "minimal"
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances_counts.p{identity}.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.log"
     threads: lambda wildcards,input: min(10, len(input.single))
     resources:
-        mem=30
+        mem=lambda wildcards,input: 5 + 0.3*len(input.single)
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
         time (
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys gene_length,ID
+            shadowdir=$(pwd)
+            cd {params.topdir}
+            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys gene_length,ID
+            cd $shadowdir
             rsync -a out.txt {output.combined}
         ) >& {log}
         """
@@ -663,12 +735,12 @@ rule merge_gene_abund:
 # fetchMG cannot handle '.' in gene names, so we replace '.' with '__MINTO_DOT__' in fasta headers; then change back in output.
 rule fetchMG_genome_cds_faa:
     input:
-        cds_faa='{wd}/DB/{post_analysis_dir}/2-postprocessed/{genome}.faa',
+        cds_faa='{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa',
         fetchMGs_dir=str(fetchMGs_dir)
-    output: '{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}.marker_genes.table'
+    output: '{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table'
     shadow:
         "minimal"
-    log: '{wd}/logs/DB/{post_analysis_dir}/fetchMGs/{genome}.log'
+    log: '{wd}/logs/DB/{minto_mode}/fetchMGs/{genome}.log'
     threads: 8
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
@@ -678,22 +750,22 @@ rule fetchMG_genome_cds_faa:
             sed 's/\\s.*//;s/\\./__MINTO_DOT__/g' {input.cds_faa} > HEADER_FIXED.faa
             {input.fetchMGs_dir}/fetchMGs.pl -outdir out -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction HEADER_FIXED.faa
             sed 's/__MINTO_DOT__/./g' out/HEADER_FIXED.all.marker_genes_scores.table > {output}
-            ) >& {log}
+        ) >& {log}
         """
 
 def get_genome_MG_tables(wildcards):
     #Collect the CDS faa files for MAGs
     genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/{post_analysis_dir}/fetchMGs/{genome}/{genome}.marker_genes.table",
+    result = expand("{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table",
                     wd=wildcards.wd,
-                    post_analysis_dir=wildcards.post_analysis_dir,
+                    minto_mode=wildcards.minto_mode,
                     genome=genomes)
     return(result)
 
 rule merge_MG_tables:
     input: get_genome_MG_tables
-    output: "{wd}/DB/{post_analysis_dir}/genomes.marker_genes.table"
-    log: "{wd}/logs/DB/{post_analysis_dir}/merge_marker_genes_scores.table.log"
+    output: "{wd}/DB/{minto_mode}/genomes.marker_genes.table"
+    log: "{wd}/logs/DB/{minto_mode}/merge_marker_genes_scores.table.log"
     shell:
         """
         time (
@@ -701,7 +773,7 @@ rule merge_MG_tables:
                 for file in {input}; do
                     awk 'FNR>1' ${{file}} >> {output}
                 done
-            ) >& {log}
+        ) >& {log}
         """
 
 ###############################################################################################
@@ -716,21 +788,21 @@ rule merge_MG_tables:
 def get_gene_abund_normalization_input(wildcards):
     if (wildcards.norm == 'MG'):
         return {
-            'absolute_counts' : "{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed".format(
+            'absolute_counts' : "{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.bed".format(
                     wd = wildcards.wd,
                     omics = wildcards.omics,
-                    post_analysis_out = wildcards.post_analysis_out,
+                    minto_mode = wildcards.minto_mode,
                     identity = wildcards.identity),
-            'genomes_marker_genes' : "{wd}/DB/9-{post_analysis_out}-post-analysis/genomes.marker_genes.table".format(
+            'genomes_marker_genes' : "{wd}/DB/{minto_mode}/genomes.marker_genes.table".format(
                     wd = wildcards.wd,
-                    post_analysis_out = wildcards.post_analysis_out)
+                    minto_mode = wildcards.minto_mode)
             }
     else:
         return {
-            'absolute_counts' : "{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.bed".format(
+            'absolute_counts' : "{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.bed".format(
                     wd = wildcards.wd,
                     omics = wildcards.omics,
-                    post_analysis_out = wildcards.post_analysis_out,
+                    minto_mode = wildcards.minto_mode,
                     identity = wildcards.identity)
             }
 
@@ -738,14 +810,14 @@ rule gene_abund_normalization:
     input:
         unpack(get_gene_abund_normalization_input)
     output:
-        norm_counts="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{norm}.csv"
+        norm_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{norm}.csv"
     params:
         mapped_reads_threshold=config["MIN_mapped_reads"],
         optional_arg_MG = lambda wildcards, input: "" if wildcards.norm == "TPM" else "--MG " + input.genomes_marker_genes
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/genes_abundances.p{identity}.{norm}.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{norm}.log"
     wildcard_constraints:
-        post_analysis_out='MAG-genes|refgenome-genes'
+        minto_mode='MAG|refgenome'
     threads: 4
     resources:
         mem=config["BWA_memory"]
@@ -753,7 +825,9 @@ rule gene_abund_normalization:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
         """
-        time (Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --min-read-count {params.mapped_reads_threshold}) &> {log}
+        time (
+            Rscript {script_dir}/normalize_profiles.R --normalize {wildcards.norm} --threads {threads} --memory {resources.mem} --bed {input.absolute_counts} {params.optional_arg_MG} --out {output.norm_counts} --min-read-count {params.mapped_reads_threshold}
+        ) &> {log}
         """
 
 ###############################################################################################
@@ -763,20 +837,20 @@ rule gene_abund_normalization:
 ###############################################################################################
 rule read_map_stats:
     input:
-        map_profile=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
+        map_profile=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
                                             wd = wildcards.wd,
                                             omics = wildcards.omics,
-                                            post_analysis_out = wildcards.post_analysis_out,
+                                            minto_mode = wildcards.minto_mode,
                                             identity = wildcards.identity,
                                             sample=ilmn_samples)
     output:
-        maprate="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.maprate.txt",
-        mapstats="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.mapstats.txt",
-        multimap="{wd}/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.multimap.txt"
+        maprate= "{wd}/{omics}/9-mapping-profiles/{minto_mode}/mapping.p{identity}.maprate.txt",
+        mapstats="{wd}/{omics}/9-mapping-profiles/{minto_mode}/mapping.p{identity}.mapstats.txt",
+        multimap="{wd}/{omics}/9-mapping-profiles/{minto_mode}/mapping.p{identity}.multimap.txt"
     params:
         map_profile_list=lambda wildcards, input: ",".join(input.map_profile),
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{post_analysis_out}/all.p{identity}.read_map_stats.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/mapping.p{identity}.read_map_stats.log"
     wildcard_constraints:
         identity=r'\d+'
     threads: 1
@@ -791,12 +865,12 @@ rule read_map_stats:
 
         # Generate content
         time (
-        for file in {input.map_profile}; do
-            sample=$(basename $file); sample=${{sample%%.p{wildcards.identity}*}}
-            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.maprate}
-            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d':' | sed 's/^ //'"  ) >> {output.mapstats}
-            (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Multiple mapped' | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.multimap}
-        done
+            for file in {input.map_profile}; do
+                sample=$(basename $file); sample=${{sample%%.p{wildcards.identity}*}}
+                (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.maprate}
+                (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Mapped inserts'  | cut -f2 -d':' | sed 's/^ //'"  ) >> {output.mapstats}
+                (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Multiple mapped' | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.multimap}
+            done
         ) &> {log}
         """
 
@@ -837,7 +911,7 @@ MAIN_factor: {main_factor}
 
 alignment_identity: {identity}
 abundance_normalization: MG
-map_reference: {map_reference}
+MINTO_MODE: {MINTO_MODE}
 
 MERGE_threads: 4
 MERGE_memory: 5
@@ -846,7 +920,7 @@ ANNOTATION_file:
 
 # List annotation IDs to generate function profiles.
 #
-# If map_reference is 'MAG' or 'reference_genome', this list could contain elements from:
+# If MINTO_MODE is 'MAG' or 'refgenome', this list could contain elements from:
 # 'eggNOG.OGs', 'eggNOG.KEGG_Pathway', 'eggNOG.KEGG_Module', 'eggNOG.KEGG_KO', 'eggNOG.PFAMs',
 # 'kofam.KEGG_Pathway', 'kofam.KEGG_Module', 'kofam.KO',
 # 'dbCAN.module', 'dbCAN.enzclass', 'dbCAN.subfamily', 'dbCAN.EC', 'dbCAN.eCAMI_subfamily', 'dbCAN.eCAMI_submodule'.
@@ -855,7 +929,7 @@ ANNOTATION_file:
 # - eggNOG.OGs
 # - kofam.KEGG_Pathway
 #
-# If map_reference is 'gene_catalog', the names should match the ANNOTATION_file column names.
+# If MINTO_MODE is 'catalog', the names should match the ANNOTATION_file column names.
 
 ANNOTATION_ids:
  - eggNOG.OGs

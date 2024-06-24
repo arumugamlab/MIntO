@@ -394,8 +394,10 @@ rule BWA_index_contigs:
         outdir=$(dirname {output[0]})
         mkdir -p $outdir
         prefix=$(basename {input})
-        time (bwa-mem2 index {input.scaffolds} -p $prefix) >& {log}
-        rsync -a $prefix.* $outdir/
+        time (
+            bwa-mem2 index {input.scaffolds} -p $prefix
+            rsync -a $prefix.* $outdir/
+        ) >& {log}
         """
 
 # Maps reads to contig-set using bwa2
@@ -439,7 +441,7 @@ rule map_contigs_BWA_depth_coverM:
               coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {params.coverm_threads} --output-file sorted.depth --bam-files {wildcards.illumina}.bam
               gzip sorted.depth
               rsync -a sorted.depth.gz {output.depth}
-             ) >& {log}
+        ) >& {log}
         """
 
 # Combine coverM depths from individual samples
@@ -683,7 +685,9 @@ rule make_abundance_npz:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
         """
-        time (python {script_dir}/make_vamb_abundance_npz.py --fasta {input.contigs_file} --jgi {input.depth_file} --output {output.npz} --samples {ilmn_samples}) >& {log}
+        time (
+            python {script_dir}/make_vamb_abundance_npz.py --fasta {input.contigs_file} --jgi {input.depth_file} --output {output.npz} --samples {ilmn_samples}
+        ) >& {log}
         """
 
 ###############################################################################################
