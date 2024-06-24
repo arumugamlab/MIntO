@@ -411,13 +411,14 @@ samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m {params.sort
 __EOM__
 
             # Index sorted.bam file, while also exporting it
+            # Get mini-bed into shadowdir
             parallel --jobs {threads} <<__EOM__
 samtools index sorted.bam sorted.bam.bai -@ {threads}
 rsync -a sorted.bam {output.sorted}
+rsync -a {input.bed_mini} in.bed
 __EOM__
 
             # Use bedtools multicov to generate read-counts per gene
-            rsync -a {input.bed_mini} in.bed
             (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
              bedtools multicov -bams sorted.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
 
