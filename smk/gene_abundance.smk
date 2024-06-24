@@ -630,9 +630,12 @@ msamtools profile aligned.bam $common_args -o profile.TPM.txt.gz --multi prop --
 msamtools profile aligned.bam $common_args -o profile.abund.all.txt.gz --multi all --unit abund --nolen
 __EOM__
 
-            rsync -a aligned.bam {output.filtered}
-            rsync -a profile.TPM.txt.gz {output.profile_tpm}
-            rsync -a profile.abund.all.txt.gz {output.map_profile}
+            # rsync outputs to output dir
+            parallel --jobs {threads} <<__EOM__
+rsync -a aligned.bam {output.filtered}
+rsync -a profile.TPM.txt.gz {output.profile_tpm}
+rsync -a profile.abund.all.txt.gz {output.map_profile}
+__EOM__
         ) >& {log}
         """
 
