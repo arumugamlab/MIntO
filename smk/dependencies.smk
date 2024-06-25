@@ -165,7 +165,7 @@ def motus_db_out():
         if (flag.lower() in ('no', 'false', '0')):
             return(list())
 
-    result=expand("{minto_dir}/logs/motus_{motus_version}.download_db.log",
+    result=expand("{minto_dir}/data/motus/db.{motus_version}.downloaded",
         minto_dir=minto_dir,
         motus_version=motus_version)
     return(result)
