@@ -464,7 +464,7 @@ rule abundance_base:
 
 rule abundance_rpkg:
     input:
-        "{wd}/output/versions/abund_base.flag".format(wd=working_dir)
+        "{wd}/output/versions/abund_base.flag"
     output:
         temp("{wd}/output/versions/gene_abundance.flag")
     resources:
