@@ -505,7 +505,9 @@ rule motus_db:
                 mkdir -p {minto_dir}/data/motus/{motus_version}
                 rsync -a $MOTUS_DB_PATH {minto_dir}/data/motus/{motus_version}/
 
-                rm -rf $MOTUS_DB_PATH
+                rm -rf $MOTUS_DB_PATH/*
+                # copy the version file back to silence missing db errors
+                rsync -a {minto_dir}/data/motus/{motus_version}/db_mOTU/db_mOTU_versions $MOTUS_DB_PATH/db_mOTU_versions
             else
                 echo 'mOTUs3 database download: FAIL'
             fi

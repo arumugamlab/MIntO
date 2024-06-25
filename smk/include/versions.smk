@@ -206,7 +206,7 @@ rule QC_2_motus:
         config["minto_dir"]+"/envs/motus_env.yml"
     shell:
         """
-        motus --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        (motus -db {minto_dir}/data/motus/{motus_version}/db_mOTU --version || motus --version) 2> /dev/null >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         touch {output}
         """
 
