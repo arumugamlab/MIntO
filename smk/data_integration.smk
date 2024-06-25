@@ -130,31 +130,31 @@ def integration_merge_profiles():
     return(result)
 
 def integration_gene_profiles():
-    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_prof}.tsv",
+    res = [expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_prof}.tsv",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof),
-    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs",
+        expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof),
-    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_prof}.PCA.pdf",
+        expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_prof}.PCA.pdf",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
-            omics_prof = omics_prof)
-    return(result)
+            omics_prof = omics_prof)]
+    return(res)
 
 def integration_function_profiles():
-    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.tsv",
+    res = [expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_prof}.{funct_opt}.tsv",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
@@ -162,14 +162,14 @@ def integration_function_profiles():
             normalization = normalization,
             omics_prof = omics_prof,
             funct_opt = funct_opt),
-    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_prof}_F{omics_prof}_features.pdf",
+        expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_prof}_F{omics_prof}_features.pdf",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof),
-    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.qs",
+        expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funct_opt}.qs",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
@@ -177,15 +177,15 @@ def integration_function_profiles():
             normalization = normalization,
             omics_prof = omics_prof,
             funct_opt = funct_opt),
-    expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funct_opt}.PCA.pdf",
+        expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funct_opt}.PCA.pdf",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof,
-            funct_opt = funct_opt)
-    return(result)
+            funct_opt = funct_opt)]
+    return(res)
 
 # Define all the outputs needed by target 'all'
 rule all:
@@ -247,6 +247,8 @@ rule integration_gene_profiles:
         gene_abund_prof=    "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.tsv",
         gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
         gene_abund_plots=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
+    wildcard_constraints:
+            omics_alphabet='[ATE]',
     params:
         metadata_file = metadata,
         funcat_names = ','.join(['"' + id + '"' for id in funct_opt]),
