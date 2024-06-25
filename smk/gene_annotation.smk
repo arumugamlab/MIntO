@@ -227,7 +227,6 @@ rule rename_prokka_sequences:
             # Set ID based on ID=X
             # If no ID=X then set ID as <chr>_<start>_<stop>
             # When relevant, set feature_type to CRISPR (compliant with GFF3)
-            # Fix coordinate for 0-based vs 1-based
 
             cat {input.gff} \
                 | awk -F '\\t' '$3 != "gene"' \
@@ -242,7 +241,6 @@ rule rename_prokka_sequences:
                             }}
                             $F[9] = sprintf("%s_%s_%s", $F[0], $F[1]+1, $F[2]);
                         }}' \
-                    -e '$F[1]++;' \
                     -e 'print join("\\t", @F);' \
                 > out.bed
 
@@ -262,7 +260,7 @@ def get_genome_bed(wildcards):
                     genome=genomes)
     return(result)
 
-# Replace 'score' in 5th column with 'length' = stop - start + 1.
+# Replace 'score' in 5th column with 'length' = stop - start. This is BED, so no need for 'stop-start+1'.
 # Retain only first word in ID column
 # Write full info into full BED file.
 # Write only chr,start,stop,length,ID in mini BED file.
@@ -282,7 +280,7 @@ def process_genome_bed_list(input_list, output_full, output_mini, log_file):
                 logme(f, "INFO: reading file {}".format(i))
 
                 df = pd.read_csv(input_list[i], header=None, names=colnames, sep="\t", memory_map=True)
-                df['length'] = df['stop'] - df['start'] + 1
+                df['length'] = df['stop'] - df['start']
                 df = df.replace(to_replace={'ID': r'[;\s].*'}, value='', regex=True)
                 df.to_csv(full, sep="\t", index=False, header=(i==0)) # Only write header the first time around
 
