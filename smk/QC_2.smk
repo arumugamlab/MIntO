@@ -251,10 +251,9 @@ with open(minto_dir + "/data/metaphlan/" + metaphlan_version + "/mpa_latest", 'r
 def taxonomy_plot_output():
 
     results = list()
-    profiles = expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
+    profiles = expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
                 wd = working_dir,
                 omics = omics,
-                sample = ilmn_samples,
                 taxonomy = taxonomies_versioned),\
             expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
                 wd = working_dir,
@@ -715,6 +714,7 @@ rule plot_taxonomic_profile:
     input:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
     output:
+        profile="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.tsv",
         pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.PCoA.Bray_Curtis.pdf",
         barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.Top15genera.pdf",
     wildcard_constraints:

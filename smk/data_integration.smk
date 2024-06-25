@@ -121,7 +121,7 @@ print('NOTE: MIntO is using ', funct_opt, ' as ANNOTATION_ids variable.')
 
 
 def integration_merge_profiles():
-    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}.csv",
+    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}.tsv",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
@@ -130,7 +130,7 @@ def integration_merge_profiles():
     return(result)
 
 def integration_gene_profiles():
-    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_prof}.csv",
+    result = expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_prof}.tsv",
             wd = working_dir,
             omics = omics,
             subdir = GENE_DB_TYPE,
@@ -202,14 +202,14 @@ rule all:
 ###############################################################################################
 rule integration_merge_profiles:
     input:
-        single=lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{normalization}.csv",
+        single=lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{normalization}.tsv",
                                             wd = wildcards.wd,
                                             omics_individual = wildcards.omics.split("_"),
                                             minto_mode = wildcards.gene_db.replace('-genes', ''),
                                             identity = wildcards.identity,
                                             normalization = wildcards.normalization),
     output:
-        merged="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}.csv"
+        merged="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}.tsv"
     params:
         files = lambda wildcards, input: ",".join(input.single)
     shadow:
@@ -244,7 +244,7 @@ rule integration_gene_profiles:
         annot_file = annot_file,
         gene_abund_merge=rules.integration_merge_profiles.output.merged
     output:
-        gene_abund_prof=    "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.csv",
+        gene_abund_prof=    "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.tsv",
         gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
         gene_abund_plots=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     params:
