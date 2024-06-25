@@ -82,7 +82,7 @@ make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
     logmsg(" Writing phyloseq")
     qsave(physeq,
           file = paste0(phyloseq_dir, '/', label, '.qs'),
-          preset = "balanced",
+          preset = "high",
           nthreads = threads_n,
          )
 }

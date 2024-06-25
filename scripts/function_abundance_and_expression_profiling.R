@@ -281,7 +281,7 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       # Write phyloseq object
       logmsg("Writing phyloseq object")
       qsave(physeq,
-            preset = "balanced",
+            preset = "high",
             file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.qs'))
       logmsg("  done")
 
@@ -559,7 +559,7 @@ if (nrow(gene_annotation) > 0) {
                               tax_table(as.matrix(FE_annotations, rownames="Funct")),
                               sample_metadata)
         qsave(FE_physeq,
-              preset = "balanced",
+              preset = "high",
               file = paste0(phyloseq_dir, '/FE.', funcat_name ,'.qs'))
 
         # Free up memory
