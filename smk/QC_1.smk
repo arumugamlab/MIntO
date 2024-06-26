@@ -120,17 +120,6 @@ if 'ILLUMINA' in config:
 
 # Define all the outputs needed by target 'all'
 
-def qc1_check_read_length_output():
-    result = expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt",
-                    wd = working_dir,
-                    omics = omics,
-                    sample = ilmn_samples,
-                    group = ['1', '2']),\
-    expand("{wd}/{omics}/1-trimmed/samples_read_length.txt",
-                    wd = working_dir,
-                    omics = omics)
-    return(result)
-
 def qc1_read_length_cutoff_output():
     result = expand("{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf",
                     wd = working_dir,

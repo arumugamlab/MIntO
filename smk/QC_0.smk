@@ -112,14 +112,6 @@ elif config['FASTP_adapters'] == 'Detect':
 
 # Define all the outputs needed by target 'all'
 
-def qc1_read_length_output():
-    result = expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt",
-                    wd=working_dir,
-                    omics=omics,
-                    sample=ilmn_samples,
-                    group=['1', '2'])
-    return(result)
-
 def qc1_read_length_cutoff_output():
     result = expand("{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf",
                     wd = working_dir,
@@ -140,7 +132,6 @@ def qc0_multiqc_summary_output():
 
 rule all:
     input:
-        qc1_read_length_output(),
         qc1_read_length_cutoff_output(),
         qc1_config_yml_output(),
         qc0_multiqc_summary_output(),
@@ -197,8 +188,10 @@ rule initial_fastqc:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time ( fastqc --noextract -f fastq -t {threads} -q -o {params.outdir} {input.read_fw} {input.read_rev} && \
-        echo "Fastqc done" > {output.flag} ) >& {log}
+        time (
+            fastqc --noextract -f fastq -t {threads} -q -o {params.outdir} {input.read_fw} {input.read_rv} && \
+        echo "Fastqc done" > {output.flag} 
+        ) >& {log}
         """
 
 ##########
@@ -221,7 +214,7 @@ if config['FASTP_adapters'] == 'Skip':
         shell:
             """
             (ln -s --force {input.read_fw} {output.pairead1}
-            ln -s --force {input.read_rev} {output.pairead2}
+            ln -s --force {input.read_rv} {output.pairead2}
             touch {output.json}
             echo "Skipped trimming and linked raw files to trimmed files.") >& {log}
             """
@@ -252,7 +245,7 @@ elif adapter_trimming_args:
         shell:
             """
             time ( \
-                fastp -i {input.read_fw} --in2 {input.read_rev} \
+                fastp -i {input.read_fw} --in2 {input.read_rv} \
                 -o {output.pairead1} --out2 {output.pairead2} \
                 --cut_window_size 4 --cut_front --cut_front_mean_quality {params.mq_5} --cut_tail --cut_tail_mean_quality {params.mq_3} --length_required {params.ml} \
                 {params.adapter_args} \
@@ -286,7 +279,7 @@ else:
         shell:
             """
             time ( \
-                fastp -i {input.read_fw} --in2 {input.read_rev} \
+                fastp -i {input.read_fw} --in2 {input.read_rv} \
                 -o {output.pairead1} --out2 {output.pairead2} \
                 --cut_window_size 4 --cut_front --cut_front_mean_quality {params.mq_5} --cut_tail --cut_tail_mean_quality {params.mq_3} --length_required {params.ml} \
                 --dont_eval_duplication --disable_trim_poly_g \
@@ -342,7 +335,9 @@ rule qc0_create_multiqc:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
         """
-        time ( multiqc --filename {wildcards.omics}_multiqc.html --outdir {params.outdir} -d --zip-data-dir -q --no-ansi --interactive {params.indir} ) >& {log}
+        time (
+            multiqc --filename {wildcards.omics}_multiqc.html --outdir {params.outdir} -d --zip-data-dir -q --no-ansi --interactive {params.indir}
+        ) >& {log}
         """
 
 rule qc1_check_read_length:
@@ -364,7 +359,9 @@ rule qc1_check_read_length:
         2
     shell:
         """
-        time (sh -c 'gzip -cd {input.pairead} | awk -v f="{wildcards.sample}_{wildcards.group}" "{{if(NR%4==2) print length(\$1),f}}" | sort -n | uniq -c > {output.length}') >& {log}
+        time (
+            sh -c 'gzip -cd {input.pairead} | awk -v f="{wildcards.sample}_{wildcards.group}" "{{if(NR%4==2) print length(\$1),f}}" | sort -n | uniq -c > {output.length}'
+        ) >& {log}
         """
 
 rule qc1_check_read_length_merge:
@@ -377,7 +374,9 @@ rule qc1_check_read_length_merge:
     threads: 1
     shell:
         """
-        time (cat {input.length} > {output.readlen_dist}) >& {log}
+        time (
+            cat {input.length} > {output.readlen_dist}
+        ) >& {log}
         """
 
 rule qc1_cumulative_read_len_plot:
@@ -395,7 +394,9 @@ rule qc1_cumulative_read_len_plot:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
         """
-        time (Rscript {script_dir}/QC_cumulative_read_length_plot.R --input {input.readlen_dist} --frac {params.cutoff} --out_plot {output.plot} --out_cutoff {output.cutoff_file}) >& {log}
+        time (
+            Rscript {script_dir}/QC_cumulative_read_length_plot.R --input {input.readlen_dist} --frac {params.cutoff} --out_plot {output.plot} --out_cutoff {output.cutoff_file}
+        ) >& {log}
         """
 
 ##########################################################################################################
@@ -444,11 +445,10 @@ READ_minlen: $(cat {input.cutoff_file})
 # If not, a fasta file should exist as: <PATH_host_genome>/<NAME_host_genome>
 # This will be build into index files using:
 #    bwa-mem2 index -p <PATH_host_genome>/BWA_index/<NAME_host_genome> <PATH_host_genome>/<NAME_host_genome>
-# Please do not use '.fasta' or '.fa' or '.fna' extension for the fasta file. Name it without extension.
 
 PATH_host_genome:
 NAME_host_genome:
-BWA_index_host_memory: 40
+BWA_index_host_memory: 100
 BWA_host_threads: 8
 BWA_host_memory: 40
 ___EOF___
@@ -484,6 +484,21 @@ ___EOF___
 TAXA_threads: 8
 TAXA_memory: 10
 TAXA_profiler: motus_rel,metaphlan
+metaphlan_version: 4.0.6
+motus_version: 3.0.3
+
+#########################
+# K-mer based comparison
+#########################
+
+# FracMinHash comparisons by sourmash
+# SOURMASH_min_abund - Minimum count of each k-mer for filtering the sketch (integer)
+# SOURMASH_max_abund - Maximum count of each k-mer for filtering the sketch (integer)
+# SOURMASH_cutoff    - Dissimilarity cutoff for subclusters via hierarchical clustering
+
+SOURMASH_min_abund: 2
+SOURMASH_max_abund: 1000
+SOURMASH_cutoff: 0.40
 
 #####################
 # Analysis parameters
