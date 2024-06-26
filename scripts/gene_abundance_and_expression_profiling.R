@@ -68,9 +68,9 @@ make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
 
     logmsg("Processing ", type, " data")
 
-    # Write csv file
-    logmsg(" Writing CSV file")
-    fwrite(profile, file=paste0(output_dir, '/', label, '.csv'), row.names = F, quote = F)
+    # Write tsv file
+    logmsg(" Writing TSV file")
+    fwrite(profile, file=paste0(output_dir, '/', label, '.tsv'), sep = "\t", row.names = F, quote = F)
 
     # Prepare phyloseq
     logmsg(" Making phyloseq")
@@ -82,7 +82,7 @@ make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
     logmsg(" Writing phyloseq")
     qsave(physeq,
           file = paste0(phyloseq_dir, '/', label, '.qs'),
-          preset = "balanced",
+          preset = "high",
           nthreads = threads_n,
          )
 }
@@ -112,7 +112,7 @@ setkey(gene_annot_dt, ID)
 logmsg("  done")
 logmsg("  annot: ", dim(gene_annot_dt))
 
-# Read the TPM/MG normalized profile csv file for this omics
+# Read the TPM/MG normalized profile tsv file for this omics
 logmsg("Reading profile")
 gene_profile_dt <- fread(profiles_tpm, header=T)
 logmsg("  done")
@@ -349,8 +349,7 @@ if (omics == 'metaG_metaT') {
 }
 
 
-# Write annotations into csv file
-#    Replace , by ; in annotations, since output will be csv
+# Write annotations into tsv file
 #    Replace NA by "-" to catch later
 #    Concat all annotations
 #    Remove empty annotations (meaning '-' in every column
@@ -359,7 +358,7 @@ logmsg("Removing empty annotations")
 logmsg("  Before  : ", dim(gene_annot_dt))
 gene_annot_dt <- (
                   gene_annot_dt
-                  [, lapply(.SD, function(x) str_replace_all(str_replace_na(x, replacement="-"), pattern=",", replacement=";"))]
+                  [, lapply(.SD, function(x) str_replace_na(x, replacement="-"))]
                   [, annot := do.call(paste, c(.SD, sep = "")), .SDcols = funcat_names]
                  )
 setkey(gene_annot_dt, annot)
@@ -369,7 +368,8 @@ logmsg("  After   : ", dim(gene_annot_dt))
 logmsg("  done")
 logmsg("Writing out annotations")
 fwrite(gene_annot_dt,
-       file = paste0(output_dir, '/Annotations.csv'),
+       file = paste0(output_dir, '/Annotations.tsv'),
+       sep = '\t',
        row.names = FALSE,
        quote = FALSE)
 logmsg("  done")

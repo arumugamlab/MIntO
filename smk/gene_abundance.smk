@@ -193,7 +193,7 @@ def combined_genome_profiles():
     return(result)
 
 def combined_gene_abundance_profiles():
-    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/{label}.p{identity}.{norm}.csv",
+    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/{label}.p{identity}.{norm}.tsv",
                 label = 'gene_abundances',
                 wd = working_dir,
                 omics = omics,
@@ -508,7 +508,7 @@ rule merge_msamtools_gene_mapping_profiles:
                                             identity = wildcards.identity,
                                             sample=ilmn_samples)
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.TPM.csv"
+        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.TPM.tsv"
     params:
         topdir = lambda wildcards, input: os.path.commonpath(input.single),
         files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
@@ -810,7 +810,7 @@ rule gene_abund_normalization:
     input:
         unpack(get_gene_abund_normalization_input)
     output:
-        norm_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{norm}.csv"
+        norm_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{norm}.tsv"
     params:
         mapped_reads_threshold=config["MIN_mapped_reads"],
         optional_arg_MG = lambda wildcards, input: "" if wildcards.norm == "TPM" else "--MG " + input.genomes_marker_genes

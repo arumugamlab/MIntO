@@ -31,8 +31,6 @@ setDTthreads(threads = threads_n)
 
 ## GENE ABUNDANCES per SAMPLE
 # Load data - raw counts
-# Calculate gene length
-# Remove useless columns
 gene_abundance <- fread(gene_abund_bed, header=T, data.table=TRUE)
 setkey(gene_abundance, ID)
 

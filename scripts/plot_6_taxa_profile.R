@@ -203,7 +203,7 @@ otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq_ra)), stringsAs
 otu_table_df$taxa_ID <- rownames(otu_table_df)
 rownames(otu_table_df) <- NULL
 otu_taxa_merge <- merge(otu_table_df, taxa_table_df, by = 'taxa_ID' , all.x = T)
-write.csv(otu_taxa_merge, paste0(out_dir, '/', profile_param, ".csv"), row.names = F, quote = F)
+fwrite(otu_taxa_merge, file = paste0(out_dir, '/', profile_param, ".tsv"), sep = '\t', row.names = F, quote = F)
 
 # Filter by mOTUs present in the data
 otu_taxa_filt_df = otu_taxa_merge[rowSums(otu_taxa_merge[, 2:ncol(otu_table_df)])>0,]

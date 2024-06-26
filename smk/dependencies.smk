@@ -165,7 +165,7 @@ def motus_db_out():
         if (flag.lower() in ('no', 'false', '0')):
             return(list())
 
-    result=expand("{minto_dir}/logs/motus_{motus_version}.download_db.log",
+    result=expand("{minto_dir}/data/motus/db.{motus_version}.downloaded",
         minto_dir=minto_dir,
         motus_version=motus_version)
     return(result)
@@ -591,15 +591,15 @@ rule download_phylophlan_db:
     shell:
         """
         time (
-            tar xvfz {minto_dir}/tutorial/genomes.tar.gz
-            phylophlan_metagenomic --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp
+            tar xfz {minto_dir}/tutorial/genomes.tar.gz
+            phylophlan_metagenomic --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp --only_input
             if [ $? -eq 0 ]; then
                 echo 'phylophlan download: OK'
             else
                 echo 'phylophlan download: FAIL'
             fi
-            rm {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.tar
-            rm {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.md5
+            rm -f {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.tar
+            rm -f {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.md5
         ) &> {log}
         """
 
