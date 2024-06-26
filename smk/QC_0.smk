@@ -11,7 +11,8 @@ Authors: Carmen Saenz, Mani Arumugam, Judit Szarvas
 # import sys
 import re
 from os import path, scandir
-
+import pandas as pd
+from glob import glob
 
 localrules: qc0_fake_move_for_multiqc, qc0_create_multiqc, \
             qc1_check_read_length_merge, qc1_cumulative_read_len_plot, \
@@ -60,24 +61,37 @@ if 'ILLUMINA_suffix' in config and config["ILLUMINA_suffix"] is not None:
 # Make list of illumina samples, if ILLUMINA in config
 ilmn_samples = list()
 ilmn_samples_organisation = "folder"
+ilmn_runs_df = None
 if 'ILLUMINA' in config:
     # column_name specified option
     if isinstance(config["ILLUMINA"], str):
-        import pandas as pd
-        from glob import glob
-        col_name = config["ILLUMINA"]
-        md_df = pd.read_table(metadata)
-        if not col_name in md_df.columns:
-            raise TypeError('ERROR in ', config_path, ': column name specified for ILLUMINA does not exist in metadata sheet. Please, complete ', config_path)
-        for sampleid in md_df[col_name].to_list():
-            sample_pattern = "{}/{}[.-_]{}".format(raw_dir, sampleid, ilmn_suffix[0])
-            if glob(sample_pattern):
-                ilmn_samples.append(sampleid)
-            else:
-                print('WARNING in ', metadata, ': sample ', sampleid, 'not in bulk data folder ', raw_dir)
-        location = "{}/{}".format(raw_dir, ilmn_samples[0])
-        if not path.exists(location) or not path.isdir(location):
-            ilmn_samples_organisation = "bulk"
+        ilmn_samples_organisation = "bulk"
+        if path.exists(config["ILLUMINA"]) and path.isfile(config["ILLUMINA"]):
+            # extra runs sheet
+            print('MIntO uses', config["ILLUMINA"], 'as sample list')
+            col_name = "sample"
+            ilmn_runs_df = pd.read_table(config["ILLUMINA"])
+            for sampleid in ilmn_runs_df['sample'].unique():
+                for runid in ilmn_runs_df.loc[ilmn_runs_df['sample'] == sampleid]['run'].to_list():
+                    #print(sampleid, runid)
+                    sample_pattern = "{}/{}[.-_]{}".format(raw_dir, runid, ilmn_suffix[0])
+                    if glob(sample_pattern):
+                        if sampleid not in ilmn_samples:
+                            ilmn_samples.append(sampleid)
+                    else:
+                        print('WARNING: sample ', sample_pattern, 'not in bulk data folder ', raw_dir)
+        else:
+            # column name in metadata sheet
+            col_name = config["ILLUMINA"]
+            md_df = pd.read_table(metadata)
+            if not col_name in md_df.columns:
+                raise Exception(f"ERROR in {config_path}: column name specified for ILLUMINA does not exist in metadata or runs sheet. Please, complete {config_path}")
+            for sampleid in md_df[col_name].to_list():
+                sample_pattern = "{}/{}[.-_]{}".format(raw_dir, sampleid, ilmn_suffix[0])
+                if glob(sample_pattern) and sampleid not in ilmn_samples:
+                    ilmn_samples.append(sampleid)
+                else:
+                    print('WARNING in ', metadata, ': sample ', sampleid, 'not in bulk data folder ', raw_dir)
     # listed samples
     else:
         for ilmn in config["ILLUMINA"]:
@@ -85,7 +99,7 @@ if 'ILLUMINA' in config:
             if path.exists(location):
                 ilmn_samples.append(ilmn)
             else:
-                raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
+                raise Exception(f"ERROR: {location} in raw_dir does not exist. Please, locate {ilmn}")
 
 # trimming options
 adapter_trimming_args = ""
@@ -140,35 +154,27 @@ rule all:
 ###############################################################################################
 
 # Get a sorted list of runs for a sample
-# Only for samples in individual folders
 
 def get_runs_for_sample(sample):
     runs = [sample]
     if ilmn_samples_organisation == "folder":
         sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
-        runs = [ f.name.split(ilmn_suffix[0])[0][:-1] for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
-    #print(runs)
+        runs = [ f.name.split(ilmn_suffix[0])[0][:-1] for f in scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
+    elif ilmn_runs_df is not None:
+        runs = ilmn_runs_df.loc[ilmn_runs_df['sample'] == sample]['run'].to_list()
     return(sorted(runs))
 
 # Get files for a run
 
 def get_raw_reads_for_sample_run(wildcards):
-    from glob import glob
-    prefix = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=wildcards.sample)
+    prefix = '{raw_dir}/{run}'.format(raw_dir=raw_dir, run=wildcards.run)
     if ilmn_samples_organisation == "folder":
         prefix = '{raw_dir}/{sample}/{run}'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
     raw_sample_run = {}
-    for i, k in enumerate(['read_fw', 'read_rev']):
+    for i, k in enumerate(['read_fw', 'read_rv']):
         raw_sample_run[k] = glob("{}[.-_]{}".format(prefix, ilmn_suffix[i]))[0]
     return raw_sample_run
 
-# Get file for infering index
-
-def get_example_to_infer_index(sample):
-    sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
-    runs = [ path.normpath(f) for f in scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
-    #print(runs)
-    return(runs[0])
 
 ##########
 # FastQC of the initial raw data

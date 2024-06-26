@@ -10,7 +10,9 @@ Authors: Carmen Saenz, Mani Arumugam
 # configuration yaml file
 # import sys
 import re
-from os import path
+from os import path, scandir
+import pandas as pd
+from glob import glob
 
 localrules: qc1_check_read_length_merge, qc1_cumulative_read_len_plot, qc2_config_yml_file
 
@@ -68,22 +70,53 @@ if 'TRIMMOMATIC_simple_clip_threshold' in config:
 if config['perc_remaining_reads'] is None:
     print('ERROR in ', config_path, ': perc_remaining_reads variable is empty. Please, complete ', config_path)
 
+# file suffixes
+ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
+if 'ILLUMINA_suffix' in config and config["ILLUMINA_suffix"] is not None:
+    ilmn_suffix = config["ILLUMINA_suffix"]
+
 # Make list of illumina samples, if ILLUMINA in config
-try:
-    # Make list of illumina samples, if ILLUMINA in config
-    ilmn_samples = list()
-    if 'ILLUMINA' in config:
-        #print("Samples:")
+ilmn_samples = list()
+ilmn_samples_organisation = "folder"
+ilmn_runs_df = None
+if 'ILLUMINA' in config:
+    # column_name specified option
+    if isinstance(config["ILLUMINA"], str):
+        ilmn_samples_organisation = "bulk"
+        if path.exists(config["ILLUMINA"]) and path.isfile(config["ILLUMINA"]):
+            # extra runs sheet
+            print('MIntO uses', config["ILLUMINA"], 'as sample list')
+            col_name = "sample"
+            ilmn_runs_df = pd.read_table(config["ILLUMINA"])
+            for sampleid in ilmn_runs_df['sample'].unique():
+                for runid in ilmn_runs_df.loc[ilmn_runs_df['sample'] == sampleid]['run'].to_list():
+                    #print(sampleid, runid)
+                    sample_pattern = "{}/{}[.-_]{}".format(raw_dir, runid, ilmn_suffix[0])
+                    if glob(sample_pattern):
+                        if sampleid not in ilmn_samples:
+                            ilmn_samples.append(sampleid)
+                    else:
+                        raise Exception(f"ERROR: {sample_pattern} not in bulk data folder {raw_dir}")
+        else:
+            # column name in metadata sheet
+            col_name = config["ILLUMINA"]
+            md_df = pd.read_table(metadata)
+            if not col_name in md_df.columns:
+                raise Exception(f"ERROR in {config_path}: column name specified for ILLUMINA does not exist in metadata or runs sheet. Please, complete {config_path}")
+            for sampleid in md_df[col_name].to_list():
+                sample_pattern = "{}/{}[.-_]{}".format(raw_dir, sampleid, ilmn_suffix[0])
+                if glob(sample_pattern) and sampleid not in ilmn_samples:
+                    ilmn_samples.append(sampleid)
+                else:
+                    raise Exception(f"ERROR: {sample_pattern} not in bulk data folder {raw_dir}")
+    # listed samples
+    else:
         for ilmn in config["ILLUMINA"]:
             location = "{}/{}".format(raw_dir, ilmn)
-            if path.exists(location) is True:
-                #print(fwd)
+            if path.exists(location):
                 ilmn_samples.append(ilmn)
             else:
-                raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
-except:
-    print('ERROR in', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete', config_path)
-
+                raise Exception(f"ERROR: {location} in raw_dir does not exist. Please, locate {ilmn}")
 
 # Define all the outputs needed by target 'all'
 
@@ -91,7 +124,7 @@ def qc1_check_read_length_output():
     result = expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt",
                     wd = working_dir,
                     omics = omics,
-                    sample = config["ILLUMINA"] if "ILLUMINA" in config else [],
+                    sample = ilmn_samples,
                     group = ['1', '2']),\
     expand("{wd}/{omics}/1-trimmed/samples_read_length.txt",
                     wd = working_dir,
@@ -112,8 +145,6 @@ def qc1_config_yml_output():
 
 rule all:
     input:
-        #qc1_trim_quality_output(),
-        #qc1_check_read_length_output(),
         qc1_read_length_cutoff_output(),
         qc1_config_yml_output(),
         print_versions.get_version_output(snakefile_name)
@@ -128,34 +159,35 @@ rule all:
 # Get a sorted list of runs for a sample
 
 def get_runs_for_sample(sample):
-    sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
-    runs = [ re.sub(".1\.(fq|fastq)\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and (f.name.endswith('1.fq.gz') or f.name.endswith('1.fastq.gz')) ]
-    #print(runs)
+    runs = [sample]
+    if ilmn_samples_organisation == "folder":
+        sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
+        runs = [ f.name.split(ilmn_suffix[0])[0][:-1] for f in scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
+    elif ilmn_runs_df is not None:
+        runs = ilmn_runs_df.loc[ilmn_runs_df['sample'] == sample]['run'].to_list()
     return(sorted(runs))
 
 # Get files for a run
 
 def get_raw_reads_for_sample_run(wildcards):
-    prefix = '{raw_dir}/{sample}/{run}'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
-    for ext in ['fq', 'fastq']:
-        if path.exists(prefix+'.1.'+ext+'.gz'):
-            return {
-                    'read_fw': '{raw_dir}/{sample}/{run}.1.{ext}.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run, ext=ext),
-                    'read_rv': '{raw_dir}/{sample}/{run}.2.{ext}.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run, ext=ext)
-                    }
-        elif path.exists(prefix+'_1.'+ext+'.gz'):
-            return {
-                    'read_fw': '{raw_dir}/{sample}/{run}_1.{ext}.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run, ext=ext),
-                    'read_rv': '{raw_dir}/{sample}/{run}_2.{ext}.gz'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run, ext=ext)
-                    }
+    prefix = '{raw_dir}/{run}'.format(raw_dir=raw_dir, run=wildcards.run)
+    if ilmn_samples_organisation == "folder":
+        prefix = '{raw_dir}/{sample}/{run}'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
+    raw_sample_run = {}
+    for i, k in enumerate(['read_fw', 'read_rv']):
+        raw_sample_run[k] = glob("{}[.-_]{}".format(prefix, ilmn_suffix[i]))[0]
+    return raw_sample_run
 
 # Get file for infering index
 
 def get_example_to_infer_index(sample):
-    sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
-    runs = [ os.path.normpath(f) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('1.fq.gz') ]
-    #print(runs)
-    return(runs[0])
+    runs = get_runs_for_sample(sample)
+    if ilmn_samples_organisation == "folder":
+        sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
+        example_fqs = [ path.normpath(f) for f in scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
+    else:
+        example_fqs = glob("{}/{}[.-_]{}".format(raw_dir, runs[0], ilmn_suffix[0]))
+    return(example_fqs[0])
 
 ##########
 # Index barcodes should be used for adaptor trimming
@@ -497,7 +529,6 @@ READ_minlen: $(cat {input.cutoff_file})
 # If not, a fasta file should exist as: <PATH_host_genome>/<NAME_host_genome>
 # This will be build into index files using:
 #    bwa-mem2 index -p <PATH_host_genome>/BWA_index/<NAME_host_genome> <PATH_host_genome>/<NAME_host_genome>
-# Please do not use '.fasta' or '.fa' or '.fna' extension for the fasta file. Name it without extension.
 
 PATH_host_genome:
 NAME_host_genome:
