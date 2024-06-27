@@ -18,7 +18,7 @@ metaphlan_index = 'mpa_vJun23_CHOCOPhlAnSGB_202403'
 metaphlan_version = '4.0.6'
 phylophlan_db_version = 'Jul20'
 motus_version = '3.0.3'
-gtdb_release_number = '214'
+gtdb_release_number = '220'
 
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
@@ -623,7 +623,7 @@ rule download_GTDB_db:
         time (
             mkdir -p {minto_dir}/data/GTDB/r{gtdb_release_number}
             cd {minto_dir}/data/GTDB
-            wget -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_r{gtdb_release_number}_data.tar.gz
+            wget -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r{gtdb_release_number}_data.tar.gz
             if [ $? -eq 0 ]; then
                 echo 'GTDB download: OK'
             else
