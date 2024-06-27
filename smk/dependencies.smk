@@ -14,7 +14,7 @@ include: 'include/cmdline_validator.smk'
 
 script_dir=workflow.basedir+"/../scripts"
 
-metaphlan_index = 'mpa_vOct22_CHOCOPhlAnSGB_202212'
+metaphlan_index = 'mpa_vJun23_CHOCOPhlAnSGB_202403'
 metaphlan_version = '4.0.6'
 phylophlan_db_version = 'Jul20'
 motus_version = '3.0.3'
