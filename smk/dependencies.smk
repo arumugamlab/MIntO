@@ -591,13 +591,23 @@ rule download_phylophlan_db:
     shell:
         """
         time (
+            # Get tutorial genomes
             tar xfz {minto_dir}/tutorial/genomes.tar.gz
-            phylophlan_metagenomic --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp --only_input
+
+            # Delete everything except one
+            cd genomes
+            rm $(ls | tail -n +2)
+            cd ..
+
+            # phylophlan DB download, if needed
+            phylophlan_metagenomic --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp
             if [ $? -eq 0 ]; then
                 echo 'phylophlan download: OK'
             else
                 echo 'phylophlan download: FAIL'
             fi
+
+            # Delete unnecessary files
             rm -f {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.tar
             rm -f {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.md5
         ) &> {log}
