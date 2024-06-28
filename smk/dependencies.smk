@@ -631,18 +631,21 @@ rule download_GTDB_db:
     shell:
         """
         time (
-            mkdir -p {minto_dir}/data/GTDB/r{gtdb_release_number}
-            cd {minto_dir}/data/GTDB
+            # Download in shadowdir
             wget --no-verbose -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r{gtdb_release_number}_data.tar.gz
             if [ $? -eq 0 ]; then
                 echo 'GTDB download: OK'
             else
                 echo 'GTDB download: FAIL'
             fi
-            tar xfz gtdb.tar.gz
+
+            # Now go to minto_dir
+            shadowdir=$(pwd)
+            cd {minto_dir}/data/GTDB
+            mkdir -p r{gtdb_release_number}
+            tar xfz $shadowdir/gtdb.tar.gz
             mv release{gtdb_release_number}/* r{gtdb_release_number}/
             rmdir release{gtdb_release_number}
-            rm gtdb.tar.gz
         ) &> {log}
         """
 
