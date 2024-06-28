@@ -766,7 +766,7 @@ TAXONOMY_DATABASE_FOLDER: {minto_dir}/data
 
 # Taxonomy database versions
 #
-PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jul20
+PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jun23
 GTDB_TAXONOMY_VERSION: r220" > {output.config_file}
 
 ) >& {log}

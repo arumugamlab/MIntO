@@ -700,7 +700,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     shell:
         """
         time (
-            phylophlan_metagenomic -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
+            phylophlan_assign_sgbs -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
         ) >& {log}
         rsync -a taxonomy.tsv {output}
         """

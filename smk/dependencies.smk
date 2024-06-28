@@ -16,7 +16,7 @@ script_dir=workflow.basedir+"/../scripts"
 
 metaphlan_index = 'mpa_vJun23_CHOCOPhlAnSGB_202403'
 metaphlan_version = '4.0.6'
-phylophlan_db_version = 'Jul20'
+phylophlan_db_version = 'Jun23'
 motus_version = '3.0.3'
 gtdb_release_number = '220'
 
@@ -582,8 +582,7 @@ rule download_phylophlan_db:
         "minimal"
     resources:
         mem=download_memory
-    threads:
-        download_threads
+    threads: 16
     log:
         "{minto_dir}/logs/phylophlan.SGB.{phylophlan_db_version}.download.log"
     conda:
@@ -600,7 +599,7 @@ rule download_phylophlan_db:
             cd ..
 
             # phylophlan DB download, if needed
-            phylophlan_metagenomic --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp
+            phylophlan_assign_sgbs --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp --nproc {threads}
             if [ $? -eq 0 ]; then
                 echo 'phylophlan download: OK'
             else

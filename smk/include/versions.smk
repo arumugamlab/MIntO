@@ -368,6 +368,7 @@ rule mags_ppl:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         phylophlan --version >> $VOUT
+        phylophlan_assign_sgbs --version >> $VOUT
         echo "phylophlan database {params.db}" >> $VOUT
         touch {output}
         """
