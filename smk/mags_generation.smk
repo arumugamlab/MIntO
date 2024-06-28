@@ -215,7 +215,7 @@ rule run_vamb_vae:
         cuda="{}".format("--cuda" if vamb_gpu == "yes" else ""),
         latent=lambda wildcards: int(int(wildcards.vbinner)/16)
     log:
-        "{wd}/logs/{omics}/mags_generation/run_vamb_vae{vbinner}.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/run_vamb_vae{vbinner}.log"
     resources:
         mem=config['VAMB_memory'],
         gpu=1 if vamb_gpu == "yes" else 0
@@ -256,7 +256,7 @@ rule run_vamb_aae:
     params:
         cuda="{}".format("--cuda" if vamb_gpu == "yes" else "")
     log:
-        "{wd}/logs/{omics}/mags_generation/run_vamb_aae.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/run_vamb_aae.log"
     resources:
         mem=config['VAMB_memory'],
         gpu=1 if vamb_gpu == "yes" else 0
@@ -317,7 +317,7 @@ rule make_avamb_mags:
         min_mag_length = config["MIN_MAG_LENGTH"],
         binsplit_char = config["BINSPLIT_CHAR"]
     log:
-        "{wd}/logs/{omics}/mags_generation/avamb_{binner}.take_all_genomes_for_each_run.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/avamb_{binner}.take_all_genomes_for_each_run.log"
     resources:
         mem=10
     threads:
@@ -415,7 +415,7 @@ rule merge_checkm_batches:
     output:
         binner_combined = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt"
     log:
-        "{wd}/logs/{omics}/mags_generation/{binner}.checkM.merge.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/{binner}.checkM.merge.log"
     resources:
         mem=10
     threads:
@@ -451,7 +451,7 @@ rule collect_genomes_from_all_binners:
         all_genomes = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all"),
         collected = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/collect_genomes.done"
     log:
-        collected = "{wd}/logs/{omics}/mags_generation/collect_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/collect_genomes.log"
     params:
         batch_size=5000
     shell:
@@ -484,7 +484,7 @@ rule make_comprehensive_table:
     output:
         checkm_total = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
     log:
-        "{wd}/logs/{omics}/mags_generation/make_comprehensive_table.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/make_comprehensive_table.log"
     resources:
         mem=10
     threads:
@@ -513,7 +513,7 @@ rule collect_HQ_genomes:
         completeness = config["CHECKM_COMPLETENESS"],
         contamination = config["CHECKM_CONTAMINATION"]
     log:
-        "{wd}/logs/{omics}/mags_generation/collect_HQ_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/collect_HQ_genomes.log"
     resources:
         mem=10
     threads:
@@ -550,7 +550,7 @@ rule run_coverm:
     params:
         HQ_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes"
     log:
-        "{wd}/logs/{omics}/mags_generation/run_coverm.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/run_coverm.log"
     resources:
         mem=config["COVERM_memory"]
     threads:
@@ -575,7 +575,7 @@ rule calculate_score_genomes:
         HQ_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes",
         score_method = config["SCORE_METHOD"]
     log:
-        "{wd}/logs/{omics}/mags_generation/calculate_score_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/calculate_score_genomes.log"
     resources:
         mem=10
     threads:
@@ -599,7 +599,7 @@ rule find_unique_and_best_genomes:
         scored = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster_scored.tsv",
         best_unique_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt"
     log:
-        "{wd}/logs/{omics}/mags_generation/find_unique_and_best_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/find_unique_and_best_genomes.log"
     resources:
         mem=10
     threads:
@@ -660,7 +660,7 @@ checkpoint copy_best_genomes:
     output:
         genome_dir = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes")
     log:
-        "{wd}/logs/{omics}/mags_generation/copy_best_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/copy_best_genomes.log"
     resources:
         mem=10
     threads:
@@ -688,7 +688,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     shadow:
         "minimal"
     log:
-        "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/taxonomy.phylophlan.{db_version}.log"
     params:
         db_folder=lambda wildcards: "{location}/phylophlan".format(location=taxonomy_db_folder)
     resources:
