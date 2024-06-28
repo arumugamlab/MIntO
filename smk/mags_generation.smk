@@ -538,7 +538,7 @@ rule collect_HQ_genomes:
                 source_file = params.all_genomes_folder +"/{}.fna".format(bin_id)
                 destination_file = output.HQ_folder  + "/{}.fna".format(bin_id)
                 print("[rule collect_HQ_genomes] Copying {} to {}".format(source_file, destination_file), file=f)
-                subprocess.call(["ln", "-s", source_file, destination_file])
+                subprocess.run(args=["ln", "-s", "--relative", source_file, destination_file], stdout=f, stderr=f)
 
 ## Run coverm on HQ genomes to create the .tsv file
 rule run_coverm:
