@@ -232,7 +232,7 @@ rule rRNA_db_download:
         """
         mkdir -p {wildcards.somewhere}/rRNA_databases
         cd {wildcards.somewhere}/rRNA_databases
-        wget --quiet https://raw.githubusercontent.com/biocore/sortmerna/master/data/rRNA_databases/{wildcards.something}.fasta
+        wget --no-verbose https://raw.githubusercontent.com/biocore/sortmerna/master/data/rRNA_databases/{wildcards.something}.fasta
         """
 
 def get_rRNA_db_index_input(wildcards):
@@ -326,7 +326,7 @@ rule Kofam_db:
             cd {minto_dir}/data/kofam_db/
 
             # Get kofam databases
-            wget ftp://ftp.genome.jp/pub/db/kofam/*
+            wget --no-verbose ftp://ftp.genome.jp/pub/db/kofam/*
             gunzip ko_list.gz
             tar -zxvf profiles.tar.gz
 
@@ -559,7 +559,7 @@ rule download_fetchMGs:
         """
         time (
             cd {minto_dir}/data/
-            wget -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs.pl/archive/refs/tags/v1.2.tar.gz
+            wget --no-verbose -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs.pl/archive/refs/tags/v1.2.tar.gz
             tar xfz fetchMGs-1.2.tar.gz && mv fetchMGs.pl-1.2 fetchMGs-1.2
             if [ $? -eq 0 ]; then
                 echo 'fetchMGs download: OK'
@@ -623,7 +623,7 @@ rule download_GTDB_db:
         time (
             mkdir -p {minto_dir}/data/GTDB/r{gtdb_release_number}
             cd {minto_dir}/data/GTDB
-            wget -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r{gtdb_release_number}_data.tar.gz
+            wget --no-verbose -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r{gtdb_release_number}_data.tar.gz
             if [ $? -eq 0 ]; then
                 echo 'GTDB download: OK'
             else
