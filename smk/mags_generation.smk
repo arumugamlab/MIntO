@@ -482,7 +482,7 @@ rule make_comprehensive_table:
                                 omics=wildcards.omics,
                                 binner = config['BINNERS'])
     output:
-        checkm_total = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
+        checkm_all = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/make_comprehensive_table.log"
     resources:
@@ -498,15 +498,15 @@ rule make_comprehensive_table:
             li.append(df)
         all_checkm_output = pd.concat(li, axis=0, ignore_index=True)
         # save the file with all the checkm in the same file
-        all_checkm_output.to_csv("{}".format(output.checkm_total), sep = "\t", index = False)
+        all_checkm_output.to_csv("{}".format(output.checkm_all), sep = "\t", index = False)
 
 ## Copy HQ genomes inside HQ_genomes folder
 rule collect_HQ_genomes:
     input:
-        checkm_total = rules.make_comprehensive_table.output,
+        checkm_all = rules.make_comprehensive_table.output,
         collected = rules.collect_genomes_from_all_binners.output.collected
     output:
-        HQ_table="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv",
+        checkm_HQ="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv",
         HQ_folder=directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes")
     params:
         all_genomes_folder = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all/",
@@ -521,11 +521,11 @@ rule collect_HQ_genomes:
     run:
         import subprocess
         import pandas as pd
-        # open the checkm_comprhrensive table
-        checkm_results=pd.read_csv(str(input.checkm_total), sep = "\t")
+        # open the checkm_comprehensive table
+        checkm_results=pd.read_csv(str(input.checkm_all), sep = "\t")
         # take and save the HQ table
         HQ_checkm_results = checkm_results[(checkm_results["Completeness"] >= params.completeness) & (checkm_results["Contamination"] <= params.contamination)]
-        HQ_checkm_results.to_csv(output.HQ_table, sep = "\t", index = False)
+        HQ_checkm_results.to_csv(output.checkm_HQ, sep = "\t", index = False)
         # create the path for copying the genomes
         try:
             os.mkdir(output.HQ_folder)
@@ -543,8 +543,7 @@ rule collect_HQ_genomes:
 ## Run coverm on HQ genomes to create the .tsv file
 rule run_coverm:
     input:
-        HQ_table=rules.collect_HQ_genomes.output.HQ_table,
-        checkm_total = rules.make_comprehensive_table.output
+        checkm_HQ=rules.collect_HQ_genomes.output.checkm_HQ
     output:
         cluster_tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
     params:
@@ -560,7 +559,7 @@ rule run_coverm:
     shell:
         """
         time (
-            coverm cluster --genome-fasta-directory {params.HQ_folder} --checkm2-quality-report {input.checkm_total} -x fna --cluster-method fastani --ani 99 --fragment-length 2500 --min-aligned-fraction 30 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch --precluster-ani 93
+            coverm cluster --genome-fasta-directory {params.HQ_folder} --checkm2-quality-report {input.checkm_HQ} -x fna --cluster-method fastani --ani 99 --fragment-length 2500 --min-aligned-fraction 30 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch --precluster-ani 93
         ) &> {log}
         """
 
@@ -568,7 +567,7 @@ rule run_coverm:
 rule calculate_score_genomes:
     input:
         cluster_tsv = rules.run_coverm.output.cluster_tsv,
-        HQ_table = rules.collect_HQ_genomes.output.HQ_table
+        checkm_HQ = rules.collect_HQ_genomes.output.checkm_HQ
     output:
         scored_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
     params:
@@ -585,7 +584,7 @@ rule calculate_score_genomes:
     shell:
         """
         time (
-            python {script_dir}/calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}
+            python {script_dir}/calculate_genomes_score.py --checkm_output {input.checkm_HQ} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}
         ) &> {log}
         """
 
