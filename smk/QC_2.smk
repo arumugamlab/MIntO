@@ -251,22 +251,22 @@ with open(minto_dir + "/data/metaphlan/" + metaphlan_version + "/mpa_latest", 'r
 def taxonomy_plot_output():
 
     results = list()
-    profiles = expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
+    profiles = [expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
                 wd = working_dir,
                 omics = omics,
-                taxonomy = taxonomies_versioned),\
+                taxonomy = taxonomies_versioned),
             expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.merged_abundance_table_species.txt",
                 wd = working_dir,
                 omics = omics,
-                taxonomy = taxonomies_versioned)
-    plots = expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf",
+                taxonomy = taxonomies_versioned)]
+    plots = [expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf",
                 wd = working_dir,
                 omics = omics,
-                taxonomy = taxonomies_versioned),\
+                taxonomy = taxonomies_versioned),
             expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf",
                 wd = working_dir,
                 omics = omics,
-                taxonomy = taxonomies_versioned)
+                taxonomy = taxonomies_versioned)]
     results.append(profiles)
     results.append(plots)
     return(results)
@@ -296,11 +296,9 @@ if 'MERGE_ILLUMINA_SAMPLES' in config:
         return(result)
 
 def next_step_config_yml_output():
-    result = expand("{wd}/{omics}/assembly.yaml",
+    result = expand("{wd}/{omics}/{yaml}.yaml",
                 wd = working_dir,
-                omics = omics),\
-             expand("{wd}/{omics}/mapping.yaml",
-                wd = working_dir,
+                yaml = ['assembly', 'mapping'],
                 omics = omics)
     return(result)
 
