@@ -95,6 +95,16 @@ if [ ! -d "IBD_tutorial_raw" ]; then
 fi
 echo ""
 
+# Symlink samples for testing bulk mode
+
+if [[ "$1" = "--bulk" ]]; then
+  mkdir -p IBD_tutorial_bulk/metaG
+  for SAMPLE in CD136 CD140 CD237 CD240;
+  do
+    find $PWD/IBD_tutorial_raw/metaG/${SAMPLE} -type f -exec ln -s {} IBD_tutorial_bulk/metaG/ \;
+  done
+fi
+
 # Extract ref-genome
 
 tar xfz $MINTO_DIR/tutorial/genomes.tar.gz
@@ -125,6 +135,13 @@ for OMICS in metaG metaT; do
   cd $OMICS
 
   COMMAND_LOG="commands_${OMICS}.txt"
+
+  if [[ "$1" == "--bulk" && "$OMICS" == "metaG" ]]; then
+      echo -n "QC_1 bulk: "
+      cat $MINTO_DIR/testing/QC_1.bulk.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__TEST_DIR__>@$TEST_DIR@;s@<__OMICS__>@$OMICS@;" > QC_1.bulk.yaml
+      cmd="snakemake --snakefile $CODE_DIR/smk/QC_1.smk --configfile QC_1.bulk.yaml $SNAKE_PARAMS >& QC_1_bulk.log"
+      profile_command "$cmd"
+  fi
 
   echo -n "QC_1: "
   cat $MINTO_DIR/testing/QC_1.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__TEST_DIR__>@$TEST_DIR@;s@<__OMICS__>@$OMICS@;" > QC_1.yaml
