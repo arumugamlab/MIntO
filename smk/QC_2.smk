@@ -556,7 +556,7 @@ if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != No
 # But changing '{sample}.{taxonomy}' to '{sample}.{taxonomy}.{version}' leads to trouble as metaphlan's combining script infers the
 # sample name by removing the word after the last dot. If we named files as 'D1.metaphlan.4.0.6', then the combined table lists this
 # sample as 'D1.metaphlan.4.0'. This disagrees with the sample metadata and difficult to recover. So we now add '.tsv' extension to
-# profile output, let metaphlan remove the '.tsv', and then remove '{taxonomy}.{version}' ourselves. This is the history behing
+# profile output, let metaphlan remove the '.tsv', and then remove '{taxonomy}.{version}' ourselves. This is the history behind
 # naming profile outputs as '{sample}.{taxonomy}.{version}.tsv'.
 
 # MetaPhlAn cannot take multiple runs per sample.
