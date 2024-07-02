@@ -619,6 +619,8 @@ rule download_phylophlan_db:
 rule download_GTDB_db:
     output:
         "{minto_dir}/data/GTDB/r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv"
+    shadow:
+        "minimal"
     resources:
         mem=download_memory
     threads:
