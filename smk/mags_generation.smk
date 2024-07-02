@@ -215,7 +215,7 @@ rule run_vamb_vae:
         cuda="{}".format("--cuda" if vamb_gpu == "yes" else ""),
         latent=lambda wildcards: int(int(wildcards.vbinner)/16)
     log:
-        "{wd}/logs/{omics}/mags_generation/run_vamb_vae{vbinner}.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/run_vamb_vae{vbinner}.log"
     resources:
         mem=config['VAMB_memory'],
         gpu=1 if vamb_gpu == "yes" else 0
@@ -256,7 +256,7 @@ rule run_vamb_aae:
     params:
         cuda="{}".format("--cuda" if vamb_gpu == "yes" else "")
     log:
-        "{wd}/logs/{omics}/mags_generation/run_vamb_aae.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/run_vamb_aae.log"
     resources:
         mem=config['VAMB_memory'],
         gpu=1 if vamb_gpu == "yes" else 0
@@ -317,7 +317,7 @@ rule make_avamb_mags:
         min_mag_length = config["MIN_MAG_LENGTH"],
         binsplit_char = config["BINSPLIT_CHAR"]
     log:
-        "{wd}/logs/{omics}/mags_generation/avamb_{binner}.take_all_genomes_for_each_run.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/avamb_{binner}.take_all_genomes_for_each_run.log"
     resources:
         mem=10
     threads:
@@ -415,7 +415,7 @@ rule merge_checkm_batches:
     output:
         binner_combined = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt"
     log:
-        "{wd}/logs/{omics}/mags_generation/{binner}.checkM.merge.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/{binner}.checkM.merge.log"
     resources:
         mem=10
     threads:
@@ -451,7 +451,7 @@ rule collect_genomes_from_all_binners:
         all_genomes = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all"),
         collected = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/collect_genomes.done"
     log:
-        collected = "{wd}/logs/{omics}/mags_generation/collect_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/collect_genomes.log"
     params:
         batch_size=5000
     shell:
@@ -482,9 +482,9 @@ rule make_comprehensive_table:
                                 omics=wildcards.omics,
                                 binner = config['BINNERS'])
     output:
-        checkm_total = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
+        checkm_all = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
     log:
-        "{wd}/logs/{omics}/mags_generation/make_comprehensive_table.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/make_comprehensive_table.log"
     resources:
         mem=10
     threads:
@@ -498,22 +498,22 @@ rule make_comprehensive_table:
             li.append(df)
         all_checkm_output = pd.concat(li, axis=0, ignore_index=True)
         # save the file with all the checkm in the same file
-        all_checkm_output.to_csv("{}".format(output.checkm_total), sep = "\t", index = False)
+        all_checkm_output.to_csv("{}".format(output.checkm_all), sep = "\t", index = False)
 
 ## Copy HQ genomes inside HQ_genomes folder
 rule collect_HQ_genomes:
     input:
-        checkm_total = rules.make_comprehensive_table.output,
+        checkm_all = rules.make_comprehensive_table.output,
         collected = rules.collect_genomes_from_all_binners.output.collected
     output:
-        HQ_table="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv",
+        checkm_HQ="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm.tsv",
         HQ_folder=directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes")
     params:
         all_genomes_folder = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all/",
         completeness = config["CHECKM_COMPLETENESS"],
         contamination = config["CHECKM_CONTAMINATION"]
     log:
-        "{wd}/logs/{omics}/mags_generation/collect_HQ_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/collect_HQ_genomes.log"
     resources:
         mem=10
     threads:
@@ -521,11 +521,11 @@ rule collect_HQ_genomes:
     run:
         import subprocess
         import pandas as pd
-        # open the checkm_comprhrensive table
-        checkm_results=pd.read_csv(str(input.checkm_total), sep = "\t")
+        # open the checkm_comprehensive table
+        checkm_results=pd.read_csv(str(input.checkm_all), sep = "\t")
         # take and save the HQ table
         HQ_checkm_results = checkm_results[(checkm_results["Completeness"] >= params.completeness) & (checkm_results["Contamination"] <= params.contamination)]
-        HQ_checkm_results.to_csv(output.HQ_table, sep = "\t", index = False)
+        HQ_checkm_results.to_csv(output.checkm_HQ, sep = "\t", index = False)
         # create the path for copying the genomes
         try:
             os.mkdir(output.HQ_folder)
@@ -538,19 +538,18 @@ rule collect_HQ_genomes:
                 source_file = params.all_genomes_folder +"/{}.fna".format(bin_id)
                 destination_file = output.HQ_folder  + "/{}.fna".format(bin_id)
                 print("[rule collect_HQ_genomes] Copying {} to {}".format(source_file, destination_file), file=f)
-                subprocess.call(["ln", "-s", source_file, destination_file])
+                subprocess.run(args=["ln", "-s", "--relative", source_file, destination_file], stdout=f, stderr=f)
 
 ## Run coverm on HQ genomes to create the .tsv file
 rule run_coverm:
     input:
-        HQ_table=rules.collect_HQ_genomes.output.HQ_table,
-        checkm_total = rules.make_comprehensive_table.output
+        checkm_HQ=rules.collect_HQ_genomes.output.checkm_HQ
     output:
         cluster_tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster.tsv"
     params:
         HQ_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes"
     log:
-        "{wd}/logs/{omics}/mags_generation/run_coverm.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/run_coverm.log"
     resources:
         mem=config["COVERM_memory"]
     threads:
@@ -560,7 +559,7 @@ rule run_coverm:
     shell:
         """
         time (
-            coverm cluster --genome-fasta-directory {params.HQ_folder} --checkm2-quality-report {input.checkm_total} -x fna --cluster-method fastani --ani 99 --fragment-length 2500 --min-aligned-fraction 30 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch --precluster-ani 93
+            coverm cluster --genome-fasta-directory {params.HQ_folder} --checkm2-quality-report {input.checkm_HQ} -x fna --cluster-method fastani --ani 99 --fragment-length 2500 --min-aligned-fraction 30 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch --precluster-ani 93
         ) &> {log}
         """
 
@@ -568,14 +567,14 @@ rule run_coverm:
 rule calculate_score_genomes:
     input:
         cluster_tsv = rules.run_coverm.output.cluster_tsv,
-        HQ_table = rules.collect_HQ_genomes.output.HQ_table
+        checkm_HQ = rules.collect_HQ_genomes.output.checkm_HQ
     output:
         scored_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
     params:
         HQ_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes",
         score_method = config["SCORE_METHOD"]
     log:
-        "{wd}/logs/{omics}/mags_generation/calculate_score_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/calculate_score_genomes.log"
     resources:
         mem=10
     threads:
@@ -585,7 +584,7 @@ rule calculate_score_genomes:
     shell:
         """
         time (
-            python {script_dir}/calculate_genomes_score.py --checkm_output {input.HQ_table} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}
+            python {script_dir}/calculate_genomes_score.py --checkm_output {input.checkm_HQ} --fasta_folder {params.HQ_folder} --output_file {output.scored_genomes} --score_method {params.score_method}
         ) &> {log}
         """
 
@@ -599,7 +598,7 @@ rule find_unique_and_best_genomes:
         scored = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/coverm_unique_cluster_scored.tsv",
         best_unique_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/best_unique_genomes.txt"
     log:
-        "{wd}/logs/{omics}/mags_generation/find_unique_and_best_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/find_unique_and_best_genomes.log"
     resources:
         mem=10
     threads:
@@ -660,7 +659,7 @@ checkpoint copy_best_genomes:
     output:
         genome_dir = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes")
     log:
-        "{wd}/logs/{omics}/mags_generation/copy_best_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/copy_best_genomes.log"
     resources:
         mem=10
     threads:
@@ -688,7 +687,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     shadow:
         "minimal"
     log:
-        "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.log"
+        "{wd}/logs/{omics}/8-1-binning/mags_generation/taxonomy.phylophlan.{db_version}.log"
     params:
         db_folder=lambda wildcards: "{location}/phylophlan".format(location=taxonomy_db_folder)
     resources:
@@ -700,7 +699,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     shell:
         """
         time (
-            phylophlan_metagenomic -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
+            phylophlan_assign_sgbs -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
         ) >& {log}
         rsync -a taxonomy.tsv {output}
         """

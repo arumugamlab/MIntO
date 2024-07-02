@@ -14,11 +14,11 @@ include: 'include/cmdline_validator.smk'
 
 script_dir=workflow.basedir+"/../scripts"
 
-metaphlan_index = 'mpa_vOct22_CHOCOPhlAnSGB_202212'
+metaphlan_index = 'mpa_vJun23_CHOCOPhlAnSGB_202403'
 metaphlan_version = '4.0.6'
-phylophlan_db_version = 'Jul20'
+phylophlan_db_version = 'Jun23'
 motus_version = '3.0.3'
-gtdb_release_number = '214'
+gtdb_release_number = '220'
 
 config_path = 'configuration yaml file' #args[args_idx+1]
 print(" *******************************")
@@ -232,7 +232,7 @@ rule rRNA_db_download:
         """
         mkdir -p {wildcards.somewhere}/rRNA_databases
         cd {wildcards.somewhere}/rRNA_databases
-        wget --quiet https://raw.githubusercontent.com/biocore/sortmerna/master/data/rRNA_databases/{wildcards.something}.fasta
+        wget --no-verbose https://raw.githubusercontent.com/biocore/sortmerna/master/data/rRNA_databases/{wildcards.something}.fasta
         """
 
 def get_rRNA_db_index_input(wildcards):
@@ -326,7 +326,7 @@ rule Kofam_db:
             cd {minto_dir}/data/kofam_db/
 
             # Get kofam databases
-            wget ftp://ftp.genome.jp/pub/db/kofam/*
+            wget --no-verbose ftp://ftp.genome.jp/pub/db/kofam/*
             gunzip ko_list.gz
             tar -zxvf profiles.tar.gz
 
@@ -559,7 +559,7 @@ rule download_fetchMGs:
         """
         time (
             cd {minto_dir}/data/
-            wget -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs.pl/archive/refs/tags/v1.2.tar.gz
+            wget --no-verbose -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs.pl/archive/refs/tags/v1.2.tar.gz
             tar xfz fetchMGs-1.2.tar.gz && mv fetchMGs.pl-1.2 fetchMGs-1.2
             if [ $? -eq 0 ]; then
                 echo 'fetchMGs download: OK'
@@ -582,8 +582,7 @@ rule download_phylophlan_db:
         "minimal"
     resources:
         mem=download_memory
-    threads:
-        download_threads
+    threads: 16
     log:
         "{minto_dir}/logs/phylophlan.SGB.{phylophlan_db_version}.download.log"
     conda:
@@ -591,13 +590,23 @@ rule download_phylophlan_db:
     shell:
         """
         time (
+            # Get tutorial genomes
             tar xfz {minto_dir}/tutorial/genomes.tar.gz
-            phylophlan_metagenomic --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp --only_input
+
+            # Delete everything except one
+            cd genomes
+            rm $(ls | tail -n +2)
+            cd ..
+
+            # phylophlan DB download, if needed
+            phylophlan_assign_sgbs --database_folder {minto_dir}/data/phylophlan -d SGB.{phylophlan_db_version} -i genomes -o tmp --nproc {threads}
             if [ $? -eq 0 ]; then
                 echo 'phylophlan download: OK'
             else
                 echo 'phylophlan download: FAIL'
             fi
+
+            # Delete unnecessary files
             rm -f {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.tar
             rm -f {minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.md5
         ) &> {log}
@@ -621,18 +630,21 @@ rule download_GTDB_db:
     shell:
         """
         time (
-            mkdir -p {minto_dir}/data/GTDB/r{gtdb_release_number}
-            cd {minto_dir}/data/GTDB
-            wget -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_r{gtdb_release_number}_data.tar.gz
+            # Download in shadowdir
+            wget --no-verbose -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r{gtdb_release_number}_data.tar.gz
             if [ $? -eq 0 ]; then
                 echo 'GTDB download: OK'
             else
                 echo 'GTDB download: FAIL'
             fi
-            tar xfz gtdb.tar.gz
+
+            # Now go to minto_dir
+            shadowdir=$(pwd)
+            cd {minto_dir}/data/GTDB
+            mkdir -p r{gtdb_release_number}
+            tar xfz $shadowdir/gtdb.tar.gz
             mv release{gtdb_release_number}/* r{gtdb_release_number}/
             rmdir release{gtdb_release_number}
-            rm gtdb.tar.gz
         ) &> {log}
         """
 

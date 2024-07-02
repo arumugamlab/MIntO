@@ -97,7 +97,7 @@ def predicted_genes_collate_out():
 rule all:
     input:
         predicted_genes_collate_out(),
-        "{wd}/DB/{subdir}/{filename}.bed".format(
+        "{wd}/DB/{subdir}/{filename}.bed.mini".format(
                     wd = working_dir,
                     subdir = MINTO_MODE,
                     filename = GENE_DB_TYPE),
@@ -263,7 +263,7 @@ def get_genome_bed(wildcards):
 # Replace 'score' in 5th column with 'length' = stop - start. This is BED, so no need for 'stop-start+1'.
 # Retain only first word in ID column
 # Write full info into full BED file.
-# Write only chr,start,stop,length,ID in mini BED file.
+# Write only chr,start,stop,length,ID and skip CRISPR in mini BED file.
 
 def process_genome_bed_list(input_list, output_full, output_mini, log_file):
     import pandas as pd
@@ -284,7 +284,7 @@ def process_genome_bed_list(input_list, output_full, output_mini, log_file):
                 df = df.replace(to_replace={'ID': r'[;\s].*'}, value='', regex=True)
                 df.to_csv(full, sep="\t", index=False, header=(i==0)) # Only write header the first time around
 
-                df = df.drop(drop_cols, axis='columns')
+                df = df.query('feature != "CRISPR"').drop(drop_cols, axis='columns')
                 df.to_csv(mini, sep="\t", index=False, header=False)
 
         logme(f, "INFO: done")

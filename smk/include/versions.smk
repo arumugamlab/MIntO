@@ -189,7 +189,7 @@ rule QC_2_mpl:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         metaphlan --version >> $VOUT
-        echo "metaphlan database $(basename $(ls {minto_dir}/data/metaphlan/{metaphlan_version}/*.csv) | sed 's|_VINFO.csv||')" >> $VOUT
+        echo "metaphlan database $(cat {minto_dir}/data/metaphlan/{metaphlan_version}/mpa_latest)" >> $VOUT
         touch {output}
         """
 
@@ -368,6 +368,7 @@ rule mags_ppl:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         phylophlan --version >> $VOUT
+        phylophlan_assign_sgbs --version >> $VOUT
         echo "phylophlan database {params.db}" >> $VOUT
         touch {output}
         """
