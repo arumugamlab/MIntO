@@ -108,17 +108,6 @@ elif type(config['CHECKM_CONTAMINATION']) != int:
 else:
     checkm_batch_size = config['CHECKM_BATCH_SIZE']
 
-checkm_db = None
-if config['CHECKM_DATABASE'] is None:
-   print('ERROR in', config_path, ': CHECKM_DATABASE variable is empty. Please, complete', config_path)
-elif path.exists(config['CHECKM_DATABASE']) is False:
-   print('ERROR in', config_path, ': CHECKM_DATABASE variable path does not exit. Please, complete', config_path)
-elif path.exists(config['CHECKM_DATABASE']) is True:
-   checkm_db = config["CHECKM_DATABASE"]
-
-if checkm_db is None:
-    raise Exception("CheckM2 database needs to be provided via CHECKM_DATABASE")
-
 if config['COVERM_THREADS'] is None:
     print('ERROR in ', config_path, ': COVERM_THREADS variable is empty. Please, complete ', config_path)
 elif type(config['COVERM_THREADS']) != int:
@@ -155,13 +144,6 @@ if run_taxonomy == "yes":
         print('ERROR in ', config_path, ': TAXONOMY_memory variable is empty. Please, complete ', config_path)
     elif type(config['TAXONOMY_memory']) != int:
         print('ERROR in ', config_path, ': TAXONOMY_memory variable is not an integer. Please, complete ', config_path)
-
-    if config['TAXONOMY_DATABASE_FOLDER'] is None:
-       print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable is empty. Please, complete ', config_path)
-    elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is False:
-       print('ERROR in ', config_path, ': TAXONOMY_DATABASE_FOLDER variable path does not exit. Please, complete ', config_path)
-    elif path.exists(config['TAXONOMY_DATABASE_FOLDER']) is True:
-       taxonomy_db_folder = config["TAXONOMY_DATABASE_FOLDER"]
 
     allowed = ('phylophlan', 'gtdb')
     flags = [0 if x in allowed else 1 for x in config['TAXONOMY_NAME'].split(",")]
@@ -381,15 +363,14 @@ def get_checkm_output_for_batches(wildcards):
 
 rule checkm_batch:
     input:
-        '{somewhere}/batch.{something}'
+        fna_list  = "{somewhere}/batch.{something}",
+        checkm_db = "{minto_dir}/data/CheckM2_database/uniref100.KO.1.dmnd".format(minto_dir = minto_dir)
     output:
         '{somewhere}/{something}.out/quality_report.tsv'
     log:
         '{somewhere}/{something}.checkM.log'
     shadow:
         "minimal"
-    params:
-        checkm_db = checkm_db
     conda:
         config["minto_dir"]+"/envs/checkm2.yml"
     threads: 16
@@ -400,7 +381,7 @@ rule checkm_batch:
         mkdir -p $(dirname {output})
         mkdir tmp
         time (
-            checkm2 predict --quiet --database_path {params.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input}) --tmpdir tmp -o out
+            checkm2 predict --quiet --database_path {input.checkm_db} -x fna --remove_intermediates --threads {threads} --input $(cat {input.fna_list}) --tmpdir tmp -o out
         ) >& {log}
         rsync -a out/quality_report.tsv {output}
         """
@@ -681,7 +662,7 @@ checkpoint copy_best_genomes:
 rule phylophlan_taxonomy_for_genome_collection:
     input:
         genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
-        phylo_def=lambda wildcards: "{location}/phylophlan/{db_version}.txt.bz2".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+        phylo_def=lambda wildcards: "{minto_dir}/data/phylophlan/{db_version}.txt.bz2".format(minto_dir=minto_dir, db_version=wildcards.db_version)
     output:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.tsv"
     shadow:
@@ -689,7 +670,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/taxonomy.phylophlan.{db_version}.log"
     params:
-        db_folder=lambda wildcards: "{location}/phylophlan".format(location=taxonomy_db_folder)
+        db_folder=lambda wildcards: "{minto_dir}/data/phylophlan".format(minto_dir=minto_dir)
     resources:
         mem=config["TAXONOMY_memory"]
     threads:
@@ -711,7 +692,7 @@ rule phylophlan_taxonomy_for_genome_collection:
 rule gtdb_taxonomy_for_genome_collection:
     input:
         genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
-        gtdb_def=lambda wildcards: "{location}/GTDB/{db_version}/taxonomy/gtdb_taxonomy.tsv".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+        gtdb_def=lambda wildcards: "{minto_dir}/data/GTDB/{db_version}/taxonomy/gtdb_taxonomy.tsv".format(minto_dir=minto_dir, db_version=wildcards.db_version)
     output:
         "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.gtdb.{db_version}.tsv"
     shadow:
@@ -719,7 +700,7 @@ rule gtdb_taxonomy_for_genome_collection:
     log:
         "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.gtdb.{db_version}.log"
     params:
-        db_folder=lambda wildcards: "{location}/GTDB/{db_version}".format(location=taxonomy_db_folder, db_version=wildcards.db_version)
+        db_folder=lambda wildcards: "{minto_dir}/GTDB/{db_version}".format(minto_dir=minto_dir, db_version=wildcards.db_version)
     resources:
         mem=70
     threads:

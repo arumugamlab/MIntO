@@ -744,7 +744,6 @@ VAMB_GPU: no
 CHECKM_COMPLETENESS: 90  # higher than this
 CHECKM_CONTAMINATION: 5  # lower than this
 CHECKM_BATCH_SIZE: 50    # Process MAGs with this batch size
-CHECKM_DATABASE: {minto_dir}/data/CheckM2_database/uniref100.KO.1.dmnd
 
 # COVERM settings
 #
@@ -762,7 +761,6 @@ RUN_TAXONOMY: yes
 TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
 TAXONOMY_CPUS: 8
 TAXONOMY_memory: 5
-TAXONOMY_DATABASE_FOLDER: {minto_dir}/data
 
 # Taxonomy database versions
 #
