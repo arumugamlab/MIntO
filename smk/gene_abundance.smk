@@ -11,7 +11,7 @@ Authors: Carmen Saenz, Mani Arumugam
 from os import path
 import pathlib
 
-localrules: make_merged_genome_fna, make_genome_def, merge_MG_tables, fetchMG_genome_cds_faa, \
+localrules: make_merged_genome_fna, make_genome_def, \
             config_yml_integration, read_map_stats
 
 # Get common config variables
