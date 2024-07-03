@@ -17,8 +17,9 @@ MAIN_factor: participant_ID2
 # Annotation settings
 ######################
 
-# Where should we map reads to? MAG, reference_genomes, reference_genomes
-map_reference: MAG
+# Set MIntO mode
+# Where should we map reads to? MAG, refgenome, catalog
+MINTO_MODE: MAG
 
 # Which omics for MAGs?
 MAG_omics: metaG
@@ -62,7 +63,6 @@ MIN_mapped_reads: 2
 # Normalization approach
 # Could be TPM, MG or comma-delimited combinations
 abundance_normalization: TPM,MG
-fetchMGs_dir: /mypath/MIntO/data/fetchMGs-1.2
 
 # Input data
 

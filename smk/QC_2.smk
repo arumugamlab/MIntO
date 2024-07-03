@@ -1168,7 +1168,6 @@ MIN_mapped_reads: 2
 # Normalization approach
 # Could be TPM, MG or comma-delimited combinations
 abundance_normalization: TPM,MG
-fetchMGs_dir: {minto_dir}/data/fetchMGs-1.2
 
 # Input data
 

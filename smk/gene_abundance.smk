@@ -148,14 +148,6 @@ if config['BWA_memory'] is None:
 elif type(config['BWA_memory']) != int:
     print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)
 
-fetchMGs_dir=None
-if 'MG' in normalization_modes and MINTO_MODE in ("MAG", "refgenome"):
-    if config['fetchMGs_dir'] is None:
-        raise Exception("ERROR in {}: fetchMGs_dir variable is empty. Please, fix.".format(config_path))
-    elif path.exists(config['fetchMGs_dir']) is False:
-        raise Exception("ERROR in {}: fetchMGs_dir variable path does not exist. Please, fix.".format(config_path))
-    fetchMGs_dir=config["fetchMGs_dir"]
-
 if 'MG' in normalization_modes and MINTO_MODE == 'catalog':
     raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
 
@@ -735,8 +727,8 @@ rule merge_gene_abund:
 # fetchMG cannot handle '.' in gene names, so we replace '.' with '__MINTO_DOT__' in fasta headers; then change back in output.
 rule fetchMG_genome_cds_faa:
     input:
-        cds_faa='{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa',
-        fetchMGs_dir=str(fetchMGs_dir)
+        cds_faa      = "{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa",
+        fetchMGs_dir = "{minto_dir}/data/fetchMGs-1.2".format(minto_dir = minto_dir)
     output: '{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table'
     shadow:
         "minimal"
