@@ -11,8 +11,8 @@ Authors: Carmen Saenz, Mani Arumugam
 from os import path
 import pathlib
 
-localrules: make_merged_genome_fna, make_genome_def, merge_MG_tables, fetchMG_genome_cds_faa, \
-            config_yml_integration, read_map_stats, merge_msamtools_genome_mapping_profiles
+localrules: make_merged_genome_fna, make_genome_def, \
+            config_yml_integration, read_map_stats
 
 # Get common config variables
 # These are:
@@ -174,13 +174,13 @@ def get_sample2alias_map(in_file):
 sample2alias = get_sample2alias_map(metadata)
 
 def combined_genome_profiles():
-    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/{label}.p{identity}.profile.{extension}",
+    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/{label}.p{identity}.{variant}.tsv",
                 label = 'genome_abundances',
                 wd = working_dir,
                 omics = omics,
                 subdir = MINTO_MODE,
                 identity = identity,
-                extension = ['abund.prop.txt', 'abund.prop.genome.txt', 'relabund.prop.genome.txt']
+                variant = ['abund.prop', 'abund.prop.genome', 'relabund.prop.genome']
                 )
     return(result)
 
@@ -223,7 +223,7 @@ rule all:
     default_target: True
 
 ###############################################################################################
-# Useful python functions
+# Functions to get samples, runs and files
 ###############################################################################################
 
 # Get a sorted list of runs for a sample
@@ -260,9 +260,12 @@ def get_rev_files_only(wildcards):
     return(files)
 
 ###############################################################################################
-# Prepare genes for mapping to MAGs or publicly available genomes
-## Generate MAGs or publicly available genomes index
+# MIntO modes: MAG and refgenome
 ###############################################################################################
+
+#########################
+# Generate bwa index
+#########################
 
 # Get a sorted list of genomes
 
@@ -332,6 +335,11 @@ rule genome_bwaindex:
                 rsync -a {wildcards.minto_mode}.* $(dirname {output[0]})/
             ) >& {log}
         """
+
+#########################
+# Map reads using BWA2
+# Mapping and computation of read counts using bedtools multicov are done in the same rule
+#########################
 
 rule genome_mapping_profiling:
     input:
@@ -422,97 +430,55 @@ __EOM__
         ) >& {log}
         """
 
-rule old_merge_individual_msamtools_profiles:
-    input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                minto_mode = wildcards.minto_mode,
-                identity = wildcards.identity,
-                type = wildcards.type,
-                sample = ilmn_samples)
-    output:
-        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/Combined.p{identity}.profile.{type}.txt"
-    run:
-        import pandas as pd
-        df = pd.read_csv(input.single[0], comment='#', header=0, index_col='ID', sep = "\t")
-        for i in range(1, len(input.single)):
-            df2 = pd.read_csv(input.single[i], comment='#', header=0, index_col='ID', sep = "\t")
-            df  = df.join(df2, how='outer')
-        df.to_csv(output.combined, sep = "\t", index = True)
-
-###############################################################################################
-# The following two rules are identical. But first is for reference_genomes and MAGs. Second is for gene-catalogs
-###############################################################################################
-
-def strip_commonpath(list_of_paths):
-    topdir = os.path.commonpath(list_of_paths)
-    stripped = [x.replace(topdir, '') for x in list_of_paths]
+# Strip the given common upstream path from a list of paths.
+# Useful when creating a concatenated string with lots of filenames, where the string could be shortened using this approach.
+def strip_topdir(list_of_paths, topdir):
+    stripped = [x.replace(topdir, '') if x.startswith(topdir) else x for x in list_of_paths]
     stripped = [re.sub(r'^/+', '', x) for x in stripped]
     return(stripped)
 
-# Merge individual msamtools profiles from genome mapping
+# Get a list of msamtools profiles based on wildcards
+def get_msamtools_profiles(wildcards):
+
+    # Ensure right MINTO_MODE and filename combinations
+    if     (wildcards.minto_mode in ['MAG', 'refgenome'] and wildcards.filename == 'gene_abundances') \
+        or (wildcards.minto_mode == 'catalog' and wildcards.filename == 'genome_abundances'):
+        raise Exception("MIntO mode {} cannot generate {} profiles".format(wildcards.minto_mode, wildcards.filename))
+
+    # Ensure right MINTO_MODE and norm combination
+    if (wildcards.minto_mode == 'catalog' and wildcards.type != 'TPM'):
+        raise Exception("MIntO mode {} cannot generate {} profiles".format(wildcards.minto_mode, wildcards.type))
+
+    profiles = expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
+                            wd = wildcards.wd,
+                            omics = wildcards.omics,
+                            minto_mode = wildcards.minto_mode,
+                            identity = wildcards.identity,
+                            type = wildcards.type,
+                            sample = ilmn_samples)
+    return(profiles)
+
+# Merge individual msamtools profiles from mapping to gene or genome DB.
+# Input generated by the function above, which ensures compatibility.
 # We set '--zeroes' because msamtools output leaves zero entries in individual profile files.
 
-rule merge_msamtools_genome_mapping_profiles:
+rule merge_msamtools_profiles:
     input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
-                                            wd = wildcards.wd,
-                                            omics = wildcards.omics,
-                                            minto_mode = wildcards.minto_mode,
-                                            identity = wildcards.identity,
-                                            type = wildcards.type,
-                                            sample = ilmn_samples)
+        single=get_msamtools_profiles
     output:
-        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.profile.{type}.txt"
+        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{filename}.p{identity}.{type}.tsv"
     params:
         topdir = lambda wildcards, input: os.path.commonpath(input.single),
-        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
+        files  = lambda wildcards, input: ','.join(strip_topdir(input.single, os.path.commonpath(input.single)))
     shadow:
         "minimal"
     log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/merge_msamtools_profiles.p{identity}.profile.{type}.log"
-    resources:
-        mem=30
-    threads: 1
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
-    shell:
-        """
-        time (
-            shadowdir=$(pwd)
-            cd {params.topdir}
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys ID --zeroes
-            cd $shadowdir
-            rsync -a out.txt {output.combined}
-        ) >& {log}
-        """
-
-# Merge msamtools normalized gene abundance or transcript profiles from gene catalog (TPM normalization)
-# We set '--zeroes' because msamtools output leaves zero entries in individual profile files.
-
-rule merge_msamtools_gene_mapping_profiles:
-    input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
-                                            wd = wildcards.wd,
-                                            omics = wildcards.omics,
-                                            minto_mode = wildcards.minto_mode,
-                                            identity = wildcards.identity,
-                                            sample=ilmn_samples)
-    output:
-        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.TPM.tsv"
-    params:
-        topdir = lambda wildcards, input: os.path.commonpath(input.single),
-        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
-    shadow:
-        "minimal"
-    log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/merge_msamtools_profiles.p{identity}.profile.TPM.log"
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/merge_msamtools_profiles.{filename}.p{identity}.{type}.log"
     resources:
         mem=30
     threads: lambda wildcards,input: min(10, len(input.single))
     wildcard_constraints:
-        minto_mode='catalog'
+        identity='[0-9]+'
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
@@ -527,16 +493,18 @@ rule merge_msamtools_gene_mapping_profiles:
         """
 
 ###############################################################################################
-# Prepare genes for mapping to gene-database
-## First, the index has to be generated
-## Mapping, computation of read counts and TPM normalization is done in the same rule
-## TPM normalization: sequence depth and genes’ length
+# MIntO mode: catalog
 ###############################################################################################
+
+#########################
+# Generate bwa index
+#########################
 
 # Memory is expected to be high, since gene catalogs are large.
 # Assume the equivalent of 1000 genomes to begin with.
 # It is roughly 50 MB per bacterial genome.
 # So, start at 50 GB and increase by 50 GB each new attempt.
+
 rule gene_catalog_bwaindex:
     input:
         genes="{gene_catalog_path}/{gene_catalog_name}"
@@ -563,6 +531,12 @@ rule gene_catalog_bwaindex:
             rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/
         ) &> {log}
         """
+
+#########################
+# Map reads using BWA2
+# Mapping, computation of read counts and TPM normalization is done in the same rule
+# TPM normalization: sequence depth and genes’ length
+#########################
 
 rule gene_catalog_mapping_profiling:
     input:
@@ -632,7 +606,7 @@ __EOM__
         """
 
 ###############################################################################################
-# Computation of read counts to genes belonging to MAGs or publicly available genomes
+# Computation of read counts to genes belonging to MAGs or refgenomes
 ###############################################################################################
 
 # Ideally, bedtools multicov is run in the same rule as bwa-mapping to avoid reading BAM file over NFS.
@@ -694,7 +668,7 @@ rule merge_gene_abund:
                     sample=ilmn_samples),
     params:
         topdir = lambda wildcards, input: os.path.commonpath(input.single),
-        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
+        files  = lambda wildcards, input: ','.join(strip_topdir(input.single, os.path.commonpath(input.single)))
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.bed"
     shadow:
@@ -714,57 +688,6 @@ rule merge_gene_abund:
             Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys gene_length,ID
             cd $shadowdir
             rsync -a out.txt {output.combined}
-        ) >& {log}
-        """
-
-###############################################################################################
-# Normalization of read counts to 10 marker genes (MG normalization)
-## fetchMGs identifies 10 universal single-copy phylogenetic MGs
-## (COG0012, COG0016, COG0018, COG0172, COG0215, COG0495, COG0525, COG0533, COG0541, and COG0552)
-###############################################################################################
-
-# Run fetchMGs
-# fetchMG cannot handle '.' in gene names, so we replace '.' with '__MINTO_DOT__' in fasta headers; then change back in output.
-rule fetchMG_genome_cds_faa:
-    input:
-        cds_faa      = "{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa",
-        fetchMGs_dir = "{minto_dir}/data/fetchMGs-1.2".format(minto_dir = minto_dir)
-    output: '{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table'
-    shadow:
-        "minimal"
-    log: '{wd}/logs/DB/{minto_mode}/fetchMGs/{genome}.log'
-    threads: 8
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
-    shell:
-        """
-        time (
-            sed 's/\\s.*//;s/\\./__MINTO_DOT__/g' {input.cds_faa} > HEADER_FIXED.faa
-            {input.fetchMGs_dir}/fetchMGs.pl -outdir out -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction HEADER_FIXED.faa
-            sed 's/__MINTO_DOT__/./g' out/HEADER_FIXED.all.marker_genes_scores.table > {output}
-        ) >& {log}
-        """
-
-def get_genome_MG_tables(wildcards):
-    #Collect the CDS faa files for MAGs
-    genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table",
-                    wd=wildcards.wd,
-                    minto_mode=wildcards.minto_mode,
-                    genome=genomes)
-    return(result)
-
-rule merge_MG_tables:
-    input: get_genome_MG_tables
-    output: "{wd}/DB/{minto_mode}/genomes.marker_genes.table"
-    log: "{wd}/logs/DB/{minto_mode}/merge_marker_genes_scores.table.log"
-    shell:
-        """
-        time (
-                head -n 1 {input[0]} > {output}
-                for file in {input}; do
-                    awk 'FNR>1' ${{file}} >> {output}
-                done
         ) >& {log}
         """
 
