@@ -88,21 +88,24 @@ if 'eggNOG' in annot_list and 'eggNOG_dbmem' in config:
 
 GENE_DB_TYPE = MINTO_MODE + '-genes'
 
-def predicted_genes_collate_out():
-    result = "{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(
-                    wd = working_dir,
-                    subdir = MINTO_MODE)
-    return(result)
-
 rule all:
     input:
-        predicted_genes_collate_out(),
+        "{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(
+                    wd = working_dir,
+                    subdir = MINTO_MODE),
+        "{wd}/DB/{subdir}/genomes.marker_genes.table".format(
+                    wd = working_dir,
+                    subdir = MINTO_MODE),
         "{wd}/DB/{subdir}/{filename}.bed.mini".format(
                     wd = working_dir,
                     subdir = MINTO_MODE,
                     filename = GENE_DB_TYPE),
         print_versions.get_version_output(snakefile_name)
     default_target: True
+
+######################
+# 1. PREPARE GENOMES
+######################
 
 ###############################################################################################
 # Prepare predicted genes for annotation
@@ -154,6 +157,9 @@ rule generate_locus_ids:
             for lid, genome in genome_locusids.items():
                 print(genome, lid, sep="\t", file=of)
 
+######################
+# 2. GENE PREDICTION
+######################
 
 ########################
 # Prokka on an fna file in reference_dir.
@@ -306,6 +312,65 @@ rule combine_individual_beds:
         process_genome_bed_list(input, 'full.bed', 'mini.bed', log)
         shutil.copy2('full.bed', output.bed_full)
         shutil.copy2('mini.bed', output.bed_mini)
+
+######################
+# 3. MARKER GENES
+######################
+
+###############################################################################################
+# Normalization of read counts to 10 marker genes (MG normalization)
+## fetchMGs identifies 10 universal single-copy phylogenetic MGs
+## (COG0012, COG0016, COG0018, COG0172, COG0215, COG0495, COG0525, COG0533, COG0541, and COG0552)
+###############################################################################################
+
+# Run fetchMGs
+# fetchMG cannot handle '.' in gene names, so we replace '.' with '__MINTO_DOT__' in fasta headers; then change back in output.
+rule fetchMG_genome_cds_faa:
+    input:
+        cds_faa      = "{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa",
+        fetchMGs_dir = "{minto_dir}/data/fetchMGs-1.2".format(minto_dir = minto_dir)
+    output: '{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table'
+    shadow:
+        "minimal"
+    log: '{wd}/logs/DB/{minto_mode}/fetchMGs/{genome}.log'
+    threads: 8
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
+    shell:
+        """
+        time (
+            sed 's/\\s.*//;s/\\./__MINTO_DOT__/g' {input.cds_faa} > HEADER_FIXED.faa
+            {input.fetchMGs_dir}/fetchMGs.pl -outdir out -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction HEADER_FIXED.faa
+            sed 's/__MINTO_DOT__/./g' out/HEADER_FIXED.all.marker_genes_scores.table > {output}
+        ) >& {log}
+        """
+
+def get_genome_MG_tables(wildcards):
+    #Collect the CDS faa files for MAGs
+    genomes = get_genomes_from_refdir(reference_dir)
+    result = expand("{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table",
+                    wd=wildcards.wd,
+                    minto_mode=wildcards.minto_mode,
+                    genome=genomes)
+    return(result)
+
+rule merge_MG_tables:
+    input: get_genome_MG_tables
+    output: "{wd}/DB/{minto_mode}/genomes.marker_genes.table"
+    log: "{wd}/logs/DB/{minto_mode}/merge_marker_genes_scores.table.log"
+    shell:
+        """
+        time (
+                head -n 1 {input[0]} > {output}
+                for file in {input}; do
+                    awk 'FNR>1' ${{file}} >> {output}
+                done
+        ) >& {log}
+        """
+
+###########################
+# 4. FUNCTIONAL ANNOTATION
+###########################
 
 ################################################################################################
 # Genes annotation using 3 different tools to retrieve functions from:

@@ -692,57 +692,6 @@ rule merge_gene_abund:
         """
 
 ###############################################################################################
-# Normalization of read counts to 10 marker genes (MG normalization)
-## fetchMGs identifies 10 universal single-copy phylogenetic MGs
-## (COG0012, COG0016, COG0018, COG0172, COG0215, COG0495, COG0525, COG0533, COG0541, and COG0552)
-###############################################################################################
-
-# Run fetchMGs
-# fetchMG cannot handle '.' in gene names, so we replace '.' with '__MINTO_DOT__' in fasta headers; then change back in output.
-rule fetchMG_genome_cds_faa:
-    input:
-        cds_faa      = "{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa",
-        fetchMGs_dir = "{minto_dir}/data/fetchMGs-1.2".format(minto_dir = minto_dir)
-    output: '{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table'
-    shadow:
-        "minimal"
-    log: '{wd}/logs/DB/{minto_mode}/fetchMGs/{genome}.log'
-    threads: 8
-    conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
-    shell:
-        """
-        time (
-            sed 's/\\s.*//;s/\\./__MINTO_DOT__/g' {input.cds_faa} > HEADER_FIXED.faa
-            {input.fetchMGs_dir}/fetchMGs.pl -outdir out -protein_only -threads {threads} -x {input.fetchMGs_dir}/bin -m extraction HEADER_FIXED.faa
-            sed 's/__MINTO_DOT__/./g' out/HEADER_FIXED.all.marker_genes_scores.table > {output}
-        ) >& {log}
-        """
-
-def get_genome_MG_tables(wildcards):
-    #Collect the CDS faa files for MAGs
-    genomes = get_genomes_from_refdir(reference_dir)
-    result = expand("{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table",
-                    wd=wildcards.wd,
-                    minto_mode=wildcards.minto_mode,
-                    genome=genomes)
-    return(result)
-
-rule merge_MG_tables:
-    input: get_genome_MG_tables
-    output: "{wd}/DB/{minto_mode}/genomes.marker_genes.table"
-    log: "{wd}/logs/DB/{minto_mode}/merge_marker_genes_scores.table.log"
-    shell:
-        """
-        time (
-                head -n 1 {input[0]} > {output}
-                for file in {input}; do
-                    awk 'FNR>1' ${{file}} >> {output}
-                done
-        ) >& {log}
-        """
-
-###############################################################################################
 # Normalization of read counts by sequence depth and genes’ length (TPM normalization)
 # or marker genes (MG normalization)
 # Normalize and add prefix to samples so that metaG and metaT do not clash when combined in future
