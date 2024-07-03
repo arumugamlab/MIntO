@@ -223,7 +223,7 @@ rule all:
     default_target: True
 
 ###############################################################################################
-# Useful python functions
+# Functions to get samples, runs and files
 ###############################################################################################
 
 # Get a sorted list of runs for a sample
@@ -260,9 +260,12 @@ def get_rev_files_only(wildcards):
     return(files)
 
 ###############################################################################################
-# Prepare genes for mapping to MAGs or publicly available genomes
-## Generate MAGs or publicly available genomes index
+# MIntO modes: MAG and refgenome
 ###############################################################################################
+
+#########################
+# Generate bwa index
+#########################
 
 # Get a sorted list of genomes
 
@@ -332,6 +335,11 @@ rule genome_bwaindex:
                 rsync -a {wildcards.minto_mode}.* $(dirname {output[0]})/
             ) >& {log}
         """
+
+#########################
+# Map reads using BWA2
+# Mapping and computation of read counts using bedtools multicov are done in the same rule
+#########################
 
 rule genome_mapping_profiling:
     input:
@@ -485,16 +493,18 @@ rule merge_msamtools_profiles:
         """
 
 ###############################################################################################
-# Prepare genes for mapping to gene-database
-## First, the index has to be generated
-## Mapping, computation of read counts and TPM normalization is done in the same rule
-## TPM normalization: sequence depth and genes’ length
+# MIntO mode: catalog
 ###############################################################################################
+
+#########################
+# Generate bwa index
+#########################
 
 # Memory is expected to be high, since gene catalogs are large.
 # Assume the equivalent of 1000 genomes to begin with.
 # It is roughly 50 MB per bacterial genome.
 # So, start at 50 GB and increase by 50 GB each new attempt.
+
 rule gene_catalog_bwaindex:
     input:
         genes="{gene_catalog_path}/{gene_catalog_name}"
@@ -521,6 +531,12 @@ rule gene_catalog_bwaindex:
             rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/
         ) &> {log}
         """
+
+#########################
+# Map reads using BWA2
+# Mapping, computation of read counts and TPM normalization is done in the same rule
+# TPM normalization: sequence depth and genes’ length
+#########################
 
 rule gene_catalog_mapping_profiling:
     input:
@@ -590,7 +606,7 @@ __EOM__
         """
 
 ###############################################################################################
-# Computation of read counts to genes belonging to MAGs or publicly available genomes
+# Computation of read counts to genes belonging to MAGs or refgenomes
 ###############################################################################################
 
 # Ideally, bedtools multicov is run in the same rule as bwa-mapping to avoid reading BAM file over NFS.
