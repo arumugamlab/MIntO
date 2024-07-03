@@ -330,6 +330,7 @@ rule fetchMG_genome_cds_faa:
         cds_faa      = "{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa",
         fetchMGs_dir = "{minto_dir}/data/fetchMGs-1.2".format(minto_dir = minto_dir)
     output: '{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table'
+    localrule: True
     shadow:
         "minimal"
     log: '{wd}/logs/DB/{minto_mode}/fetchMGs/{genome}.log'
@@ -357,6 +358,7 @@ def get_genome_MG_tables(wildcards):
 rule merge_MG_tables:
     input: get_genome_MG_tables
     output: "{wd}/DB/{minto_mode}/genomes.marker_genes.table"
+    localrule: True
     log: "{wd}/logs/DB/{minto_mode}/merge_marker_genes_scores.table.log"
     shell:
         """
