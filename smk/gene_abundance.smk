@@ -422,25 +422,6 @@ __EOM__
         ) >& {log}
         """
 
-rule old_merge_individual_msamtools_profiles:
-    input:
-        single=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                minto_mode = wildcards.minto_mode,
-                identity = wildcards.identity,
-                type = wildcards.type,
-                sample = ilmn_samples)
-    output:
-        combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/Combined.p{identity}.profile.{type}.txt"
-    run:
-        import pandas as pd
-        df = pd.read_csv(input.single[0], comment='#', header=0, index_col='ID', sep = "\t")
-        for i in range(1, len(input.single)):
-            df2 = pd.read_csv(input.single[i], comment='#', header=0, index_col='ID', sep = "\t")
-            df  = df.join(df2, how='outer')
-        df.to_csv(output.combined, sep = "\t", index = True)
-
 # Strip the given common upstream path from a list of paths.
 # Useful when creating a concatenated string with lots of filenames, where the string could be shortened using this approach.
 def strip_topdir(list_of_paths, topdir):
