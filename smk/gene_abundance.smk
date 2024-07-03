@@ -441,9 +441,10 @@ rule old_merge_individual_msamtools_profiles:
             df  = df.join(df2, how='outer')
         df.to_csv(output.combined, sep = "\t", index = True)
 
-def strip_commonpath(list_of_paths):
-    topdir = os.path.commonpath(list_of_paths)
-    stripped = [x.replace(topdir, '') for x in list_of_paths]
+# Strip the given common upstream path from a list of paths.
+# Useful when creating a concatenated string with lots of filenames, where the string could be shortened using this approach.
+def strip_topdir(list_of_paths, topdir):
+    stripped = [x.replace(topdir, '') if x.startswith(topdir) else x for x in list_of_paths]
     stripped = [re.sub(r'^/+', '', x) for x in stripped]
     return(stripped)
 
@@ -479,7 +480,7 @@ rule merge_msamtools_profiles:
         combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{filename}.p{identity}.{type}.tsv"
     params:
         topdir = lambda wildcards, input: os.path.commonpath(input.single),
-        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
+        files  = lambda wildcards, input: ','.join(strip_topdir(input.single, os.path.commonpath(input.single)))
     shadow:
         "minimal"
     log:
@@ -670,7 +671,7 @@ rule merge_gene_abund:
                     sample=ilmn_samples),
     params:
         topdir = lambda wildcards, input: os.path.commonpath(input.single),
-        files = lambda wildcards, input: ','.join(strip_commonpath(input.single))
+        files  = lambda wildcards, input: ','.join(strip_topdir(input.single, os.path.commonpath(input.single)))
     output:
         combined="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.bed"
     shadow:
