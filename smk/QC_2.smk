@@ -864,12 +864,11 @@ rule dummy_sourmash_clusters:
 
 rule qc2_filter_config_yml_assembly:
     input:
-        tax=expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
-                wd = working_dir,
-                omics = omics,
-                sample = ilmn_samples,
-                taxonomy = taxonomies_versioned),
-        table="{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv".format(wd = working_dir, omics = omics)
+        tax=lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
+                                    wd = wildcards.wd,
+                                    omics = wildcards.omics,
+                                    taxonomy = taxonomies_versioned),
+        table="{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv"
     output:
         config_file="{wd}/{omics}/assembly.yaml"
     resources:
@@ -1084,11 +1083,10 @@ fi
 
 rule qc2_filter_config_yml_mapping:
     input:
-        expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
-                wd = working_dir,
-                omics = omics,
-                sample = ilmn_samples,
-                taxonomy = taxonomies_versioned)
+        lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
+                                    wd = wildcards.wd,
+                                    omics = wildcards.omics,
+                                    taxonomy = taxonomies_versioned)
     output:
         config_file="{wd}/{omics}/mapping.yaml"
     resources:
