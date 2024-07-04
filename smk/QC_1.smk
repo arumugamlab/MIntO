@@ -615,7 +615,7 @@ PLOT_time:
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- $i"; done)
+$(for i in {ilmn_samples}; do echo "- '$i'"; done)
 ___EOF___
 
         echo {ilmn_samples} >& {log}

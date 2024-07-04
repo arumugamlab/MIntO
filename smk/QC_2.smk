@@ -1027,7 +1027,7 @@ SAMTOOLS_sort_perthread_memgb: 10
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- $i"; done)
+$(for i in {ilmn_samples}; do echo "- '$i'"; done)
 
 ###############################
 # COASSEMBLY section:
@@ -1176,7 +1176,7 @@ abundance_normalization: TPM,MG
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- $i"; done)
+$(for i in {ilmn_samples}; do echo "- '$i'"; done)
 ___EOF___
 
         echo {ilmn_samples} >& {log}
