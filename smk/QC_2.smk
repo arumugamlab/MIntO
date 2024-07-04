@@ -44,23 +44,19 @@ merged_illumina_samples = list()
 ##############################################
 
 # Make list of illumina samples, if ILLUMINA in config
-try:
-    # Make list of illumina samples, if ILLUMINA in config
-    if 'ILLUMINA' in config:
-        #print("Samples:")
-        for ilmn in config["ILLUMINA"]:
-            file_found = False
-            for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
-                location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
-                if (path.exists(location) is True):
-                       file_found = True
-            if file_found == True:
-                #print(ilmn)
-                ilmn_samples.append(ilmn)
-            else:
-                raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
-except:
-    print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
+if 'ILLUMINA' in config:
+    #print("Samples:")
+    for ilmn in config["ILLUMINA"]:
+        file_found = False
+        for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
+            location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
+            if (path.exists(location) is True):
+                   file_found = True
+        if file_found == True:
+            #print(ilmn)
+            ilmn_samples.append(ilmn)
+        else:
+            raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist.")
 
 ##############################################
 # Handle composite samples
