@@ -28,7 +28,7 @@ profile_file = opt$table
 profile_param = opt$profiler
 out_dir = opt$outdir
 metadata_file = opt$metadata
-out_phyloseq = paste0(out_dir, '/', profile_param,'_phyloseq.rds')
+out_phyloseq = paste0(out_dir, '/', profile_param,'.phyloseq.rds')
 
 if (any(is.null(c(opt$table, opt$profiler, opt$metadata, opt$factor, opt$outdir)))) {
   print_help(opt_parser)

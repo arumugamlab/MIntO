@@ -3,10 +3,10 @@
 # Which MIntO version are we using?
 # Use specific tag by "tags/<TAG>" or "main"
 # E.g.
-# MINTO_STABLE_VERSION="tags/2.0.0"
+# MINTO_STABLE_VERSION="tags/2.1.0"
 # Developers use 'main' but users should stick to stable versions.
 
-MINTO_STABLE_VERSION="tags/2.0.0"
+MINTO_STABLE_VERSION="tags/2.1.0"
 
 function profile_command() {
     local cmd=$1

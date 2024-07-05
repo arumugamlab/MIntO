@@ -700,7 +700,7 @@ rule gtdb_taxonomy_for_genome_collection:
     log:
         "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.gtdb.{db_version}.log"
     params:
-        db_folder=lambda wildcards: "{minto_dir}/GTDB/{db_version}".format(minto_dir=minto_dir, db_version=wildcards.db_version)
+        db_folder=lambda wildcards: "{minto_dir}/data/GTDB/{db_version}".format(minto_dir=minto_dir, db_version=wildcards.db_version)
     resources:
         mem=70
     threads:

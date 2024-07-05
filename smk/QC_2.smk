@@ -44,23 +44,19 @@ merged_illumina_samples = list()
 ##############################################
 
 # Make list of illumina samples, if ILLUMINA in config
-try:
-    # Make list of illumina samples, if ILLUMINA in config
-    if 'ILLUMINA' in config:
-        #print("Samples:")
-        for ilmn in config["ILLUMINA"]:
-            file_found = False
-            for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
-                location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
-                if (path.exists(location) is True):
-                       file_found = True
-            if file_found == True:
-                #print(ilmn)
-                ilmn_samples.append(ilmn)
-            else:
-                raise TypeError('ERROR in', config_path, ':', 'sample', ilmn, 'in ILLUMINA list does not exist. Please, complete', config_path)
-except:
-    print('ERROR in ', config_path, ': ILLUMINA list of samples does not exist or has an incorrect format. Please, complete ', config_path)
+if 'ILLUMINA' in config:
+    #print("Samples:")
+    for ilmn in config["ILLUMINA"]:
+        file_found = False
+        for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
+            location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
+            if (path.exists(location) is True):
+                   file_found = True
+        if file_found == True:
+            #print(ilmn)
+            ilmn_samples.append(ilmn)
+        else:
+            raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist.")
 
 ##############################################
 # Handle composite samples
@@ -162,10 +158,10 @@ else:
     print('ERROR in ', config_path, ': TAXA_profiler variable is not correct. "TAXA_profiler" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
 
 metaphlan_version = "4.0.6"
-if metaphlan_version in config and config['metaphlan_version'] is not None:
+if 'metaphlan_version' in config and config['metaphlan_version'] is not None:
     metaphlan_version = config['metaphlan_version']
 motus_version = "3.0.3"
-if motus_version in config and config['motus_version'] is not None:
+if 'motus_version' in config and config['motus_version'] is not None:
     motus_version = config['motus_version']
 motus_db_path = path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
 if not path.exists(motus_db_path):
@@ -868,12 +864,11 @@ rule dummy_sourmash_clusters:
 
 rule qc2_filter_config_yml_assembly:
     input:
-        tax=expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
-                wd = working_dir,
-                omics = omics,
-                sample = ilmn_samples,
-                taxonomy = taxonomies_versioned),
-        table="{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv".format(wd = working_dir, omics = omics)
+        tax=lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
+                                    wd = wildcards.wd,
+                                    omics = wildcards.omics,
+                                    taxonomy = taxonomies_versioned),
+        table="{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv"
     output:
         config_file="{wd}/{omics}/assembly.yaml"
     resources:
@@ -1031,7 +1026,7 @@ SAMTOOLS_sort_perthread_memgb: 10
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- $i"; done)
+$(for i in {ilmn_samples}; do echo "- '$i'"; done)
 
 ###############################
 # COASSEMBLY section:
@@ -1088,11 +1083,10 @@ fi
 
 rule qc2_filter_config_yml_mapping:
     input:
-        expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.tsv",
-                wd = working_dir,
-                omics = omics,
-                sample = ilmn_samples,
-                taxonomy = taxonomies_versioned)
+        lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
+                                    wd = wildcards.wd,
+                                    omics = wildcards.omics,
+                                    taxonomy = taxonomies_versioned)
     output:
         config_file="{wd}/{omics}/mapping.yaml"
     resources:
@@ -1180,7 +1174,7 @@ abundance_normalization: TPM,MG
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- $i"; done)
+$(for i in {ilmn_samples}; do echo "- '$i'"; done)
 ___EOF___
 
         echo {ilmn_samples} >& {log}
