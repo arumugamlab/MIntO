@@ -329,6 +329,7 @@ rule Kofam_db:
             wget --no-verbose ftp://ftp.genome.jp/pub/db/kofam/*
             gunzip ko_list.gz
             tar -zxvf profiles.tar.gz
+            rm profiles.tar.gz
 
             echo 'kofam database downloaded'
         ) &> {log}
