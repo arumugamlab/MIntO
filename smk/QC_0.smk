@@ -249,7 +249,7 @@ elif adapter_trimming_args:
                 -o {output.pairead1} --out2 {output.pairead2} \
                 --cut_window_size 4 --cut_front --cut_front_mean_quality {params.mq_5} --cut_tail --cut_tail_mean_quality {params.mq_3} --length_required {params.ml} \
                 {params.adapter_args} \
-                --dont_eval_duplication --disable_trim_poly_g \
+                --dont_eval_duplication \
                 --thread {threads} --json {output.json} --html {output.html}
             ) >& {log}
             """
@@ -282,7 +282,7 @@ else:
                 fastp -i {input.read_fw} --in2 {input.read_rv} \
                 -o {output.pairead1} --out2 {output.pairead2} \
                 --cut_window_size 4 --cut_front --cut_front_mean_quality {params.mq_5} --cut_tail --cut_tail_mean_quality {params.mq_3} --length_required {params.ml} \
-                --dont_eval_duplication --disable_trim_poly_g \
+                --dont_eval_duplication \
                 --adapter_fasta {params.adapter} \
                 --thread {threads} --json {output.json}
             ) >& {log}
