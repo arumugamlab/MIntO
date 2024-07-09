@@ -241,6 +241,16 @@ with open(minto_dir + "/data/metaphlan/" + metaphlan_version + "/mpa_latest", 'r
     metaphlan_index = file.read().rstrip()
 
 ##############################################
+# Co-assembly grouping variable
+##############################################
+coas_factor = None
+if "COAS_factor" in config and config['COAS_factor'] is not None:
+    coas_factor = config['COAS_factor']
+else:
+    #raise Exception(f"ERROR in {config_path}: "COAS_factor" variable cannot be empty.")
+    coas_factor = main_factor
+
+##############################################
 # Define all the outputs needed by target 'all'
 ##############################################
 
@@ -1046,13 +1056,13 @@ ___EOF___
 library(dplyr)
 metadata <- read.table('{metadata}', sep="\\t", header=TRUE) %>%
     as.data.frame() %>%
-    select(sample, {main_factor}) %>%
-    group_by({main_factor}) %>%
+    select(sample, {coas_factor}) %>%
+    group_by({coas_factor}) %>%
     filter(n() > 1) %>%
     mutate(co_asm = paste(sample, collapse = "+")) %>%
     select(-sample) %>%
     slice(1) %>%
-    mutate({main_factor}=paste0("  ", {main_factor}))
+    mutate({coas_factor}=paste0("  ", {coas_factor}))
 write.table(metadata, file="", col.names=FALSE, row.names=FALSE, quote=FALSE, sep=": ")
 ___EOF___
 

@@ -585,6 +585,14 @@ MAIN_factor:
 PLOT_factor2:
 PLOT_time:
 
+#####################
+# Co-assembly grouping
+#####################
+
+# COAS_factor - The factor/attribute to use to group samples for co-assembly
+
+COAS_factor:
+
 ######################
 # Optionally, do you want to merge replicates or make pseudo samples
 # E.g:
