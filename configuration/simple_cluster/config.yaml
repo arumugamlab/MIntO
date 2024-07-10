@@ -3,7 +3,8 @@ cluster:
   sbatch
     --partition={resources.partition}
     --cpus-per-task={threads}
-    --mem={resources.mem}
+    --mem={resources.mem}G
+    --gres=gpu:a100:{resources.gpu}
     --job-name={name}
     --output=logs/{rule}/slurm-%x.o%A
     --error=logs/{rule}/slurm-%x.e%A
@@ -12,10 +13,12 @@ default-resources:
   - partition=standard
   - qos=normal
   - mem_mb=2000
+  - gpu=0
+  - mem=2
 restart-times: 2
 max-jobs-per-second: 10
 max-status-checks-per-second: 1
-local-cores: 1
+local-cores: 16
 latency-wait: 60
 jobs: 20
 keep-going: True
