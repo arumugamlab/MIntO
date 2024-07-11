@@ -233,7 +233,7 @@ rule correct_spadeshammer:
         "minimal"
     params:
         qoffset=config["METASPADES_qoffset"],
-        tot_mem=lambda wildcards, attempt: attempt*config["METASPADES_memory"]*config['METASPADES_threads']
+        tot_mem=lambda wildcards, resources: resources.mem*config['METASPADES_threads']
     resources:
         mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
     log:
