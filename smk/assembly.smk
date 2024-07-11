@@ -232,7 +232,8 @@ rule correct_spadeshammer:
     shadow:
         "minimal"
     params:
-        qoffset=config["METASPADES_qoffset"]
+        qoffset=config["METASPADES_qoffset"],
+        tot_mem=lambda wildcards, attempt: attempt*config["METASPADES_memory"]*config['METASPADES_threads']
     resources:
         mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
     log:
@@ -244,7 +245,7 @@ rule correct_spadeshammer:
         """
         mkdir -p $(dirname {output.fwd})
         time (
-            {spades_script} --only-error-correction -1 {input.reads[0]} -2 {input.reads[1]} -t {threads} -m {resources.mem} -o {wildcards.run} --phred-offset {params.qoffset}
+            {spades_script} --only-error-correction -1 {input.reads[0]} -2 {input.reads[1]} -t {threads} -m {params.tot_mem} -o {wildcards.run} --phred-offset {params.qoffset}
             rsync -a {wildcards.run}/corrected/{wildcards.run}.1.fq.00.0_0.cor.fastq.gz {output.fwd}; rsync -a {wildcards.run}/corrected/{wildcards.run}.2.fq.00.0_0.cor.fastq.gz {output.rev}
         ) >& {log}
         """
