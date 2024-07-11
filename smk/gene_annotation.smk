@@ -449,7 +449,7 @@ rule gene_annot_eggnog:
     log:
         "{wd}/logs/DB/{minto_mode}/{genome}.eggnog.log"
     resources:
-        mem=lambda wildcards: 50 if eggNOG_dbmem else 16
+        mem=lambda wildcards: 5 if eggNOG_dbmem else 2
     threads: lambda wildcards: 24 if eggNOG_dbmem else 10
     conda:
         config["minto_dir"]+"/envs/gene_annotation.yml"
