@@ -307,6 +307,7 @@ rule illumina_assembly_metaspades:
         "minimal"
     params:
         qoffset=config["METASPADES_qoffset"],
+        tot_mem=lambda wildcards, resources: resources.mem*config['METASPADES_threads'],
         asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
         kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
@@ -323,7 +324,7 @@ rule illumina_assembly_metaspades:
         remote_dir=$(dirname {output[0]})
         mkdir -p $remote_dir
         time (
-            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {params.tot_mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
             rsync -a {params.kmer_dir}/* $remote_dir/
         ) >& {log}
         """
