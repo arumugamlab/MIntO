@@ -87,8 +87,8 @@ cluster_tsv = pd.read_csv(cluster_tsv, sep = "\t", names = ["bin", "contig"])
 bins_dictionary = {}
 
 for i in range(len(cluster_tsv)):
-	contig = str(cluster_tsv["contig"][i]).split(" ")[0]
-	sample = str(cluster_tsv["contig"][i]).split(args.binsplit_char)[0]
+	contig = cluster_tsv["contig"][i].split(" ")[0]
+	sample = cluster_tsv["contig"][i].split("_NODE")[0]
 	bin_id = "{}_{}".format(sample, cluster_tsv["bin"][i])
 
 	if not bin_id in bins_dictionary:
