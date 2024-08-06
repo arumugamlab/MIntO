@@ -497,9 +497,9 @@ rule combine_annotation_outputs:
     shell:
         """
         time (
-            head -n 1 {input[0]} > out.txt
+            head -n 2 {input[0]} > out.txt
             FOLDER=$(dirname {input[0]})
-            tail -n +2 -q $FOLDER/*.tsv >> out.txt
+            tail -n +3 -q $FOLDER/*.tsv >> out.txt
             rsync -a out.txt {output}
         ) >& {log}
         """
