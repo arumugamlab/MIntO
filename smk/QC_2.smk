@@ -1062,7 +1062,7 @@ metadata <- read.table('{metadata}', sep="\\t", header=TRUE) %>%
     mutate(co_asm = paste(sample, collapse = "+")) %>%
     select(-sample) %>%
     slice(1) %>%
-    mutate({coas_factor}=paste0("  ", {coas_factor}))
+    mutate({coas_factor}=paste0("  '", {coas_factor}, "'"))
 write.table(metadata, file="", col.names=FALSE, row.names=FALSE, quote=FALSE, sep=": ")
 ___EOF___
 
