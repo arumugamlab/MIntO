@@ -659,7 +659,7 @@ checkpoint copy_best_genomes:
 # PhyloPhlAn on fna files
 # Back up the raw output
 # Make a standard format output with:
-# taxa_ID,kingdom,phylum,class,order,family,genus,species
+# mag_id,kingdom,phylum,class,order,family,genus,species
 # Use mash-distance cutoffs to assign taxonomy resolution:
 #       d <  5% - species
 #  5% < d < 10% - genus
@@ -689,7 +689,7 @@ rule phylophlan_taxonomy_for_genome_collection:
         """
         time (
             phylophlan_assign_sgbs -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
-            echo -e "taxa_ID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
+            echo -e "mag_id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
             cut -f1,2 taxonomy.tsv \
                     | tail -n +2 \
                     | perl -lane '($id, undef, $tax, $dist) = split(/:/, $F[1]); @tax = map {{s/.__//; $_}} split(/\|/, $tax); pop(@tax); $, = "\t"; print($dist, $F[0], @tax);' \
@@ -704,7 +704,7 @@ rule phylophlan_taxonomy_for_genome_collection:
 # GTDB-tk on fna files
 # Back up the raw output
 # Make a standard format output with:
-# taxa_ID,kingdom,phylum,class,order,family,genus,species
+# mag_id,kingdom,phylum,class,order,family,genus,species
 ########################
 
 rule gtdb_taxonomy_for_genome_collection:
@@ -733,7 +733,7 @@ rule gtdb_taxonomy_for_genome_collection:
             gtdbtk classify_wf --genome_dir {input.genomes} -x fna --out_dir tmp --cpus {threads} --skip_ani_screen
             cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
             cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
-            echo -e "taxa_ID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
+            echo -e "mag_id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
             cut -f1,2 taxonomy.tsv \
                     | tail -n +2 \
                     | sed "s/ /_/g" \
