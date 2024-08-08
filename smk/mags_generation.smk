@@ -689,11 +689,12 @@ rule phylophlan_taxonomy_for_genome_collection:
         """
         time (
             phylophlan_assign_sgbs -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
-            echo -e "mag_id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
+            echo -e "mag_id\\tkingdom\\tphylum\\tclass\\torder\\tfamily\\tgenus\\tspecies" > taxonomy.tsv.fixed
             cut -f1,2 taxonomy.tsv \
                     | tail -n +2 \
-                    | perl -lane '($id, undef, $tax, $dist) = split(/:/, $F[1]); @tax = map {{s/.__//; $_}} split(/\|/, $tax); pop(@tax); $, = "\t"; print($dist, $F[0], @tax);' \
-                    | perl -lane '$dist = shift(@F); $F[7]="NA" if $dist>0.05; $F[6]="NA" if $dist>0.1; $F[5]="NA" if $dist>0.2; print join("\t", @F)' \
+                    | sed "s/ /\\t/" \
+                    | perl -lane '($id, undef, $tax, $dist) = split(/:/, $F[1]); @tax = map {{s/.__//; $_}} split(/\|/, $tax); pop(@tax); $, = "\\t"; print($dist || 0.5, $F[0], @tax);' \
+                    | perl -lane '$dist = shift(@F); $mag = shift(@F); pop(@F) if $dist>0.05; pop(@F) if $dist>0.1; pop(@F) if $dist>0.2; print join("\\t", $mag, @F)' \
                     >> taxonomy.tsv.fixed
         ) >& {log}
         rsync -a taxonomy.tsv {output.orig}
