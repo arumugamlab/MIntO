@@ -657,6 +657,13 @@ checkpoint copy_best_genomes:
 
 ########################
 # PhyloPhlAn on fna files
+# Back up the raw output
+# Make a standard format output with:
+# taxa_ID,kingdom,phylum,class,order,family,genus,species
+# Use mash-distance cutoffs to assign taxonomy resolution:
+#       d <  5% - species
+#  5% < d < 10% - genus
+# 10% < d < 20% - family
 ########################
 
 rule phylophlan_taxonomy_for_genome_collection:
@@ -664,7 +671,8 @@ rule phylophlan_taxonomy_for_genome_collection:
         genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
         phylo_def=lambda wildcards: "{minto_dir}/data/phylophlan/{db_version}.txt.bz2".format(minto_dir=minto_dir, db_version=wildcards.db_version)
     output:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.tsv"
+        orig  = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.tsv.orig",
+        fixed = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.tsv"
     shadow:
         "minimal"
     log:
@@ -681,12 +689,22 @@ rule phylophlan_taxonomy_for_genome_collection:
         """
         time (
             phylophlan_assign_sgbs -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
+            echo -e "taxa_ID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
+            cut -f1,2 taxonomy.tsv \
+                    | tail -n +2 \
+                    | perl -lane '($id, undef, $tax, $dist) = split(/:/, $F[1]); @tax = map {{s/.__//; $_}} split(/\|/, $tax); pop(@tax); $, = "\t"; print($dist, $F[0], @tax);' \
+                    | perl -lane '$dist = shift(@F); $F[7]="NA" if $dist>0.05; $F[6]="NA" if $dist>0.1; $F[5]="NA" if $dist>0.2; print join("\t", @F)' \
+                    >> taxonomy.tsv.fixed
         ) >& {log}
-        rsync -a taxonomy.tsv {output}
+        rsync -a taxonomy.tsv {output.orig}
+        rsync -a taxonomy.tsv.fixed {output.fixed}
         """
 
 ########################
 # GTDB-tk on fna files
+# Back up the raw output
+# Make a standard format output with:
+# taxa_ID,kingdom,phylum,class,order,family,genus,species
 ########################
 
 rule gtdb_taxonomy_for_genome_collection:
@@ -694,7 +712,8 @@ rule gtdb_taxonomy_for_genome_collection:
         genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
         gtdb_def=lambda wildcards: "{minto_dir}/data/GTDB/{db_version}/taxonomy/gtdb_taxonomy.tsv".format(minto_dir=minto_dir, db_version=wildcards.db_version)
     output:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.gtdb.{db_version}.tsv"
+        orig  = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.gtdb.{db_version}.tsv.orig",
+        fixed = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.gtdb.{db_version}.tsv"
     shadow:
         "minimal"
     log:
@@ -714,6 +733,13 @@ rule gtdb_taxonomy_for_genome_collection:
             gtdbtk classify_wf --genome_dir {input.genomes} -x fna --out_dir tmp --cpus {threads} --skip_ani_screen
             cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
             cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
+            echo -e "taxa_ID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
+            cut -f1,2 taxonomy.tsv \
+                    | tail -n +2 \
+                    | sed "s/ /_/g" \
+                    | perl -lane '@tax = map {{s/.__//; $_}} split(/;/, $F[1]); $, = "\t"; print($F[0], @tax);' \
+                    >> taxonomy.tsv.fixed
         ) >& {log}
-        rsync -a taxonomy.tsv {output}
+        rsync -a taxonomy.tsv {output.orig}
+        rsync -a taxonomy.tsv.fixed {output.fixed}
         """
