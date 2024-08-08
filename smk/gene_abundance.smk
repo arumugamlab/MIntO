@@ -174,14 +174,17 @@ def get_sample2alias_map(in_file):
 sample2alias = get_sample2alias_map(metadata)
 
 def combined_genome_profiles():
-    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/{label}.p{identity}.{variant}.tsv",
-                label = 'genome_abundances',
+    folder = "{wd}/{omics}/9-mapping-profiles/{subdir}".format(
                 wd = working_dir,
                 omics = omics,
                 subdir = MINTO_MODE,
-                identity = identity,
-                variant = ['abund.prop', 'abund.prop.genome', 'relabund.prop.genome']
                 )
+    files = expand("{label}.___ID___.{variant}.tsv",
+                zip,
+                label = ['genome_abundances', 'genome_abundances', 'contig_abundances', 'contig_abundances'],
+                variant = ['abund.prop', 'relabund.prop', 'abund.prop', 'abund.all']
+                )
+    result = [folder + '/' + f.replace('___ID___', f"p{identity}") for f in files]
     return(result)
 
 def combined_gene_abundance_profiles():
@@ -612,19 +615,24 @@ def get_msamtools_profiles(wildcards):
 
     # Ensure right MINTO_MODE and filename combinations
     if     (wildcards.minto_mode in ['MAG', 'refgenome'] and wildcards.filename == 'gene_abundances') \
-        or (wildcards.minto_mode == 'catalog' and wildcards.filename == 'genome_abundances'):
+        or (wildcards.minto_mode == 'catalog'            and wildcards.filename in ['genome_abundances', 'contig_abundances']):
         raise Exception("MIntO mode {} cannot generate {} profiles".format(wildcards.minto_mode, wildcards.filename))
 
     # Ensure right MINTO_MODE and norm combination
     if (wildcards.minto_mode == 'catalog' and wildcards.type != 'TPM'):
         raise Exception("MIntO mode {} cannot generate {} profiles".format(wildcards.minto_mode, wildcards.type))
 
-    profiles = expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
+    # For genome_abundances, look for file with '<type>.genome' in it
+    typespec = wildcards.type
+    if (wildcards.filename == 'genome_abundances'):
+        typespec = wildcards.type + '.genome'
+
+    profiles = expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{typespec}.txt.gz",
                             wd = wildcards.wd,
                             omics = wildcards.omics,
                             minto_mode = wildcards.minto_mode,
                             identity = wildcards.identity,
-                            type = wildcards.type,
+                            typespec = typespec,
                             sample = ilmn_samples)
     return(profiles)
 
@@ -648,6 +656,7 @@ rule merge_msamtools_profiles:
         mem=30
     threads: lambda wildcards,input: min(10, len(input.single))
     wildcard_constraints:
+        filename='gene_abundances|genome_abundances|contig_abundances',
         identity='[0-9]+'
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
