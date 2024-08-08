@@ -154,6 +154,7 @@ rule generate_locus_ids:
                     lid = lid[:i] + new_lid_char + lid[i+1:]
                 genome_locusids[lid] = g
         with open(output[0], "w") as of:
+            print('mag_id', 'locus_id', sep="\t", file=of)
             for lid, genome in genome_locusids.items():
                 print(genome, lid, sep="\t", file=of)
 
