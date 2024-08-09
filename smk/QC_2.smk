@@ -1163,6 +1163,16 @@ MIN_mapped_reads: 2
 # Could be TPM, MG or comma-delimited combinations
 abundance_normalization: TPM,MG
 
+# MAG taxonomy settings
+#
+RUN_TAXONOMY: yes
+TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
+
+# Taxonomy database versions
+#
+PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jun23
+GTDB_TAXONOMY_VERSION: r220
+
 # Input data
 
 # ILLUMINA section:
