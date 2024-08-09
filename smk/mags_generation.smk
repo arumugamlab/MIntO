@@ -43,20 +43,13 @@ snakefile_name = print_versions.get_smk_filename()
 
 if 'BINNERS' in config:
     if config['BINNERS'] is None:
-        print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete ', config_path)
+        raise Exception(f"'BINNERS' variable is empty. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
     else:
-        try:
-            if 'BINNERS' in config:
-                #print("Samples:")
-                for bin in config["BINNERS"]:
-                    if bin in ('vae256', 'vae384', 'vae512', 'vae768', 'aaey', 'aaez'):
-                        pass
-                    else:
-                        raise TypeError('BINNERS variable is not correct. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete ', config_path)
-        except:
-            print('ERROR in ', config_path, ': BINNERS variable is not correct. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez.')
+        for bin in config["BINNERS"]:
+            if bin not in ('vae256', 'vae384', 'vae512', 'vae768', 'aaey', 'aaez'):
+                raise Exception(f"'BINNERS' variable contains incorrect value '{bin}'. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
 else:
-    print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete', config_path)
+    raise Exception(f"'BINNERS' variable is missing. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
 
 
 if config['VAMB_THREADS'] is None:
@@ -124,7 +117,7 @@ else:
     print('ERROR in ', config_path, ': SCORE_METHOD variable can only be checkm at the moment!')
 
 run_taxonomy="no"
-if config['RUN_TAXONOMY'] is None:
+if 'RUN_TAXONOMY' not in config or config['RUN_TAXONOMY'] is None:
     print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
 elif config['RUN_TAXONOMY'] == True:
     run_taxonomy = "yes"
@@ -132,25 +125,25 @@ elif config['RUN_TAXONOMY'] == False:
     run_taxonomy = "no"
     print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs.')
 else:
-    print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
+    raise Exception(f"Incorrect value for RUN_TAXONOMY variable (should be yes or no). Please fix {config_path}")
 
 if run_taxonomy == "yes":
     if config['TAXONOMY_CPUS'] is None:
-        print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is empty. Please, complete ', config_path)
+        raise Exception(f"TAXONOMY_CPUS variable is empty. Please fix {config_path}")
     elif type(config['TAXONOMY_CPUS']) != int:
-        print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is not an integer. Please, complete ', config_path)
+        raise Exception(f"TAXONOMY_CPUS variable must be an integer. Please fix {config_path}")
 
     if config['TAXONOMY_memory'] is None:
-        print('ERROR in ', config_path, ': TAXONOMY_memory variable is empty. Please, complete ', config_path)
+        raise Exception(f"TAXONOMY_memory variable is empty. Please fix {config_path}")
     elif type(config['TAXONOMY_memory']) != int:
-        print('ERROR in ', config_path, ': TAXONOMY_memory variable is not an integer. Please, complete ', config_path)
+        raise Exception(f"TAXONOMY_memory variable must be an integer. Please fix {config_path}")
 
     allowed = ('phylophlan', 'gtdb')
     flags = [0 if x in allowed else 1 for x in config['TAXONOMY_NAME'].split(",")]
     if sum(flags) == 0:
         taxonomy=config["TAXONOMY_NAME"]
     else:
-        print('ERROR in ', config_path, ': TAXONOMY_NAME variable is not correct. "TAXONOMY_NAME" variable should be phylophlan, gtdb, or combinations thereof.')
+        raise Exception(f"TAXONOMY_NAME variable should be phylophlan, gtdb, or combinations thereof. Please fix {config_path}")
 
     taxonomies_versioned = list()
     taxonomies = taxonomy.split(",")
