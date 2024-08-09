@@ -53,7 +53,7 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #o
   label2 <- noquote(label)
   #### PCoA
   ord<- ordinate(data_phyloseq, method = "PCoA", distance = distance_lab)
-  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape = shape, label = label) #type = type,
+  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape = as.factor(shape), label = label) #type = type,
   PcoA_Sample_site_abundance <- PcoA_Sample_site_abundance +
     ggtitle(title_name, distance_lab)  +
     geom_point(size = 2.5) +
@@ -69,7 +69,7 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #o
                           max.overlaps = getOption("ggrepel.max.overlaps", default = 20)
                     )
   if (!is.null(shape)) {
-    PcoA_Sample_site_abundance_2 <- PcoA_Sample_site_abundance_2 + geom_point(aes(shape = get(shape)), size = 2)
+    PcoA_Sample_site_abundance_2 <- PcoA_Sample_site_abundance_2 + geom_point(aes(shape = as.factor(get(shape))), size = 2)
   } else {
     PcoA_Sample_site_abundance_2 <- PcoA_Sample_site_abundance_2 + geom_point(shape = 16, size = 2)
   }
@@ -256,8 +256,14 @@ if (!is.null(opt$factor2)) {
 }
 otu_taxa_metadata_top15_sum <- data.frame(otu_taxa_metadata_top15 %>% 
                                             dplyr::group_by(across(all_of(group_by_vars)), genus, sample) %>% 
-                                            dplyr::summarise(RA_count = sum(value), .groups="drop_last") %>% 
-                                            dplyr::summarise(RA_count = mean(RA_count), .groups="drop_last"))
+                                            dplyr::summarise(RA_count = sum(value), .groups="drop_last") %>%
+                                            ungroup())
+if (!is.null(opt$time)){
+  otu_taxa_metadata_top15_sum <- otu_taxa_metadata_top15_sum %>% 
+    dplyr::group_by(across(all_of(group_by_vars)), genus, sample) %>%
+    dplyr::summarise(RA_count = mean(RA_count), .groups="drop_last")
+}
+
 
 otu_taxa_metadata_top15_sum$genus<- factor(otu_taxa_metadata_top15_sum$genus, levels = rev(c(otu_taxa_metadata_top15_list, 'Other', 'Unknown')))
 #variables = unique(otu_taxa_metadata$species[order(-otu_taxa_metadata$value)])
@@ -326,17 +332,16 @@ if (!is.null(opt$time)) {
                             ) +
                         facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
 } else if (!is.null(opt$factor2)) {
-    richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$factor2]], y=richness)) +
-                        geom_boxplot() +
+    richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$factor]], y=richness, group=.data[[opt$factor2]])) +
+                        geom_line(aes(color=.data[[opt$factor2]])) +
                         geom_point() +
                         ylim(0, NA) +
                         theme(legend.position = "top") +
                         theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) +
-                        labs(x = opt$factor2, y = "Richness") +
+                        labs(x = opt$factor, y = "Richness") +
                         theme(title = element_text(size = 10),
                               panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(),
-                            ) +
-                        facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
+                            )
 } else {
     richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$factor]], y=richness)) +
                         geom_boxplot() +
