@@ -176,8 +176,7 @@ def checkm2_db_out():
     return(result)
 
 def fetchMGs_out():
-    result=expand("{minto_dir}/logs/fetchMGs_download.done",
-        minto_dir=minto_dir)
+    result = f"{minto_dir}/data/fetchMGs-1.2/fetchMGs.pl"
     return(result)
 
 def gtdb_db_out():
@@ -548,8 +547,7 @@ rule checkm2_db:
 
 rule download_fetchMGs:
     output:
-        done="{minto_dir}/logs/fetchMGs_download.done",
-        data=directory("{minto_dir}/data/fetchMGs-1.2")
+        script="{minto_dir}/data/fetchMGs-1.2/fetchMGs.pl"
     resources:
         mem=download_memory
     threads:
@@ -561,13 +559,13 @@ rule download_fetchMGs:
         time (
             cd {minto_dir}/data/
             wget --no-verbose -O fetchMGs-1.2.tar.gz https://github.com/motu-tool/fetchMGs.pl/archive/refs/tags/v1.2.tar.gz
-            tar xfz fetchMGs-1.2.tar.gz && mv fetchMGs.pl-1.2 fetchMGs-1.2
+            tar xfz fetchMGs-1.2.tar.gz && mv fetchMGs.pl-1.2/* fetchMGs-1.2/
             if [ $? -eq 0 ]; then
                 echo 'fetchMGs download: OK'
-                echo OK > {output.done}
             else
                 echo 'fetchMGs download: FAIL'
             fi
+            rmdir fetchMGs.pl-1.2
             rm fetchMGs-1.2.tar.gz
         ) &> {log}
         """
