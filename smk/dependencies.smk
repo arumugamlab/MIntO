@@ -165,9 +165,7 @@ def motus_db_out():
         if (flag.lower() in ('no', 'false', '0')):
             return(list())
 
-    result=expand("{minto_dir}/data/motus/db.{motus_version}.downloaded",
-        minto_dir=minto_dir,
-        motus_version=motus_version)
+    result = f"{minto_dir}/data/motus/{motus_version}/db_mOTU/db_mOTU_versions"
     return(result)
 
 def checkm2_db_out():
@@ -483,7 +481,7 @@ rule metaphlan_db:
 
 rule motus_db:
     output:
-        "{minto_dir}/data/motus/db.{motus_version}.downloaded"
+        "{minto_dir}/data/motus/{motus_version}/db_mOTU/db_mOTU_versions"
     resources:
         mem=download_memory
     threads:
@@ -500,14 +498,18 @@ rule motus_db:
                 echo 'mOTUs3 database download: OK'
                 echo OK > {output}
 
-                # place db into data folder
+                # place db into minto_dir/data folder
                 MOTUS_DB_PATH=$(find "$(dirname $(which motus))/../lib" -type d -iname db_mOTU | head -1 )
                 mkdir -p {minto_dir}/data/motus/{motus_version}
+                echo "Moving mOTUs database: $MOTUS_DB_PATH/  -->  {minto_dir}/data/motus/{motus_version}/"
                 rsync -a $MOTUS_DB_PATH {minto_dir}/data/motus/{motus_version}/
 
+                # Remove original DB within conda-dir
                 rm -rf $MOTUS_DB_PATH/*
-                # copy the version file back to silence missing db errors
-                rsync -a {minto_dir}/data/motus/{motus_version}/db_mOTU/db_mOTU_versions $MOTUS_DB_PATH/db_mOTU_versions
+
+                # Symlink the version file back to silence missing db errors
+                # It is a symlink, so that if the target is missing in minto_dir, it becomes a broken link and will re-download
+                ln -s --relative --force {minto_dir}/data/motus/{motus_version}/db_mOTU/db_mOTU_versions $MOTUS_DB_PATH/db_mOTU_versions
             else
                 echo 'mOTUs3 database download: FAIL'
             fi
@@ -676,15 +678,13 @@ rule mags_gen_vamb:
         mem=download_memory
     threads:
         download_threads
-    log:
-        "{minto_dir}/logs/vamb_env.log"
     conda:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
         """
         time (
             echo 'VAMB environment generated'
-        ) &> {log}
+        ) &> {output}
         """
 
 rule mags_gen:
