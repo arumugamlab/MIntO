@@ -326,7 +326,7 @@ if omics == 'metaG_metaT':
         ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
 
         # Add genome-weights if it is MG-normalization
-        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.genome.tsv",
+        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.tsv",
                 wd = working_dir,
                 omics = ['metaG', 'metaT'],
                 minto_mode = wildcards.gene_db.replace('-genes', ''),
@@ -397,7 +397,7 @@ else :
         ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
 
         # Add genome-weights if it is MG-normalization
-        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.genome.tsv",
+        genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.tsv",
                 wd = working_dir,
                 omics = ['metaG', 'metaT'],
                 minto_mode = wildcards.gene_db.replace('-genes', ''),
