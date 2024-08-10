@@ -496,9 +496,11 @@ library(data.table)
 library(ggplot2)
 library(dplyr)
 
-count_df <- fread('{input.tsv}', header=T) %>%
-                as.data.frame(stringsAsFactors = F, row.names = T) %>%
+count_df <- fread('{input.tsv}', sep = "\t", header = T, data.table = F) %>%
                 distinct() %>%
+                group_by(DB) %>%
+                slice_max(order_by=feature_n, n=1) %>%
+                as.data.frame() %>%
                 mutate(DB = reorder(DB, feature_n))
 
 pdf('{output.pdf}', width=6, height=5, paper="special" )
