@@ -138,9 +138,7 @@ def phylophlan_db_out():
         if (flag.lower() in ('no', 'false', '0')):
             return(list())
 
-    result=expand("{minto_dir}/data/phylophlan/SGB.{version}.txt.bz2",
-        minto_dir=minto_dir,
-        version=phylophlan_db_version)
+    result = f"{minto_dir}/data/phylophlan/SGB.{phylophlan_db_version}.txt.bz2"
     return(result)
 
 def metaphlan_db_out():
@@ -151,10 +149,7 @@ def metaphlan_db_out():
         if (flag.lower() in ('no', 'false', '0')):
             return(list())
 
-    result=expand("{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv",
-        minto_dir=minto_dir,
-        metaphlan_version=metaphlan_version,
-        metaphlan_index=metaphlan_index)
+    result = f"{minto_dir}/data/metaphlan/{metaphlan_version}/{metaphlan_index}_VINFO.csv"
     return(result)
 
 def motus_db_out():
@@ -169,8 +164,7 @@ def motus_db_out():
     return(result)
 
 def checkm2_db_out():
-    result=expand("{minto_dir}/data/CheckM2_database/uniref100.KO.1.dmnd",
-        minto_dir=minto_dir)
+    result = f"{minto_dir}/data/CheckM2_database/uniref100.KO.1.dmnd"
     return(result)
 
 def fetchMGs_out():
@@ -185,9 +179,7 @@ def gtdb_db_out():
         if (flag.lower() in ('no', 'false', '0')):
             return(list())
 
-    result=expand("{minto_dir}/data/GTDB/r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv",
-        minto_dir=minto_dir,
-        gtdb_release_number=gtdb_release_number)
+    result = f"{minto_dir}/data/GTDB/r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv"
     return(result)
 
 def all_env_out():
