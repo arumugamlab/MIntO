@@ -746,11 +746,18 @@ locusmap = fread('{input.locusmap}', header = TRUE, sep = "\\t")
 taxonomy = fread('{input.taxonomy}', header = TRUE, sep = "\\t")
 
 # Link locus_tag and mag_id in the profile
-dt = merge(profile, locusmap, by.x='ID', by.y='locus_id')
+# Keep Unmapped via left-join
+dt = (
+        merge(profile, locusmap, by.x='ID', by.y='locus_id', all.x=TRUE)
+        [is.na(mag_id), mag_id := 'Unmapped']
+     )
 
 # Add taxonomy using mag_id
+# Keep Unmapped via left-join
+# Annotate Unmapped as Unknown
 dt = (
-        merge(dt, taxonomy, by='mag_id')
+        merge(dt, taxonomy, by='mag_id', all.x=TRUE)
+        [, lapply(.SD, function(x) ifelse(is.na(x), 'Unknown', x))]
         [, ID := NULL]
      )
 setcolorder(dt, 'mag_id')
