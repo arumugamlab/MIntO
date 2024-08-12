@@ -720,7 +720,7 @@ rule add_annotation_to_genome_profiles:
     input:
         profile  = "{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.tsv",
         locusmap = "{wd}/DB/{minto_mode}/1-prokka/locus_id_list.txt",
-        taxonomy = f"{{wd}}/{mag_omics}/8-1-binning/mags_generation_pipeline/taxonomy.{{taxonomy}}.{{db_version}}.tsv"
+        taxonomy = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.{taxonomy}.{db_version}.tsv"
     output:
         mag_profile = "{wd}/output/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.tsv",
         sp_profile  = "{wd}/output/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.species.tsv"

@@ -63,6 +63,46 @@ elif MINTO_MODE == 'refgenome':
 if path.exists(reference_dir) is False:
     print('ERROR in ', config_path, ': reference genome path ', reference_dir, ' does not exit. Please, complete ', config_path)
 
+run_taxonomy="no"
+if 'RUN_TAXONOMY' not in config or config['RUN_TAXONOMY'] is None:
+    print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
+elif config['RUN_TAXONOMY'] == True:
+    run_taxonomy = "yes"
+elif config['RUN_TAXONOMY'] == False:
+    run_taxonomy = "no"
+    print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs.')
+else:
+    raise Exception(f"Incorrect value for RUN_TAXONOMY variable (should be yes or no). Please fix {config_path}")
+
+if run_taxonomy == "yes":
+    if config['TAXONOMY_CPUS'] is None:
+        raise Exception(f"TAXONOMY_CPUS variable is empty. Please fix {config_path}")
+    elif type(config['TAXONOMY_CPUS']) != int:
+        raise Exception(f"TAXONOMY_CPUS variable must be an integer. Please fix {config_path}")
+
+    if config['TAXONOMY_memory'] is None:
+        raise Exception(f"TAXONOMY_memory variable is empty. Please fix {config_path}")
+    elif type(config['TAXONOMY_memory']) != int:
+        raise Exception(f"TAXONOMY_memory variable must be an integer. Please fix {config_path}")
+
+    allowed = ('phylophlan', 'gtdb')
+    flags = [0 if x in allowed else 1 for x in config['TAXONOMY_NAME'].split(",")]
+    if sum(flags) == 0:
+        taxonomy=config["TAXONOMY_NAME"]
+    else:
+        raise Exception(f"TAXONOMY_NAME variable should be phylophlan, gtdb, or combinations thereof. Please fix {config_path}")
+
+    taxonomies_versioned = list()
+    taxonomies = taxonomy.split(",")
+    for t in taxonomies:
+        version="unknown"
+        if t == "phylophlan":
+            version=config["PHYLOPHLAN_TAXONOMY_VERSION"]
+        elif t == "gtdb":
+            version=config["GTDB_TAXONOMY_VERSION"]
+        taxonomies_versioned.append(t+"."+version)
+    print('NOTE: MIntO is running taxonomy labelling of the unique MAGs using [{}].'.format(", ".join(taxonomies_versioned)))
+
 annot_list = list()
 if 'ANNOTATION' in config:
     if config['ANNOTATION'] is None:
@@ -90,6 +130,10 @@ GENE_DB_TYPE = MINTO_MODE + '-genes'
 
 rule all:
     input:
+        expand("{wd}/DB/{subdir}/3-taxonomy/taxonomy.{taxonomy}.tsv",
+                    wd = working_dir,
+                    subdir = MINTO_MODE,
+                    taxonomy = taxonomies_versioned),
         "{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(
                     wd = working_dir,
                     subdir = MINTO_MODE),
@@ -104,7 +148,7 @@ rule all:
     default_target: True
 
 ######################
-# 1. PREPARE GENOMES
+# 0. PREPARE GENOMES
 ######################
 
 ###############################################################################################
@@ -159,7 +203,7 @@ rule generate_locus_ids:
                 print(genome, lid, sep="\t", file=of)
 
 ######################
-# 2. GENE PREDICTION
+# 1. GENE PREDICTION
 ######################
 
 ########################
@@ -199,6 +243,10 @@ rule prokka_for_genome:
             rsync -a out/tmp.txt {output.summary}
         ) >& {log}
         """
+
+######################
+# 2a. RENAME SEQS
+######################
 
 # Dont combine FAA files ####
 
@@ -258,6 +306,10 @@ rule rename_prokka_sequences:
         ) >& {log}
         """
 
+######################
+# 2b. COMBINE BED FILES
+######################
+
 # Get a list of genome bed files
 def get_genome_bed(wildcards):
     #Collect the BED files for MAGs
@@ -315,7 +367,7 @@ rule combine_individual_beds:
         shutil.copy2('mini.bed', output.bed_mini)
 
 ######################
-# 3. MARKER GENES
+# 2c. MARKER GENES
 ######################
 
 ###############################################################################################
@@ -369,6 +421,100 @@ rule merge_MG_tables:
                     awk 'FNR>1' ${{file}} >> {output}
                 done
         ) >& {log}
+        """
+
+######################
+# 3. TAXONOMY
+######################
+
+########################
+# PhyloPhlAn on fna files
+# Back up the raw output
+# Make a standard format output with:
+# mag_id,kingdom,phylum,class,order,family,genus,species
+# Use mash-distance cutoffs to assign taxonomy resolution:
+#       d <  5% - species
+#  5% < d < 10% - genus
+# 10% < d < 20% - family
+########################
+
+rule phylophlan_taxonomy_for_genome_collection:
+    input:
+        genomes   = "{wd}/DB/{minto_mode}/2-postprocessed",
+        phylo_def = f"{minto_dir}/data/phylophlan/{{db_version}}.txt.bz2"
+    output:
+        orig  = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.phylophlan.{db_version}.tsv.orig",
+        fixed = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.phylophlan.{db_version}.tsv"
+    shadow:
+        "minimal"
+    log:
+        "{wd}/logs/DB/{minto_mode}/3-taxonomy/taxonomy.phylophlan.{db_version}.log"
+    params:
+        db_folder=lambda wildcards: "{minto_dir}/data/phylophlan".format(minto_dir=minto_dir)
+    resources:
+        mem=config["TAXONOMY_memory"]
+    threads:
+        config["TAXONOMY_CPUS"]
+    conda:
+        config["minto_dir"]+"/envs/mags.yml"
+    shell:
+        """
+        time (
+            phylophlan_assign_sgbs --input {input.genomes} --input_extension fna --output_prefix taxonomy --nproc {threads} -d {wildcards.db_version} --database_folder {params.db_folder}
+            echo -e "mag_id\\tkingdom\\tphylum\\tclass\\torder\\tfamily\\tgenus\\tspecies" > taxonomy.tsv.fixed
+            cut -f1,2 taxonomy.tsv \
+                    | tail -n +2 \
+                    | sed "s/ /\\t/" \
+                    | perl -lane '($id, undef, $tax, $dist) = split(/:/, $F[1]); @tax = map {{s/.__//; $_}} split(/\|/, $tax); pop(@tax); $, = "\\t"; print($dist || 0.5, $F[0], @tax);' \
+                    | perl -lane '$dist = shift(@F); $mag = shift(@F); pop(@F) if $dist>0.05; pop(@F) if $dist>0.1; pop(@F) if $dist>0.2; print join("\\t", $mag, @F)' \
+                    >> taxonomy.tsv.fixed
+        ) >& {log}
+        rsync -a taxonomy.tsv {output.orig}
+        rsync -a taxonomy.tsv.fixed {output.fixed}
+        """
+
+########################
+# GTDB-tk on fna files
+# Back up the raw output
+# Make a standard format output with:
+# mag_id,kingdom,phylum,class,order,family,genus,species
+########################
+
+rule gtdb_taxonomy_for_genome_collection:
+    input:
+        genomes  = "{wd}/DB/{minto_mode}/2-postprocessed",
+        gtdb_def = f"{minto_dir}/data/GTDB/{{db_version}}/taxonomy/gtdb_taxonomy.tsv"
+    output:
+        orig  = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.gtdb.{db_version}.tsv.orig",
+        fixed = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.gtdb.{db_version}.tsv"
+    shadow:
+        "minimal"
+    log:
+        "{wd}/logs/DB/{minto_mode}/3-taxonomy/taxonomy.gtdb.{db_version}.log"
+    params:
+        db_folder=lambda wildcards: "{minto_dir}/data/GTDB/{db_version}".format(minto_dir=minto_dir, db_version=wildcards.db_version)
+    resources:
+        mem=70
+    threads:
+        config["TAXONOMY_CPUS"]
+    conda:
+        config["minto_dir"]+"/envs/gtdb.yml"
+    shell:
+        """
+        time (
+            export GTDBTK_DATA_PATH={params.db_folder}
+            gtdbtk classify_wf --genome_dir {input.genomes} --extension fna --out_dir tmp --cpus {threads} --skip_ani_screen
+            cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
+            cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
+            echo -e "mag_id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
+            cut -f1,2 taxonomy.tsv \
+                    | tail -n +2 \
+                    | sed "s/ /_/g" \
+                    | perl -lane '@tax = map {{s/.__//; $_}} split(/;/, $F[1]); $, = "\t"; print($F[0], @tax);' \
+                    >> taxonomy.tsv.fixed
+        ) >& {log}
+        rsync -a taxonomy.tsv {output.orig}
+        rsync -a taxonomy.tsv.fixed {output.fixed}
         """
 
 ###########################

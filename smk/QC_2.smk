@@ -1171,10 +1171,14 @@ MIN_mapped_reads: 2
 # Could be TPM, MG or comma-delimited combinations
 abundance_normalization: TPM,MG
 
-# MAG taxonomy settings
+##########################
+# Genome taxonomy settings
+##########################
 #
 RUN_TAXONOMY: yes
 TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
+TAXONOMY_CPUS: 8
+TAXONOMY_memory: 5
 
 # Taxonomy database versions
 #
