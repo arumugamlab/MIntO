@@ -427,6 +427,16 @@ rule merge_MG_tables:
 # 3. TAXONOMY
 ######################
 
+rule check_directory_for_taxonomic_annotation:
+    input:
+        rules.merge_MG_tables.output
+    output:
+        "{wd}/DB/{minto_mode}/2-postprocessed/all.done"
+    shell:
+        """
+        touch {output}
+        """
+
 ########################
 # PhyloPhlAn on fna files
 # Back up the raw output
@@ -440,7 +450,7 @@ rule merge_MG_tables:
 
 rule phylophlan_taxonomy_for_genome_collection:
     input:
-        genomes   = "{wd}/DB/{minto_mode}/2-postprocessed",
+        genomes   = rules.check_directory_for_taxonomic_annotation.output,
         phylo_def = f"{minto_dir}/data/phylophlan/{{db_version}}.txt.bz2"
     output:
         orig  = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.phylophlan.{db_version}.tsv.orig",
@@ -460,7 +470,7 @@ rule phylophlan_taxonomy_for_genome_collection:
     shell:
         """
         time (
-            phylophlan_assign_sgbs --input {input.genomes} --input_extension fna --output_prefix taxonomy --nproc {threads} -d {wildcards.db_version} --database_folder {params.db_folder}
+            phylophlan_assign_sgbs --input $(dirname {input.genomes}) --input_extension fna --output_prefix taxonomy --nproc {threads} -d {wildcards.db_version} --database_folder {params.db_folder}
             echo -e "mag_id\\tkingdom\\tphylum\\tclass\\torder\\tfamily\\tgenus\\tspecies" > taxonomy.tsv.fixed
             cut -f1,2 taxonomy.tsv \
                     | tail -n +2 \
@@ -482,7 +492,7 @@ rule phylophlan_taxonomy_for_genome_collection:
 
 rule gtdb_taxonomy_for_genome_collection:
     input:
-        genomes  = "{wd}/DB/{minto_mode}/2-postprocessed",
+        genomes  = rules.check_directory_for_taxonomic_annotation.output,
         gtdb_def = f"{minto_dir}/data/GTDB/{{db_version}}/taxonomy/gtdb_taxonomy.tsv"
     output:
         orig  = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.gtdb.{db_version}.tsv.orig",
@@ -503,7 +513,7 @@ rule gtdb_taxonomy_for_genome_collection:
         """
         time (
             export GTDBTK_DATA_PATH={params.db_folder}
-            gtdbtk classify_wf --genome_dir {input.genomes} --extension fna --out_dir tmp --cpus {threads} --skip_ani_screen
+            gtdbtk classify_wf --genome_dir $(dirname {input.genomes}) --extension fna --out_dir tmp --cpus {threads} --skip_ani_screen
             cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
             cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
             echo -e "mag_id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies" > taxonomy.tsv.fixed
