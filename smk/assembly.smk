@@ -502,7 +502,7 @@ rule mark_circular_flye_contigs:
             fiter = fasta_iter(input[0])
             for entry in fiter:
                 header, seq = entry
-                new_header = header + '_length_%s' % len(seq)
+                new_header = header.replace("contig", "NODE") + '_length_%s' % len(seq)
                 if header in circular:
                     new_header = new_header+'_circularA'
                 out.write(f'>MetaFlye.{wildcards.assembly_preset}.{wildcards.nanopore}_{new_header}\n')

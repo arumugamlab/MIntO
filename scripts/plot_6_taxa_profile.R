@@ -53,7 +53,7 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #o
   label2 <- noquote(label)
   #### PCoA
   ord<- ordinate(data_phyloseq, method = "PCoA", distance = distance_lab)
-  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape = shape, label = label) #type = type,
+  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape = as.factor(shape), label = label) #type = type,
   PcoA_Sample_site_abundance <- PcoA_Sample_site_abundance +
     ggtitle(title_name, distance_lab)  +
     geom_point(size = 2.5) +
@@ -69,7 +69,7 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #o
                           max.overlaps = getOption("ggrepel.max.overlaps", default = 20)
                     )
   if (!is.null(shape)) {
-    PcoA_Sample_site_abundance_2 <- PcoA_Sample_site_abundance_2 + geom_point(aes(shape = get(shape)), size = 2)
+    PcoA_Sample_site_abundance_2 <- PcoA_Sample_site_abundance_2 + geom_point(aes(shape = as.factor(get(shape))), size = 2)
   } else {
     PcoA_Sample_site_abundance_2 <- PcoA_Sample_site_abundance_2 + geom_point(shape = 16, size = 2)
   }
@@ -119,6 +119,14 @@ if (is.null(metadata_file)) {
 samp <- sample_data(metadata_df)
 rownames(samp) <- samp$sample
 
+
+# estimating number of facets/grids for pdf sizing
+n_factor <- length(unique(metadata_df[[opt$factor]]))
+if (!is.null(opt$factor2)) {
+  n_factor <- length(unique(metadata_df[[opt$factor2]]))
+}
+n_facet_row <- ceiling(n_factor / 10)
+
 # phyloseq object
 profile_phyloseq <- phyloseq(otu_table(as.matrix(otu_table), taxa_are_rows = T), tax_table(as.matrix(taxa_df)), samp)
 
@@ -163,7 +171,7 @@ if(length(unique(metadata_df[[opt$factor]]))>1){
 
 #plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, title_name, out_name)
 
-plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, color=opt$factor, label = if (!is.null(opt$time)) opt$time else "sample", shape=opt$factor2)
+plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, color=opt$factor2, label = if (!is.null(opt$time)) opt$time else "sample", shape=opt$factor)
 
 manual_plot_colors =c('#9D0208', '#264653','#e9c46a','#D8DCDE','#B6D0E0',
                       '#FFC87E','#F4A261','#E34F33','#E9C46A',
@@ -171,7 +179,8 @@ manual_plot_colors =c('#9D0208', '#264653','#e9c46a','#D8DCDE','#B6D0E0',
                       '#7AAFCA','#006699','#A9D181','#2F8475','#264445') 
 
 # Save ####
-pdf(out_name,width=8,height=8,paper="special" )
+pdf_size <- max(round(n_facet_row * 1.8, 0), 8)
+pdf(out_name,width=pdf_size,height=pdf_size,paper="special" )
 print(plot_PCoA_out  + 
         #scale_color_manual(values=manual_plot_colors, name='Condition') +
         coord_fixed() +
@@ -246,8 +255,15 @@ if (!is.null(opt$factor2)) {
     group_by_vars <- c(opt$factor, opt$factor2, sample_var) 
 }
 otu_taxa_metadata_top15_sum <- data.frame(otu_taxa_metadata_top15 %>% 
-                                            dplyr::group_by(sample, across(all_of(group_by_vars)), genus) %>% 
-                                            dplyr::summarise(RA_count = sum(value), .groups="drop_last"))
+                                            dplyr::group_by(across(all_of(group_by_vars)), genus, sample) %>% 
+                                            dplyr::summarise(RA_count = sum(value), .groups="drop_last") %>%
+                                            ungroup())
+if (!is.null(opt$time)){
+  otu_taxa_metadata_top15_sum <- otu_taxa_metadata_top15_sum %>% 
+    dplyr::group_by(across(all_of(group_by_vars)), genus, sample) %>%
+    dplyr::summarise(RA_count = mean(RA_count), .groups="drop_last")
+}
+
 
 otu_taxa_metadata_top15_sum$genus<- factor(otu_taxa_metadata_top15_sum$genus, levels = rev(c(otu_taxa_metadata_top15_list, 'Other', 'Unknown')))
 #variables = unique(otu_taxa_metadata$species[order(-otu_taxa_metadata$value)])
@@ -259,8 +275,10 @@ colors_kit<-c('#D8DCDE', '#B6D0E0',
               '#7AAFCA','#006699','#A9D181','#2F8475','#264445')
 
 out_name <- paste0(out_dir, '/', profile_param, '.Top15genera.pdf')
-pdf(out_name,width=15,height=15,paper="special" )
-plot_genera_out <- ggplot(data=otu_taxa_metadata_top15_sum, aes(x = .data[[sample_var]], group = genus)) +
+pdf_size <- max(round(n_factor * 0.55, 0), 15)
+print(paste(pdf_size, "15top"))
+pdf(out_name,width=pdf_size * 0.80,height=pdf_size,paper="special" )
+plot_genera_out <- ggplot(data=otu_taxa_metadata_top15_sum, aes(x = as.factor(.data[[sample_var]]), group = genus)) +
         geom_bar(aes(y=RA_count, fill = genus), stat="identity", alpha=.7) +
         theme_minimal() + 
         theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) + 
@@ -277,9 +295,9 @@ plot_genera_out <- ggplot(data=otu_taxa_metadata_top15_sum, aes(x = .data[[sampl
         scale_fill_manual(values = colors_kit, name="Top 15 genera")
 
 if (!is.null(opt$factor2)) {
-    plot_genera_out <- plot_genera_out + facet_grid(as.formula(paste(opt$factor, "~", opt$factor2)), scales = "free_x")
+    plot_genera_out <- plot_genera_out + facet_grid(as.formula(paste(opt$factor, "~", opt$factor2)), scales = "free")
 } else {
-    plot_genera_out <- plot_genera_out + facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
+    plot_genera_out <- plot_genera_out + facet_wrap(as.formula(paste( opt$factor, "~", ".")), ncol = 5, scales = "free")
 }
 print(plot_genera_out)
 dev.off()
@@ -297,7 +315,8 @@ richness_df <- inner_join(richness_df, sample_data_df, by="sample")
 
 # Plot
 out_name <- paste0(out_dir, '/', profile_param, '.richness.pdf')
-pdf(out_name, width=10, height=10, paper="special" )
+pdf_size <- max(round(n_facet_row * 1.8, 0), 10)
+pdf(out_name, width=pdf_size, height=pdf_size, paper="special" )
 
 if (!is.null(opt$time)) {
     group_var = if (!is.null(opt$factor2)) opt$factor2 else opt$factor
@@ -313,17 +332,16 @@ if (!is.null(opt$time)) {
                             ) +
                         facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
 } else if (!is.null(opt$factor2)) {
-    richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$factor2]], y=richness)) +
-                        geom_boxplot() +
+    richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$factor]], y=richness, group=.data[[opt$factor2]])) +
+                        geom_line(aes(color=.data[[opt$factor2]])) +
                         geom_point() +
                         ylim(0, NA) +
                         theme(legend.position = "top") +
                         theme(axis.text = element_text(size = 8), panel.grid.minor = element_blank()) +
-                        labs(x = opt$factor2, y = "Richness") +
+                        labs(x = opt$factor, y = "Richness") +
                         theme(title = element_text(size = 10),
                               panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(),
-                            ) +
-                        facet_wrap(as.formula(paste(".", "~", opt$factor)), scales = "free_x")
+                            )
 } else {
     richness_plot <-ggplot(data=richness_df, aes(x=.data[[opt$factor]], y=richness)) +
                         geom_boxplot() +

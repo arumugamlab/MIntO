@@ -14,7 +14,6 @@ METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 #
 MIN_FASTA_LENGTH: 2500
 MIN_MAG_LENGTH: 500000
-BINSPLIT_CHAR: _
 
 # VAMB settings
 #
