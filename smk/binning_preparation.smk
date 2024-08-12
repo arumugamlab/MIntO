@@ -734,7 +734,7 @@ VAMB_THREADS: 20
 VAMB_memory: 40
 
 # Use GPU in VAMB:
-# could be "yes" or "no"
+# could be yes or no
 VAMB_GPU: no
 
 
@@ -752,19 +752,8 @@ COVERM_memory: 5
 # SCORING THE BEST GENOMES settings
 #
 # this could be checkm or genome
-SCORE_METHOD: "checkm"
-
-# MAG taxonomy settings
-#
-RUN_TAXONOMY: yes
-TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
-TAXONOMY_CPUS: 8
-TAXONOMY_memory: 5
-
-# Taxonomy database versions
-#
-PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jun23
-GTDB_TAXONOMY_VERSION: r220" > {output.config_file}
+SCORE_METHOD: checkm
+" > {output.config_file}
 
 ) >& {log}
         """
