@@ -475,7 +475,7 @@ rule phylophlan_taxonomy_for_genome_collection:
             cut -f1,2 taxonomy.tsv \
                     | tail -n +2 \
                     | sed "s/ /\\t/" \
-                    | perl -lane '($id, undef, $tax, $dist) = split(/:/, $F[1]); @tax = map {{s/.__//; $_}} split(/\|/, $tax); pop(@tax); $, = "\\t"; print($dist || 0.5, $F[0], @tax);' \
+                    | perl -lane '($id, undef, $tax, $dist) = split(/:/, $F[1]); @tax = map {{s/.__//; $_}} split(/\|/, $tax); pop(@tax); $, = "\\t"; print(defined($dist)?$dist:0.5, $F[0], @tax);' \
                     | perl -lane '$dist = shift(@F); $mag = shift(@F); pop(@F) if $dist>0.05; pop(@F) if $dist>0.1; pop(@F) if $dist>0.2; print join("\\t", $mag, @F)' \
                     >> taxonomy.tsv.fixed
         ) >& {log}
