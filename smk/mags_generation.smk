@@ -296,8 +296,7 @@ rule make_avamb_mags:
         discarded_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}_discarded_genomes.txt",
         bin_folder = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins"),
     params:
-        min_mag_length = config["MIN_MAG_LENGTH"],
-        binsplit_char = config["BINSPLIT_CHAR"]
+        min_mag_length = config["MIN_MAG_LENGTH"]
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/avamb_{binner}.take_all_genomes_for_each_run.log"
     resources:
@@ -312,7 +311,6 @@ rule make_avamb_mags:
             mkdir -p {output.bin_folder}
             python {script_dir}/take_all_genomes.py \
                     --vamb_cluster_tsv {input.tsv} \
-                    --binsplit_char {params.binsplit_char} \
                     --contigs_file {input.contigs_file} \
                     --assembly_method_name {wildcards.binner} \
                     --min_fasta_length {params.min_mag_length} \

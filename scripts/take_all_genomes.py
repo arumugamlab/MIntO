@@ -34,8 +34,8 @@ def read_params():
 		)
 	
 	p.add_argument("--binsplit_char",
-		help = "character used to concatenate sample-id with contig-id to make unique fasta headers",
-		default = "_"
+		help = "String used to concatenate sample-id with contig-id to make unique fasta headers",
+		default = "_NODE"
 		)
 
 	p.add_argument("--assembly_method_name", 
@@ -88,7 +88,7 @@ bins_dictionary = {}
 
 for i in range(len(cluster_tsv)):
 	contig = cluster_tsv["contig"][i].split(" ")[0]
-	sample = cluster_tsv["contig"][i].split("_NODE")[0]
+	sample = cluster_tsv["contig"][i].split(args.binsplit_char)[0]
 	bin_id = "{}_{}".format(sample, cluster_tsv["bin"][i])
 
 	if not bin_id in bins_dictionary:

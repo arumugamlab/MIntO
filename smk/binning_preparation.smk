@@ -722,7 +722,6 @@ METADATA: {metadata}
 #
 MIN_FASTA_LENGTH: {params.min_fasta_length}
 MIN_MAG_LENGTH: 500000
-BINSPLIT_CHAR: _
 
 # VAMB settings
 #
