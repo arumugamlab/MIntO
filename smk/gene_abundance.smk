@@ -768,6 +768,14 @@ setcolorder(dt, 'mag_id')
 fwrite(dt, file = '{output.mag_profile}', row.names = F, col.names = T, sep = "\\t", quote = F)
 
 # Get species profile
+# All unannotated MAGs and unmapped fraction get combined into one entity called 'Unknown'
+# Note that group_by is happening at a combination of all taxonomic ranks: kingdom ... species
+# This expects that an annotated MAG always has a value for species
+# E.g., a MAG with values until genus and empty species will lead to species='Unknown'
+#       But group_by() will keep this as a separate entity
+#       This will lead to two lines in the species table with taxa_ID='Unknown'
+# This assumption works for GTDB and phylophlan. If that fails, the lines below need to be updated
+
 dt = (
         dt
         [, mag_id := NULL]
