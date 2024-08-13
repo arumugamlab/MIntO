@@ -754,7 +754,9 @@ dt = (
 
 # Add taxonomy using mag_id
 # Keep Unmapped via left-join
-# Annotate Unmapped as Unknown
+# MAGs without annotation will show up with empty taxonomy fields
+# Annotate Unmapped as 'Unknown'
+# Annotate missing taxonomy fields also as 'Unknown'
 dt = (
         merge(dt, taxonomy, by='mag_id', all.x=TRUE)
         [, lapply(.SD, function(x) ifelse(is.na(x), 'Unknown', x))]
