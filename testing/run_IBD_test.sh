@@ -6,7 +6,7 @@
 # MINTO_STABLE_VERSION="tags/2.1.0"
 # Developers use 'main' but users should stick to stable versions.
 
-MINTO_STABLE_VERSION="tags/2.1.0"
+MINTO_STABLE_VERSION="tags/2.2.0"
 
 function profile_command() {
     local cmd=$1
