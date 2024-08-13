@@ -19,16 +19,16 @@ MAIN_factor: participant_ID2
 
 # Set MIntO mode
 # Where should we map reads to? MAG, refgenome, catalog
-MINTO_MODE: MAG
+MINTO_MODE: catalog
 
 # Which omics for MAGs?
 MAG_omics: metaG
 
 # path to gene catalog fasta file
-PATH_reference:
+PATH_reference: /mypath/gene_catalog
 
 # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
-NAME_reference:
+NAME_reference: gene_catalog.fna
 
 # List of software used to perform genome function annotation:
 # - dbCAN
@@ -62,7 +62,7 @@ MIN_mapped_reads: 2
 
 # Normalization approach
 # Could be TPM, MG or comma-delimited combinations
-abundance_normalization: TPM,MG
+abundance_normalization: TPM
 
 ##########################
 # Genome taxonomy settings

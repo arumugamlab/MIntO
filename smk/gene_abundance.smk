@@ -151,6 +151,39 @@ elif type(config['BWA_memory']) != int:
 if 'MG' in normalization_modes and MINTO_MODE == 'catalog':
     raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
 
+# Taxonomic profiles from mapping reads to MAGs or refgenomes
+
+taxonomies_versioned = list()
+
+run_taxonomy="no"
+if 'RUN_TAXONOMY' not in config or config['RUN_TAXONOMY'] is None:
+    print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
+elif config['RUN_TAXONOMY'] == True:
+    run_taxonomy = "yes"
+elif config['RUN_TAXONOMY'] == False:
+    run_taxonomy = "no"
+    print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs.')
+else:
+    raise Exception(f"Incorrect value for RUN_TAXONOMY variable (should be yes or no). Please fix {config_path}")
+
+if run_taxonomy == "yes":
+    allowed = ('phylophlan', 'gtdb')
+    flags = [0 if x in allowed else 1 for x in config['TAXONOMY_NAME'].split(",")]
+    if sum(flags) == 0:
+        taxonomy=config["TAXONOMY_NAME"]
+    else:
+        raise Exception(f"TAXONOMY_NAME variable should be phylophlan, gtdb, or combinations thereof. Please fix {config_path}")
+
+    taxonomies = taxonomy.split(",")
+    for t in taxonomies:
+        version="unknown"
+        if t == "phylophlan":
+            version=config["PHYLOPHLAN_TAXONOMY_VERSION"]
+        elif t == "gtdb":
+            version=config["GTDB_TAXONOMY_VERSION"]
+        taxonomies_versioned.append(t+"."+version)
+    print('NOTE: MIntO is using taxonomy labelling of the unique MAGs from [{}].'.format(", ".join(taxonomies_versioned)))
+
 # Define all the outputs needed by target 'all'
 
 GENE_DB_TYPE = MINTO_MODE + '-genes'
@@ -173,15 +206,27 @@ def get_sample2alias_map(in_file):
 
 sample2alias = get_sample2alias_map(metadata)
 
+def combined_genome_profiles_annotated():
+    result = expand("{wd}/output/9-mapping-profiles/{mode}/{omics}.{taxonomy}.p{identity}.tsv",
+                wd = working_dir,
+                omics = omics,
+                mode = MINTO_MODE,
+                taxonomy = taxonomies_versioned,
+                identity = identity)
+    return(result)
+
 def combined_genome_profiles():
-    result = expand("{wd}/{omics}/9-mapping-profiles/{subdir}/{label}.p{identity}.{variant}.tsv",
-                label = 'genome_abundances',
+    folder = "{wd}/{omics}/9-mapping-profiles/{subdir}".format(
                 wd = working_dir,
                 omics = omics,
                 subdir = MINTO_MODE,
-                identity = identity,
-                variant = ['abund.prop', 'abund.prop.genome', 'relabund.prop.genome']
                 )
+    files = expand("{label}.___ID___.{variant}.tsv",
+                zip,
+                label = ['genome_abundances', 'genome_abundances', 'contig_abundances', 'contig_abundances'],
+                variant = ['abund.prop', 'relabund.prop', 'abund.prop', 'abund.all']
+                )
+    result = [folder + '/' + f.replace('___ID___', f"p{identity}") for f in files]
     return(result)
 
 def combined_gene_abundance_profiles():
@@ -197,6 +242,8 @@ def combined_gene_abundance_profiles():
 if MINTO_MODE == 'catalog':
     reference_dir=config["PATH_reference"]
     def combined_genome_profiles():
+        return()
+    def combined_genome_profiles_annotated():
         return()
 
 def mapping_statistics():
@@ -215,6 +262,7 @@ def config_yaml():
 
 rule all:
     input:
+        combined_genome_profiles_annotated(),
         combined_genome_profiles(),
         combined_gene_abundance_profiles(),
         mapping_statistics(),
@@ -612,19 +660,24 @@ def get_msamtools_profiles(wildcards):
 
     # Ensure right MINTO_MODE and filename combinations
     if     (wildcards.minto_mode in ['MAG', 'refgenome'] and wildcards.filename == 'gene_abundances') \
-        or (wildcards.minto_mode == 'catalog' and wildcards.filename == 'genome_abundances'):
+        or (wildcards.minto_mode == 'catalog'            and wildcards.filename in ['genome_abundances', 'contig_abundances']):
         raise Exception("MIntO mode {} cannot generate {} profiles".format(wildcards.minto_mode, wildcards.filename))
 
     # Ensure right MINTO_MODE and norm combination
     if (wildcards.minto_mode == 'catalog' and wildcards.type != 'TPM'):
         raise Exception("MIntO mode {} cannot generate {} profiles".format(wildcards.minto_mode, wildcards.type))
 
-    profiles = expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{type}.txt.gz",
+    # For genome_abundances, look for file with '<type>.genome' in it
+    typespec = wildcards.type
+    if (wildcards.filename == 'genome_abundances'):
+        typespec = wildcards.type + '.genome'
+
+    profiles = expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.{typespec}.txt.gz",
                             wd = wildcards.wd,
                             omics = wildcards.omics,
                             minto_mode = wildcards.minto_mode,
                             identity = wildcards.identity,
-                            type = wildcards.type,
+                            typespec = typespec,
                             sample = ilmn_samples)
     return(profiles)
 
@@ -648,6 +701,7 @@ rule merge_msamtools_profiles:
         mem=30
     threads: lambda wildcards,input: min(10, len(input.single))
     wildcard_constraints:
+        filename='gene_abundances|genome_abundances|contig_abundances',
         identity='[0-9]+'
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
@@ -659,6 +713,60 @@ rule merge_msamtools_profiles:
             Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out $shadowdir/out.txt --keys ID --zeroes
             cd $shadowdir
             rsync -a out.txt {output.combined}
+        ) >& {log}
+        """
+
+rule add_annotation_to_genome_profiles:
+    input:
+        profile  = "{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.tsv",
+        locusmap = "{wd}/DB/{minto_mode}/1-prokka/locus_id_list.txt",
+        taxonomy = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.{taxonomy}.{db_version}.tsv"
+    output:
+        mag_profile = "{wd}/output/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.tsv",
+    log:
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.log"
+    wildcard_constraints:
+        taxonomy='gtdb|phylophlan',
+        identity='[0-9]+'
+    resources:
+        mem=10
+    conda:
+        config["minto_dir"]+"/envs/r_pkgs.yml"
+    shell:
+        """
+        time (
+            R --vanilla --silent --no-echo >> {output} <<___EOF___
+
+library(data.table)
+
+# Read tables
+profile  = fread('{input.profile}',  header = TRUE, sep = "\\t")
+locusmap = fread('{input.locusmap}', header = TRUE, sep = "\\t")
+taxonomy = fread('{input.taxonomy}', header = TRUE, sep = "\\t", fill = TRUE)
+
+# Link locus_tag and mag_id in the profile
+# Keep Unmapped via left-join
+dt = (
+        merge(profile, locusmap, by.x='ID', by.y='locus_id', all.x=TRUE)
+        [is.na(mag_id), mag_id := 'Unmapped']
+     )
+
+# Add taxonomy using mag_id
+# Keep Unmapped via left-join
+# MAGs without annotation will show up with empty taxonomy fields
+# Annotate Unmapped as 'Unknown'
+# Annotate missing taxonomy fields also as 'Unknown'
+dt = (
+        merge(dt, taxonomy, by='mag_id', all.x=TRUE)
+        [, lapply(.SD, function(x) ifelse(x == '' | is.na(x), 'Unknown', x))]
+        [, ID := NULL]
+     )
+setcolorder(dt, 'mag_id')
+
+# Write mag_profile
+fwrite(dt, file = '{output.mag_profile}', row.names = F, col.names = T, sep = "\\t", quote = F)
+
+___EOF___
         ) >& {log}
         """
 

@@ -636,9 +636,7 @@ rule metaphlan_combine_profiles:
 # So we just construct it in {params}.
 rule motus_map_db:
     input:
-        db=lambda wildcards: expand("{minto_dir}/data/motus/db.{version}.downloaded",
-                                                minto_dir=minto_dir,
-                                                version=wildcards.version),
+        db = f"{minto_dir}/data/motus/{{version}}/db_mOTU/db_mOTU_versions",
         fwd=get_qc2_output_files_fwd_only,
         rev=get_qc2_output_files_rev_only
     output:
@@ -1172,6 +1170,20 @@ MIN_mapped_reads: 2
 # Normalization approach
 # Could be TPM, MG or comma-delimited combinations
 abundance_normalization: TPM,MG
+
+##########################
+# Genome taxonomy settings
+##########################
+#
+RUN_TAXONOMY: yes
+TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
+TAXONOMY_CPUS: 8
+TAXONOMY_memory: 5
+
+# Taxonomy database versions
+#
+PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jun23
+GTDB_TAXONOMY_VERSION: r220
 
 # Input data
 

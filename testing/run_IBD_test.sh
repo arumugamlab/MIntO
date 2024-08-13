@@ -163,18 +163,18 @@ for OMICS in metaG metaT; do
   profile_command "$cmd"
 
   echo -n "BINNING: "
-  sed "s/TAXONOMY_NAME: phylophlan,gtdb/TAXONOMY_NAME: phylophlan/" mags_generation.yaml > mags_generation.yaml.fixed
-  cmd="snakemake --snakefile $CODE_DIR/smk/mags_generation.smk --configfile mags_generation.yaml.fixed $SNAKE_PARAMS >& mags.log"
+  cmd="snakemake --snakefile $CODE_DIR/smk/mags_generation.smk --configfile mags_generation.yaml $SNAKE_PARAMS >& mags.log"
   profile_command "$cmd"
 
   echo -n "GENE_ANNOTATION - MAG: "
-  cmd="snakemake --snakefile $CODE_DIR/smk/gene_annotation.smk --configfile mapping.yaml $SNAKE_PARAMS >& annotation.log"
+  sed "s/TAXONOMY_NAME: phylophlan,gtdb/TAXONOMY_NAME: phylophlan/" mapping.yaml > mapping.yaml.mag
+  cmd="snakemake --snakefile $CODE_DIR/smk/gene_annotation.smk --configfile mapping.yaml.mag $SNAKE_PARAMS >& annotation.log"
   profile_command "$cmd"
   echo -n "GENE_ABUNDANCE - MAG: "
-  cmd="snakemake --snakefile $CODE_DIR/smk/gene_abundance.smk --configfile mapping.yaml $SNAKE_PARAMS >& abundance.log"
+  cmd="snakemake --snakefile $CODE_DIR/smk/gene_abundance.smk --configfile mapping.yaml.mag $SNAKE_PARAMS >& abundance.log"
   profile_command "$cmd"
 
-  sed "s@MINTO_MODE: MAG@MINTO_MODE: refgenome@; s@PATH_reference:@PATH_reference: $TEST_DIR/genomes@;" mapping.yaml > mapping.yaml.refgenome
+  sed "s@MINTO_MODE: MAG@MINTO_MODE: refgenome@; s@PATH_reference:@PATH_reference: $TEST_DIR/genomes@;" mapping.yaml.mag > mapping.yaml.refgenome
   echo -n "GENE_ANNOTATION - refgenome: "
   cmd="snakemake --snakefile $CODE_DIR/smk/gene_annotation.smk --configfile mapping.yaml.refgenome $SNAKE_PARAMS >& annotation.refgenome.log"
   profile_command "$cmd"
@@ -183,7 +183,7 @@ for OMICS in metaG metaT; do
   profile_command "$cmd"
 
   echo -n "GENE_ABUNDANCE - gene catalog: "
-  sed "s@MINTO_MODE: MAG@MINTO_MODE: catalog@; s@PATH_reference:@PATH_reference: $TEST_DIR/gene_catalog@; s@NAME_reference:@NAME_reference: gene_catalog.fna@; s@abundance_normalization: TPM,MG@abundance_normalization: TPM@" mapping.yaml > mapping.yaml.catalog
+  sed "s@MINTO_MODE: MAG@MINTO_MODE: catalog@; s@PATH_reference:@PATH_reference: $TEST_DIR/gene_catalog@; s@NAME_reference:@NAME_reference: gene_catalog.fna@; s@abundance_normalization: TPM,MG@abundance_normalization: TPM@" mapping.yaml.mag > mapping.yaml.catalog
   cmd="snakemake --snakefile $CODE_DIR/smk/gene_abundance.smk --configfile mapping.yaml.catalog $SNAKE_PARAMS >& abundance.catalog.log"
   profile_command "$cmd"
 

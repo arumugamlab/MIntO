@@ -19,13 +19,13 @@ MAIN_factor: participant_ID2
 
 # Set MIntO mode
 # Where should we map reads to? MAG, refgenome, catalog
-MINTO_MODE: MAG
+MINTO_MODE: refgenome
 
 # Which omics for MAGs?
 MAG_omics: metaG
 
 # path to gene catalog fasta file
-PATH_reference:
+PATH_reference: /mypath/genomes
 
 # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
 NAME_reference:

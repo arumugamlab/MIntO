@@ -43,20 +43,13 @@ snakefile_name = print_versions.get_smk_filename()
 
 if 'BINNERS' in config:
     if config['BINNERS'] is None:
-        print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete ', config_path)
+        raise Exception(f"'BINNERS' variable is empty. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
     else:
-        try:
-            if 'BINNERS' in config:
-                #print("Samples:")
-                for bin in config["BINNERS"]:
-                    if bin in ('vae256', 'vae384', 'vae512', 'vae768', 'aaey', 'aaez'):
-                        pass
-                    else:
-                        raise TypeError('BINNERS variable is not correct. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete ', config_path)
-        except:
-            print('ERROR in ', config_path, ': BINNERS variable is not correct. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez.')
+        for bin in config["BINNERS"]:
+            if bin not in ('vae256', 'vae384', 'vae512', 'vae768', 'aaey', 'aaez'):
+                raise Exception(f"'BINNERS' variable contains incorrect value '{bin}'. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
 else:
-    print('ERROR in ', config_path, ': BINNERS list is empty. "BINNERS" variable should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please, complete', config_path)
+    raise Exception(f"'BINNERS' variable is missing. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
 
 
 if config['VAMB_THREADS'] is None:
@@ -123,56 +116,10 @@ if config['SCORE_METHOD'] == 'checkm':
 else:
     print('ERROR in ', config_path, ': SCORE_METHOD variable can only be checkm at the moment!')
 
-run_taxonomy="no"
-if config['RUN_TAXONOMY'] is None:
-    print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
-elif config['RUN_TAXONOMY'] == True:
-    run_taxonomy = "yes"
-elif config['RUN_TAXONOMY'] == False:
-    run_taxonomy = "no"
-    print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs.')
-else:
-    print('ERROR in ', config_path, ': RUN_TAXONOMY variable is empty. "RUN_TAXONOMY" variable should be yes or no')
-
-if run_taxonomy == "yes":
-    if config['TAXONOMY_CPUS'] is None:
-        print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is empty. Please, complete ', config_path)
-    elif type(config['TAXONOMY_CPUS']) != int:
-        print('ERROR in ', config_path, ': TAXONOMY_CPUS variable is not an integer. Please, complete ', config_path)
-
-    if config['TAXONOMY_memory'] is None:
-        print('ERROR in ', config_path, ': TAXONOMY_memory variable is empty. Please, complete ', config_path)
-    elif type(config['TAXONOMY_memory']) != int:
-        print('ERROR in ', config_path, ': TAXONOMY_memory variable is not an integer. Please, complete ', config_path)
-
-    allowed = ('phylophlan', 'gtdb')
-    flags = [0 if x in allowed else 1 for x in config['TAXONOMY_NAME'].split(",")]
-    if sum(flags) == 0:
-        taxonomy=config["TAXONOMY_NAME"]
-    else:
-        print('ERROR in ', config_path, ': TAXONOMY_NAME variable is not correct. "TAXONOMY_NAME" variable should be phylophlan, gtdb, or combinations thereof.')
-
-    taxonomies_versioned = list()
-    taxonomies = taxonomy.split(",")
-    for t in taxonomies:
-        version="unknown"
-        if t == "phylophlan":
-            version=config["PHYLOPHLAN_TAXONOMY_VERSION"]
-        elif t == "gtdb":
-            version=config["GTDB_TAXONOMY_VERSION"]
-        taxonomies_versioned.append(t+"."+version)
-    print('NOTE: MIntO is running taxonomy labelling of the unique MAGs using [{}].'.format(", ".join(taxonomies_versioned)))
-
-
-def mags_recovery():
-    result = expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes", wd = working_dir, omics = config['omics'])
-    if (run_taxonomy == "yes"):
-        result.append(expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.{taxonomy}.tsv", wd = working_dir, omics = config['omics'], taxonomy = taxonomies_versioned))
-    return(result)
 
 rule all:
     input:
-        mags_recovery(),
+        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd = working_dir, omics = config['omics']),
         print_versions.get_version_output(snakefile_name)
     default_target: True
 
@@ -651,67 +598,4 @@ checkpoint copy_best_genomes:
                 cp --dereference {wildcards.wd}/{wildcards.omics}/8-1-binning/mags_generation_pipeline/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
             done < {input.best_unique_genomes}
         ) &> {log}
-        """
-
-########################
-# PhyloPhlAn on fna files
-########################
-
-rule phylophlan_taxonomy_for_genome_collection:
-    input:
-        genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
-        phylo_def=lambda wildcards: "{minto_dir}/data/phylophlan/{db_version}.txt.bz2".format(minto_dir=minto_dir, db_version=wildcards.db_version)
-    output:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.phylophlan.{db_version}.tsv"
-    shadow:
-        "minimal"
-    log:
-        "{wd}/logs/{omics}/8-1-binning/mags_generation/taxonomy.phylophlan.{db_version}.log"
-    params:
-        db_folder=lambda wildcards: "{minto_dir}/data/phylophlan".format(minto_dir=minto_dir)
-    resources:
-        mem=config["TAXONOMY_memory"]
-    threads:
-        config["TAXONOMY_CPUS"]
-    conda:
-        config["minto_dir"]+"/envs/mags.yml"
-    shell:
-        """
-        time (
-            phylophlan_assign_sgbs -i {input.genomes} --nproc {threads} -d {wildcards.db_version} -o taxonomy --database_folder {params.db_folder}
-        ) >& {log}
-        rsync -a taxonomy.tsv {output}
-        """
-
-########################
-# GTDB-tk on fna files
-########################
-
-rule gtdb_taxonomy_for_genome_collection:
-    input:
-        genomes="{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
-        gtdb_def=lambda wildcards: "{minto_dir}/data/GTDB/{db_version}/taxonomy/gtdb_taxonomy.tsv".format(minto_dir=minto_dir, db_version=wildcards.db_version)
-    output:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/taxonomy.gtdb.{db_version}.tsv"
-    shadow:
-        "minimal"
-    log:
-        "{wd}/logs/{omics}/mags_generation_pipeline/taxonomy.gtdb.{db_version}.log"
-    params:
-        db_folder=lambda wildcards: "{minto_dir}/data/GTDB/{db_version}".format(minto_dir=minto_dir, db_version=wildcards.db_version)
-    resources:
-        mem=70
-    threads:
-        config["TAXONOMY_CPUS"]
-    conda:
-        config["minto_dir"]+"/envs/gtdb.yml"
-    shell:
-        """
-        time (
-            export GTDBTK_DATA_PATH={params.db_folder}
-            gtdbtk classify_wf --genome_dir {input.genomes} -x fna --out_dir tmp --cpus {threads} --skip_ani_screen
-            cat tmp/gtdbtk.*.summary.tsv | grep "user_genome" | head -1 > taxonomy.tsv
-            cat tmp/gtdbtk.*.summary.tsv | grep -v "user_genome" >> taxonomy.tsv
-        ) >& {log}
-        rsync -a taxonomy.tsv {output}
         """
