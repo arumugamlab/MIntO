@@ -64,6 +64,20 @@ MIN_mapped_reads: 2
 # Could be TPM, MG or comma-delimited combinations
 abundance_normalization: TPM,MG
 
+##########################
+# Genome taxonomy settings
+##########################
+#
+RUN_TAXONOMY: yes
+TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
+TAXONOMY_CPUS: 8
+TAXONOMY_memory: 5
+
+# Taxonomy database versions
+#
+PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jun23
+GTDB_TAXONOMY_VERSION: r220
+
 # Input data
 
 # ILLUMINA section:
@@ -75,13 +89,13 @@ abundance_normalization: TPM,MG
 # - I2
 #
 ILLUMINA:
-- CD136
-- CD138
-- CD140
-- CD142
-- CD146
-- CD237
-- CD238
-- CD240
-- CD242
-- CD244
+- 'CD136'
+- 'CD138'
+- 'CD140'
+- 'CD142'
+- 'CD146'
+- 'CD237'
+- 'CD238'
+- 'CD240'
+- 'CD242'
+- 'CD244'

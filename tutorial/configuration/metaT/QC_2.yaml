@@ -85,6 +85,14 @@ MAIN_factor: participant_ID2
 PLOT_factor2:
 PLOT_time: week_n
 
+#####################
+# Co-assembly grouping
+#####################
+
+# COAS_factor - The factor/attribute to use to group samples for co-assembly
+
+COAS_factor: participant_ID2
+
 ######################
 # Optionally, do you want to merge replicates or make pseudo samples
 # E.g:
@@ -115,13 +123,13 @@ PLOT_time: week_n
 # - I2
 #
 ILLUMINA:
-- CD136
-- CD138
-- CD140
-- CD142
-- CD146
-- CD237
-- CD238
-- CD240
-- CD242
-- CD244
+- 'CD136'
+- 'CD138'
+- 'CD140'
+- 'CD142'
+- 'CD146'
+- 'CD237'
+- 'CD238'
+- 'CD240'
+- 'CD242'
+- 'CD244'
