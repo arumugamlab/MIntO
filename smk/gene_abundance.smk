@@ -743,7 +743,7 @@ library(data.table)
 # Read tables
 profile  = fread('{input.profile}',  header = TRUE, sep = "\\t")
 locusmap = fread('{input.locusmap}', header = TRUE, sep = "\\t")
-taxonomy = fread('{input.taxonomy}', header = TRUE, sep = "\\t")
+taxonomy = fread('{input.taxonomy}', header = TRUE, sep = "\\t", fill = TRUE)
 
 # Link locus_tag and mag_id in the profile
 # Keep Unmapped via left-join
@@ -759,7 +759,7 @@ dt = (
 # Annotate missing taxonomy fields also as 'Unknown'
 dt = (
         merge(dt, taxonomy, by='mag_id', all.x=TRUE)
-        [, lapply(.SD, function(x) ifelse(is.na(x), 'Unknown', x))]
+        [, lapply(.SD, function(x) ifelse(x == '' | is.na(x), 'Unknown', x))]
         [, ID := NULL]
      )
 setcolorder(dt, 'mag_id')
