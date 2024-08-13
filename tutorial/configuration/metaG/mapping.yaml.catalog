@@ -1,0 +1,101 @@
+######################
+# General settings
+######################
+PROJECT: IBD_tutorial
+working_dir: /mypath/IBD_tutorial
+omics: metaG
+minto_dir: /mypath/MIntO
+METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
+
+######################
+# Analysis settings
+######################
+
+MAIN_factor: participant_ID2
+
+######################
+# Annotation settings
+######################
+
+# Set MIntO mode
+# Where should we map reads to? MAG, refgenome, catalog
+MINTO_MODE: catalog
+
+# Which omics for MAGs?
+MAG_omics: metaG
+
+# path to gene catalog fasta file
+PATH_reference: /mypath/gene_catalog
+
+# file name of gene catalog fasta file (MIntO will generate bwa index with same name)
+NAME_reference: gene_catalog.fna
+
+# List of software used to perform genome function annotation:
+# - dbCAN
+# - kofam
+# - eggNOG
+ANNOTATION:
+ - dbCAN
+ - kofam
+ - eggNOG
+
+#########################
+# Gene abundance settings
+#########################
+
+# BWA Alignment
+BWA_threads: 10
+BWA_memory: 45
+
+# Alignment filtering
+# -------------------
+# msamtools_filter_length: Default 50 works well for ILLUMINA 2x150bp.
+#                          For shorter sequencing, e.g. 2x75bp, please reduce accordingly.
+# alignment_identity: Default 97 works well for MAGs that are dereped at 99%.
+#                     For refgenomes, modify it according to the derep level of your refgenomes.
+#                     For gene catalog, modify it to match the derep level of the gene catalog (usually 95%).
+# MIN_mapped_reads:   Default 2 is designed for low-to-medium sequencing depth.
+#                     Increase according to depth (e.g., set to 10 when depth is above 5Gb).
+msamtools_filter_length: 50
+alignment_identity: 97
+MIN_mapped_reads: 2
+
+# Normalization approach
+# Could be TPM, MG or comma-delimited combinations
+abundance_normalization: TPM
+
+##########################
+# Genome taxonomy settings
+##########################
+#
+RUN_TAXONOMY: yes
+TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
+TAXONOMY_CPUS: 8
+TAXONOMY_memory: 5
+
+# Taxonomy database versions
+#
+PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jun23
+GTDB_TAXONOMY_VERSION: r220
+
+# Input data
+
+# ILLUMINA section:
+# -----------------
+# List of illumina samples.
+#
+# E.g.:
+# - I1
+# - I2
+#
+ILLUMINA:
+- 'CD136'
+- 'CD138'
+- 'CD140'
+- 'CD142'
+- 'CD146'
+- 'CD237'
+- 'CD238'
+- 'CD240'
+- 'CD242'
+- 'CD244'
