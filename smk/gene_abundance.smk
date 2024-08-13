@@ -206,8 +206,8 @@ def get_sample2alias_map(in_file):
 
 sample2alias = get_sample2alias_map(metadata)
 
-def combined_species_profiles():
-    result = expand("{wd}/output/9-mapping-profiles/{mode}/{omics}.{taxonomy}.p{identity}.species.tsv",
+def combined_genome_profiles_annotated():
+    result = expand("{wd}/output/9-mapping-profiles/{mode}/{omics}.{taxonomy}.p{identity}.tsv",
                 wd = working_dir,
                 omics = omics,
                 mode = MINTO_MODE,
@@ -243,7 +243,7 @@ if MINTO_MODE == 'catalog':
     reference_dir=config["PATH_reference"]
     def combined_genome_profiles():
         return()
-    def combined_species_profiles():
+    def combined_genome_profiles_annotated():
         return()
 
 def mapping_statistics():
@@ -262,7 +262,7 @@ def config_yaml():
 
 rule all:
     input:
-        combined_species_profiles(),
+        combined_genome_profiles_annotated(),
         combined_genome_profiles(),
         combined_gene_abundance_profiles(),
         mapping_statistics(),
@@ -723,7 +723,6 @@ rule add_annotation_to_genome_profiles:
         taxonomy = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.{taxonomy}.{db_version}.tsv"
     output:
         mag_profile = "{wd}/output/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.tsv",
-        sp_profile  = "{wd}/output/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.species.tsv"
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.log"
     wildcard_constraints:
@@ -766,31 +765,6 @@ setcolorder(dt, 'mag_id')
 
 # Write mag_profile
 fwrite(dt, file = '{output.mag_profile}', row.names = F, col.names = T, sep = "\\t", quote = F)
-
-# Get species profile
-# All unannotated MAGs and unmapped fraction get combined into one entity called 'Unknown'
-# Note that group_by is happening at a combination of all taxonomic ranks: kingdom ... species
-# This expects that an annotated MAG always has a value for species
-# E.g., a MAG with values until genus and empty species will lead to species='Unknown'
-#       But group_by() will keep this as a separate entity
-#       This will lead to two lines in the species table with taxa_ID='Unknown'
-# This assumption works for GTDB and phylophlan. If that fails, the lines below need to be updated
-
-dt = (
-        dt
-        [, mag_id := NULL]
-        [, lapply(.SD, sum), by = c('kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species')]
-        [, taxa_ID := species]
-     )
-
-# Set taxa_ID as first column
-setcolorder(dt, 'taxa_ID')
-
-# Move taxonomy columns to the end
-setcolorder(dt, c('kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'), after=length(colnames(dt)))
-
-# Write species profile
-fwrite(dt, file = '{output.sp_profile}', row.names = F, col.names = T, sep = "\\t", quote = F)
 
 ___EOF___
         ) >& {log}
