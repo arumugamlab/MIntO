@@ -52,8 +52,9 @@ set.seed(1234)
 plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #out_name,title_name,
   label2 <- noquote(label)
   #### PCoA
-  ord<- ordinate(data_phyloseq, method = "PCoA", distance = distance_lab)
-  PcoA_Sample_site_abundance <- plot_ordination(data_phyloseq, ord, color = color, shape = as.factor(shape), label = label) #type = type,
+  my_physeq = subset_taxa(data_phyloseq, kingdom != 'Unknown')
+  ord<- ordinate(my_physeq, method = "PCoA", distance = distance_lab)
+  PcoA_Sample_site_abundance <- plot_ordination(my_physeq, ord, color = color, shape = as.factor(shape), label = label) #type = type,
   PcoA_Sample_site_abundance <- PcoA_Sample_site_abundance +
     ggtitle(title_name, distance_lab)  +
     geom_point(size = 2.5) +
@@ -81,17 +82,20 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #o
 # Common workflow, since we reformat mOTUs3 output like MetaPhlAn output
   
   species_table <- as.data.frame(fread(profile_file, header = T), stringsAsFactors = F) %>%
-    filter(grepl('s__', clade_name)) %>%
+    filter(grepl('s__|^Unknown', clade_name)) %>%
     filter(!grepl('t__', clade_name)) %>%
     mutate(across('clade_name', \(x) str_replace_all(x, '[kpcofgs]__', ''))) %>%
-    tidyr::separate(clade_name, c("kingdom", "phylum", "class", "order", "family", "genus", "species"), "[\\|]")
-    
+    tidyr::separate(clade_name, c("kingdom", "phylum", "class", "order", "family", "genus", "species"), "[\\|]") %>%
+    mutate_all(~replace_na(., "Unknown"))
+
   if (profile_param %like% 'motus') {
-    rownames(species_table) <- str_extract(species_table$species, "\\[(\\S+)\\]$", group=1)
+    rnames <- str_extract(species_table$species, "\\[(\\S+)\\]$", group=1)
+    rnames[is.na(rnames)] <- 'Unknown'
+    rownames(species_table) <- rnames
   } else {
     rownames(species_table) <- paste0(species_table$species)
   }
-  
+
   #### OTU table
   otu_table <- species_table %>%
     select(-c("kingdom", "phylum", "class", "order", "family", "genus", "species"))
@@ -99,11 +103,20 @@ plot_PCoA <- function(distance_lab, data_phyloseq, color, label, shape=NULL){ #o
     otu_table <- otu_table/100
   }
   otu_table <- as.data.frame(otu_table)
-  
+
   #### Taxa table
   taxa_df <- species_table %>%
     select(c("kingdom", "phylum", "class", "order", "family", "genus", "species"))
   taxa_df <- as.data.frame(taxa_df)
+
+  # Filter by OTUs present in the data
+  taxa_df   =   taxa_df[rowSums(otu_table)>0 | rownames(otu_table) == 'Unknown',]
+  otu_table = otu_table[rowSums(otu_table)>0 | rownames(otu_table) == 'Unknown',]
+
+  # Catch the edge-case in motus_raw where sample has 0 readcount for all taxa including unknown
+  # By updating its 'Unknown' to 1, we set Unknown=100% in relative abundance world
+  to_update = colSums(otu_table) == 0
+  otu_table[c("Unknown"), to_update] = 1
 
 # **********************************                                             ********************************
 # **********************************          Generate phyloseq object           ********************************
@@ -136,17 +149,45 @@ profile_phyloseq <- phyloseq(otu_table(as.matrix(otu_table), taxa_are_rows = T),
 # Save taxonomic profile as phyloseq object
 saveRDS(profile_phyloseq, file = out_phyloseq)
 
-# Phyloseq object
-if (profile_param %like% 'motus_raw') {
-  profile_phyloseq <- readRDS(out_phyloseq)
-  #### Transform counts to Relative Abundance
-  profile_phyloseq_ra<-transform_sample_counts(profile_phyloseq, function(x){x/sum(x)})
-} else{
-  profile_phyloseq_ra <- readRDS(out_phyloseq)
-} 
+
+# Read the phyloseq object
+profile_phyloseq <- readRDS(out_phyloseq)
+
+#### metadata:
+sample_data_df <- data.frame(sample_data(profile_phyloseq), stringsAsFactors = F)
+
+### OTUs - db
+taxa_table_df <- as.data.frame(unclass(tax_table(profile_phyloseq)), stringsAsFactors = F)
+taxa_table_df$taxa_ID <- rownames(taxa_table_df)
+rownames(taxa_table_df) <- NULL
+
+### Counts
+otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq)), stringsAsFactors = F)
+
+otu_table_df$taxa_ID <- rownames(otu_table_df)
+rownames(otu_table_df) <- NULL
 
 ##########################################
-# Output 1: Beta diversity - PCoA
+# Output 1: Merged profile file with abundance and taxonomic annotation
+##########################################
+
+# Merge taxonomy and abundance
+otu_taxa_merge <- merge(otu_table_df, taxa_table_df, by = 'taxa_ID' , all.x = T)
+
+# Write output
+fwrite(otu_taxa_merge, file = paste0(out_dir, '/', profile_param, ".tsv"), sep = '\t', row.names = F, quote = F)
+
+# Convert to relative abundance if necessary
+# From now on, phyloseq object is only in RA mode
+if (profile_param %like% 'motus_raw') {
+    profile_phyloseq <-transform_sample_counts(profile_phyloseq, function(x){x/sum(x)})
+    otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq)), stringsAsFactors = F)
+    otu_table_df$taxa_ID <- rownames(otu_table_df)
+    rownames(otu_table_df) <- NULL
+}
+
+##########################################
+# Output 2: Beta diversity - PCoA
 ##########################################
 
 distance_lab = 'bray'
@@ -157,8 +198,8 @@ if(length(unique(metadata_df[[opt$factor]]))>1){
   #**adonis/adonis2, Permutational Multivariate Analysis of Variance Using Distance Matrix**: ####
   library(vegan)
   #adonis_list$bray
-  otu_table <- as.data.frame(unclass(otu_table(profile_phyloseq_ra)), stringsAsFactors = F)
-  metadata_df <- data.frame(sample_data(profile_phyloseq_ra), stringsAsFactors = F)
+  otu_table <- as.data.frame(unclass(otu_table(profile_phyloseq )), stringsAsFactors = F)
+  metadata_df <- data.frame(sample_data(profile_phyloseq ), stringsAsFactors = F)
   rownames(metadata_df) <- metadata_df$sample
   metadata <-metadata_df[match(names(otu_table), rownames(metadata_df)),]
   dist <- as.dist(vegdist(t(otu_table), method="bray", na.rm = T))
@@ -169,9 +210,9 @@ if(length(unique(metadata_df[[opt$factor]]))>1){
   title_name_pval <- paste0("Metric: Bray-Curtis; PERMANOVA on ", opt$factor, ": R2=", r2_value, ", pval=", p_value)
 }
 
-#plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, title_name, out_name)
+#plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq , title_name, out_name)
 
-plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq_ra, color=opt$factor2, label = if (!is.null(opt$time)) opt$time else "sample", shape=opt$factor)
+plot_PCoA_out <- plot_PCoA(distance_lab, profile_phyloseq , color=opt$factor2, label = if (!is.null(opt$time)) opt$time else "sample", shape=opt$factor)
 
 manual_plot_colors =c('#9D0208', '#264653','#e9c46a','#D8DCDE','#B6D0E0',
                       '#FFC87E','#F4A261','#E34F33','#E9C46A',
@@ -194,29 +235,9 @@ print(plot_PCoA_out  +
         ggtitle(title_name, title_name_pval))
 dev.off()
 
-
 ##########################################
-# Output 2: Barchart - Top 15 genera
+# Output 3: Barchart - Top 15 genera
 ##########################################
-
-#### metadata:
-sample_data_df <- data.frame(sample_data(profile_phyloseq_ra), stringsAsFactors = F)
-
-### OTUs - db
-taxa_table_df <- as.data.frame(unclass(tax_table(profile_phyloseq_ra)), stringsAsFactors = F)
-taxa_table_df$taxa_ID <- rownames(taxa_table_df)
-rownames(taxa_table_df) <- NULL
-
-### Counts
-otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq_ra)), stringsAsFactors = F)
-otu_table_df$taxa_ID <- rownames(otu_table_df)
-rownames(otu_table_df) <- NULL
-otu_taxa_merge <- merge(otu_table_df, taxa_table_df, by = 'taxa_ID' , all.x = T)
-fwrite(otu_taxa_merge, file = paste0(out_dir, '/', profile_param, ".tsv"), sep = '\t', row.names = F, quote = F)
-
-# Filter by mOTUs present in the data
-otu_taxa_filt_df = otu_taxa_merge[rowSums(otu_taxa_merge[, 2:ncol(otu_table_df)])>0,]
-otu_taxa_filt_df = otu_taxa_filt_df %>% select(1:ncol(otu_table_df))
 
 # # Prevalence 10% 
 # otu_taxa_filt_df = otu_taxa_merge[rowSums(otu_taxa_merge[, 2:ncol(otu_table_df)])>0.01,]
@@ -228,7 +249,7 @@ otu_taxa_filt_df = otu_taxa_filt_df %>% select(1:ncol(otu_table_df))
 # otu_taxa_filt_df[(nrow(otu_taxa_filt_df) + 1), myNumCols] <- 1- colSums(otu_taxa_filt_df[, myNumCols], na.rm=TRUE)
 # otu_taxa_filt_df[is.na(otu_taxa_filt_df)] <- '-1'
 
-otu_taxa_melt <- melt(otu_taxa_filt_df, id.vars=c("taxa_ID"))
+otu_taxa_melt <- melt(otu_table_df, id.vars=c("taxa_ID"))
 otu_taxa_melt <- merge(taxa_table_df, otu_taxa_melt, by="taxa_ID")
 #colnames(otu_taxa_melt) <- c('taxa_ID', "kingdom", "phylum", "class", "order", "family", "genus", "mOTU", "short_name", "sample", "RA")
 
@@ -303,11 +324,14 @@ print(plot_genera_out)
 dev.off()
 
 ##########################################
-# Output 3: Alpha diversity - richness
+# Output 4: Alpha diversity - richness
 ##########################################
 
+# Remove Unknown/Unassigned
+richness_df <- filter(otu_table_df, taxa_ID != "Unknown")
+
 # Make df
-richness_df <- as.data.frame(colSums(otu_table_df>0, na.rm = TRUE))
+richness_df <- as.data.frame(colSums(richness_df>0, na.rm = TRUE))
 names(richness_df) <- c("richness")
 richness_df["sample"] <- row.names(richness_df)
 richness_df <- inner_join(richness_df, sample_data_df, by="sample")
