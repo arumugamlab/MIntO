@@ -473,7 +473,7 @@ rule metaphlan_db:
 
 rule motus_db:
     output:
-        "{minto_dir}/data/motus/{motus_version}/db_mOTU/db_mOTU_versions"
+        versions = "{minto_dir}/data/motus/{motus_version}/db_mOTU/db_mOTU_versions"
     resources:
         mem=download_memory
     threads:
@@ -495,13 +495,14 @@ rule motus_db:
                 mkdir -p {minto_dir}/data/motus/{motus_version}
                 echo "Moving mOTUs database: $MOTUS_DB_PATH/  -->  {minto_dir}/data/motus/{motus_version}/"
                 rsync -a $MOTUS_DB_PATH {minto_dir}/data/motus/{motus_version}/
+                chmod g+r,o+r {output.versions}
 
                 # Remove original DB within conda-dir
                 rm -rf $MOTUS_DB_PATH/*
 
                 # Symlink the version file back to silence missing db errors
                 # It is a symlink, so that if the target is missing in minto_dir, it becomes a broken link and will re-download
-                ln -s --relative --force {minto_dir}/data/motus/{motus_version}/db_mOTU/db_mOTU_versions $MOTUS_DB_PATH/db_mOTU_versions
+                ln -s --relative --force {output.versions} $MOTUS_DB_PATH/db_mOTU_versions
             else
                 echo 'mOTUs3 database download: FAIL'
             fi
