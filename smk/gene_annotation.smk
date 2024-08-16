@@ -234,7 +234,7 @@ rule prokka_for_genome:
     shell:
         """
         time (
-            locus_tag=$(grep "{wildcards.genome}$(printf '\\t')" {input.locus_ids} | cut -f 2 )
+            locus_tag=$(grep "^{wildcards.genome}$(printf '\\t')" {input.locus_ids} | cut -f 2 )
             prokka --outdir out --prefix tmp --locustag $locus_tag --addgenes --cdsrnaolap --cpus {threads} --centre X --compliant {input.fna}
             rsync -a out/tmp.fna {output.fna}
             rsync -a out/tmp.faa {output.faa}
