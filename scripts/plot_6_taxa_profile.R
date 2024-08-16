@@ -181,10 +181,13 @@ fwrite(otu_taxa_merge, file = paste0(out_dir, '/', profile_param, ".tsv"), sep =
 # From now on, phyloseq object is only in RA mode
 if (profile_param %like% 'motus_raw') {
     profile_phyloseq <-transform_sample_counts(profile_phyloseq, function(x){x/sum(x)})
-    otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq)), stringsAsFactors = F)
-    otu_table_df$taxa_ID <- rownames(otu_table_df)
-    rownames(otu_table_df) <- NULL
 }
+
+# Remove 'Unknown'
+profile_phyloseq = subset_taxa(profile_phyloseq, kingdom != 'Unknown')
+otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq)), stringsAsFactors = F)
+otu_table_df$taxa_ID <- rownames(otu_table_df)
+rownames(otu_table_df) <- NULL
 
 ##########################################
 # Output 2: Beta diversity - PCoA
