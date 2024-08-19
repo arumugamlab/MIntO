@@ -172,7 +172,9 @@ rownames(otu_table_df) <- NULL
 ##########################################
 
 # Merge taxonomy and abundance
-otu_taxa_merge <- merge(otu_table_df, taxa_table_df, by = 'taxa_ID' , all.x = T)
+# The logical in arrange() puts 'Unknown' as the first row
+otu_taxa_merge <- merge(otu_table_df, taxa_table_df, by = 'taxa_ID' , all.x = T) %>%
+                    dplyr::arrange(taxa_ID != 'Unknown')
 
 # Write output
 fwrite(otu_taxa_merge, file = paste0(out_dir, '/', profile_param, ".tsv"), sep = '\t', row.names = F, quote = F)
