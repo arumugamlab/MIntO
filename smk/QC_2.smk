@@ -321,16 +321,28 @@ rule all:
     default_target: True
 
 # Get a sorted list of runs for a sample
+# This only gets called for taxonomic profiling or sourmash clustering
+# Therefore, you can stop the sequential check at 3-minlength
+# No need to check '1-trimmed', because any step that needs to call this
+#   would have gone many steps further
 
 def get_runs_for_sample(wildcards):
     # If it is composite sample, just return itself
     if wildcards.sample in merged_illumina_samples:
         return(wildcards.sample)
 
-    sample_dir = '{wd}/{omics}/1-trimmed/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, sample=wildcards.sample)
-    runs = [ re.sub("\.1\.paired\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.paired.fq.gz') ]
+    runs = []
+    for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength']:
+        sample_dir = f"{wildcards.wd}/{wildcards.omics}/{loc}/{wildcards.sample}"
+        if path.exists(sample_dir):
+            runs = [ re.sub("\.1\.fq\.gz$", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(".1.fq.gz") ]
+            if len(runs) > 0:
+                break
+            print(f"WARNING: Cannot find runs for sample={wildcards.sample} in dir={sample_dir}")
 
     #print(runs)
+    if len(runs) == 0:
+        raise Exception(f"Cannot find runs for sample={wildcards.sample}")
     return(sorted(runs))
 
 ###############################################################################################
