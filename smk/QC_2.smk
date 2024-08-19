@@ -40,26 +40,7 @@ ilmn_samples = list()
 merged_illumina_samples = list()
 
 ##############################################
-# Get sample list
-##############################################
-
-# Make list of illumina samples, if ILLUMINA in config
-if 'ILLUMINA' in config:
-    #print("Samples:")
-    for ilmn in config["ILLUMINA"]:
-        file_found = False
-        for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
-            location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
-            if (path.exists(location) is True):
-                   file_found = True
-        if file_found == True:
-            #print(ilmn)
-            ilmn_samples.append(ilmn)
-        else:
-            raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist.")
-
-##############################################
-# Handle composite samples
+# Register composite samples
 ##############################################
 
 # Make list of illumina coassemblies, if MERGE_ILLUMINA_SAMPLES in config
@@ -70,6 +51,28 @@ if 'MERGE_ILLUMINA_SAMPLES' in config:
         for m in config['MERGE_ILLUMINA_SAMPLES']:
             #print(" "+m)
             merged_illumina_samples.append(m)
+
+##############################################
+# Get sample list
+##############################################
+
+# Make list of illumina samples, if ILLUMINA in config
+if 'ILLUMINA' in config:
+    #print("Samples:")
+    for ilmn in config["ILLUMINA"]:
+        # If it's composite sample, then don't need to see them until it gets merged later
+        if ilmn in merged_illumina_samples:
+            continue
+        file_found = False
+        for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
+            location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
+            if (path.exists(location) is True):
+                   file_found = True
+        if file_found == True:
+            #print(ilmn)
+            ilmn_samples.append(ilmn)
+        else:
+            raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist.")
 
 ##############################################
 # Host genome filtering
@@ -320,8 +323,13 @@ rule all:
 # Get a sorted list of runs for a sample
 
 def get_runs_for_sample(wildcards):
+    # If it is composite sample, just return itself
+    if wildcards.sample in merged_illumina_samples:
+        return(wildcards.sample)
+
     sample_dir = '{wd}/{omics}/1-trimmed/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, sample=wildcards.sample)
     runs = [ re.sub("\.1\.paired\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.paired.fq.gz') ]
+
     #print(runs)
     return(sorted(runs))
 
