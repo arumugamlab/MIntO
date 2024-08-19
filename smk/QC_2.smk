@@ -606,7 +606,15 @@ rule metaphlan_tax_profile:
         fi
 
         time (
-            metaphlan --bowtie2db {minto_dir}/data/metaphlan/{wildcards.version} $input_files --input_type fastq --bowtie2out {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 --nproc {threads} -o {wildcards.sample}.metaphlan.{wildcards.version}.tsv -t rel_ab_w_read_stats --index {metaphlan_index}
+            metaphlan $input_files \
+                    --input_type fastq \
+                    -o {wildcards.sample}.metaphlan.{wildcards.version}.tsv \
+                    --bowtie2out {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 \
+                    --bowtie2db {minto_dir}/data/metaphlan/{wildcards.version} \
+                    --index {metaphlan_index} \
+                    --nproc {threads} \
+                    -t rel_ab_w_read_stats \
+                    --unclassified_estimation
             rsync -a {wildcards.sample}.metaphlan.* $remote_dir
         ) >& {log}
         """
@@ -627,8 +635,8 @@ rule metaphlan_combine_profiles:
     shell:
         """
         time (
-            merge_metaphlan_tables.py {input.ra} | sed 's/\.{wildcards.taxonomy}\.{wildcards.version}//g' > {output.merged}
-            grep -E "s__|clade_name" {output.merged} | grep -v "t__" | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
+            merge_metaphlan_tables.py {input.ra} | sed -e 's/\.{wildcards.taxonomy}\.{wildcards.version}//g' -e 's/^UNCLASSIFIED/Unknown/' > {output.merged}
+            grep -E "s__|clade_name|Unknown" {output.merged} | grep -v "t__" | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
         ) >& {log}
         """
 
@@ -707,7 +715,7 @@ rule motus_combine_profiles:
     shell:
         """
         time (
-            motus merge {params.motus_db} -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/'| cut -f{params.cut_fields}  > {output.merged}
+            motus merge {params.motus_db} -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/' -e 's/^unassigned .unassigned./Unknown/' | cut -f{params.cut_fields}  > {output.merged}
             grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
         ) >& {log}
         """
