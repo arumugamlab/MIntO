@@ -618,8 +618,7 @@ rule gene_annot_eggnog:
             emapper.py --annotate_hits_table out/tmp.emapper.seed_orthologs \
                        --data_dir $(dirname {input.eggnog_db}) -m no_search --no_file_comments --override -o tmp --output_dir out --cpu {threads} {params.eggnog_inmem}
             cut -f 1,5,12,13,14,21 out/tmp.emapper.annotations > out/emapper.out
-            echo -e "#Database version\\t$(emapper.py --data_dir $(dirname {input.eggnog_db}) -v | cut
- -d"/" -f3 | cut -d" " -f 6)" > out/eggNOG.tsv
+            echo -e "#Database version\\t$(emapper.py --data_dir $(dirname {input.eggnog_db}) -v | cut -d'/' -f3 | cut -d' ' -f 6)" > out/eggNOG.tsv
             {script_dir}/process_eggNOG_OGs.pl out/emapper.out \
                     | sed 's/\#query/ID/; s/ko\://g' \
                     >> out/eggNOG.tsv
