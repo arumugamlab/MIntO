@@ -320,31 +320,6 @@ rule all:
         print_versions.get_version_output(snakefile_name)
     default_target: True
 
-# Get a sorted list of runs for a sample
-# This only gets called for taxonomic profiling or sourmash clustering
-# Therefore, you can stop the sequential check at 3-minlength
-# No need to check '1-trimmed', because any step that needs to call this
-#   would have gone many steps further
-
-def get_runs_for_sample(wildcards):
-    # If it is composite sample, just return itself
-    if wildcards.sample in merged_illumina_samples:
-        return(wildcards.sample)
-
-    runs = []
-    for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength']:
-        sample_dir = f"{wildcards.wd}/{wildcards.omics}/{loc}/{wildcards.sample}"
-        if path.exists(sample_dir):
-            runs = [ re.sub("\.1\.fq\.gz$", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(".1.fq.gz") ]
-            if len(runs) > 0:
-                break
-            print(f"WARNING: Cannot find runs for sample={wildcards.sample} in dir={sample_dir}")
-
-    #print(runs)
-    if len(runs) == 0:
-        raise Exception(f"Cannot find runs for sample={wildcards.sample}")
-    return(sorted(runs))
-
 ###############################################################################################
 # Pre-processing of metaG and metaT data step
 # Read length filtering using the MINLEN
@@ -601,7 +576,7 @@ rule metaphlan_tax_profile:
     shadow:
         "minimal"
     params:
-        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no"
+        multiple_runs = lambda wildcards, input: "yes" if len(input.fwd) > 1 else "no"
     resources:
         mem=TAXA_memory
     threads:
@@ -672,8 +647,8 @@ rule motus_map_db:
     shadow:
         "minimal"
     params:
-        fwd_files = lambda wildcards, input: ",".join(get_qc2_output_files_fwd_only(wildcards)),
-        rev_files = lambda wildcards, input: ",".join(get_qc2_output_files_rev_only(wildcards)),
+        fwd_files = lambda wildcards, input: ",".join(input.fwd),
+        rev_files = lambda wildcards, input: ",".join(input.rev),
         motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else ""
     resources:
         mem=TAXA_memory
