@@ -432,6 +432,10 @@ rule check_directory_for_taxonomic_annotation:
         rules.merge_MG_tables.output
     output:
         "{wd}/DB/{minto_mode}/2-postprocessed/all.done"
+    localrule: True
+    resources:
+        mem=1
+    threads: 1
     shell:
         """
         touch {output}
