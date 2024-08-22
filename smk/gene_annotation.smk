@@ -3,15 +3,13 @@
 '''
 Gene prediction and functional annotation step
 
-Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
+Authors: Vithiagaran Gunalan, Carmen Saenz, Judit Szarvas, Mani Arumugam
 '''
 
 # configuration yaml file
 # import sys
 import pathlib
 from os import path
-
-localrules: rename_prokka_sequences, combine_annotation_outputs, combine_individual_beds
 
 # Get common config variables
 # These are:
@@ -263,6 +261,7 @@ rule rename_prokka_sequences:
         "minimal"
     log:
         "{wd}/logs/DB/{minto_mode}/{genome}.rename_prokka.log"
+    localrule: True
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
     shell:
@@ -356,6 +355,7 @@ rule combine_individual_beds:
         bed_mini="{wd}/DB/{minto_mode}/{filename}.bed.mini",
     log:
         "{wd}/logs/DB/{minto_mode}/{filename}.merge_bed.log"
+    localrule: True
     shadow:
         "minimal"
     wildcard_constraints:
@@ -702,13 +702,14 @@ def get_annotation_for_genome_batches(wildcards):
 # Combine gene annotation results into one file
 ################################################################################################
 
-rule combine_annotation_outputs:
+rule combine_annotation_batches:
     input:
         get_annotation_for_genome_batches
     output:
         "{wd}/DB/{minto_mode}/4-annotations/{annot}.tsv"
     log:
         "{wd}/logs/DB/{minto_mode}/combine_{annot}.log"
+    localrule: True
     wildcard_constraints:
         annot="eggNOG|kofam|dbCAN"
     shadow:
