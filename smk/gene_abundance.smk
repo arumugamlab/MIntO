@@ -61,7 +61,7 @@ if 'ILLUMINA' in config:
                     #print(ilmn)
                     ilmn_samples.append(ilmn)
                 else:
-                    raise Exception('ERROR in ', config_path, ': ILLUMINA sample', ilmn, 'does not exist. Please, complete ', config_path)
+                    raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist. Please correct.")
         n_samples=len(ilmn_samples)+3
 else:
     print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
@@ -75,7 +75,7 @@ valid_minto_modes = ['MAG', 'refgenome', 'catalog']
 if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
     MINTO_MODE=config['MINTO_MODE']
 else:
-    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be defined".format(config_path))
+    raise Exception(f"ERROR in {config_path}: 'MINTO_MODE' variable must be defined")
 
 # Backward compatibility and common misnomers
 if MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
@@ -90,13 +90,13 @@ if not MINTO_MODE in valid_minto_modes:
 
 # Normalization
 if config['abundance_normalization'] is None:
-    print('ERROR in ', config_path, ': abundance_normalization variable is not set. "abundance_normalization" variable should be MG or TPM.')
+    raise Exception(f"ERROR in {config_path}: abundance_normalization variable is not set.")
 else:
     normalization=config['abundance_normalization']
     normalization_modes=normalization.split(",")
     for m in normalization_modes:
         if m not in ("MG", "TPM"):
-            print('ERROR in ', config_path, ': abundance_normalization variable is not correct. "abundance_normalization" variable should be MG or TPM.')
+            raise Exception(f"ERROR in {config_path}: abundance_normalization variable should be MG or TPM.")
 
 if config['alignment_identity'] is None:
     print('ERROR in ', config_path, ': alignment_identity variable is empty. Please, complete ', config_path)
@@ -923,7 +923,7 @@ rule read_map_stats:
 ###############################################################################################
 
 rule config_yml_integration:
-    input: lambda wildcards: "{wd}/{mag_omics}/mapping.yaml".format(wd=wildcards.wd, mag_omics=mag_omics)
+    input: f"{working_dir}/{omics}/9-mapping-profiles/{MINTO_MODE}/genome_abundances.p{identity}.relabund.prop.tsv"
     output:
         config_file="{wd}/data_integration.yaml"
     params:
