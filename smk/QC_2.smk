@@ -160,10 +160,10 @@ if sum(flags) == 0:
 else:
     print('ERROR in ', config_path, ': TAXA_profiler variable is not correct. "TAXA_profiler" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
 
-metaphlan_version = "4.0.6"
+metaphlan_version = "4.1.1"
 if 'metaphlan_version' in config and config['metaphlan_version'] is not None:
     metaphlan_version = config['metaphlan_version']
-motus_version = "3.0.3"
+motus_version = "3.1.0"
 if 'motus_version' in config and config['motus_version'] is not None:
     motus_version = config['motus_version']
 motus_db_path = path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
