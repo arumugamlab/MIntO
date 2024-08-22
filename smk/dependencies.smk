@@ -17,7 +17,7 @@ script_dir=workflow.basedir+"/../scripts"
 metaphlan_index = 'mpa_vJun23_CHOCOPhlAnSGB_202403'
 metaphlan_version = '4.1.1'
 phylophlan_db_version = 'Jun23'
-motus_version = '3.0.3'
+motus_version = '3.1.0'
 gtdb_release_number = '220'
 
 config_path = 'configuration yaml file' #args[args_idx+1]
