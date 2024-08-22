@@ -329,8 +329,8 @@ rule all:
 # This is because the next step "seqkit pair" uses extension to decide whether to compress using pigz or not.
 rule qc2_length_filter:
     input:
-        read_fw='{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz',
-        read_rv='{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz',
+        read_fw='{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz',
+        read_rv='{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz',
     output:
         paired1="{wd}/{omics}/3-minlength/{sample}/{run}.1.fq.gz",
         paired2="{wd}/{omics}/3-minlength/{sample}/{run}.2.fq.gz",

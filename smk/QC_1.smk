@@ -325,8 +325,8 @@ if config['TRIMMOMATIC_adaptors'] == 'Skip':
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
         log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
         shell:
@@ -343,9 +343,9 @@ else:
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
             singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz",
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
             singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz",
             summary="{wd}/{omics}/1-trimmed/{sample}/{run}.trim.summary"
         shadow:
@@ -366,8 +366,8 @@ else:
                     -summary {output.summary} \
                     -phred33 \
                     {input.read_fw} {input.read_rv} \
-                    {wildcards.run}.1.paired.fq.gz {wildcards.run}.1.single.fq.gz \
-                    {wildcards.run}.2.paired.fq.gz {wildcards.run}.2.single.fq.gz \
+                    {wildcards.run}.1.fq.gz {wildcards.run}.1.single.fq.gz \
+                    {wildcards.run}.2.fq.gz {wildcards.run}.2.single.fq.gz \
                     TRAILING:20 LEADING:5 SLIDINGWINDOW:4:20 \
                 && rsync -a * $remote_dir/
             ) >& {log}
@@ -379,9 +379,9 @@ rule qc1_trim_quality_and_adapter:
         unpack(get_raw_reads_for_sample_run),
         adapter='{wd}/{omics}/1-trimmed/{sample}/adapters.fa'
     output:
-        pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
+        pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
         singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz",
-        pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+        pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
         singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz",
         summary="{wd}/{omics}/1-trimmed/{sample}/{run}.trim.summary"
     shadow:
@@ -404,8 +404,8 @@ rule qc1_trim_quality_and_adapter:
                 -summary {output.summary} \
                 -phred33 \
                 {input.read_fw} {input.read_rv} \
-                {wildcards.run}.1.paired.fq.gz {wildcards.run}.1.single.fq.gz \
-                {wildcards.run}.2.paired.fq.gz {wildcards.run}.2.single.fq.gz \
+                {wildcards.run}.1.fq.gz {wildcards.run}.1.single.fq.gz \
+                {wildcards.run}.2.fq.gz {wildcards.run}.2.single.fq.gz \
                 TRAILING:20 LEADING:5 SLIDINGWINDOW:4:20 \
                 ILLUMINACLIP:{input.adapter}:2:30:{params.simple_clip_threshold}:1:TRUE \
             && rsync -a * $remote_dir/
@@ -414,7 +414,7 @@ rule qc1_trim_quality_and_adapter:
 
 rule qc1_check_read_length:
     input:
-        pairead=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{run}.{group}.paired.fq.gz",
+        pairead=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{run}.{group}.fq.gz",
                                             wd=wildcards.wd,
                                             omics=wildcards.omics,
                                             sample=wildcards.sample,

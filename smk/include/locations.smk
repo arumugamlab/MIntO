@@ -14,10 +14,7 @@ def get_qc2_output_location(omics):
 ########################################
 def get_runs_for_sample(wildcards):
 
-    # This only gets called for taxonomic profiling or sourmash clustering
-    # Therefore, you can stop the sequential check at 3-minlength
-    # No need to check '1-trimmed', because any step that needs to call this
-    #   would have gone many steps further
+    # Sequentially look for runs from the last step to first
 
     sample = None
 
@@ -39,7 +36,7 @@ def get_runs_for_sample(wildcards):
     # If corrected runs are already present, take it from there
     # If not, look at QC2 outputs
     # This is to handle special cases where we delete qc2 output after error-correction to save space
-    for loc in ['5-corrected-runs', '5-1-sortmerna', '4-hostfree', '3-minlength']:
+    for loc in ['5-corrected-runs', '5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
         sample_dir = f"{wildcards.wd}/{wildcards.omics}/{loc}/{sample}"
         if path.exists(sample_dir):
             runs = [ re.sub("\.1\.fq\.gz$", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(".1.fq.gz") ]
