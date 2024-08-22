@@ -1134,7 +1134,7 @@ MINTO_MODE: MAG
 # Which omics for MAGs?
 MAG_omics: metaG
 
-# path to gene catalog fasta file
+# path to gene catalog fasta file or refgenome directory
 PATH_reference:
 
 # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
