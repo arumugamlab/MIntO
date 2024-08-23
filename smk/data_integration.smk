@@ -459,7 +459,7 @@ else :
                 Rscript {script_dir}/function_abundance_and_expression_profiling.R \
                         --threads {threads} \
                         --outdir $(dirname {output.abundance}) \
-                        --main-factor {main_factor} \
+                        --color-factor {main_factor} \
                         {params.shape_factor} {params.label_factor} {params.weights_arg} \
                         --normalization {wildcards.normalization} \
                         --funcat-name {wildcards.funcat} \
