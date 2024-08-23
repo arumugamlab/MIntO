@@ -47,6 +47,14 @@ main_factor = None
 if config['MAIN_factor'] is not None:
     main_factor = config['MAIN_factor']
 
+plot_factor2 = ''
+if config['PLOT_factor2'] is not None:
+    plot_factor2 = config['PLOT_factor2']
+
+plot_time = ''
+if config['PLOT_time'] is not None:
+    plot_time = config['PLOT_time']
+
 # Make list of illumina samples, if ILLUMINA in config
 if 'ILLUMINA' in config:
     if config['ILLUMINA'] is None:
@@ -949,6 +957,8 @@ METADATA: {metadata}
 ######################
 
 MAIN_factor: {main_factor}
+PLOT_factor: {plot_factor2}
+PLOT_time: {plot_time}
 
 ######################
 # Program settings
