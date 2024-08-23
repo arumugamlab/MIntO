@@ -9,7 +9,7 @@
 #  'profile' should only have numeric columns - IDs should have been removed
 #  'profile' should have removed all zerosum rows
 #  'profile' should be sorted (desc) by rowSum
-plot_PCA <- function(profile, label, color, metadata) {
+plot_PCA <- function(profile, label, color, shape, metadata) {
 
     library(data.table)
     library(ggplot2)
@@ -44,25 +44,31 @@ plot_PCA <- function(profile, label, color, metadata) {
     pca_results <- prcomp(pca_data, center = T, sca=T)
 
     # ***************** ggplot way - w coloring *****************
-    dtp <- data.frame('sample' = sample_data_df[[label]],
-                      'group' = sample_data_df[[color]],
+    dtp <- data.frame('label' = sample_data_df[[label]],
+                      'color' = sample_data_df[[color]],
                        pca_results$x[,1:2]) # the first two componets are selected
+
+    # Set default shape if no shape-factor is given
+    if (!is.null(shape)) {
+        dtp$shape = sample_data_df[[shape]]
+    }
+
     total_variance <- sum(pca_results$sdev)
     axis_names <- head(colnames(data.table(pca_results$x)), 2)
     percentage <- round(head(pca_results$sdev, 2) / total_variance * 100, 2)
     percentage <- paste0(axis_names, " (", percentage, "%)")
 
-    PCA_Sample_site_abundance <- (ggplot(data = dtp, aes(x = PC1, y = PC2, color = group)) +
-                                  geom_text_repel(aes(label = sample),nudge_x = 0.04, size = 3.5, segment.alpha = 0.5) +
-                                  geom_point(size = 2, shape = 16)+
+    PCA_Sample_site_abundance <- (ggplot(data = dtp, aes(x = PC1, y = PC2, color = color, shape = shape)) +
+                                  geom_text_repel(aes(label = label), nudge_x = 0.04, size = 3.5, segment.alpha = 0.5) +
+                                  geom_point(size = 2)+
                                   xlab(percentage[1]) + ylab(percentage[2]) +
                                   #labs(title = title) +
-                                  theme_bw()+
+                                  theme_bw() +
                                   theme(plot.title = element_text(size=10), legend.position="bottom"))#+ stat_ellipse(type = "norm", linetype = 2))
     return(PCA_Sample_site_abundance)
 }
 
-prepare_PCA <- function(profile, label, color, metadata, title) {
+prepare_PCA <- function(profile, datatype, color, shape=NULL, label=NULL, metadata, title) {
 
     logmsg(" Making PCA plots")
 
@@ -79,18 +85,26 @@ prepare_PCA <- function(profile, label, color, metadata, title) {
     # abundance  -> GA
     # transcript -> GT
     # expression -> GE
-    out_name <- paste0(visual_dir, '/', label, '.PCA.pdf')
+    out_name <- paste0(visual_dir, '/', datatype, '.PCA.pdf')
 
-    plot_PCA_out <- plot_PCA(profile=profile, color=color, label="sample_alias", metadata=metadata)
+    plot_PCA_out <- plot_PCA(profile=profile, color=color, shape=shape, label=label, metadata=metadata)
     pdf(out_name,width=8,height=8,paper="special" )
-    print(plot_PCA_out  + scale_color_manual(values=manual_plot_colors, name=color) +
-          #coord_fixed() +
-          theme(legend.position="bottom")+ggtitle(title_name))
-    print(plot_PCA_out  +
-          facet_wrap(.~group)+
-          scale_color_manual(values=manual_plot_colors, name=color) +
-          #coord_fixed() +
-          theme(legend.position="bottom")+
-          ggtitle(title_name))
+    p1 = plot_PCA_out +
+            scale_color_manual(values=manual_plot_colors, name=color) +
+            #coord_fixed() +
+            theme(legend.position="bottom") +
+            ggtitle(title_name)
+    p2 = plot_PCA_out +
+            facet_wrap(.~color) +
+            scale_color_manual(values=manual_plot_colors, name=color) +
+            #coord_fixed() +
+            theme(legend.position="bottom") +
+            ggtitle(title_name)
+    if (!is.null(shape)) {
+        p1 = p1 + scale_shape(name=shape)
+        p2 = p2 + scale_shape(name=shape)
+    }
+    print(p1)
+    print(p2)
     dev.off()
 }
