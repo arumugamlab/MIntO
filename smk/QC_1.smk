@@ -557,8 +557,8 @@ ___EOF___
 TAXA_threads: 8
 TAXA_memory: 10
 TAXA_profiler: motus_rel,metaphlan
-metaphlan_version: 4.0.6
-motus_version: 3.0.3
+metaphlan_version: 4.1.1
+motus_version: 3.1.0
 
 #########################
 # K-mer based comparison
