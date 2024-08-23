@@ -3,15 +3,13 @@
 '''
 Gene prediction and functional annotation step
 
-Authors: Vithiagaran Gunalan, Carmen Saenz, Mani Arumugam
+Authors: Vithiagaran Gunalan, Carmen Saenz, Judit Szarvas, Mani Arumugam
 '''
 
 # configuration yaml file
 # import sys
 import pathlib
 from os import path
-
-localrules: rename_prokka_sequences, combine_annotation_outputs, combine_individual_beds
 
 # Get common config variables
 # These are:
@@ -263,6 +261,7 @@ rule rename_prokka_sequences:
         "minimal"
     log:
         "{wd}/logs/DB/{minto_mode}/{genome}.rename_prokka.log"
+    localrule: True
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
     shell:
@@ -356,6 +355,7 @@ rule combine_individual_beds:
         bed_mini="{wd}/DB/{minto_mode}/{filename}.bed.mini",
     log:
         "{wd}/logs/DB/{minto_mode}/{filename}.merge_bed.log"
+    localrule: True
     shadow:
         "minimal"
     wildcard_constraints:
@@ -432,6 +432,10 @@ rule check_directory_for_taxonomic_annotation:
         rules.merge_MG_tables.output
     output:
         "{wd}/DB/{minto_mode}/2-postprocessed/all.done"
+    localrule: True
+    resources:
+        mem=1
+    threads: 1
     shell:
         """
         touch {output}
@@ -531,6 +535,60 @@ rule gtdb_taxonomy_for_genome_collection:
 # 4. FUNCTIONAL ANNOTATION
 ###########################
 
+###############################
+# Prepare batches for annotation
+###############################
+
+# Get a list of genome faa files
+def get_genome_faa(wildcards):
+    #Collect the BED files for MAGs
+    result = expand("{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa",
+                    wd=wildcards.wd,
+                    minto_mode=wildcards.minto_mode,
+                    genome=genomes)
+    return(result)
+
+checkpoint prepare_genome_batches:
+    input:
+        faa = get_genome_faa
+    output:
+        batches = directory("{wd}/DB/{minto_mode}/4-annotations/batches")
+    localrule: True
+    threads: 1
+    resources:
+        mem = 2
+    params:
+        batch_size = 500
+    run:
+        import math
+
+        # Make output dir if necessary
+        if not os.path.exists(output.batches):
+            os.makedirs(output.batches)
+
+        # Get batch size
+        n_genomes = len(input.faa)
+        n_batches = math.ceil(n_genomes/params.batch_size)
+
+        # Process batches one-by-one
+        for batch in range(n_batches):
+
+            # Open the batch file
+
+            ofname = f"{output.batches}/{batch:04d}.faa"
+            with open(ofname, 'w') as ofstream:
+
+                # Get the genomes for this batch
+                istart = batch*params.batch_size
+                iend   = istart + params.batch_size
+
+                # Go through each genome in this batch
+                for ifname in input.faa[istart:iend]:
+                    with open(ifname, "r") as ifstream:
+                        for line in ifstream:
+                            ofstream.write(line)
+
+
 ################################################################################################
 # Genes annotation using 3 different tools to retrieve functions from:
 ## kofam
@@ -540,17 +598,17 @@ rule gtdb_taxonomy_for_genome_collection:
 
 rule gene_annot_kofamscan:
     input:
-        faa=rules.rename_prokka_sequences.output.faa,
+        faa="{wd}/DB/{minto_mode}/4-annotations/batches/{batch}.faa",
         ko_list=lambda wildcards: "{minto_dir}/data/kofam_db/ko_list".format(minto_dir = minto_dir),
         prok_hal=lambda wildcards: "{minto_dir}/data/kofam_db/profiles/prokaryote.hal".format(minto_dir = minto_dir),
         module_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Module2KO.tsv".format(minto_dir = minto_dir),
         pathway_map=lambda wildcards: "{minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv".format(minto_dir = minto_dir)
     output:
-        "{wd}/DB/{minto_mode}/4-annotations/kofam/{genome}.kofam.tsv",
+        "{wd}/DB/{minto_mode}/4-annotations/kofam/{batch}.tsv",
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{minto_mode}/{genome}.kofamscan.log"
+        "{wd}/logs/DB/{minto_mode}/{batch}.kofamscan.log"
     resources:
         mem=10
     threads: 16
@@ -569,14 +627,14 @@ rule gene_annot_kofamscan:
 
 rule gene_annot_dbcan:
     input:
-        faa=rules.rename_prokka_sequences.output.faa,
+        faa="{wd}/DB/{minto_mode}/4-annotations/batches/{batch}.faa",
         dbcan_db="{}/data/dbCAN_db/V12/fam-substrate-mapping.tsv".format(minto_dir)
     output:
-        "{wd}/DB/{minto_mode}/4-annotations/dbCAN/{genome}.dbCAN.tsv",
+        "{wd}/DB/{minto_mode}/4-annotations/dbCAN/{batch}.tsv",
     shadow:
         "minimal"
     log:
-        "{wd}/logs/DB/{minto_mode}/{genome}.dbcan.log"
+        "{wd}/logs/DB/{minto_mode}/{batch}.dbcan.log"
     resources:
         mem=10
     threads: 16
@@ -594,16 +652,16 @@ rule gene_annot_dbcan:
 
 rule gene_annot_eggnog:
     input:
-        faa=rules.rename_prokka_sequences.output.faa,
+        faa="{wd}/DB/{minto_mode}/4-annotations/batches/{batch}.faa",
         eggnog_db="{}/data/eggnog_data/data/eggnog.db".format(minto_dir)
     output:
-        "{wd}/DB/{minto_mode}/4-annotations/eggNOG/{genome}.eggNOG.tsv",
+        "{wd}/DB/{minto_mode}/4-annotations/eggNOG/{batch}.tsv",
     shadow:
         "minimal"
     params:
         eggnog_inmem = lambda wildcards: "--dbmem" if eggNOG_dbmem else ""
     log:
-        "{wd}/logs/DB/{minto_mode}/{genome}.eggnog.log"
+        "{wd}/logs/DB/{minto_mode}/{batch}.eggnog.log"
     resources:
         mem=lambda wildcards: 50 if eggNOG_dbmem else 16
     threads: lambda wildcards: 24 if eggNOG_dbmem else 10
@@ -626,26 +684,32 @@ rule gene_annot_eggnog:
         ) >& {log}
         """
 
+###############################
+# Get the batches
+###############################
+
+def get_annotation_for_genome_batches(wildcards):
+    #Collect the genome bins from previous step
+    checkpoint_output = checkpoints.prepare_genome_batches.get(**wildcards).output[0]
+    result = expand("{wd}/DB/{minto_mode}/4-annotations/{annot}/{batch}.tsv",
+                    wd=wildcards.wd,
+                    minto_mode=wildcards.minto_mode,
+                    annot=wildcards.annot,
+                    batch=glob_wildcards(os.path.join(checkpoint_output, '{batch}.faa')).batch)
+    return(result)
+
 ################################################################################################
 # Combine gene annotation results into one file
 ################################################################################################
 
-def get_genome_annotation_tsvs(wildcards):
-    #Collect the CDS faa files for MAGs
-    inputs = expand("{wd}/DB/{minto_mode}/4-annotations/{annot}/{genome}.{annot}.tsv",
-                    wd=wildcards.wd,
-                    annot=wildcards.annot,
-                    minto_mode=wildcards.minto_mode,
-                    genome=genomes)
-    return(inputs)
-
-rule combine_annotation_outputs:
+rule combine_annotation_batches:
     input:
-        get_genome_annotation_tsvs
+        get_annotation_for_genome_batches
     output:
         "{wd}/DB/{minto_mode}/4-annotations/{annot}.tsv"
     log:
         "{wd}/logs/DB/{minto_mode}/combine_{annot}.log"
+    localrule: True
     wildcard_constraints:
         annot="eggNOG|kofam|dbCAN"
     shadow:

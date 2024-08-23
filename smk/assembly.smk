@@ -249,24 +249,6 @@ rule correct_spadeshammer:
         ) >& {log}
         """
 
-# Get a sorted list of runs for a sample
-
-def get_runs_for_sample(wildcards):
-    # If corrected runs are already present, take it from there
-    # If not, look at QC2 outputs
-    # This is to handle special cases where we delete qc2 output after error-correction to save space
-    for location in ['5-corrected-runs', get_qc2_output_location(wildcards.omics)]:
-        sample_dir = '{wd}/{omics}/{location}/{illumina}'.format(
-                wd=wildcards.wd,
-                omics=wildcards.omics,
-                location=location,
-                illumina=wildcards.illumina)
-        if path.exists(sample_dir):
-            runs = [ re.sub(r"\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ]
-            if (len(runs) > 0):
-                return(sorted(runs))
-    raise Exception("Cannot find fastq files for sample: ", wildcards.illumina)
-
 rule merge_runs:
     input:
         files=lambda wildcards: expand("{wd}/{omics}/5-corrected-runs/{illumina}/{run}.{pair}.fq.gz",

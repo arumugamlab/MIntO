@@ -325,8 +325,8 @@ if config['TRIMMOMATIC_adaptors'] == 'Skip':
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
         log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc1_trim_quality.log"
         shell:
@@ -343,9 +343,9 @@ else:
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
             singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz",
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
             singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz",
             summary="{wd}/{omics}/1-trimmed/{sample}/{run}.trim.summary"
         shadow:
@@ -366,8 +366,8 @@ else:
                     -summary {output.summary} \
                     -phred33 \
                     {input.read_fw} {input.read_rv} \
-                    {wildcards.run}.1.paired.fq.gz {wildcards.run}.1.single.fq.gz \
-                    {wildcards.run}.2.paired.fq.gz {wildcards.run}.2.single.fq.gz \
+                    {wildcards.run}.1.fq.gz {wildcards.run}.1.single.fq.gz \
+                    {wildcards.run}.2.fq.gz {wildcards.run}.2.single.fq.gz \
                     TRAILING:20 LEADING:5 SLIDINGWINDOW:4:20 \
                 && rsync -a * $remote_dir/
             ) >& {log}
@@ -379,9 +379,9 @@ rule qc1_trim_quality_and_adapter:
         unpack(get_raw_reads_for_sample_run),
         adapter='{wd}/{omics}/1-trimmed/{sample}/adapters.fa'
     output:
-        pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
+        pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
         singleread1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.single.fq.gz",
-        pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+        pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
         singleread2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.single.fq.gz",
         summary="{wd}/{omics}/1-trimmed/{sample}/{run}.trim.summary"
     shadow:
@@ -404,8 +404,8 @@ rule qc1_trim_quality_and_adapter:
                 -summary {output.summary} \
                 -phred33 \
                 {input.read_fw} {input.read_rv} \
-                {wildcards.run}.1.paired.fq.gz {wildcards.run}.1.single.fq.gz \
-                {wildcards.run}.2.paired.fq.gz {wildcards.run}.2.single.fq.gz \
+                {wildcards.run}.1.fq.gz {wildcards.run}.1.single.fq.gz \
+                {wildcards.run}.2.fq.gz {wildcards.run}.2.single.fq.gz \
                 TRAILING:20 LEADING:5 SLIDINGWINDOW:4:20 \
                 ILLUMINACLIP:{input.adapter}:2:30:{params.simple_clip_threshold}:1:TRUE \
             && rsync -a * $remote_dir/
@@ -414,7 +414,7 @@ rule qc1_trim_quality_and_adapter:
 
 rule qc1_check_read_length:
     input:
-        pairead=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{run}.{group}.paired.fq.gz",
+        pairead=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{run}.{group}.fq.gz",
                                             wd=wildcards.wd,
                                             omics=wildcards.omics,
                                             sample=wildcards.sample,
@@ -557,8 +557,8 @@ ___EOF___
 TAXA_threads: 8
 TAXA_memory: 10
 TAXA_profiler: motus_rel,metaphlan
-metaphlan_version: 4.0.6
-motus_version: 3.0.3
+metaphlan_version: 4.1.1
+motus_version: 3.1.0
 
 #########################
 # K-mer based comparison
@@ -597,14 +597,24 @@ COAS_factor:
 # Optionally, do you want to merge replicates or make pseudo samples
 # E.g:
 # MERGE_ILLUMINA_SAMPLES:
-#  - merged=rep1+rep2+rep3
+#  sample1: rep1a+rep1b+rep1c
+#  sample2: rep2a+rep2b+rep2c
 #
-# The above directive will combine 3 samples (rep1, rep2 and rep3)
-# after the last step into a new sample called 'merged'. Now you can remove
-# rep1, rep2 and rep3 from assembly, MAG generation and profiling steps.
-# Please note that METADATA file must have an entry for 'merged' as well,
+# The above directive will make 2 new composite or pseudo samples at the end of QC_2.
+# Imagine you had triplicates for sample1 named as rep1a, rep1b and rep1c.
+# And likewise for sample2. The directive above will:
+#     - combine 3 samples (rep1a, rep1b and rep1c)into a new sample called 'sample1'.
+#     - combine 3 samples (rep2a, rep2b and rep2c)into a new sample called 'sample2'.
+# For all subsequent steps, namely:
+#     - profiling (done within this snakemake script),
+#     - assembly (done by assembly.smk),
+#     - binning (done by binning_preparation.smk and mags_generation.smk),
+# you can just use 'sample2' instead of the replicates rep2a, rep2b and rep2c in the yaml files.
+# Please note that METADATA file must have an entry for 'sample2' as well,
 # otherwise QC_2 step will fail.
 # Having extra entries in METADATA file does not affect you in any way.
+# Therefore, it is safe to have metadata recorded for
+# rep2a, rep2b, rep2c, sample2 from the beginning.
 ######################
 
 #MERGE_ILLUMINA_SAMPLES:

@@ -431,7 +431,7 @@ rule annotation_base:
 
         echo "#----" >> $VOUT
         echo "KEGG/kofamscan files" >> $VOUT
-        echo "KO profiles modification date $(stat -c '%y' {minto_dir}/data/kofam_db/profiles.tar.gz | cut -d" " -f 1)" >> $VOUT
+        echo "KO profiles modification date $(stat -c '%y' {minto_dir}/data/kofam_db/ko_list | cut -d" " -f 1)" >> $VOUT
         echo "Module to KO file creation date $(stat -c '%y' {minto_dir}/data/kofam_db/KEGG_Module2KO.tsv | cut -d" " -f 1)" >> $VOUT
         echo "Pathway to KO file creation date $(stat -c '%y' {minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv | cut -d" " -f 1)" >> $VOUT
 

@@ -1,9 +1,7 @@
-name: metaphlan_4.0.6
+name: metaphlan_4.1.1
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
-  - metaphlan=4.0.6
-  - pysam=0.16.0.1
-  - python=3.9.15
+  - metaphlan=4.1.1

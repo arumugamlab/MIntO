@@ -40,26 +40,7 @@ ilmn_samples = list()
 merged_illumina_samples = list()
 
 ##############################################
-# Get sample list
-##############################################
-
-# Make list of illumina samples, if ILLUMINA in config
-if 'ILLUMINA' in config:
-    #print("Samples:")
-    for ilmn in config["ILLUMINA"]:
-        file_found = False
-        for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
-            location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
-            if (path.exists(location) is True):
-                   file_found = True
-        if file_found == True:
-            #print(ilmn)
-            ilmn_samples.append(ilmn)
-        else:
-            raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist.")
-
-##############################################
-# Handle composite samples
+# Register composite samples
 ##############################################
 
 # Make list of illumina coassemblies, if MERGE_ILLUMINA_SAMPLES in config
@@ -70,6 +51,28 @@ if 'MERGE_ILLUMINA_SAMPLES' in config:
         for m in config['MERGE_ILLUMINA_SAMPLES']:
             #print(" "+m)
             merged_illumina_samples.append(m)
+
+##############################################
+# Get sample list
+##############################################
+
+# Make list of illumina samples, if ILLUMINA in config
+if 'ILLUMINA' in config:
+    #print("Samples:")
+    for ilmn in config["ILLUMINA"]:
+        # If it's composite sample, then don't need to see them until it gets merged later
+        if ilmn in merged_illumina_samples:
+            continue
+        file_found = False
+        for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
+            location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
+            if (path.exists(location) is True):
+                   file_found = True
+        if file_found == True:
+            #print(ilmn)
+            ilmn_samples.append(ilmn)
+        else:
+            raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist.")
 
 ##############################################
 # Host genome filtering
@@ -157,10 +160,10 @@ if sum(flags) == 0:
 else:
     print('ERROR in ', config_path, ': TAXA_profiler variable is not correct. "TAXA_profiler" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
 
-metaphlan_version = "4.0.6"
+metaphlan_version = "4.1.1"
 if 'metaphlan_version' in config and config['metaphlan_version'] is not None:
     metaphlan_version = config['metaphlan_version']
-motus_version = "3.0.3"
+motus_version = "3.1.0"
 if 'motus_version' in config and config['motus_version'] is not None:
     motus_version = config['motus_version']
 motus_db_path = path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
@@ -317,14 +320,6 @@ rule all:
         print_versions.get_version_output(snakefile_name)
     default_target: True
 
-# Get a sorted list of runs for a sample
-
-def get_runs_for_sample(wildcards):
-    sample_dir = '{wd}/{omics}/1-trimmed/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, sample=wildcards.sample)
-    runs = [ re.sub("\.1\.paired\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.paired.fq.gz') ]
-    #print(runs)
-    return(sorted(runs))
-
 ###############################################################################################
 # Pre-processing of metaG and metaT data step
 # Read length filtering using the MINLEN
@@ -334,8 +329,8 @@ def get_runs_for_sample(wildcards):
 # This is because the next step "seqkit pair" uses extension to decide whether to compress using pigz or not.
 rule qc2_length_filter:
     input:
-        read_fw='{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz',
-        read_rv='{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz',
+        read_fw='{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz',
+        read_rv='{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz',
     output:
         paired1="{wd}/{omics}/3-minlength/{sample}/{run}.1.fq.gz",
         paired2="{wd}/{omics}/3-minlength/{sample}/{run}.2.fq.gz",
@@ -581,7 +576,7 @@ rule metaphlan_tax_profile:
     shadow:
         "minimal"
     params:
-        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no"
+        multiple_runs = lambda wildcards, input: "yes" if len(input.fwd) > 1 else "no"
     resources:
         mem=TAXA_memory
     threads:
@@ -652,8 +647,8 @@ rule motus_map_db:
     shadow:
         "minimal"
     params:
-        fwd_files = lambda wildcards, input: ",".join(get_qc2_output_files_fwd_only(wildcards)),
-        rev_files = lambda wildcards, input: ",".join(get_qc2_output_files_rev_only(wildcards)),
+        fwd_files = lambda wildcards, input: ",".join(input.fwd),
+        rev_files = lambda wildcards, input: ",".join(input.rev),
         motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else ""
     resources:
         mem=TAXA_memory
@@ -1139,7 +1134,7 @@ MINTO_MODE: MAG
 # Which omics for MAGs?
 MAG_omics: metaG
 
-# path to gene catalog fasta file
+# path to gene catalog fasta file or refgenome directory
 PATH_reference:
 
 # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
