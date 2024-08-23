@@ -62,7 +62,7 @@ profiles_tpm <- input_file
 #####
 # Common function to make output files for each type
 #####
-make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
+make_output_files <- function(profile=NULL, metadata=NULL, type=NULL, label=NULL) {
 
     library(qs)
 
@@ -76,7 +76,7 @@ make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
     logmsg(" Making phyloseq")
     physeq <- phyloseq(otu_table(as.matrix(profile, rownames="ID"), taxa_are_rows = T),
                        tax_table(as.matrix(gene_annot_dt, rownames="ID")),
-                       sample_metadata)
+                       metadata)
 
     # Write phyloseq
     logmsg(" Writing phyloseq")
@@ -130,6 +130,7 @@ if (omics == 'metaG_metaT') {
     sample_names <- grep(paste0("^meta[GT]\\."), all_column_names, fixed=FALSE, perl=TRUE, value=TRUE)
 }
 gene_profile_dt <- gene_profile_dt[, c("ID", sample_names), with=FALSE]
+logmsg("  ", length(all_column_names), " --> ", length(sample_names))
 logmsg("  done")
 
 # Index
@@ -243,6 +244,28 @@ if (omics == 'metaG_metaT') {
 metadata_df <- NULL
 if (metadata_file != 'None'){
     metadata_df <- as.data.frame(fread(metadata_file,  header = T), stringsAsFactors = F)
+
+    # Reorder metadata by same order in profile file, so that it can be matched properly when ID is removed
+    # Easiest way is to do an inner join, which will also nicely fail if a sample doesnt have metadata
+
+    col_names = names(metadata_df)
+    if (omics == 'metaT') {
+        anchor_df = metaT_profile %>%
+                        dplyr::select(-ID) %>%
+                        head(2) %>%
+                        t() %>%
+                        as.data.frame() %>%
+                        tibble::rownames_to_column("sample_alias")
+    } else {
+        anchor_df = metaG_profile %>%
+                        dplyr::select(-ID) %>%
+                        head(2) %>%
+                        t() %>%
+                        as.data.frame() %>%
+                        tibble::rownames_to_column("sample_alias")
+    }
+    metadata_df = dplyr::inner_join(anchor_df, metadata_df) %>%
+                    dplyr::select(any_of(col_names))
 }
 if (is.null(metadata_df)) {
     if (omics == 'metaT') {
@@ -265,7 +288,7 @@ maxN = 500000
 
 # Write GA profile data for metaG
 if (omics == 'metaG') {
-    make_output_files(profile=metaG_profile, type='abundance', label='GA')
+    make_output_files(profile=metaG_profile, metadata=sample_metadata, type='abundance', label='GA')
 
     # Get first maxN rows and remove ID
     metaG_profile <- metaG_profile[, first(.SD, maxN)][, ID := NULL]
@@ -277,7 +300,7 @@ if (omics == 'metaG') {
 
 # Write GT data for metaT
 if (omics == 'metaT') {
-    make_output_files(profile=metaT_profile, type='transcript', label='GT')
+    make_output_files(profile=metaT_profile, metadata=sample_metadata, type='transcript', label='GT')
 
     # Get first maxN rows and remove ID
     metaT_profile <- metaT_profile[, head(.SD, maxN)][, ID := NULL]
@@ -330,7 +353,7 @@ if (omics == 'metaG_metaT') {
 
     # NOTE: By now, profile table is free of zerosum rows and sorted(desc) by rowSum
 
-    make_output_files(profile=gene_expression, type='expression', label='GE')
+    make_output_files(profile=gene_expression, metadata=sample_metadata, type='expression', label='GE')
 
     # Prepare data for PCA
 
