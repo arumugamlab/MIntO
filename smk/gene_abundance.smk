@@ -957,7 +957,7 @@ METADATA: {metadata}
 ######################
 
 MAIN_factor: {main_factor}
-PLOT_factor: {plot_factor2}
+PLOT_factor2: {plot_factor2}
 PLOT_time: {plot_time}
 
 ######################
