@@ -244,6 +244,9 @@ if (omics == 'metaG_metaT') {
 metadata_df <- NULL
 if (metadata_file != 'None'){
     metadata_df <- as.data.frame(fread(metadata_file,  header = T), stringsAsFactors = F)
+    if (length(metadata_df$sample_alias) != length(unique(metadata_df$sample_alias))) {
+        stop(paste0("In sample metadata file '", metadata_file, "', column 'sample_alias' does not have unique values per row!"))
+    }
 
     # Reorder metadata by same order in profile file, so that it can be matched properly when ID is removed
     # Easiest way is to do an inner join, which will also nicely fail if a sample doesnt have metadata
