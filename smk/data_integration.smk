@@ -30,15 +30,15 @@ snakefile_name = print_versions.get_smk_filename()
 # some variables
 
 main_factor = None
-if config['MAIN_factor'] is not None:
+if 'MAIN_factor' in config and config['MAIN_factor'] is not None:
     main_factor = config['MAIN_factor']
 
 plot_factor2 = None
-if config['PLOT_factor2'] is not None:
+if 'PLOT_factor2' in config and config['PLOT_factor2'] is not None:
     plot_factor2 = config['PLOT_factor2']
 
 plot_time = None
-if config['PLOT_time'] is not None:
+if 'PLOT_time' in config and config['PLOT_time'] is not None:
     plot_time = config['PLOT_time']
 
 # MIntO mode and database-mapping
