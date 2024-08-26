@@ -30,8 +30,16 @@ snakefile_name = print_versions.get_smk_filename()
 # some variables
 
 main_factor = None
-if config['MAIN_factor'] is not None:
+if 'MAIN_factor' in config and config['MAIN_factor'] is not None:
     main_factor = config['MAIN_factor']
+
+plot_factor2 = None
+if 'PLOT_factor2' in config and config['PLOT_factor2'] is not None:
+    plot_factor2 = config['PLOT_factor2']
+
+plot_time = None
+if 'PLOT_time' in config and config['PLOT_time'] is not None:
+    plot_time = config['PLOT_time']
 
 # MIntO mode and database-mapping
 
@@ -250,6 +258,8 @@ rule integration_gene_profiles:
     wildcard_constraints:
             omics_alphabet='[ATE]',
     params:
+        shape_factor = f"--shape-factor {plot_factor2}" if plot_factor2 != None else '',
+        label_factor = f"--label-factor {plot_time}"    if plot_time    != None else '',
         metadata_file = metadata,
         funcat_names = ','.join(['"' + id + '"' for id in funct_opt]),
         script_omics = lambda wildcards: 'metaG' if wildcards.omics_alphabet == 'A' \
@@ -269,7 +279,8 @@ rule integration_gene_profiles:
             Rscript {script_dir}/gene_abundance_and_expression_profiling.R \
                     --threads {threads} \
                     --outdir $(dirname {output.gene_abund_prof}) \
-                    --main-factor {main_factor} \
+                    --color-factor {main_factor} \
+                    {params.shape_factor} {params.label_factor} \
                     --annotation {input.annot_file} \
                     --metadata {params.metadata_file} \
                     --gene-profile {input.gene_abund_merge} \
@@ -359,6 +370,8 @@ if omics == 'metaG_metaT':
         wildcard_constraints:
             normalization='MG|TPM',
         params:
+            shape_factor = f"--shape-factor {plot_factor2}" if plot_factor2 != None else '',
+            label_factor = f"--label-factor {plot_time}"    if plot_time    != None else '',
             funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
                                                         location=minto_dir,
                                                         name=re.sub("eggNOG.KEGG_|kofam.KEGG_|merged.KEGG_", "KEGG_", wildcards.funcat)),
@@ -377,8 +390,8 @@ if omics == 'metaG_metaT':
                 Rscript {script_dir}/function_abundance_and_expression_profiling.R \
                         --threads {threads} \
                         --outdir $(dirname {output.abundance}) \
-                        --main-factor {main_factor} \
-                        {params.weights_arg} \
+                        --color-factor {main_factor} \
+                        {params.shape_factor} {params.label_factor} {params.weights_arg} \
                         --normalization {wildcards.normalization} \
                         --funcat-name {wildcards.funcat} \
                         --funcat-desc {params.funcat_desc_file} \
@@ -423,6 +436,8 @@ else :
             normalization='MG|TPM',
             omics_prof='A|T'
         params:
+            shape_factor = f"--shape-factor {plot_factor2}" if plot_factor2 != None else '',
+            label_factor = f"--label-factor {plot_time}"    if plot_time    != None else '',
             funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
                                                         location=minto_dir,
                                                         name=re.sub("eggNOG.KEGG_|kofam.KEGG_|merged_", "KEGG_", wildcards.funcat)),
@@ -444,8 +459,8 @@ else :
                 Rscript {script_dir}/function_abundance_and_expression_profiling.R \
                         --threads {threads} \
                         --outdir $(dirname {output.abundance}) \
-                        --main-factor {main_factor} \
-                        {params.weights_arg} \
+                        --color-factor {main_factor} \
+                        {params.shape_factor} {params.label_factor} {params.weights_arg} \
                         --normalization {wildcards.normalization} \
                         --funcat-name {wildcards.funcat} \
                         --funcat-desc {params.funcat_desc_file} \

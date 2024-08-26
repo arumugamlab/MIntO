@@ -31,7 +31,9 @@ opt_list <- list(
                 make_option("--gene-profile", type="character", default=NULL, help="file containing gene profiles in metaG and/or metaT space", metavar="file"),
                 make_option("--annotation", type="character", default=NULL, help="file with gene annotations", metavar="file"),
                 make_option("--metadata", type="character", default=NULL, help="file with sample metadata", metavar="file"),
-                make_option("--main-factor", type="character", default=NULL, help="main factor variable to use when plotting data", metavar="string")
+                make_option("--color-factor", type="character", default=NULL, help="factor used for color when plotting data", metavar="string"),
+                make_option("--shape-factor", type="character", default=NULL, help="factor used for shape when plotting data", metavar="string"),
+                make_option("--label-factor", type="character", default="sample_alias", help="factor used to label points when plotting data", metavar="string")
                 )
 opts <- parse_args(OptionParser(option_list=opt_list))
 
@@ -42,7 +44,9 @@ annot_file <- opts$annotation
 metadata_file <- opts$metadata
 input_file <- opts[['gene-profile']]
 funcat_args  <- opts[['funcat-names']]
-main_factor <- opts[['main-factor']]
+color_factor <- opts[['color-factor']]
+shape_factor <- opts[['shape-factor']]
+label_factor <- opts[['label-factor']]
 
 
 #####
@@ -62,7 +66,7 @@ profiles_tpm <- input_file
 #####
 # Common function to make output files for each type
 #####
-make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
+make_output_files <- function(profile=NULL, metadata=NULL, type=NULL, datatype=NULL) {
 
     library(qs)
 
@@ -70,18 +74,18 @@ make_output_files <- function(profile=NULL, type=NULL, label=NULL) {
 
     # Write tsv file
     logmsg(" Writing TSV file")
-    fwrite(profile, file=paste0(output_dir, '/', label, '.tsv'), sep = "\t", row.names = F, quote = F)
+    fwrite(profile, file=paste0(output_dir, '/', datatype, '.tsv'), sep = "\t", row.names = F, quote = F)
 
     # Prepare phyloseq
     logmsg(" Making phyloseq")
     physeq <- phyloseq(otu_table(as.matrix(profile, rownames="ID"), taxa_are_rows = T),
                        tax_table(as.matrix(gene_annot_dt, rownames="ID")),
-                       sample_metadata)
+                       metadata)
 
     # Write phyloseq
     logmsg(" Writing phyloseq")
     qsave(physeq,
-          file = paste0(phyloseq_dir, '/', label, '.qs'),
+          file = paste0(phyloseq_dir, '/', datatype, '.qs'),
           preset = "high",
           nthreads = threads_n,
          )
@@ -130,6 +134,7 @@ if (omics == 'metaG_metaT') {
     sample_names <- grep(paste0("^meta[GT]\\."), all_column_names, fixed=FALSE, perl=TRUE, value=TRUE)
 }
 gene_profile_dt <- gene_profile_dt[, c("ID", sample_names), with=FALSE]
+logmsg("  ", length(all_column_names), " --> ", length(sample_names))
 logmsg("  done")
 
 # Index
@@ -243,6 +248,31 @@ if (omics == 'metaG_metaT') {
 metadata_df <- NULL
 if (metadata_file != 'None'){
     metadata_df <- as.data.frame(fread(metadata_file,  header = T), stringsAsFactors = F)
+    if (length(metadata_df$sample_alias) != length(unique(metadata_df$sample_alias))) {
+        stop(paste0("In sample metadata file '", metadata_file, "', column 'sample_alias' does not have unique values per row!"))
+    }
+
+    # Reorder metadata by same order in profile file, so that it can be matched properly when ID is removed
+    # Easiest way is to do an inner join, which will also nicely fail if a sample doesnt have metadata
+
+    col_names = names(metadata_df)
+    if (omics == 'metaT') {
+        anchor_df = metaT_profile %>%
+                        dplyr::select(-ID) %>%
+                        head(2) %>%
+                        t() %>%
+                        as.data.frame() %>%
+                        tibble::rownames_to_column("sample_alias")
+    } else {
+        anchor_df = metaG_profile %>%
+                        dplyr::select(-ID) %>%
+                        head(2) %>%
+                        t() %>%
+                        as.data.frame() %>%
+                        tibble::rownames_to_column("sample_alias")
+    }
+    metadata_df = dplyr::inner_join(anchor_df, metadata_df) %>%
+                    dplyr::select(any_of(col_names))
 }
 if (is.null(metadata_df)) {
     if (omics == 'metaT') {
@@ -265,26 +295,26 @@ maxN = 500000
 
 # Write GA profile data for metaG
 if (omics == 'metaG') {
-    make_output_files(profile=metaG_profile, type='abundance', label='GA')
+    make_output_files(profile=metaG_profile, metadata=sample_metadata, type='abundance', datatype='GA')
 
     # Get first maxN rows and remove ID
     metaG_profile <- metaG_profile[, first(.SD, maxN)][, ID := NULL]
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=metaG_profile, title='gene abundance', label='GA', color=main_factor, metadata=sample_metadata)
+    prepare_PCA(profile=metaG_profile, title='gene abundance', datatype='GA', color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
 }
 
 # Write GT data for metaT
 if (omics == 'metaT') {
-    make_output_files(profile=metaT_profile, type='transcript', label='GT')
+    make_output_files(profile=metaT_profile, metadata=sample_metadata, type='transcript', datatype='GT')
 
     # Get first maxN rows and remove ID
     metaT_profile <- metaT_profile[, head(.SD, maxN)][, ID := NULL]
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=metaT_profile, title='gene transcript', label='GT', color=main_factor, metadata=sample_metadata)
+    prepare_PCA(profile=metaT_profile, title='gene transcript', datatype='GT', color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
 }
 
 if (omics == 'metaG_metaT') {
@@ -330,7 +360,7 @@ if (omics == 'metaG_metaT') {
 
     # NOTE: By now, profile table is free of zerosum rows and sorted(desc) by rowSum
 
-    make_output_files(profile=gene_expression, type='expression', label='GE')
+    make_output_files(profile=gene_expression, metadata=sample_metadata, type='expression', datatype='GE')
 
     # Prepare data for PCA
 
@@ -344,7 +374,7 @@ if (omics == 'metaG_metaT') {
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=gene_expression, title='gene expression', label='GE', color=main_factor, metadata=sample_metadata)
+    prepare_PCA(profile=gene_expression, title='gene expression', datatype='GE', color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
     rm(gene_expression)
 }
 

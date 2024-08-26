@@ -14,6 +14,7 @@ library(optparse)
 library(qs)
 library(data.table)
 library(this.path)
+library(stringr) # not for strings, but for '%>%'
 
 ##########################  ** Load functions **  ##########################
 
@@ -33,7 +34,9 @@ opt_list <- list(
                 make_option("--funcat-desc", type="character", default=NULL, help="file containing descriptions of functions", metavar="file"),
                 make_option("--genome-weights-metaG", type="character", default=NULL, help="file with metaG profiles", metavar="file"),
                 make_option("--genome-weights-metaT", type="character", default=NULL, help="file with metaT profiles", metavar="file"),
-                make_option("--main-factor", type="character", default=NULL, help="main factor variable to use when plotting data", metavar="string")
+                make_option("--color-factor", type="character", default=NULL, help="factor used for color when plotting data", metavar="string"),
+                make_option("--shape-factor", type="character", default=NULL, help="factor used for shape when plotting data", metavar="string"),
+                make_option("--label-factor", type="character", default="sample_alias", help="factor used to label points when plotting data", metavar="string")
                 )
 opts <- parse_args(OptionParser(option_list=opt_list))
 
@@ -45,7 +48,9 @@ omics <- opts$omics #'metaG_metaT'
 normalization <- opts$normalization
 funcat_name  <- opts[['funcat-name']]
 funcat_desc_file <- opts[['funcat-desc']]
-main_factor <- opts[['main-factor']]
+color_factor <- opts[['color-factor']]
+shape_factor <- opts[['shape-factor']]
+label_factor <- opts[['label-factor']]
 metaG_profile_file <- opts[['genome-weights-metaG']]
 metaT_profile_file <- opts[['genome-weights-metaT']]
 
@@ -202,6 +207,9 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
                      [, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
                     )
           logmsg("  done")
+
+          # Ensure identical column orders before rbind()
+          setcolorder(weights, colnames(counts))
 
           # Prepend with weights to prepare for weighing by MAG abundance
           counts <- rbind(weights, counts)
@@ -376,6 +384,12 @@ if (omics %like% "metaG") {
 
     # metadata
     metadata_df <- res$metadata
+
+    if (normalization == 'MG') {
+        # subset columns in weights
+        intersect_columns    = union(c("MAG"), intersect(colnames(metaG_profile), colnames(metaG_genome_weights)))
+        metaG_genome_weights = metaG_genome_weights[, intersect_columns, with=FALSE]
+    }
 }
 
 # metaT
@@ -411,8 +425,34 @@ if (omics %like% "metaT") {
         ge_fe_df <- data.frame(DB='genes', feature_n=n_common, feature = 'Genes')
     }
 
+    if (normalization == 'MG') {
+        # subset columns in weights
+        intersect_columns    = union(c("MAG"), intersect(colnames(metaT_profile), colnames(metaT_genome_weights)))
+        metaT_genome_weights = metaT_genome_weights[, intersect_columns, with=FALSE]
+    }
+
     rm(metaT_gene_annotation)
 }
+
+########################################################
+# For metaG_metaT, subset profiles for common samples
+########################################################
+
+logmsg("began getting common samples")
+if (omics == 'metaG_metaT') {
+    # Columns shared b/w metaG and metaT. This includes 'gene_id', which is also needed in final table.
+    intersect_columns = intersect(colnames(metaG_profile), colnames(metaT_profile))
+    metaG_profile = metaG_profile[, intersect_columns, with=FALSE]
+    metaT_profile = metaT_profile[, intersect_columns, with=FALSE]
+
+    if (normalization == 'MG') {
+        # Filter weights to get the same columns, but skip 'gene_id'
+        intersect_columns    = union(c("MAG"), intersect_columns[intersect_columns != 'gene_id'])
+        metaG_genome_weights = metaG_genome_weights[, intersect_columns, with=FALSE]
+        metaT_genome_weights = metaT_genome_weights[, intersect_columns, with=FALSE]
+    }
+}
+logmsg("done  getting common samples")
 
 # Delete data
 rm(res)
@@ -420,12 +460,42 @@ rm(res)
 # By now, we will have:
 #   metadata_df
 #   gene_annotation
-#   ge_fe_df
+#   ga_fa_df, gt_ft_df, ge_fe_df
+
+# Reorder metadata by same order in profile file, so that it can be matched properly when ID is removed
+# Easiest way is to do an inner join, which will also nicely fail if a sample doesnt have metadata
+
+logmsg("began reordering metadata rows")
+col_names = names(metadata_df)
+if (omics == 'metaT') {
+    anchor_df = metaT_profile %>%
+                    dplyr::select(-gene_id) %>%
+                    head(2) %>%
+                    t() %>%
+                    as.data.frame() %>%
+                    tibble::rownames_to_column("sample_alias")
+} else {
+    anchor_df = metaG_profile %>%
+                    dplyr::select(-gene_id) %>%
+                    head(2) %>%
+                    t() %>%
+                    as.data.frame() %>%
+                    tibble::rownames_to_column("sample_alias")
+}
+metadata_df = dplyr::inner_join(anchor_df, metadata_df) %>%
+                    dplyr::select(any_of(col_names))
+logmsg("done  reordering metadata rows")
 
 ## metadata for phyloseq
 sample_metadata <- sample_data(metadata_df)
 rownames(sample_metadata) <- sample_metadata[["sample_alias"]]
 
+if (!is.null(metaG_genome_weights)) {
+     metaG_genome_weights = metaG_genome_weights[, Funct := 'REL']
+}
+if (!is.null(metaT_genome_weights)) {
+     metaT_genome_weights = metaT_genome_weights[, Funct := 'REL']
+}
 
 #################################### FUNCTION EXPRESSION  ####################################
 print('#################################### FUNCTION EXPRESSION  ####################################')
@@ -564,7 +634,7 @@ if (nrow(gene_annotation) > 0) {
 
         # Free up memory
         logmsg("Freeing memory")
-        rm(feature_ids, FE_annotations, FE_phyloseq)
+        rm(feature_ids, FE_annotations, FE_physeq)
         gc()
     }
 
@@ -583,7 +653,7 @@ if (nrow(gene_annotation) > 0) {
         metaG_counts <- metaG_counts[, `:=` (Funct = NULL, Description = NULL) ]
 
         # Make PCA
-        prepare_PCA(profile=metaG_counts, title=paste0("function abundance - ", funcat_name), label=paste0('FA.', funcat_name), color=main_factor, metadata=sample_metadata)
+        prepare_PCA(profile=metaG_counts, title=paste0("function abundance - ", funcat_name), datatype=paste0('FA.', funcat_name), color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
         rm(metaG_counts)
     }
 
@@ -597,7 +667,7 @@ if (nrow(gene_annotation) > 0) {
         metaT_counts <- metaT_counts[, `:=` (Funct = NULL, Description = NULL) ]
 
         # Make PCA
-        prepare_PCA(profile=metaT_counts, title=paste0("function transcript - ", funcat_name), label=paste0('FT.', funcat_name), color=main_factor, metadata=sample_metadata)
+        prepare_PCA(profile=metaT_counts, title=paste0("function transcript - ", funcat_name), datatype=paste0('FT.', funcat_name), color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
         rm(metaT_counts)
     }
 
@@ -611,7 +681,7 @@ if (nrow(gene_annotation) > 0) {
         function_expression <- function_expression[, Funct := NULL][, lapply(.SD, function(x) ifelse(is.na(x), 0, x))]
 
         # Make PCA
-        prepare_PCA(profile=function_expression, title=paste0("function expression - ", funcat_name), label=paste0('FE.', funcat_name), color=main_factor, metadata=sample_metadata)
+        prepare_PCA(profile=function_expression, title=paste0("function expression - ", funcat_name), datatype=paste0('FE.', funcat_name), color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
         rm(function_expression)
     }
 
