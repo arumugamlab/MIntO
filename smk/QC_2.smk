@@ -843,6 +843,8 @@ rule plot_sourmash_kmers:
     output:
         barplot="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.clusters.pdf",
         tsv="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.sourmash_clusters.tsv"
+    wildcard_constraints:
+        omics='metaG|metaT'
     params:
         cutoff=config['SOURMASH_cutoff'],
         plot_args=plot_args_str
