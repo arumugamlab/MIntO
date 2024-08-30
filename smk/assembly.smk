@@ -255,14 +255,14 @@ rule merge_runs:
                                         wd = wildcards.wd,
                                         omics = wildcards.omics,
                                         illumina = wildcards.illumina,
-                                        run = get_runs_for_sample(wildcards),
+                                        run = get_runs_for_sample(wildcards.wd, wildcards.omics, wildcards.illumina),
                                         pair = wildcards.pair)
     output:
         combined="{wd}/{omics}/6-corrected/{illumina}/{illumina}.{pair}.fq.gz"
     shadow:
         "minimal"
     params:
-        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no"
+        multiple_runs = lambda wildcards, input: "yes" if len(input.files) > 1 else "no"
     shell:
         """
         if [ "{params.multiple_runs}" == "yes" ]; then

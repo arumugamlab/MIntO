@@ -535,19 +535,27 @@ if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != No
     ruleorder: merge_fastqs_for_composite_samples > qc2_host_filter
     ruleorder: merge_fastqs_for_composite_samples > qc2_filter_rRNA
 
+    # Get the individual reps for the sample
+    # And concat all the files for each rep into one
+    def get_rep_files_for_composite_sample(wildcards):
+
+        files = []
+        reps = [x.strip() for x in config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+')]
+        for x in reps:
+            files.extend(get_qc2_output_files_one_end(wildcards.wd, wildcards.omics, x, wildcards.pair))
+        return(files)
+
+    # Merge files for a given sample from all its reps
+    # Restrict it to only those appearing in MERGE_ILLUMINA_SAMPLES dict in config file
     rule merge_fastqs_for_composite_samples:
         input:
-            fastq=lambda wildcards: expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
-                    wd = wildcards.wd,
-                    omics = wildcards.omics,
-                    location = wildcards.location,
-                    sample = config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+'),
-                    pair = wildcards.pair),
+            fastq=get_rep_files_for_composite_sample
         output:
             fastq="{wd}/{omics}/{location}/{merged_sample}/{merged_sample}.{pair}.fq.gz"
         shadow:
             "minimal"
         wildcard_constraints:
+            merged_sample = '|'.join(merged_illumina_samples),
             location='5-1-sortmerna|4-hostfree'
         shell:
             """
