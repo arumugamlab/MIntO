@@ -1053,7 +1053,7 @@ SAMTOOLS_sort_perthread_memgb: 10
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- '$i'"; done)
+$(for i in {merged_illumina_samples} {ilmn_samples}; do echo "- '$i'"; done)
 
 ###############################
 # COASSEMBLY section:
@@ -1068,7 +1068,7 @@ $(for i in {ilmn_samples}; do echo "- '$i'"; done)
 #
 enable_COASSEMBLY: no
 COASSEMBLY:
-  Full: $(echo {ilmn_samples} | sed 's/ /+/g')
+  'Full': $(echo {ilmn_samples} | sed 's/ /+/g')
 ___EOF___
 
         R --vanilla --silent --no-echo >> {output} <<___EOF___
@@ -1217,7 +1217,7 @@ GTDB_TAXONOMY_VERSION: r220
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- '$i'"; done)
+$(for i in {merged_illumina_samples} {ilmn_samples}; do echo "- '$i'"; done)
 ___EOF___
 
         echo {ilmn_samples} >& {log}
