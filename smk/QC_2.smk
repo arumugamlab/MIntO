@@ -590,7 +590,7 @@ rule metaphlan_tax_profile:
     shadow:
         "minimal"
     params:
-        multiple_runs = lambda wildcards, input: "yes" if len(input.fwd) > 1 else "no"
+        input_files = lambda wildcards, input: ','.join(input.fwd + input.rev)
     resources:
         mem=TAXA_memory
     threads:
@@ -603,19 +603,8 @@ rule metaphlan_tax_profile:
         """
         remote_dir=$(dirname {output.ra})
 
-        # Make named pipes if needed
-        if [ "{params.multiple_runs}" == "yes" ]; then
-            mkfifo {wildcards.sample}.1.fq.gz
-            mkfifo {wildcards.sample}.2.fq.gz
-            cat {input.fwd} > {wildcards.sample}.1.fq.gz &
-            cat {input.rev} > {wildcards.sample}.2.fq.gz &
-            input_files="{wildcards.sample}.1.fq.gz,{wildcards.sample}.2.fq.gz"
-        else
-            input_files="{input.fwd},{input.rev}"
-        fi
-
         time (
-            metaphlan $input_files \
+            metaphlan {params.input_files} \
                     --input_type fastq \
                     -o {wildcards.sample}.metaphlan.{wildcards.version}.tsv \
                     --bowtie2out {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 \
