@@ -53,6 +53,20 @@ if 'ILLUMINA' in config:
 else:
     print('ERROR in', config_path, ': ILLUMINA list of samples is empty. Please, complete', config_path)
 
+##############################################
+# Register composite samples
+##############################################
+
+# Make list of illumina coassemblies, if MERGE_ILLUMINA_SAMPLES in config
+
+merged_illumina_samples = dict()
+if 'MERGE_ILLUMINA_SAMPLES' in config:
+    if config['MERGE_ILLUMINA_SAMPLES'] is None:
+        print('WARNING in ', config_path, ': MERGE_ILLUMINA_SAMPLES list of samples is empty. Skipping sample-merging.')
+    else:
+        merged_illumina_samples = config['MERGE_ILLUMINA_SAMPLES']
+        #print(merged_illumina_samples)
+
 # Figure out SPAdes version
 spades_script = 'spades.py' # from conda environment
 if 'METASPADES_custom_build' in config:
@@ -249,14 +263,29 @@ rule correct_spadeshammer:
         ) >& {log}
         """
 
+def get_corrected_runs_for_sample(wildcards):
+    if wildcards.illumina in merged_illumina_samples:
+        files = list()
+        for r in merged_illumina_samples[wildcards.illumina].split('+'):
+            rep = r.strip()
+            files += expand("{wd}/{omics}/5-corrected-runs/{rep}/{run}.{pair}.fq.gz",
+                                    wd = wildcards.wd,
+                                    omics = wildcards.omics,
+                                    rep = rep,
+                                    run = get_runs_for_sample(wildcards.wd, wildcards.omics, rep),
+                                    pair = wildcards.pair)
+    else:
+        files = expand("{wd}/{omics}/5-corrected-runs/{illumina}/{run}.{pair}.fq.gz",
+                                    wd = wildcards.wd,
+                                    omics = wildcards.omics,
+                                    illumina = wildcards.illumina,
+                                    run = get_runs_for_sample(wildcards.wd, wildcards.omics, wildcards.illumina),
+                                    pair = wildcards.pair)
+    return(files)
+
 rule merge_runs:
     input:
-        files=lambda wildcards: expand("{wd}/{omics}/5-corrected-runs/{illumina}/{run}.{pair}.fq.gz",
-                                        wd = wildcards.wd,
-                                        omics = wildcards.omics,
-                                        illumina = wildcards.illumina,
-                                        run = get_runs_for_sample(wildcards.wd, wildcards.omics, wildcards.illumina),
-                                        pair = wildcards.pair)
+        files=get_corrected_runs_for_sample
     output:
         combined="{wd}/{omics}/6-corrected/{illumina}/{illumina}.{pair}.fq.gz"
     shadow:
@@ -496,6 +525,8 @@ rule rename_megahit_contigs:
         "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa"
     output:
         "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta"
+    wildcard_constraints:
+        assembly_preset = '|'.join(config['MEGAHIT_presets'])
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml"
     shell:
