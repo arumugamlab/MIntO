@@ -12,24 +12,15 @@ def get_qc2_output_location(omics):
 ########################################
 # Get a sorted list of runs for a sample
 ########################################
-def get_runs_for_sample(wildcards):
+def get_runs_for_sample(wd, omics, sample):
+
+    # If it is a merged_illumina_sample, then it will not exist until the last step.
+    # Just return itself so that it is created after last step is done.
+    if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] is not None:
+        if sample in config['MERGE_ILLUMINA_SAMPLES']:
+            return(sample)
 
     # Sequentially look for runs from the last step to first
-
-    sample = None
-
-    # In assembly, the wildcard value for sample is 'illumina'
-    # In QC_2, it is 'sample'
-    # Resolve this first
-    if hasattr(wildcards, 'illumina'): # In assembly.smk
-        sample = wildcards.illumina
-    elif hasattr(wildcards, 'sample'): # In QC_2.smk
-        sample = wildcards.sample
-        # If it is composite sample, just return itself
-        if sample in merged_illumina_samples:
-            return(sample)
-    else:
-        raise Exception(f"Wildcard 'illumina' or 'sample' should be defined for me to resolve runs per sample")
 
     runs = []
 
@@ -37,7 +28,7 @@ def get_runs_for_sample(wildcards):
     # If not, look at QC2 outputs
     # This is to handle special cases where we delete qc2 output after error-correction to save space
     for loc in ['5-corrected-runs', '5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
-        sample_dir = f"{wildcards.wd}/{wildcards.omics}/{loc}/{sample}"
+        sample_dir = f"{wd}/{omics}/{loc}/{sample}"
         if path.exists(sample_dir):
             runs = [ re.sub("\.1\.fq\.gz$", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(".1.fq.gz") ]
             if len(runs) > 0:
@@ -51,27 +42,26 @@ def get_runs_for_sample(wildcards):
     return(sorted(runs))
 
 ########################################
+# Get list of one-end reads for this sample
+########################################
+def get_qc2_output_files_one_end(wd, omics, sample, pair):
+    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
+                wd = wd,
+                omics = omics,
+                location = get_qc2_output_location(omics),
+                sample = sample,
+                run = get_runs_for_sample(wd, omics, sample),
+                pair = pair)
+    return(files)
+
+########################################
 # Get list of fwd reads for this sample
 ########################################
 def get_qc2_output_files_fwd_only(wildcards):
-    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = get_qc2_output_location(wildcards.omics),
-                sample = wildcards.sample,
-                run = get_runs_for_sample(wildcards),
-                pair = '1')
-    return(files)
+    return(get_qc2_output_files_one_end(wildcards.wd, wildcards.omics, wildcards.sample, '1'))
 
 ########################################
 # Get list of rev reads for this sample
 ########################################
 def get_qc2_output_files_rev_only(wildcards):
-    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = get_qc2_output_location(wildcards.omics),
-                sample = wildcards.sample,
-                run = get_runs_for_sample(wildcards),
-                pair = '2')
-    return(files)
+    return(get_qc2_output_files_one_end(wildcards.wd, wildcards.omics, wildcards.sample, '2'))

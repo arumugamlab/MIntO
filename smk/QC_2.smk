@@ -37,7 +37,7 @@ localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
 
 taxonomies_versioned = list()
 ilmn_samples = list()
-merged_illumina_samples = list()
+merged_illumina_samples = dict()
 
 ##############################################
 # Register composite samples
@@ -48,9 +48,8 @@ if 'MERGE_ILLUMINA_SAMPLES' in config:
     if config['MERGE_ILLUMINA_SAMPLES'] is None:
         print('WARNING in ', config_path, ': MERGE_ILLUMINA_SAMPLES list of samples is empty. Skipping sample-merging.')
     else:
-        for m in config['MERGE_ILLUMINA_SAMPLES']:
-            #print(" "+m)
-            merged_illumina_samples.append(m)
+        merged_illumina_samples = config['MERGE_ILLUMINA_SAMPLES']
+        #print(merged_illumina_samples)
 
 ##############################################
 # Get sample list
@@ -61,7 +60,7 @@ if 'ILLUMINA' in config:
     #print("Samples:")
     for ilmn in config["ILLUMINA"]:
         # If it's composite sample, then don't need to see them until it gets merged later
-        if ilmn in merged_illumina_samples:
+        if ilmn in merged_illumina_samples.keys():
             continue
         file_found = False
         for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
@@ -73,6 +72,16 @@ if 'ILLUMINA' in config:
             ilmn_samples.append(ilmn)
         else:
             raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist.")
+
+##############################################
+# Make list of clean illumina samples after merging reps
+##############################################
+
+ilmn_reps_to_delete = [j.strip() for m in merged_illumina_samples.values() for j in m.split('+')]
+nonredundant_ilmn_samples = list(merged_illumina_samples.keys())
+for i in ilmn_samples:
+    if i not in ilmn_reps_to_delete:
+        nonredundant_ilmn_samples.append(i)
 
 ##############################################
 # Host genome filtering
@@ -306,7 +315,7 @@ if 'MERGE_ILLUMINA_SAMPLES' in config:
                         wd = working_dir,
                         omics = omics,
                         location = get_qc2_output_location(omics),
-                        sample = merged_illumina_samples,
+                        sample = merged_illumina_samples.keys(),
                         pair = ['1', '2'])
         return(result)
 
@@ -535,19 +544,27 @@ if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != No
     ruleorder: merge_fastqs_for_composite_samples > qc2_host_filter
     ruleorder: merge_fastqs_for_composite_samples > qc2_filter_rRNA
 
+    # Get the individual reps for the sample
+    # And concat all the files for each rep into one
+    def get_rep_files_for_composite_sample(wildcards):
+
+        files = []
+        reps = [x.strip() for x in config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+')]
+        for x in reps:
+            files.extend(get_qc2_output_files_one_end(wildcards.wd, wildcards.omics, x, wildcards.pair))
+        return(files)
+
+    # Merge files for a given sample from all its reps
+    # Restrict it to only those appearing in MERGE_ILLUMINA_SAMPLES dict in config file
     rule merge_fastqs_for_composite_samples:
         input:
-            fastq=lambda wildcards: expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
-                    wd = wildcards.wd,
-                    omics = wildcards.omics,
-                    location = wildcards.location,
-                    sample = config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+'),
-                    pair = wildcards.pair),
+            fastq=get_rep_files_for_composite_sample
         output:
             fastq="{wd}/{omics}/{location}/{merged_sample}/{merged_sample}.{pair}.fq.gz"
         shadow:
             "minimal"
         wildcard_constraints:
+            merged_sample = '|'.join(merged_illumina_samples.keys()),
             location='5-1-sortmerna|4-hostfree'
         shell:
             """
@@ -582,7 +599,7 @@ rule metaphlan_tax_profile:
     shadow:
         "minimal"
     params:
-        multiple_runs = lambda wildcards, input: "yes" if len(input.fwd) > 1 else "no"
+        input_files = lambda wildcards, input: ','.join(input.fwd + input.rev)
     resources:
         mem=TAXA_memory
     threads:
@@ -595,19 +612,8 @@ rule metaphlan_tax_profile:
         """
         remote_dir=$(dirname {output.ra})
 
-        # Make named pipes if needed
-        if [ "{params.multiple_runs}" == "yes" ]; then
-            mkfifo {wildcards.sample}.1.fq.gz
-            mkfifo {wildcards.sample}.2.fq.gz
-            cat {input.fwd} > {wildcards.sample}.1.fq.gz &
-            cat {input.rev} > {wildcards.sample}.2.fq.gz &
-            input_files="{wildcards.sample}.1.fq.gz,{wildcards.sample}.2.fq.gz"
-        else
-            input_files="{input.fwd},{input.rev}"
-        fi
-
         time (
-            metaphlan $input_files \
+            metaphlan {params.input_files} \
                     --input_type fastq \
                     -o {wildcards.sample}.metaphlan.{wildcards.version}.tsv \
                     --bowtie2out {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 \
@@ -622,7 +628,7 @@ rule metaphlan_tax_profile:
 
 rule metaphlan_combine_profiles:
     input:
-        ra=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = ilmn_samples + merged_illumina_samples),
+        ra=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = nonredundant_ilmn_samples),
     output:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table_species.txt",
@@ -698,7 +704,7 @@ rule motus_calc_motu:
 
 rule motus_combine_profiles:
     input:
-        profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = ilmn_samples + merged_illumina_samples),
+        profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = nonredundant_ilmn_samples),
     output:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table_species.txt",
@@ -808,7 +814,7 @@ rule sourmash_compare:
         expand("{wd}/{omics}/6-1-smash/{sample}.sig.gz",
                 wd = working_dir,
                 omics = omics,
-                sample = ilmn_samples)
+                sample = nonredundant_ilmn_samples)
     output:
         csv="{wd}/{omics}/6-1-smash/{omics}.sourmash_cosine_similarity.csv",
         npy="{wd}/{omics}/6-1-smash/{omics}.sourmash_cosine_similarity.npy"
@@ -843,6 +849,8 @@ rule plot_sourmash_kmers:
     output:
         barplot="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.clusters.pdf",
         tsv="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.sourmash_clusters.tsv"
+    wildcard_constraints:
+        omics='metaG|metaT'
     params:
         cutoff=config['SOURMASH_cutoff'],
         plot_args=plot_args_str
@@ -885,9 +893,14 @@ rule qc2_filter_config_yml_assembly:
                                     wd = wildcards.wd,
                                     omics = wildcards.omics,
                                     taxonomy = taxonomies_versioned),
+        metadata=metadata,
         table="{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv"
     output:
         config_file="{wd}/{omics}/assembly.yaml"
+    params:
+        sample_list = nonredundant_ilmn_samples,
+        sample_string = ', '.join(["'{}'".format(i) for i in nonredundant_ilmn_samples]),
+        merge_illumina_samples_directive = '\n'.join([" {} : {}".format(i, merged_illumina_samples[i]) for i in merged_illumina_samples.keys()])
     resources:
         mem=2
     threads: 2
@@ -905,7 +918,7 @@ PROJECT: {project_id}
 working_dir: {wildcards.wd}
 omics: {wildcards.omics}
 minto_dir: {minto_dir}
-METADATA: {metadata}
+METADATA: {input.metadata}
 
 ######################
 # Analysis settings
@@ -1034,6 +1047,33 @@ SAMTOOLS_sort_perthread_memgb: 10
 #
 #NANOPORE:
 
+######################
+# Optionally, do you want to merge replicates or make pseudo samples
+# E.g:
+# MERGE_ILLUMINA_SAMPLES:
+#  sample1: rep1a+rep1b+rep1c
+#  sample2: rep2a+rep2b+rep2c
+#
+# The above directive will make 2 new composite or pseudo samples at the end of QC_2.
+# Imagine you had triplicates for sample1 named as rep1a, rep1b and rep1c.
+# And likewise for sample2. The directive above will:
+#     - combine 3 samples (rep1a, rep1b and rep1c)into a new sample called 'sample1'.
+#     - combine 3 samples (rep2a, rep2b and rep2c)into a new sample called 'sample2'.
+# For all subsequent steps, namely:
+#     - profiling (done within this snakemake script),
+#     - assembly (done by assembly.smk),
+#     - binning (done by binning_preparation.smk and mags_generation.smk),
+# you can just use 'sample2' instead of the replicates rep2a, rep2b and rep2c in the yaml files.
+# Please note that METADATA file must have an entry for 'sample2' as well,
+# otherwise QC_2 step will fail.
+# Having extra entries in METADATA file does not affect you in any way.
+# Therefore, it is safe to have metadata recorded for
+# rep2a, rep2b, rep2c, sample2 from the beginning.
+######################
+
+MERGE_ILLUMINA_SAMPLES:
+{params.merge_illumina_samples_directive}
+
 # ILLUMINA section:
 # -----------------
 # List of illumina samples that will be assembled individually using MetaSPAdes.
@@ -1043,7 +1083,7 @@ SAMTOOLS_sort_perthread_memgb: 10
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- '$i'"; done)
+$(for i in {params.sample_list}; do echo "- '$i'"; done)
 
 ###############################
 # COASSEMBLY section:
@@ -1058,14 +1098,15 @@ $(for i in {ilmn_samples}; do echo "- '$i'"; done)
 #
 enable_COASSEMBLY: no
 COASSEMBLY:
-  Full: $(echo {ilmn_samples} | sed 's/ /+/g')
+  'Full': $(echo {params.sample_list} | sed 's/ /+/g')
 ___EOF___
 
         R --vanilla --silent --no-echo >> {output} <<___EOF___
 library(dplyr)
-metadata <- read.table('{metadata}', sep="\\t", header=TRUE) %>%
+metadata <- read.table('{input.metadata}', sep="\\t", header=TRUE) %>%
     as.data.frame() %>%
     select(sample, {coas_factor}) %>%
+    filter(sample %in% c({params.sample_string})) %>%
     group_by({coas_factor}) %>%
     filter(n() > 1) %>%
     mutate(co_asm = paste(sample, collapse = "+")) %>%
@@ -1091,7 +1132,7 @@ write.table(metadata, file="", col.names=FALSE, row.names=FALSE, quote=FALSE, se
 ___EOF___
 fi
 
-        echo {ilmn_samples} >& {log}
+        echo {params.sample_list} >& {log}
         """
 
 ###############################################################################################
@@ -1100,12 +1141,15 @@ fi
 
 rule qc2_filter_config_yml_mapping:
     input:
-        lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
+        tsv = lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
                                     wd = wildcards.wd,
                                     omics = wildcards.omics,
-                                    taxonomy = taxonomies_versioned)
+                                    taxonomy = taxonomies_versioned),
+        metadata = metadata
     output:
         config_file="{wd}/{omics}/mapping.yaml"
+    params:
+        sample_list = nonredundant_ilmn_samples
     resources:
         mem=2
     threads: 2
@@ -1121,7 +1165,7 @@ PROJECT: {project_id}
 working_dir: {wildcards.wd}
 omics: {wildcards.omics}
 minto_dir: {minto_dir}
-METADATA: {metadata}
+METADATA: {input.metadata}
 
 ######################
 # Analysis settings
@@ -1207,8 +1251,8 @@ GTDB_TAXONOMY_VERSION: r220
 # - I2
 #
 ILLUMINA:
-$(for i in {ilmn_samples}; do echo "- '$i'"; done)
+$(for i in {params.sample_list}; do echo "- '$i'"; done)
 ___EOF___
 
-        echo {ilmn_samples} >& {log}
+        echo {params.sample_list} >& {log}
         """
