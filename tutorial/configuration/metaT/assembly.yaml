@@ -137,6 +137,33 @@ SAMTOOLS_sort_perthread_memgb: 10
 #
 #NANOPORE:
 
+######################
+# Optionally, do you want to merge replicates or make pseudo samples
+# E.g:
+# MERGE_ILLUMINA_SAMPLES:
+#  sample1: rep1a+rep1b+rep1c
+#  sample2: rep2a+rep2b+rep2c
+#
+# The above directive will make 2 new composite or pseudo samples at the end of QC_2.
+# Imagine you had triplicates for sample1 named as rep1a, rep1b and rep1c.
+# And likewise for sample2. The directive above will:
+#     - combine 3 samples (rep1a, rep1b and rep1c)into a new sample called 'sample1'.
+#     - combine 3 samples (rep2a, rep2b and rep2c)into a new sample called 'sample2'.
+# For all subsequent steps, namely:
+#     - profiling (done within this snakemake script),
+#     - assembly (done by assembly.smk),
+#     - binning (done by binning_preparation.smk and mags_generation.smk),
+# you can just use 'sample2' instead of the replicates rep2a, rep2b and rep2c in the yaml files.
+# Please note that METADATA file must have an entry for 'sample2' as well,
+# otherwise QC_2 step will fail.
+# Having extra entries in METADATA file does not affect you in any way.
+# Therefore, it is safe to have metadata recorded for
+# rep2a, rep2b, rep2c, sample2 from the beginning.
+######################
+
+MERGE_ILLUMINA_SAMPLES:
+
+
 # ILLUMINA section:
 # -----------------
 # List of illumina samples that will be assembled individually using MetaSPAdes.
@@ -170,6 +197,6 @@ ILLUMINA:
 #
 enable_COASSEMBLY: yes
 COASSEMBLY:
-  Full: CD136+CD138+CD140+CD142+CD146+CD237+CD238+CD240+CD242+CD244
+  'Full': CD136+CD138+CD140+CD142+CD146+CD237+CD238+CD240+CD242+CD244
   'CD1': CD136+CD138+CD140+CD142+CD146
   'CD2': CD237+CD238+CD240+CD242+CD244
