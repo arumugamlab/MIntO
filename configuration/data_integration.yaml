@@ -12,6 +12,8 @@ METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 ######################
 
 MAIN_factor: participant_ID2
+PLOT_factor2: 
+PLOT_time: week_n
 
 ######################
 # Program settings
