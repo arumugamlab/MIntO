@@ -12,6 +12,8 @@ METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 ######################
 
 MAIN_factor: participant_ID2
+PLOT_factor2: 
+PLOT_time: week_n
 
 ######################
 # Annotation settings
@@ -24,7 +26,7 @@ MINTO_MODE: refgenome
 # Which omics for MAGs?
 MAG_omics: metaG
 
-# path to gene catalog fasta file
+# path to gene catalog fasta file or refgenome directory
 PATH_reference: /mypath/genomes
 
 # file name of gene catalog fasta file (MIntO will generate bwa index with same name)
@@ -69,7 +71,7 @@ abundance_normalization: TPM,MG
 ##########################
 #
 RUN_TAXONOMY: yes
-TAXONOMY_NAME: phylophlan,gtdb  # Currently, phylophlan or gtdb or combination
+TAXONOMY_NAME: phylophlan  # Currently, phylophlan or gtdb or combination
 TAXONOMY_CPUS: 8
 TAXONOMY_memory: 5
 
