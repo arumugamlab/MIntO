@@ -93,9 +93,8 @@ EXCLUDE_ASSEMBLY_TYPES:
 # Contig-depth: bwa-mem2 settings
 # Used when mapping reads back to contigs
 #
+# BWA Alignment
 BWA_threads: 10
-BWA_memory: 25
-BWA_index_memory: 50
 
 # Contig-depth: samtools sort settings
 # Used when sorting bam files

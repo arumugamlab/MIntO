@@ -47,7 +47,6 @@ ANNOTATION:
 
 # BWA Alignment
 BWA_threads: 10
-BWA_memory: 45
 
 # Alignment filtering
 # -------------------
