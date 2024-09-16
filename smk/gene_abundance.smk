@@ -122,7 +122,7 @@ if config['NAME_reference'] is None and MINTO_MODE == 'catalog':
     raise Exception("ERROR in {}: 'NAME_reference' variable must be defined".format(config_path))
 
 mag_omics = 'metaG'
-gene_catalog_db="None"
+gene_catalog_path="None"
 gene_catalog_name="None"
 if MINTO_MODE == 'MAG':
     if 'MAG_omics' in config and config['MAG_omics'] != None:
@@ -141,7 +141,7 @@ else:
         elif MINTO_MODE == 'catalog':
             if path.exists(config['PATH_reference']+'/'+config['NAME_reference']) is True:
                 print('NOTE: MIntO is using "'+ config['PATH_reference']+'/'+config['NAME_reference']+'" as PATH_reference and NAME_reference variables.')
-                gene_catalog_db=config["PATH_reference"]
+                gene_catalog_path=config["PATH_reference"]
                 gene_catalog_name=config["NAME_reference"]
             else:
                 print('ERROR in ', config_path, ': NAME_reference variable does not exit. Please, complete ', config_path)
@@ -150,11 +150,6 @@ if config['BWA_threads'] is None:
     print('ERROR in ', config_path, ': BWA_threads variable is empty. Please, complete ', config_path)
 elif type(config['BWA_threads']) != int:
     print('ERROR in ', config_path, ': BWA_threads variable is not an integer. Please, complete ', config_path)
-
-if config['BWA_memory'] is None:
-    print('ERROR in ', config_path, ': BWA_memory variable is empty. Please, complete ', config_path)
-elif type(config['BWA_memory']) != int:
-    print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)
 
 if 'MG' in normalization_modes and MINTO_MODE == 'catalog':
     raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
@@ -197,6 +192,17 @@ if run_taxonomy == "yes":
 GENE_DB_TYPE = MINTO_MODE + '-genes'
 
 bwaindex_db="DB/{subdir}/BWA_index/{analysis_name}".format(subdir=MINTO_MODE, analysis_name=MINTO_MODE)
+
+# Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
+
+CLUSTER_NODES            = None
+CLUSTER_LOCAL_DIR        = None
+CLUSTER_WORKLOAD_MANAGER = None
+include: minto_dir + '/site/cluster_def.py'
+
+# Cluster-aware bwa-index rules
+
+include: 'include/bwa_index_wrapper.smk'
 
 ######
 # Make a lookup table for sample --> sample_alias using metadata file
@@ -320,7 +326,7 @@ def get_rev_files_only(wildcards):
 ###############################################################################################
 
 #########################
-# Generate bwa index
+# Generate combined genome
 #########################
 
 # Get a sorted list of genomes
@@ -363,43 +369,48 @@ rule make_genome_def:
         cat {input} | grep '^>' | sed -e 's/^>\([^_]\+\)_\(.*\)/\\1\\t\\1_\\2/' > {output}
         """
 
-# Memory is based on number of MAGs - 50 MB per genome; increase by 50 MB each new attempt.
-rule genome_bwaindex:
-    input:
-        fna=get_genome_fna,
-        fasta_merge=rules.make_merged_genome_fna.output.fasta_merge
-    output:
-        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.0123",
-        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.amb",
-        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.ann",
-        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.bwt.2bit.64",
-        "{wd}/DB/{minto_mode}/BWA_index/{minto_mode}.pac",
-    shadow:
-        "minimal"
-    log:
-        "{wd}/logs/DB/{minto_mode}/{minto_mode}_bwaindex.log"
-    threads: 2
-    resources:
-        mem = lambda wildcards, input, attempt: 0.05*len(input.fna)*attempt
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
-    shell:
-        """
-        time (
-                bwa-mem2 index {input.fasta_merge} -p {wildcards.minto_mode}
-                ls {wildcards.minto_mode}.*
-                rsync -a {wildcards.minto_mode}.* $(dirname {output[0]})/
-            ) >& {log}
-        """
+################################################################################################
+# Get BWA index for the filtered contigs
+################################################################################################
+
+# If CLUSTER_NODES is defined, then return the file symlink'ed to local drives.
+# Otherwise, return the original index files in project work_dir.
+def get_genome_bwa_index(wildcards):
+
+    # Where are the index files?
+    if CLUSTER_NODES != None:
+        index_location = 'BWA_index_local'
+    else:
+        index_location = 'BWA_index'
+
+    # Get all the index files!
+    files = expand("{wd}/DB/{minto_mode}/{location}/{minto_mode}.fna.{ext}",
+            wd         = wildcards.wd,
+            minto_mode = wildcards.minto_mode,
+            location   = index_location,
+            ext        = ['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac'])
+
+    # Return them
+    return(files)
 
 #########################
-# Map reads using BWA2
-# Mapping and computation of read counts using bedtools multicov are done in the same rule
+# Map reads using BWA2, profile using msamtools, sort bam file, and create gene-level BED file.
+# Mapping and computation of read counts using bedtools multicov are done in the same rule.
+# Mapping and sorting are in separate processes, so they don't need to share memory.
+# Memory estimates:
+# 1. bwa-mem2 mem
+#   BWA mem memory is estimated as 3.1 bytes per base in database (regression: mem = 5.556e+09 + 3.011*input).
+# 2. samtools sort
+#   Sorting uses a hard-coded 3 threads, so we divide the total memory by 3 and send it to 'samtools sort'.
+#   But we recommend at least 5GB per thread, even if the database is smaller.
+#   That's where the 'mem = max(3*5, x)' comes from.
+#   And, for whatever reason, 'samtools sort' uses ~10% more memory than what you allocated, so we adjust for this behavior.
+#   That's where the 0.9 in 'sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))' comes from.
 #########################
 
 rule genome_mapping_profiling:
     input:
-        bwaindex=rules.genome_bwaindex.output,
+        bwaindex=get_genome_bwa_index,
         genome_def=rules.make_genome_def.output.genome_def,
         fwd=get_fwd_files_only,
         rev=get_rev_files_only,
@@ -416,11 +427,10 @@ rule genome_mapping_profiling:
     shadow:
         "minimal"
     params:
-        sample_alias=lambda wildcards: sample2alias[wildcards.sample],
-        length=config["msamtools_filter_length"],
-        sort_threads=lambda wildcards, threads, resources: int(1+threads/4),
-        sort_memory=lambda wildcards, threads, resources: int(resources.mem/int(1+threads/4)),
-        mapped_reads_threshold=config["MIN_mapped_reads"],
+        length = config["msamtools_filter_length"],
+        mapped_reads_threshold = config["MIN_mapped_reads"],
+        sort_threads = 3,
+        sample_alias = lambda wildcards: sample2alias[wildcards.sample],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}.map_profile.log"
@@ -430,7 +440,7 @@ rule genome_mapping_profiling:
     threads:
         config["BWA_threads"]
     resources:
-        mem=config["BWA_memory"]
+        mem = lambda wildcards, input, attempt: max(3*5, 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9)) + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl + parallel
     shell:
@@ -446,8 +456,13 @@ rule genome_mapping_profiling:
             input_files="{input.fwd} {input.rev}"
         fi
 
+        # Get index file name
         bwaindex_prefix={input.bwaindex[0]}
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
+
+        # Estimate samtools sort memory
+        sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))
+        echo "Using $sort_memory GB memory"
 
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                     msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
@@ -455,7 +470,7 @@ rule genome_mapping_profiling:
             #echo $total_reads
 
             # Run multiple msamtools modes + samtools sort in parallel using GNU parallel.
-            # We need 4 threads for msamtools and 'params.sort_threads' threads for samtools sort.
+            # We need 4 threads for msamtools and '$sort_threads' threads for samtools sort.
             # We cap it by 'threads' limit to parallel.
             common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
             parallel --jobs {threads} <<__EOM__
@@ -463,7 +478,7 @@ msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=a
 msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
 msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
 msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=prop --unit=rel           --genome {input.genome_def}
-samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m {params.sort_memory}G --output-fmt=BAM
+samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m ${{sort_memory}}G --output-fmt=BAM
 __EOM__
 
             # Index sorted.bam file, while also exporting it
@@ -540,53 +555,39 @@ rule gene_abund_compute:
 ###############################################################################################
 
 #########################
-# Generate bwa index
+# Get bwa index for catalog
 #########################
 
-# Memory is expected to be high, since gene catalogs are large.
-# Assume the equivalent of 1000 genomes to begin with.
-# It is roughly 50 MB per bacterial genome.
-# So, start at 50 GB and increase by 50 GB each new attempt.
+# If CLUSTER_NODES is defined, then return the file symlink'ed to local drives.
+# Otherwise, return the original index files in project work_dir.
+def get_catalog_bwa_index(wildcards):
 
-rule gene_catalog_bwaindex:
-    input:
-        genes="{gene_catalog_path}/{gene_catalog_name}"
-    output:
-        "{gene_catalog_path}/BWA_index/{gene_catalog_name}.0123",
-        "{gene_catalog_path}/BWA_index/{gene_catalog_name}.amb",
-        "{gene_catalog_path}/BWA_index/{gene_catalog_name}.ann",
-        "{gene_catalog_path}/BWA_index/{gene_catalog_name}.bwt.2bit.64",
-        "{gene_catalog_path}/BWA_index/{gene_catalog_name}.pac"
-    shadow:
-        "minimal"
-    log:
-        genes="{gene_catalog_path}/{gene_catalog_name}.bwaindex.log"
-    threads: 2
-    resources:
-        mem = lambda wildcards, attempt: attempt*50
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
-    shell:
-        """
-        time (
-            bwa-mem2 index {wildcards.gene_catalog_path}/{wildcards.gene_catalog_name} -p {wildcards.gene_catalog_name}
-            ls {wildcards.gene_catalog_name}.*
-            rsync -a {wildcards.gene_catalog_name}.* $(dirname {output[0]})/
-        ) &> {log}
-        """
+    # Where are the index files?
+    if CLUSTER_NODES != None:
+        index_location = 'BWA_index_local'
+    else:
+        index_location = 'BWA_index'
+
+    # Get all the index files!
+    files = expand("{path}/{location}/{name}.{ext}",
+            path       = gene_catalog_path,
+            name       = gene_catalog_name,
+            location   = index_location,
+            ext        = ['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac'])
+
+    # Return them
+    return(files)
 
 #########################
 # Map reads using BWA2
 # Mapping, computation of read counts and TPM normalization is done in the same rule
 # TPM normalization: sequence depth and genes’ length
+# BWA mem memory is estimated as 3.1 bytes per base in database (regression: mem = 5.556e+09 + 3.011*input)
 #########################
 
 rule gene_catalog_mapping_profiling:
     input:
-        bwaindex=expand("{gene_catalog_path}/BWA_index/{gene_catalog_name}.{ext}",
-                gene_catalog_path=gene_catalog_db,
-                gene_catalog_name=gene_catalog_name,
-                ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac']),
+        bwaindex=get_catalog_bwa_index,
         fwd=get_fwd_files_only,
         rev=get_rev_files_only,
     output:
@@ -608,7 +609,7 @@ rule gene_catalog_mapping_profiling:
     threads:
         config["BWA_threads"]
     resources:
-        mem=config["BWA_memory"]
+        mem = lambda wildcards, input, attempt: 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9) + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"] #BWA + samtools
     shell:
@@ -853,6 +854,7 @@ def get_gene_abund_normalization_input(wildcards):
                     identity = wildcards.identity)
             }
 
+# Memory requirement: estimated as 0.016 bytes per byte of input bed file
 rule gene_abund_normalization:
     input:
         unpack(get_gene_abund_normalization_input)
@@ -867,7 +869,7 @@ rule gene_abund_normalization:
         minto_mode='MAG|refgenome'
     threads: 4
     resources:
-        mem=config["BWA_memory"]
+        mem = lambda wildcards, input, attempt: 4 + 0.016*os.path.getsize(input.absolute_counts)/1e9 + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:

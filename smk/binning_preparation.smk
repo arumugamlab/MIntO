@@ -154,16 +154,6 @@ if config['BWA_threads'] is None:
 elif type(config['BWA_threads']) != int:
     print('ERROR in ', config_path, ': BWA_threads variable is not an integer. Please, complete ', config_path)
 
-if config['BWA_memory'] is None:
-    print('ERROR in ', config_path, ': BWA_memory variable is empty. Please, complete ', config_path)
-elif type(config['BWA_memory']) != int:
-    print('ERROR in ', config_path, ': BWA_memory variable is not an integer. Please, complete ', config_path)
-
-if config['BWA_index_memory'] is None:
-    print('ERROR in ', config_path, ': BWA_index_memory variable is empty. Please, complete ', config_path)
-elif type(config['BWA_index_memory']) != int:
-    print('ERROR in ', config_path, ': BWA_index_memory variable is not an integer. Please, complete ', config_path)
-
 if config['SAMTOOLS_sort_threads'] is None:
     print('ERROR in ', config_path, ': SAMTOOLS_sort_threads variable is empty. Please, complete ', config_path)
 elif type(config['SAMTOOLS_sort_threads']) != int:
@@ -266,6 +256,17 @@ if 'EXCLUDE_ASSEMBLY_TYPES' in config:
         for item in config['EXCLUDE_ASSEMBLY_TYPES']:
             if item in SCAFFOLDS_type:
                 SCAFFOLDS_type.remove(item)
+
+# Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
+
+CLUSTER_NODES            = None
+CLUSTER_LOCAL_DIR        = None
+CLUSTER_WORKLOAD_MANAGER = None
+include: minto_dir + '/site/cluster_def.py'
+
+# Cluster-aware bwa-index rules
+
+include: 'include/bwa_index_wrapper.smk'
 
 # Define all the outputs needed by target 'all'
 
@@ -372,44 +373,42 @@ rule filter_contigs_illumina_coas:
 ################################################################################################
 # Create BWA index for the filtered contigs
 ################################################################################################
-rule BWA_index_contigs:
-    input:
-        scaffolds="{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta"
-    output:
-        "{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.0123",
-        "{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.amb",
-        "{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.ann",
-        "{wd}/{omics}/6-mapping/BWA_index/scaffolds_{scaf_type}/batch{batch}.{min_length}.fasta.bwt.2bit.64",
-    shadow:
-        "minimal"
-    log:
-        "{wd}/logs/{omics}/6-mapping/scaffolds_{scaf_type}/batch{batch}.{min_length}.BWA_index.log"
-    resources:
-        mem = lambda wildcards, attempt: config['BWA_index_memory'] + 40*(attempt-1)
-    threads: 4
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
-    shell:
-        """
-        outdir=$(dirname {output[0]})
-        mkdir -p $outdir
-        prefix=$(basename {input})
-        time (
-            bwa-mem2 index {input.scaffolds} -p $prefix
-            rsync -a $prefix.* $outdir/
-        ) >& {log}
-        """
+
+# If CLUSTER_NODES is defined, then return the file symlink'ed to local drives.
+# Otherwise, return the original index files in project work_dir.
+def get_contig_bwa_index(wildcards):
+
+    # Where are the index files?
+    if CLUSTER_NODES != None:
+        index_location = 'BWA_index_local'
+    else:
+        index_location = 'BWA_index'
+
+    # Get all the index files!
+    files = expand("{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}/{location}/batch{batch}.{min_length}.fasta.{ext}",
+            wd         = wildcards.wd,
+            omics      = wildcards.omics,
+            scaf_type  = wildcards.scaf_type,
+            location   = index_location,
+            batch      = wildcards.batch,
+            min_length = wildcards.min_length,
+            ext        = ['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac'])
+
+    # Return them
+    return(files)
 
 # Maps reads to contig-set using bwa2
 # Baseline memory usage is:
-#   Main: BWA_memory 25GB
+#   BWA : 3.1 bytes per base in DNA database (regression: mem = 5.556e+09 + 3.011*input)
 #   Sort: using config values: SAMTOOLS_sort_threads and SAMTOOLS_sort_perthread_memgb;
+#   Total = BWA + Sort
 #   E.g. 25GB for BWA, 2 sort threads and 10GB per-thread = 45GB
-# If an attempt fails, 40GB extra for every new attempt, and this mostly affects non-sort processes.
+# If an attempt fails, 30GB extra per sort thread + 30GB extra for BWA.
 # Once mapping succeeds, run coverM to get contig depth for this bam
+
 rule map_contigs_BWA_depth_coverM:
     input:
-        bwaindex=rules.BWA_index_contigs.output,
+        bwaindex=get_contig_bwa_index,
         fwd='{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz',
         rev='{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz'
     output:
@@ -423,11 +422,10 @@ rule map_contigs_BWA_depth_coverM:
     log:
         "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.batch{batch}.{min_length}.bwa2.log"
     resources:
-        mem = lambda wildcards, attempt: config['BWA_memory'] + config['SAMTOOLS_sort_threads']*(config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1)),
+        mem = lambda wildcards, input, attempt: int(10 + 3.1*os.path.getsize(input.bwaindex[0])/1e9 + 1.1*config['SAMTOOLS_sort_threads']*(config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1))),
         sort_mem = lambda wildcards, attempt: config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1)
     threads:
-        #config['BWA_threads'] + config['SAMTOOLS_sort_threads']
-        config['BWA_threads']
+        config['BWA_threads'] + config['SAMTOOLS_sort_threads']
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
     shell:
