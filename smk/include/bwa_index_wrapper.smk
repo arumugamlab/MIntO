@@ -26,6 +26,8 @@ import os
 # Then it should ask for bwaindex files as follows:
 #   {somewhere}/BWA_index/{something}.fna.*:       if the files can be read directly without staging.
 #   {somewhere}/BWA_index_local/{something}.fna.*: if the files need to be staged to all nodes in cluster.
+#
+# See rule 'genome_mapping_profiling' in gene_abundance.smk for usage example.
 ################################################################################################
 
 if CLUSTER_WORKLOAD_MANAGER is not None:
