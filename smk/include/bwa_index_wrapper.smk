@@ -31,20 +31,35 @@ import os
 #
 # Note on CLUSTER_NODES:
 # ----------------------
+#
+# 1. What is happening behind the scenes?
+#
 # Values in the python array CLUSTER_NODES will be used as node names to distribute the files.
-# This is easier to control when run with '--cluster' since the rule will submit the job to the
-# CLUSTER_WORKLOAD_MANAGER with a request to run only on that node.
-# If it is not run with '--cluster', by mistake, this could cause trouble: now all jobs are run
-# on the same node where you invoked your snakemake command. And this node could wrongly create
-# a 'status' file that denotes sync has been done on a different node. We have a simple solution for this.
+# This is easier to control when run with '--cluster' especially if we pass {resources.qsub_args}.
+# Here is an example --cluster argument for slurm:
+#   --cluster 'sbatch -J {name} --mem={resources.mem}G --gres=gpu:{resources.gpu} -c {threads} {resources.qsub_args}'
+# To avoid snakemake errors due to missing values (e.g., not all rules define resources.mem), we should precede it with:
+#   --default-resources gpu=0 mem=4 "qsub_args=''"
+# With this setup, the rule corresponding the one node (via {wildcards.node}) will submit
+# the job to the CLUSTER_WORKLOAD_MANAGER with a request to run only on that node.
+#
+# 2. What if I forget --cluster to snakemake?
+#
+# If, by mistake, it is run without '--cluster', this could cause trouble: now all jobs
+# (multiple values of {wildcards.node}) are run where you invoked your snakemake command.
+# And this node could wrongly create a 'status' file for {wildcards.node} corresponding to a
+# different node that denotes sync has been done for the latter. We have a simple solution for this.
 # The node names in CLUSTER_NODES should match the node name accessible by the command 'hostname --short'.
 # The sync status files are named with the local node name. You ask for sync'ing in nodeX, and
 # only nodeX can make that file. This avoids problems when this is NOT run using --cluster.
 # There is anothe problem that multiple sync rules may run the same 'rsync source dest' command
 # on a single server. This would likely cause a race condition. To avoid that, we create a lock
 # using 'flock' so that only one rsync is running for a specific bwa index sync on one node.
-# As a bonus, this also allows rsyncing an NFS bwa index onto a local disk when running without
-# --cluster, if you define CLUSTER_NODES with just your exec node's name.
+#
+# 3. What if I run on a single node (no cluster), but want to avoid NFS traffic for index files?
+#
+# Our implementation, as a bonus, also allows rsyncing an NFS bwa index onto a local disk
+# when running without --cluster, if you define CLUSTER_NODES with just your exec node's name.
 ################################################################################################
 
 if CLUSTER_WORKLOAD_MANAGER is not None:
