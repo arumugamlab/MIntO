@@ -154,11 +154,6 @@ if config['BWA_threads'] is None:
 elif type(config['BWA_threads']) != int:
     print('ERROR in ', config_path, ': BWA_threads variable is not an integer. Please, complete ', config_path)
 
-if config['SAMTOOLS_sort_threads'] is None:
-    print('ERROR in ', config_path, ': SAMTOOLS_sort_threads variable is empty. Please, complete ', config_path)
-elif type(config['SAMTOOLS_sort_threads']) != int:
-    print('ERROR in ', config_path, ': SAMTOOLS_sort_threads variable is not an integer. Please, complete ', config_path)
-
 if config['SAMTOOLS_sort_perthread_memgb'] is None:
     print('ERROR in ', config_path, ': SAMTOOLS_sort_perthread_memgb variable is empty. Please, complete ', config_path)
 elif type(config['SAMTOOLS_sort_perthread_memgb']) != int:
@@ -417,15 +412,15 @@ rule map_contigs_BWA_depth_coverM:
         "minimal"
     params:
         map_threads = config['BWA_threads'],
-        sort_threads = config['SAMTOOLS_sort_threads'],
+        samtools_sort_threads = 3,
         coverm_threads = min(int(config['BWA_threads']), 8),
     log:
         "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.batch{batch}.{min_length}.bwa2.log"
     resources:
-        mem = lambda wildcards, input, attempt: int(10 + 3.1*os.path.getsize(input.bwaindex[0])/1e9 + 1.1*config['SAMTOOLS_sort_threads']*(config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1))),
+        mem = lambda wildcards, input, attempt: int(10 + 3.1*os.path.getsize(input.bwaindex[0])/1e9 + 1.1*3*(config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1))),
         sort_mem = lambda wildcards, attempt: config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1)
     threads:
-        config['BWA_threads'] + config['SAMTOOLS_sort_threads']
+        config['BWA_threads'] + 3
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
     shell:
@@ -434,7 +429,7 @@ rule map_contigs_BWA_depth_coverM:
         db_name=$(echo {input.bwaindex[0]} | sed "s/.0123//")
         time (bwa-mem2 mem -P -a -t {params.map_threads} $db_name {input.fwd} {input.rev} \
                 | msamtools filter -buS -p 95 -l 45 - \
-                | samtools sort -m {resources.sort_mem}G --threads {params.sort_threads} - \
+                | samtools sort -m {resources.sort_mem}G --threads {params.samtools_sort_threads} - \
                 > {wildcards.illumina}.bam
               coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {params.coverm_threads} --output-file sorted.depth --bam-files {wildcards.illumina}.bam
               gzip sorted.depth

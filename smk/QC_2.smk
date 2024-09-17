@@ -1001,9 +1001,8 @@ CONTIG_MAPPING_BATCH_SIZE: 100
 BWA_threads: 10
 
 # Contig-depth: samtools sort settings
-# Used when sorting bam files
-# memory listed below is PER-THREAD.
-SAMTOOLS_sort_threads: 2
+# Used when sorting bam files using 3 threads
+# Memory listed below is PER-THREAD, so please make sure you have enough
 SAMTOOLS_sort_perthread_memgb: 10
 
 ###############################
