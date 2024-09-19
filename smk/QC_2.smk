@@ -127,20 +127,10 @@ if type(read_min_len) != int:
 # BWA for host genome filtering
 ##############################################
 
-if config['BWA_index_host_memory'] is None:
-    print('ERROR in ', config_path, ': BWA_index_host_memory variable is empty. Please, complete ', config_path)
-elif type(config['BWA_index_host_memory']) != int:
-    print('ERROR in ', config_path, ': BWA_index_host_memory variable is not an integer. Please, complete ', config_path)
-
 if config['BWA_host_threads'] is None:
     print('ERROR in ', config_path, ': BWA_host_threads variable is empty. Please, complete ', config_path)
 elif type(config['BWA_host_threads']) != int:
     print('ERROR in ', config_path, ': BWA_host_threads variable is not an integer. Please, complete ', config_path)
-
-if config['BWA_host_memory'] is None:
-    print('ERROR in ', config_path, ': BWA_host_memory variable is empty. Please, complete ', config_path)
-elif type(config['BWA_host_memory']) != int:
-    print('ERROR in ', config_path, ': BWA_host_memory variable is not an integer. Please, complete ', config_path)
 
 ##############################################
 # taxonomy
@@ -268,6 +258,17 @@ else:
     #raise Exception(f"ERROR in {config_path}: "COAS_factor" variable cannot be empty.")
     coas_factor = main_factor
 
+# Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
+
+CLUSTER_NODES            = None
+CLUSTER_LOCAL_DIR        = None
+CLUSTER_WORKLOAD_MANAGER = None
+include: minto_dir + '/site/cluster_def.py'
+
+# Cluster-aware bwa-index rules
+
+include: 'include/bwa_index_wrapper.smk'
+
 ##############################################
 # Define all the outputs needed by target 'all'
 ##############################################
@@ -326,8 +327,15 @@ def next_step_config_yml_output():
                 omics = omics)
     return(result)
 
+def clean_bwa_index_host():
+    if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+        return(f"{host_genome_path}/BWA_index/{host_genome_name}.clustersync/cleaning.done")
+    else:
+        return([])
+
 rule all:
     input:
+        clean_bwa_index_host(),
         merged_sample_output(),
         taxonomy_plot_output(),
         smash_plot_output(),
@@ -380,39 +388,32 @@ rule qc2_length_filter:
 # Remove host genome sequences
 ###############################################################################################
 
-# Index the host genome
-# bwa-mem2 index can handle gzipped files without any extra cmdline options
+# If CLUSTER_NODES is defined, then return the file symlink'ed to local drives.
+# Otherwise, return the original index files in project work_dir.
+def get_host_bwa_index(wildcards):
 
-rule bwaindex_host_genome:
-    input:
-        host_genome='{somewhere}/{genome}'
-    output:
-        '{somewhere}/BWA_index/{genome}.0123',
-        '{somewhere}/BWA_index/{genome}.amb',
-        '{somewhere}/BWA_index/{genome}.ann',
-        '{somewhere}/BWA_index/{genome}.bwt.2bit.64',
-        '{somewhere}/BWA_index/{genome}.pac',
-    shadow:
-        "minimal"
-    log:
-        "{somewhere}/{genome}_BWAindex.log"
-    resources:
-        mem = lambda wildcards, attempt: config['BWA_index_host_memory'] + 40*(attempt-1)
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
-    shell:
-        """
-        time (
-                bwa-mem2 index {input} -p {wildcards.genome}
-                rsync -a {wildcards.genome}.* {wildcards.somewhere}/BWA_index/
-            ) &> {log}
-        """
+    # Where are the index files?
+    if CLUSTER_NODES != None:
+        index_location = 'BWA_index_local'
+    else:
+        index_location = 'BWA_index'
 
+    # Get all the index files!
+    files = expand("{somewhere}/{location}/{genome}.{ext}",
+                    somewhere = host_genome_path,
+                    location  = index_location,
+                    genome    = host_genome_name,
+                    ext       = ['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac'])
+
+    # Return them
+    return(files)
+
+# BWA mem memory is estimated as 3.1 bytes per base in database (regression: mem = 5.556e+09 + 3.011*input).
 rule qc2_host_filter:
     input:
         pairead_fw=rules.qc2_length_filter.output.paired1,
         pairead_rv=rules.qc2_length_filter.output.paired2,
-        bwaindex=lambda wildcards: ancient(expand('{somewhere}/BWA_index/{genome}.{ext}', somewhere=host_genome_path, genome=host_genome_name, ext=['0123', 'amb', 'ann', 'bwt.2bit.64', 'pac']))
+        bwaindex=get_host_bwa_index
     output:
         host_free_fw="{wd}/{omics}/4-hostfree/{sample}/{run}.1.fq.gz",
         host_free_rv="{wd}/{omics}/4-hostfree/{sample}/{run}.2.fq.gz",
@@ -423,7 +424,7 @@ rule qc2_host_filter:
     log:
         "{wd}/logs/{omics}/4-hostfree/{sample}_{run}_filter_host_genome_BWA.log"
     resources:
-        mem=config['BWA_host_memory']
+        mem = lambda wildcards, input, attempt: 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9) + 10*(attempt-1)
     threads:
         config['BWA_host_threads']
     conda:
@@ -1003,14 +1004,12 @@ CONTIG_MAPPING_BATCH_SIZE: 100
 # Contig-depth: bwa-mem2 settings
 # Used when mapping reads back to contigs
 #
+# BWA Alignment
 BWA_threads: 10
-BWA_memory: 25
-BWA_index_memory: 50
 
 # Contig-depth: samtools sort settings
-# Used when sorting bam files
-# memory listed below is PER-THREAD.
-SAMTOOLS_sort_threads: 2
+# Used when sorting bam files using 3 threads
+# Memory listed below is PER-THREAD, so please make sure you have enough
 SAMTOOLS_sort_perthread_memgb: 10
 
 ###############################
@@ -1207,7 +1206,6 @@ ANNOTATION:
 
 # BWA Alignment
 BWA_threads: 10
-BWA_memory: 45
 
 # Alignment filtering
 # -------------------
