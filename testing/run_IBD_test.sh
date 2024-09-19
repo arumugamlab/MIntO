@@ -7,6 +7,7 @@
 # Developers use 'main' but users should stick to stable versions.
 
 MINTO_STABLE_VERSION="tags/2.2.0"
+TEST_SLURM="" # leave it empty to turn off slurm-testing
 
 function profile_command() {
     local cmd=$1
@@ -51,6 +52,13 @@ else
   cd $TEST_DIR
 fi
 
+# Set up cluster definition
+
+if [ ! -z "$TEST_SLURM" ]; then
+  sed -i -e "s/CLUSTER_WORKLOAD_MANAGER.*/CLUSTER_WORKLOAD_MANAGER = 'slurm'/" $MINTO_DIR/site/cluster_def.py
+  sed -i -e "s^CLUSTER_LOCAL_DIR.*^CLUSTER_LOCAL_DIR = '/scratch/MIntO/mirror'^" $MINTO_DIR/site/cluster_def.py
+fi
+
 # Record the snakemake commands that have been run
 
 COMMAND_LOG='commands_dependencies.txt'
@@ -58,6 +66,8 @@ COMMAND_LOG='commands_dependencies.txt'
 # Snakemake options
 if [ ! -z "$COMPUTEROME_PROJ" ]; then
   SNAKE_PARAMS="--use-conda --restart-times 0 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --default-resources gpu=0 mem=4 --cluster 'qsub -d $(pwd) -W group_list=$COMPUTEROME_PROJ -A $COMPUTEROME_PROJ -N {name} -l nodes=1:thinnode:ppn={threads},mem={resources.mem}gb,walltime=7200 -V -v TMPDIR=$SHADOWDIR' --local-cores 4"
+elif [ ! -z "$TEST_SLURM" ]; then
+  SNAKE_PARAMS="--use-conda --restart-times 0 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --local-cores 16 --jobs 16 --default-resources gpu=0 mem=4 \"qsub_args=''\" --cluster 'sbatch -J {name} --mem={resources.mem}G --gres=gpu:{resources.gpu} -c {threads} {resources.qsub_args} -e slurm-%x.e%A -o slurm-%x.o%A'"
 else
   # Computerome thin nodes
   #SNAKE_PARAMS="--use-conda --restart-times 0 --keep-going --latency-wait 60 --conda-prefix $CONDA_DIR --shadow-prefix $SHADOWDIR --jobs 16 --cores 40 --resources mem=188"
@@ -209,25 +219,30 @@ for OMICS in metaG_metaT metaG metaT; do
 
   sed "s/omics: metaG_metaT/omics: $OMICS/; s/MINTO_MODE: .*/MINTO_MODE: MAG/" data_integration.yaml > data_integration.yaml.MG.$OMICS
   echo -n "MODE - MAG, MG: "
-  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.MG.$OMICS $SNAKE_PARAMS >& integration.MAG.MG.$OMICS.log"
+  mkdir $OMICS.MAG.MG
+  cmd="cd $OMICS.MAG.MG && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.MG.$OMICS $SNAKE_PARAMS >& integration.MAG.MG.$OMICS.log"
   profile_command "$cmd"
   sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.MG.$OMICS > data_integration.yaml.TPM.$OMICS
   echo -n "MODE - MAG, TPM: "
-  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.TPM.$OMICS $SNAKE_PARAMS >& integration.MAG.TPM.$OMICS.log"
+  mkdir $OMICS.MAG.TPM
+  cmd="cd $OMICS.MAG.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.TPM.$OMICS $SNAKE_PARAMS >& integration.MAG.TPM.$OMICS.log"
   profile_command "$cmd"
 
   echo -n "MODE - refgenome, MG: "
   sed "s/MINTO_MODE: .*/MINTO_MODE: refgenome/" data_integration.yaml.MG.$OMICS > data_integration.yaml.refgenome.MG.$OMICS
-  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.MG.$OMICS $SNAKE_PARAMS >& integration.refgenome.MG.$OMICS.log"
+  mkdir $OMICS.refgenome.MG
+  cmd="cd $OMICS.refgenome.MG && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.refgenome.MG.$OMICS $SNAKE_PARAMS >& integration.refgenome.MG.$OMICS.log"
   profile_command "$cmd"
   sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.refgenome.MG.$OMICS > data_integration.yaml.refgenome.TPM.$OMICS
   echo -n "MODE - refgenome, TPM: "
-  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.refgenome.TPM.$OMICS $SNAKE_PARAMS >& integration.refgenome.TPM.$OMICS.log"
+  mkdir $OMICS.refgenome.TPM
+  cmd="cd $OMICS.refgenome.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.refgenome.TPM.$OMICS $SNAKE_PARAMS >& integration.refgenome.TPM.$OMICS.log"
   profile_command "$cmd"
 
   echo -n "MODE - gene-catalog, TPM: "
   sed "s/MINTO_MODE: .*/MINTO_MODE: catalog/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
-  cmd="snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile data_integration.yaml.catalog.TPM.$OMICS $SNAKE_PARAMS >& integration.catalog.TPM.$OMICS.log"
+  mkdir $OMICS.catalog.TPM
+  cmd="cd $OMICS.catalog.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.catalog.TPM.$OMICS $SNAKE_PARAMS >& integration.catalog.TPM.$OMICS.log"
   profile_command "$cmd"
 
 done
