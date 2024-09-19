@@ -76,7 +76,14 @@ if CLUSTER_NODES is not None:
     # Baseline    : 5 GB
     # Size-based  : 22 byte per byte file size
     # New attempts: +40 GB each time
+    # Outputs in CLUSTER_LOCAL_DIR are also included here, so that when snakemake timestamps
+    # all output files at the end of the rule, local & nfs files have the same timestamp.
+    # This will avoid the original node making the index re-downloading the file with rsync.
+    # This also needs the rule to be a localrule.
+    # Note: wildcards.somewhere might have a leading '/', which will cause double '/' warning
+    #       from snakemake, but you can ignore this specific warning if it was for BWA index files.
     rule BWA_index_contigs_nfs:
+        localrule: True
         input:
             fasta="{somewhere}/{something}.{fasta}"
         output:
@@ -85,6 +92,11 @@ if CLUSTER_NODES is not None:
             "{somewhere}/BWA_index/{something}.{fasta}.ann",
             "{somewhere}/BWA_index/{something}.{fasta}.bwt.2bit.64",
             "{somewhere}/BWA_index/{something}.{fasta}.pac",
+            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.0123",
+            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.amb",
+            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.ann",
+            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.bwt.2bit.64",
+            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.pac",
         log:
             "{somewhere}/BWA_index/BWA_index.{something}.{fasta}.log"
         wildcard_constraints:
@@ -109,7 +121,9 @@ if CLUSTER_NODES is not None:
             ) >& {log}
             """
 
-    checkpoint prepare_files_for_syncing:
+    # If the index files exist, create a clustersync file to register a node
+    rule prepare_files_for_syncing:
+        localrule: True
         input:
             "{somewhere}/BWA_index/{something}.{fasta}.0123",
             "{somewhere}/BWA_index/{something}.{fasta}.amb",
@@ -117,20 +131,12 @@ if CLUSTER_NODES is not None:
             "{somewhere}/BWA_index/{something}.{fasta}.bwt.2bit.64",
             "{somewhere}/BWA_index/{something}.{fasta}.pac",
         output:
-            directory("{somewhere}/BWA_index/{something}.{fasta}.sync"),
+            touch("{somewhere}/BWA_index/{something}.{fasta}.clustersync/{node}")
         log:
-            "{somewhere}/BWA_index/sync.{something}.{fasta}.log"
+            "{somewhere}/BWA_index/sync.{something}.{fasta}.{node}.log"
         wildcard_constraints:
+            node = '|'.join(CLUSTER_NODES),
             fasta='fasta|fna'
-        localrule: True
-        shell:
-            """
-            dir="{output}"
-            mkdir -p $dir
-            for node in {CLUSTER_NODES}; do
-                touch $dir/$node
-            done
-            """
 
     def get_node_request_argument(node, cluster_workload_manager):
         if cluster_workload_manager.upper() == 'SLURM':
@@ -144,13 +150,14 @@ if CLUSTER_NODES is not None:
         else:
             raise Exception(f"MIntO error: cannot handle cluster workload manager '{cluster_workload_manager}'")
 
+    # If a node is registered with clustersync file, then synch it to that node and update synch-done status
     rule rsync_index_files_to_local_dir:
         input:
-            "{somefasta}.sync/{node}"
+            "{somefasta}.clustersync/{node}"
         output:
-            "{somefasta}.sync/{node}.done"
+            temp("{somefasta}.clustersync/{node}.synched")
         log:
-            "{somefasta}.sync/{node}.log"
+            "{somefasta}.clustersync/{node}.synch.log"
         resources:
             mem = 2,
             qsub_args = lambda wildcards: get_node_request_argument(wildcards.node, CLUSTER_WORKLOAD_MANAGER)
@@ -165,25 +172,20 @@ if CLUSTER_NODES is not None:
                 echo "TARGET NODE: {wildcards.node}"
                 echo "ACTUAL NODE: $actual_node"
                 echo "SYNC'N FILE: {wildcards.somefasta}.* --> {CLUSTER_LOCAL_DIR}"
-                flock --exclusive --nonblock {CLUSTER_LOCAL_DIR}/{wildcards.somefasta}.lock rsync -av --itemize-changes {wildcards.somefasta}.{{0123,amb,ann,bwt.2bit.64,pac}} {CLUSTER_LOCAL_DIR}/$path/ && touch {wildcards.somefasta}.sync/${{actual_node}}.done
+                flock --exclusive --nonblock {CLUSTER_LOCAL_DIR}/{wildcards.somefasta}.synch.lock rsync -av --itemize-changes {wildcards.somefasta}.{{0123,amb,ann,bwt.2bit.64,pac}} {CLUSTER_LOCAL_DIR}/$path/ && touch {wildcards.somefasta}.clustersync/${{actual_node}}.synched
                 echo " DONE"
             ) >& {log}
             """
 
-    def get_bwa_index_sync_flags(wildcards):
-        checkpoint_output = checkpoints.prepare_files_for_syncing.get(**wildcards).output[0]
-        result = expand("{somewhere}/BWA_index/{something}.{fasta}.sync/{node}.done",
-                        somewhere=wildcards.somewhere,
-                        something=wildcards.something,
-                        fasta=wildcards.fasta,
-                        node=CLUSTER_NODES)
-        return(result)
-
-
-    # Keeping the NFS bwa-index output in this rule so that temp() doesn't delete it before this step is finished, just in case.
+    # If synch-done status is available for all nodes, then symlink an NFS location to index files on local disk
     rule BWA_index_contigs:
+        localrule: True
         input:
-            get_bwa_index_sync_flags
+            lambda wildcards: expand("{somewhere}/BWA_index/{something}.{fasta}.clustersync/{node}.synched",
+                                        somewhere=wildcards.somewhere,
+                                        something=wildcards.something,
+                                        fasta=wildcards.fasta,
+                                        node=CLUSTER_NODES)
         output:
             "{somewhere}/BWA_index_local/{something}.{fasta}.0123",
             "{somewhere}/BWA_index_local/{something}.{fasta}.amb",
@@ -191,18 +193,87 @@ if CLUSTER_NODES is not None:
             "{somewhere}/BWA_index_local/{something}.{fasta}.bwt.2bit.64",
             "{somewhere}/BWA_index_local/{something}.{fasta}.pac",
         log:
-            "{somewhere}/BWA_index_local/symlink.{something}.{fasta}.log",
+            "{somewhere}/BWA_index/symlink_local.{something}.{fasta}.log",
         wildcard_constraints:
             fasta='fasta|fna'
-        localrule: True
         shell:
             """
             time (
+                echo "SYMLINKING:"
                 for out in {output}; do
                     target=$(echo $out | sed "s/BWA_index_local/BWA_index/")
+                    echo "{CLUSTER_LOCAL_DIR}/$target --> $out"
                     ln -s --force {CLUSTER_LOCAL_DIR}/$target $out
                 done
             ) >& {log}
+            """
+
+    # If a node is registered with clustersync file, then clean it on that node and update clean-done status
+    rule clean_index_files_in_local_dir:
+        input:
+            "{somefasta}.clustersync/{node}"
+        output:
+            temp("{somefasta}.clustersync/{node}.cleaned")
+        log:
+            "{somefasta}.clustersync/{node}.clean.log"
+        resources:
+            mem = 2,
+            qsub_args = lambda wildcards: get_node_request_argument(wildcards.node, CLUSTER_WORKLOAD_MANAGER)
+        wildcard_constraints:
+            node = '|'.join(CLUSTER_NODES)
+        shell:
+            """
+            time (
+                flock --exclusive --nonblock {CLUSTER_LOCAL_DIR}/{wildcards.somefasta}.clean.lock sh -c '
+                    actual_node=$(hostname --short)
+                    echo "NODE - TARGET: {wildcards.node}"
+                    echo "NODE - ACTUAL: $actual_node"
+                    echo "CLEANING FILE: {CLUSTER_LOCAL_DIR}/{wildcards.somefasta}.*"
+                    if [ -f "{CLUSTER_LOCAL_DIR}/{wildcards.somefasta}.0123" ]; then
+                        echo -n "  Index files found; deleting: "
+                        rm {CLUSTER_LOCAL_DIR}/{wildcards.somefasta}.{{0123,amb,ann,bwt.2bit.64,pac}} && echo -n "DONE"
+                        echo ""
+                    else
+                        echo "  WARNING: Index files NOT found; doing nothing"
+                    fi
+                    echo "  Touching flag: {wildcards.somefasta}.clustersync/$actual_node.cleaned"
+                    touch {wildcards.somefasta}.clustersync/$actual_node.cleaned
+                '
+                echo " DONE"
+            ) >& {log}
+            """
+
+    # If clean-done status is available for all nodes, delete symlinks & make global clean-done status file.
+    # Rules that want us to clean up should ask for:
+    #  '{somewhere}/BWA_index/{something}.{fasta}.clustersync/cleaning.done'.
+    # As a rule, this should be done in a separate run after mapping is finished, otherwise
+    # cleanup will run at the same time as synching, and the index files won't be available for mapping.
+    # See how QC_2.smk implements it via a config variable 'CLEAN_BWA_INDEX'
+    # that can be set in a separate instance of snakemake after QC_2.smk finishes successfully.
+    rule check_index_files_are_cleaned:
+        localrule: True
+        input:
+            status = lambda wildcards: expand("{somewhere}/BWA_index/{something}.{fasta}.clustersync/{node}.cleaned",
+                                            somewhere=wildcards.somewhere,
+                                            something=wildcards.something,
+                                            fasta=wildcards.fasta,
+                                            node=CLUSTER_NODES)
+        output:
+            "{somewhere}/BWA_index/{something}.{fasta}.clustersync/cleaning.done",
+        wildcard_constraints:
+            fasta='fasta|fna'
+        shell:
+            """
+            # Delete symlinks
+            rm {wildcards.somewhere}/BWA_index_local/{wildcards.something}.{wildcards.fasta}.*
+
+            # Delete directory, if empty
+            if [ -z "$(ls -A '{wildcards.somewhere}/BWA_index_local')" ]; then
+                rmdir {wildcards.somewhere}/BWA_index_local/
+            fi
+
+            # Touch output
+            touch {output}
             """
 
 else:

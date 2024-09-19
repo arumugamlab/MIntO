@@ -187,12 +187,6 @@ if run_taxonomy == "yes":
         taxonomies_versioned.append(t+"."+version)
     print('NOTE: MIntO is using taxonomy labelling of the unique MAGs from [{}].'.format(", ".join(taxonomies_versioned)))
 
-# Define all the outputs needed by target 'all'
-
-GENE_DB_TYPE = MINTO_MODE + '-genes'
-
-bwaindex_db="DB/{subdir}/BWA_index/{analysis_name}".format(subdir=MINTO_MODE, analysis_name=MINTO_MODE)
-
 # Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
 
 CLUSTER_NODES            = None
@@ -219,6 +213,8 @@ def get_sample2alias_map(in_file):
     return(df.to_dict())
 
 sample2alias = get_sample2alias_map(metadata)
+
+# Define all the outputs needed by target 'all'
 
 def combined_genome_profiles_annotated():
     result = expand("{wd}/output/9-mapping-profiles/{mode}/{omics}.{taxonomy}.p{identity}.tsv",
@@ -274,8 +270,18 @@ def config_yaml():
                 wd = working_dir)
     return(result)
 
+def clean_bwa_index():
+    if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+        if MINTO_MODE == 'catalog':
+            return(f"{gene_catalog_path}/BWA_index/{gene_catalog_name}.clustersync/cleaning.done")
+        else:
+            return(f"{working_dir}/DB/{MINTO_MODE}/BWA_index/{MINTO_MODE}.fna.clustersync/cleaning.done")
+    else:
+        return([])
+
 rule all:
     input:
+        clean_bwa_index(),
         combined_genome_profiles_annotated(),
         combined_genome_profiles(),
         combined_gene_abundance_profiles(),

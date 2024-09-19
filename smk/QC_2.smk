@@ -327,8 +327,15 @@ def next_step_config_yml_output():
                 omics = omics)
     return(result)
 
+def clean_bwa_index_host():
+    if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+        return(f"{host_genome_path}/BWA_index/{host_genome_name}.clustersync/cleaning.done")
+    else:
+        return([])
+
 rule all:
     input:
+        clean_bwa_index_host(),
         merged_sample_output(),
         taxonomy_plot_output(),
         smash_plot_output(),
