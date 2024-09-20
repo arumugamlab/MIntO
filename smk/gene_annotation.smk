@@ -62,6 +62,8 @@ if path.exists(reference_dir) is False:
     print('ERROR in ', config_path, ': reference genome path ', reference_dir, ' does not exit. Please, complete ', config_path)
 
 run_taxonomy="no"
+taxonomies_versioned = list()
+taxonomies = list()
 if 'RUN_TAXONOMY' not in config or config['RUN_TAXONOMY'] is None:
     print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
 elif config['RUN_TAXONOMY'] == True:
@@ -90,7 +92,6 @@ if run_taxonomy == "yes":
     else:
         raise Exception(f"TAXONOMY_NAME variable should be phylophlan, gtdb, or combinations thereof. Please fix {config_path}")
 
-    taxonomies_versioned = list()
     taxonomies = taxonomy.split(",")
     for t in taxonomies:
         version="unknown"
@@ -100,6 +101,14 @@ if run_taxonomy == "yes":
             version=config["GTDB_TAXONOMY_VERSION"]
         taxonomies_versioned.append(t+"."+version)
     print('NOTE: MIntO is running taxonomy labelling of the unique MAGs using [{}].'.format(", ".join(taxonomies_versioned)))
+
+    if "phylophlan" in taxonomies:
+        if "gtdb" in taxonomies:
+            use rule annotation_base, annotation_phylophlan, annotation_gtdb from print_versions as version_*
+        else:
+            use rule annotation_base, annotation_phylophlan from print_versions as version_*
+    else:
+        use rule annotation_base, annotation_gtdb from print_versions as version_*
 
 annot_list = list()
 if 'ANNOTATION' in config:
@@ -142,7 +151,10 @@ rule all:
                     wd = working_dir,
                     subdir = MINTO_MODE,
                     filename = GENE_DB_TYPE),
-        print_versions.get_version_output(snakefile_name)
+        print_versions.get_version_output(snakefile_name),
+        expand("{wd}/output/versions/annot_{taxonomy_method}.flag",
+                    wd = working_dir,
+                    taxonomy_method = taxonomies)
     default_target: True
 
 ######################
