@@ -502,7 +502,7 @@ __EOM__
             perl -lane '$x=$F[0]; $x =~ s/_.*//; print "$x.bedsub\\t$_";' < in.bed | awk -v OFS='\\t' '{{print $2, $3, $4, $5, $6 >> $1}}'
 
             # Pipe it to parallel
-            parallel --jobs {threads} --plus "bedtools multicov -bams sorted.bam -bed {{}} | cut -f4- | grep -v $'\\t0$' > {{.}}.bed.part" ::: *.bedsub
+            parallel --jobs {threads} --plus "bedtools multicov -bams sorted.bam -bed {{}} | cut -f4- | (grep -v $'\\t0$' || true) > {{.}}.bed.part" ::: *.bedsub
             (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}'; cat *.bed.part) | gzip -c > out.bed.gz
 
             # Rsync output bed file
