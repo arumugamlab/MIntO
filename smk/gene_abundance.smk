@@ -422,8 +422,6 @@ rule genome_mapping_profiling:
         rev=get_rev_files_only,
         bed_mini="{wd}/DB/{minto_mode}/{minto_mode}-genes.bed.mini"
     output:
-        sorted=         "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
-        index=          "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
         bwa_log=        "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.bwa.log",
         raw_all_seq=    "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
         raw_prop_seq=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",
@@ -491,7 +489,6 @@ __EOM__
             # Get mini-bed into shadowdir
             parallel --jobs {threads} <<__EOM__
 samtools index sorted.bam sorted.bam.bai -@ {threads}
-rsync -a sorted.bam {output.sorted}
 rsync -a {input.bed_mini} in.bed
 __EOM__
 
@@ -499,11 +496,8 @@ __EOM__
             (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
              bedtools multicov -bams sorted.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
 
-            # Rsync output files
-            parallel --jobs {threads} <<__EOM__
-rsync -a sorted.bam.bai {output.index}
-rsync -a out.bed.gz {output.absolute_counts}
-__EOM__
+            # Rsync output bed file
+            rsync -a out.bed.gz {output.absolute_counts}
         ) >& {log}
         """
 
