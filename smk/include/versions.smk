@@ -338,7 +338,7 @@ rule mags_checkm2:
     input:
         "{wd}/output/versions/mags_base.flag"
     output:
-        temp("{wd}/output/versions/mags_checkm.flag")
+        temp("{wd}/output/versions/mags_generation.flag")
     resources:
         mem=1
     threads: 1
@@ -348,49 +348,6 @@ rule mags_checkm2:
     shell:
         """
         echo "checkm2 v$(checkm2 predict --version)" >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        touch {output}
-        """
-
-rule mags_ppl:
-    input:
-        "{wd}/output/versions/mags_checkm.flag"
-    output:
-        temp("{wd}/output/versions/mags_ppl.flag")
-    params:
-        db=ppl_version
-    resources:
-        mem=1
-    threads: 1
-    localrule: True
-    conda:
-        config["minto_dir"]+"/envs/mags.yml"
-    shell:
-        """
-        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        phylophlan --version >> $VOUT
-        phylophlan_assign_sgbs --version >> $VOUT
-        echo "phylophlan database {params.db}" >> $VOUT
-        touch {output}
-        """
-
-rule mags_gtdb:
-    input:
-        "{wd}/output/versions/mags_ppl.flag"
-    output:
-        temp("{wd}/output/versions/mags_generation.flag")
-    params:
-        db=gtdb_version
-    resources:
-        mem=1
-    threads: 1
-    localrule: True
-    conda:
-        config["minto_dir"]+"/envs/gtdb.yml"
-    shell:
-        """
-        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
-        echo "gtdbtk v$(gtdbtk --version | cut -d" " -f 3 | head -n 1)" >> $VOUT
-        echo "gtdbtk database {params.db}" >> $VOUT
         touch {output}
         """
 
@@ -435,6 +392,45 @@ rule annotation_base:
         echo "Module to KO file creation date $(stat -c '%y' {minto_dir}/data/kofam_db/KEGG_Module2KO.tsv | cut -d" " -f 1)" >> $VOUT
         echo "Pathway to KO file creation date $(stat -c '%y' {minto_dir}/data/kofam_db/KEGG_Pathway2KO.tsv | cut -d" " -f 1)" >> $VOUT
 
+        touch {output}
+        """
+
+rule annotation_phylophlan:
+    output:
+        temp("{wd}/output/versions/annot_phylophlan.flag")
+    params:
+        db=ppl_version
+    resources:
+        mem=1
+    threads: 1
+    localrule: True
+    conda:
+        config["minto_dir"]+"/envs/mags.yml"
+    shell:
+        """
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        phylophlan --version >> $VOUT
+        phylophlan_assign_sgbs --version >> $VOUT
+        echo "phylophlan database {params.db}" >> $VOUT
+        touch {output}
+        """
+
+rule annotation_gtdb:
+    output:
+        temp("{wd}/output/versions/annot_gtdb.flag")
+    params:
+        db=gtdb_version
+    resources:
+        mem=1
+    threads: 1
+    localrule: True
+    conda:
+        config["minto_dir"]+"/envs/gtdb.yml"
+    shell:
+        """
+        VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
+        echo "gtdbtk v$(gtdbtk --version | cut -d" " -f 3 | head -n 1)" >> $VOUT
+        echo "gtdbtk database {params.db}" >> $VOUT
         touch {output}
         """
 
