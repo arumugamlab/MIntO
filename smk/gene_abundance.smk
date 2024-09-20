@@ -466,7 +466,7 @@ rule genome_mapping_profiling:
 
         # Estimate samtools sort memory
         sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))
-        echo "Using $sort_memory GB memory"
+        echo "Using $sort_memory GB memory per thread for samtools sort"
 
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                     msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
@@ -493,8 +493,17 @@ rsync -a {input.bed_mini} in.bed
 __EOM__
 
             # Use bedtools multicov to generate read-counts per gene
-            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
-             bedtools multicov -bams sorted.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
+            # Enable parallelization by splitting the BED file into single genomes and then giving it to bedtools
+
+            # Create genome sub-beds, assuming that <seqname> is <locustag>_<seqnum>
+            # Locustag CANNOT have underscore in it!
+            # Perl command creates a first column that is '<genome>.bedsub'
+            # Then awk command writes 2nd-6th columns to file named in 1st column
+            perl -lane '$x=$F[0]; $x =~ s/_.*//; print "$x.bedsub\\t$_";' < in.bed | awk -v OFS='\\t' '{{print $2, $3, $4, $5, $6 >> $1}}'
+
+            # Pipe it to parallel
+            parallel --jobs {threads} --plus "bedtools multicov -bams sorted.bam -bed {{}} | cut -f4- | grep -v $'\\t0$' > {{.}}.bed.part" ::: *.bedsub
+            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}'; cat *.bed.part) | gzip -c > out.bed.gz
 
             # Rsync output bed file
             rsync -a out.bed.gz {output.absolute_counts}
