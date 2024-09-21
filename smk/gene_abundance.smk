@@ -485,24 +485,19 @@ msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=p
 samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m ${{sort_memory}}G --output-fmt=BAM
 __EOM__
 
-            # Index sorted.bam file, while also exporting it
-            # Get mini-bed into shadowdir
+            # Use bedtools multicov to generate read-counts per gene
+            # 1. Index sorted.bam file
+            # 2. Enable parallelization by splitting the BED file into smaller files and then giving it to bedtools
+            #    a. Create smaller bed files with 10000 lines each, like x0000000.bedsub, x0000001.bedsub, ...
+            #    b. Send 'ls' output to GNU parallel to process these smaller BED files.
+
             parallel --jobs {threads} <<__EOM__
 samtools index sorted.bam sorted.bam.bai -@ {threads}
-rsync -a {input.bed_mini} in.bed
+split -d --suffix-length=7 --additional-suffix=.bedsub --lines=10000 {input.bed_mini}
 __EOM__
 
-            # Use bedtools multicov to generate read-counts per gene
-            # Enable parallelization by splitting the BED file into single genomes and then giving it to bedtools
-
-            # Create genome sub-beds, assuming that <seqname> is <locustag>_<seqnum>
-            # Locustag CANNOT have underscore in it!
-            # Perl command creates a first column that is '<genome>.bedsub'
-            # Then awk command writes 2nd-6th columns to file named in 1st column
-            perl -lane '$x=$F[0]; $x =~ s/_.*//; print "$x.bedsub\\t$_";' < in.bed | awk -v OFS='\\t' '{{print $2, $3, $4, $5, $6 >> $1}}'
-
             # Pipe it to parallel
-            parallel --jobs {threads} --plus "bedtools multicov -bams sorted.bam -bed {{}} | cut -f4- | (grep -v $'\\t0$' || true) > {{.}}.bed.part" ::: *.bedsub
+            time (ls | grep -E '\.bedsub$' | parallel --jobs {threads} --plus "bedtools multicov -bams sorted.bam -bed {{}} | cut -f4- | (grep -v $'\\t0$' || true) > {{.}}.bed.part")
             (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}'; cat *.bed.part) | gzip -c > out.bed.gz
 
             # Rsync output bed file
