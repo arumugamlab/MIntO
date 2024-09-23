@@ -422,9 +422,7 @@ rule genome_mapping_profiling:
         rev=get_rev_files_only,
         bed_mini="{wd}/DB/{minto_mode}/{minto_mode}-genes.bed.mini"
     output:
-        sorted=         "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
-        index=          "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
-        bwa_log=        "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.log",
+        bwa_log=        "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.bwa.log",
         raw_all_seq=    "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
         raw_prop_seq=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.txt.gz",
         raw_prop_genome="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.prop.genome.txt.gz",
@@ -468,7 +466,7 @@ rule genome_mapping_profiling:
 
         # Estimate samtools sort memory
         sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))
-        echo "Using $sort_memory GB memory"
+        echo "Using $sort_memory GB memory per thread for samtools sort"
 
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                     msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
@@ -487,23 +485,23 @@ msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=p
 samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m ${{sort_memory}}G --output-fmt=BAM
 __EOM__
 
-            # Index sorted.bam file, while also exporting it
-            # Get mini-bed into shadowdir
+            # Use bedtools multicov to generate read-counts per gene
+            # 1. Index sorted.bam file
+            # 2. Enable parallelization by splitting the BED file into smaller files and then giving it to bedtools
+            #    a. Create smaller bed files with 10000 lines each, like x0000000.bedsub, x0000001.bedsub, ...
+            #    b. Send 'ls' output to GNU parallel to process these smaller BED files.
+
             parallel --jobs {threads} <<__EOM__
 samtools index sorted.bam sorted.bam.bai -@ {threads}
-rsync -a sorted.bam {output.sorted}
-rsync -a {input.bed_mini} in.bed
+split -d --suffix-length=7 --additional-suffix=.bedsub --lines=10000 {input.bed_mini}
 __EOM__
 
-            # Use bedtools multicov to generate read-counts per gene
-            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
-             bedtools multicov -bams sorted.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
+            # Pipe it to parallel
+            time (ls | grep -E '\.bedsub$' | parallel --jobs {threads} --plus "bedtools multicov -bams sorted.bam -bed {{}} | cut -f4- | (grep -v $'\\t0$' || true) > {{.}}.bed.part")
+            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}'; cat *.bed.part) | gzip -c > out.bed.gz
 
-            # Rsync output files
-            parallel --jobs {threads} <<__EOM__
-rsync -a sorted.bam.bai {output.index}
-rsync -a out.bed.gz {output.absolute_counts}
-__EOM__
+            # Rsync output bed file
+            rsync -a out.bed.gz {output.absolute_counts}
         ) >& {log}
         """
 
