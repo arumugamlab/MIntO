@@ -100,7 +100,8 @@ if CLUSTER_NODES is not None:
         log:
             "{somewhere}/BWA_index/BWA_index.{something}.{fasta}.log"
         wildcard_constraints:
-            fasta='fasta|fna'
+            fasta     = 'fasta|fna',
+            something = '[^/]+'
         resources:
             mem = lambda wildcards, input, attempt: 5 + int(22*input.size_mb/1024) + 40*(attempt-1),
         threads: 4
@@ -135,8 +136,9 @@ if CLUSTER_NODES is not None:
         log:
             "{somewhere}/BWA_index/sync.{something}.{fasta}.{node}.log"
         wildcard_constraints:
-            node = '|'.join(CLUSTER_NODES),
-            fasta='fasta|fna'
+            node      = '|'.join(CLUSTER_NODES),
+            fasta     = 'fasta|fna',
+            something = '[^/]+'
 
     def get_node_request_argument(node, cluster_workload_manager):
         if cluster_workload_manager.upper() == 'SLURM':
@@ -195,7 +197,8 @@ if CLUSTER_NODES is not None:
         log:
             "{somewhere}/BWA_index/symlink_local.{something}.{fasta}.log",
         wildcard_constraints:
-            fasta='fasta|fna'
+            fasta     = 'fasta|fna',
+            something = '[^/]+'
         shell:
             """
             time (
@@ -261,7 +264,8 @@ if CLUSTER_NODES is not None:
         output:
             "{somewhere}/BWA_index/{something}.{fasta}.clustersync/cleaning.done",
         wildcard_constraints:
-            fasta='fasta|fna'
+            fasta     = 'fasta|fna',
+            something = '[^/]+'
         shell:
             """
             # Delete symlinks
@@ -293,7 +297,8 @@ else:
         log:
             "{somewhere}/BWA_index/BWA_index.{something}.{fasta}.log"
         wildcard_constraints:
-            fasta='fasta|fna'
+            fasta     = 'fasta|fna',
+            something = '[^/]+'
         shadow:
             "minimal"
         resources:
