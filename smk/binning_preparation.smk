@@ -411,7 +411,7 @@ rule combine_contig_depths_for_batch:
     threads:
         2
     log:
-        "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}/batch{batch}.{min_length}.depth.log"
+        "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.log"
     run:
         import pandas as pd
         import hashlib
@@ -419,28 +419,29 @@ rule combine_contig_depths_for_batch:
         import datetime
         import shutil
 
-        def logme(msg):
-            print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg)
+        def logme(stream, msg):
+            print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
 
-        df_list = list()
-        logme("INFO: reading file 0")
-        df = pd.read_csv(input.depths[0], header=0, sep = "\t", memory_map=True)
-        df_list.append(df)
-        md5_first = hashlib.md5(pickle.dumps(df.iloc[:, 0:2])).hexdigest() # make hash for seqname and seqlen
-        for i in range(1, len(input.depths)):
-            logme("INFO: reading file {}".format(i))
-            df = pd.read_csv(input.depths[i], header=0, sep = "\t", memory_map=True)
-            md5_next = hashlib.md5(pickle.dumps(df.iloc[:, 0:2])).hexdigest()
-            if md5_next != md5_first:
-                raise Exception("combine_contig_depths_for_batch: Sequences don't match between {} and {}".format(input.depths[0], input.depths[i]))
-            df_list.append(df.drop(['contigName', 'contigLen', 'totalAvgDepth'], axis=1))
-        logme("INFO: concatenating {} files".format(len(input.depths)))
-        df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
-        logme("INFO: writing to temporary file")
-        df.to_csv('depths.gz', sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
-        logme("INFO: copying to final output")
-        shutil.copy2('depths.gz', output.depths)
-        logme("INFO: done")
+        with open(str(log), 'w') as f:
+            df_list = list()
+            logme(f, "INFO: reading file 0")
+            df = pd.read_csv(input.depths[0], header=0, sep = "\t", memory_map=True)
+            df_list.append(df)
+            md5_first = hashlib.md5(pickle.dumps(df.iloc[:, 0:2])).hexdigest() # make hash for seqname and seqlen
+            for i in range(1, len(input.depths)):
+                logme(f, "INFO: reading file {}".format(i))
+                df = pd.read_csv(input.depths[i], header=0, sep = "\t", memory_map=True)
+                md5_next = hashlib.md5(pickle.dumps(df.iloc[:, 0:2])).hexdigest()
+                if md5_next != md5_first:
+                    raise Exception("combine_contig_depths_for_batch: Sequences don't match between {} and {}".format(input.depths[0], input.depths[i]))
+                df_list.append(df.drop(['contigName', 'contigLen', 'totalAvgDepth'], axis=1))
+            logme(f, "INFO: concatenating {} files".format(len(input.depths)))
+            df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
+            logme(f, "INFO: writing to temporary file")
+            df.to_csv('depths.gz', sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
+            logme(f, "INFO: copying to final output")
+            shutil.copy2('depths.gz', output.depths)
+            logme(f, "INFO: done")
 
 ##################################################
 # Combining across batches within a scaffold_type
