@@ -44,12 +44,11 @@ merged_illumina_samples = dict()
 ##############################################
 
 # Make list of illumina coassemblies, if MERGE_ILLUMINA_SAMPLES in config
-if 'MERGE_ILLUMINA_SAMPLES' in config:
-    if config['MERGE_ILLUMINA_SAMPLES'] is None:
-        print('WARNING in ', config_path, ': MERGE_ILLUMINA_SAMPLES list of samples is empty. Skipping sample-merging.')
-    else:
-        merged_illumina_samples = config['MERGE_ILLUMINA_SAMPLES']
-        #print(merged_illumina_samples)
+x = validate_optional_key(config, 'MERGE_ILLUMINA_SAMPLES')
+if x is not None:
+    for m in x:
+        #print(" "+m)
+        merged_illumina_samples.append(m)
 
 ##############################################
 # Get sample list
@@ -87,71 +86,43 @@ for i in ilmn_samples:
 # Host genome filtering
 ##############################################
 
-host_genome_path=''
-if config['PATH_host_genome'] is None:
-    print('ERROR in ', config_path, ': PATH_host_genome variable is empty. Please, complete ', config_path)
-elif path.exists(config['PATH_host_genome']) is False:
-    print('ERROR in ', config_path, ': PATH_host_genome variable path does not exit. Please, correct ', config_path)
-else:
-    host_genome_path=config["PATH_host_genome"]
+host_genome_path = validate_required_key(config, 'PATH_host_genome')
+host_genome_name = validate_required_key(config, 'NAME_host_genome')
 
-host_genome_name=''
-if config['NAME_host_genome'] is None:
-    print('ERROR in ', config_path, ': NAME_host_genome variable is empty. Please, complete ', config_path)
-elif path.exists(host_genome_path+'/BWA_index/'+config['NAME_host_genome']+'.pac') is True:
-    host_genome_name=config["NAME_host_genome"]
-    print('Host genome db {dir}/BWA_index/{db} will be used'.format(db=host_genome_name, dir=host_genome_path))
-elif path.exists(host_genome_path+'/'+config['NAME_host_genome']) is True:
-    host_genome_name=config["NAME_host_genome"]
-    print('Host genome sequence {dir}/{db} will be used to create BWA db'.format(db=host_genome_name, dir=host_genome_path))
+if path.exists(f"{host_genome_path}/BWA_index/{host_genome_name}.pac") is True:
+    print(f"Host genome db {host_genome_path}/BWA_index/{host_genome_name} will be used")
+elif path.exists(f"{host_genome_path}/{host_genome_name}") is True:
+    print(f"Host genome sequence {host_genome_path}/{host_genome_name} will be used to create BWA db")
 else:
-    print('ERROR in {}: NAME_host_genome={} does not exist as fasta or BWA db in PATH_host_genome={}. Please, correct!'.format(config_path, config['NAME_host_genome'], config['PATH_host_genome']))
+    raise Exception(f"NAME_host_genome={host_genome_name} does not exist as fasta or BWA db in PATH_host_genome={host_genome_path}. Please fix {config_path}")
 
 ##############################################
 # Minimum read-length trimming
 ##############################################
 
-read_min_len = 50
-if 'READ_minlen' in config and config['READ_minlen'] is not None:
-    read_min_len = config['READ_minlen']
-elif 'TRIMMOMATIC_minlen' in config and config['TRIMMOMATIC_minlen'] is not None:
-    read_min_len = config['TRIMMOMATIC_minlen']
-else:
-    print('ERROR in ', config_path, ': READ_minlen variable is empty. Please, complete ', config_path)
+read_min_len = validate_required_key(config, 'READ_minlen')
+if read_min_len < 50:
+    read_min_len = 50
 
-if type(read_min_len) != int:
-    print('ERROR in ', config_path, ': READ_minlen variable is not an integer. Please, complete ', config_path)
+# FIX
+#elif 'TRIMMOMATIC_minlen' in config and config['TRIMMOMATIC_minlen'] is not None:
+#    read_min_len = config['TRIMMOMATIC_minlen']
 
 
 ##############################################
 # BWA for host genome filtering
 ##############################################
 
-if config['BWA_host_threads'] is None:
-    print('ERROR in ', config_path, ': BWA_host_threads variable is empty. Please, complete ', config_path)
-elif type(config['BWA_host_threads']) != int:
-    print('ERROR in ', config_path, ': BWA_host_threads variable is not an integer. Please, complete ', config_path)
+validate_required_key(config, 'BWA_host_threads')
 
 ##############################################
 # taxonomy
 ##############################################
 
-TAXA_threads=1
-if config['TAXA_threads'] is None:
-    print('ERROR in ', config_path, ': TAXA_threads variable is empty. Please, complete ', config_path)
-elif type(config['TAXA_threads']) != int:
-    print('ERROR in ', config_path, ': TAXA_threads variable is not an integer. Please, complete ', config_path)
-else:
-    TAXA_threads=config["TAXA_threads"]
+TAXA_threads = validate_required_key(config, 'TAXA_threads')
+TAXA_memory  = validate_required_key(config, 'TAXA_memory')
 
-TAXA_memory=2
-if config['TAXA_memory'] is None:
-    print('ERROR in ', config_path, ': TAXA_memory variable is empty. Please, complete ', config_path)
-elif type(config['TAXA_memory']) != int:
-    print('ERROR in ', config_path, ': TAXA_memory variable is not an integer. Please, complete ', config_path)
-else:
-    TAXA_memory=config["TAXA_memory"]
-
+# FIX
 allowed = ('metaphlan', 'motus_rel', 'motus_raw')
 flags = [0 if x in allowed else 1 for x in config['TAXA_profiler'].split(",")]
 if sum(flags) == 0:
@@ -159,13 +130,11 @@ if sum(flags) == 0:
 else:
     print('ERROR in ', config_path, ': TAXA_profiler variable is not correct. "TAXA_profiler" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
 
-metaphlan_version = "4.1.1"
-if 'metaphlan_version' in config and config['metaphlan_version'] is not None:
-    metaphlan_version = config['metaphlan_version']
-motus_version = "3.1.0"
-if 'motus_version' in config and config['motus_version'] is not None:
-    motus_version = config['motus_version']
-motus_db_path = path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
+metaphlan_version = validate_required_key(config, 'metaphlan_version')
+motus_version     = validate_required_key(config, 'motus_version')
+
+# FIX
+motus_db_path     = path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
 if not path.exists(motus_db_path):
     motus_db_path = ""
 
@@ -184,21 +153,15 @@ for t in taxonomies:
 
 plot_args_list = list()
 
-main_factor = None
-if 'MAIN_factor' in config and config['MAIN_factor'] is not None:
-    main_factor = config['MAIN_factor']
-    plot_args_list.append('--factor ' + main_factor)
-else:
-    raise Exception(f"ERROR in {config_path}: 'MAIN_factor' variable cannot be empty.")
+main_factor = validate_required_key(config, 'MAIN_factor')
+plot_args_list.append('--factor ' + main_factor)
 
-plot_factor2 = ''
-if 'PLOT_factor2' in config and config['PLOT_factor2'] is not None:
-    plot_factor2 = config['PLOT_factor2']
+plot_factor2 = validate_optional_key(config, 'PLOT_factor2')
+if plot_factor2 is not None:
     plot_args_list.append(f"--factor2 {plot_factor2}")
 
-plot_time = ''
-if 'PLOT_time' in config and config['PLOT_time'] is not None:
-    plot_time = config['PLOT_time']
+plot_time = validate_optional_key(config, 'PLOT_time')
+if plot_time is not None:
     plot_args_list.append(f"--time {plot_time}")
 
 plot_args_str = ' '.join(plot_args_list)
@@ -208,39 +171,12 @@ plot_args_str = ' '.join(plot_args_list)
 # metaT - rRNA removal
 ##############################################
 
-sortmeRNA_db = ''
-sortmeRNA_db_idx = ''
-sortmeRNA_memory = ''
-sortmeRNA_threads = 1
 if omics == 'metaT':
-    if config['sortmeRNA_threads'] is None:
-        print('ERROR in ', config_path, ': sortmeRNA_threads variable is empty. Please, complete ', config_path)
-    elif type(config['sortmeRNA_threads']) != int:
-        print('ERROR in ', config_path, ': sortmeRNA_threads variable is not an integer. Please, complete ', config_path)
-    else:
-        sortmeRNA_threads=config["sortmeRNA_threads"]
+    sortmeRNA_threads = validate_required_key(config, 'sortmeRNA_threads')
+    sortmeRNA_memory = validate_required_key(config, 'sortmeRNA_memory')
+    sortmeRNA_db = validate_required_key(config, 'sortmeRNA_db')
+    sortmeRNA_db_idx = validate_required_key(config, 'sortmeRNA_db_idx')
 
-    if config['sortmeRNA_memory'] is None:
-        print('ERROR in ', config_path, ': sortmeRNA_memory variable is empty. Please, complete ', config_path)
-    elif type(config['sortmeRNA_memory']) != int:
-        print('ERROR in ', config_path, ': sortmeRNA_memory variable is not an integer. Please, complete ', config_path)
-    else:
-        sortmeRNA_memory=config["sortmeRNA_memory"]
-
-    if config['sortmeRNA_db'] is None:
-        print('ERROR in ', config_path, ': sortmeRNA_db variable is empty. Please, complete ', config_path)
-    elif path.exists(config['sortmeRNA_db']) is False:
-        print('ERROR in ', config_path, ': sortmeRNA_db variable path does not exit. Please, complete ', config_path)
-    else:
-        sortmeRNA_db=config["sortmeRNA_db"]
-
-    if config['sortmeRNA_db_idx'] is None:
-        print('ERROR in ', config_path, ': sortmeRNA_db_idx variable is empty. Please, complete ', config_path)
-    elif path.exists(config['sortmeRNA_db_idx']) is False:
-        print('WARNING in ', config_path, ': sortmeRNA_db_idx variable path does not exit. Indexed SortMeRNA database will be generated in', config['sortmeRNA_db_idx'])
-        sortmeRNA_db_idx=config["sortmeRNA_db_idx"]
-    else:
-        sortmeRNA_db_idx=config["sortmeRNA_db_idx"]
 
 ##############################################
 # Metaphlan DB version
@@ -251,11 +187,9 @@ with open(minto_dir + "/data/metaphlan/" + metaphlan_version + "/mpa_latest", 'r
 ##############################################
 # Co-assembly grouping variable
 ##############################################
-coas_factor = None
-if "COAS_factor" in config and config['COAS_factor'] is not None:
-    coas_factor = config['COAS_factor']
-else:
-    #raise Exception(f"ERROR in {config_path}: "COAS_factor" variable cannot be empty.")
+
+coas_factor = validate_optional_key(config, 'COAS_factor')
+if coas_factor is None:
     coas_factor = main_factor
 
 # Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
