@@ -62,6 +62,53 @@ import os
 # when running without --cluster, if you define CLUSTER_NODES with just your exec node's name.
 ################################################################################################
 
+#################
+# First, make the index
+#################
+
+# Memory requirements:
+# --------------------
+# Baseline    : 5 GB
+# Size-based  : 22 byte per byte file size
+# New attempts: +40 GB each time
+rule BWA_index_in_place:
+    input:
+        fasta="{somewhere}/{something}.{fasta}"
+    output:
+        "{somewhere}/BWA_index/{something}.{fasta}.0123",
+        "{somewhere}/BWA_index/{something}.{fasta}.amb",
+        "{somewhere}/BWA_index/{something}.{fasta}.ann",
+        "{somewhere}/BWA_index/{something}.{fasta}.bwt.2bit.64",
+        "{somewhere}/BWA_index/{something}.{fasta}.pac",
+    log:
+        "{somewhere}/BWA_index/BWA_index.{something}.{fasta}.log"
+    wildcard_constraints:
+        fasta     = 'fasta|fna',
+        something = '[^/]+'
+    shadow:
+        "minimal"
+    resources:
+        mem = lambda wildcards, input, attempt: 5 + int(22*input.size_mb/1024) + 40*(attempt-1),
+    threads: 4
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
+    shell:
+        """
+        outdir=$(dirname {output[0]})
+        prefix=$(basename {input})
+        time (
+            bwa-mem2 index {input.fasta} -p $prefix
+            echo "NODE: $(hostname)"
+            echo "SENDING:"
+            echo "$(pwd)/$prefix --> $outdir"
+            rsync -av --itemize-changes $prefix.* $outdir/
+        ) >& {log}
+        """
+
+####################################################################
+# If 'BWA_index_local/*' is requested, then distribute to all nodes
+####################################################################
+
 if CLUSTER_WORKLOAD_MANAGER is not None:
     known_managers = ['SLURM', 'PBS', 'TORQUE', 'SGE', 'LSF']
     if CLUSTER_WORKLOAD_MANAGER.upper() not in known_managers:
@@ -73,57 +120,8 @@ if CLUSTER_NODES is not None:
     if CLUSTER_WORKLOAD_MANAGER is None or CLUSTER_LOCAL_DIR is None:
         raise Exception(f"MIntO error: CLUSTER_WORKLOAD_MANAGER and CLUSTER_LOCAL_DIR must be defined, if CLUSTER_NODES is defined")
 
-    # Baseline    : 5 GB
-    # Size-based  : 22 byte per byte file size
-    # New attempts: +40 GB each time
-    # Outputs in CLUSTER_LOCAL_DIR are also included here, so that when snakemake timestamps
-    # all output files at the end of the rule, local & nfs files have the same timestamp.
-    # This will avoid the original node making the index re-downloading the file with rsync.
-    # This also needs the rule to be a localrule.
-    # Note: wildcards.somewhere might have a leading '/', which will cause double '/' warning
-    #       from snakemake, but you can ignore this specific warning if it was for BWA index files.
-    rule BWA_index_contigs_nfs:
-        localrule: True
-        input:
-            fasta="{somewhere}/{something}.{fasta}"
-        output:
-            "{somewhere}/BWA_index/{something}.{fasta}.0123",
-            "{somewhere}/BWA_index/{something}.{fasta}.amb",
-            "{somewhere}/BWA_index/{something}.{fasta}.ann",
-            "{somewhere}/BWA_index/{something}.{fasta}.bwt.2bit.64",
-            "{somewhere}/BWA_index/{something}.{fasta}.pac",
-            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.0123",
-            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.amb",
-            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.ann",
-            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.bwt.2bit.64",
-            f"{CLUSTER_LOCAL_DIR}/{{somewhere}}/BWA_index/{{something}}.{{fasta}}.pac",
-        log:
-            "{somewhere}/BWA_index/BWA_index.{something}.{fasta}.log"
-        wildcard_constraints:
-            fasta     = 'fasta|fna',
-            something = '[^/]+'
-        resources:
-            mem = lambda wildcards, input, attempt: 5 + int(22*input.size_mb/1024) + 40*(attempt-1),
-        threads: 4
-        conda:
-            config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
-        shell:
-            """
-            outdir=$(dirname {output[0]})
-            umask 002 && mkdir -p {CLUSTER_LOCAL_DIR}/$outdir
-            cd {CLUSTER_LOCAL_DIR}/$outdir
-            prefix=$(basename {input})
-            time (
-                bwa-mem2 index {input.fasta} -p $prefix
-                echo "NODE: $(hostname)"
-                echo "SENDING:"
-                echo "$(pwd)/$prefix --> $outdir"
-                rsync -av --itemize-changes $prefix.* $outdir/
-            ) >& {log}
-            """
-
     # If the index files exist, create a clustersync file to register a node
-    rule prepare_files_for_syncing:
+    rule prepare_index_files_for_syncing:
         localrule: True
         input:
             "{somewhere}/BWA_index/{something}.{fasta}.0123",
@@ -173,14 +171,14 @@ if CLUSTER_NODES is not None:
             time (
                 echo "TARGET NODE: {wildcards.node}"
                 echo "ACTUAL NODE: $actual_node"
-                echo "SYNC'N FILE: {wildcards.somefasta}.* --> {CLUSTER_LOCAL_DIR}"
+                echo "SYNC'N FILE: {wildcards.somefasta}.* --> {CLUSTER_LOCAL_DIR}/$path/"
                 flock --exclusive --nonblock {CLUSTER_LOCAL_DIR}/{wildcards.somefasta}.synch.lock rsync -av --itemize-changes {wildcards.somefasta}.{{0123,amb,ann,bwt.2bit.64,pac}} {CLUSTER_LOCAL_DIR}/$path/ && touch {wildcards.somefasta}.clustersync/${{actual_node}}.synched
                 echo " DONE"
             ) >& {log}
             """
 
     # If synch-done status is available for all nodes, then symlink an NFS location to index files on local disk
-    rule BWA_index_contigs:
+    rule symlink_local_index_files_to_target:
         localrule: True
         input:
             lambda wildcards: expand("{somewhere}/BWA_index/{something}.{fasta}.clustersync/{node}.synched",
@@ -278,40 +276,4 @@ if CLUSTER_NODES is not None:
 
             # Touch output
             touch {output}
-            """
-
-else:
-
-    # Baseline    : 5 GB
-    # Size-based  : 22 byte per byte file size
-    # New attempts: +40 GB each time
-    rule BWA_index_contigs:
-        input:
-            fasta="{somewhere}/{something}.{fasta}"
-        output:
-            "{somewhere}/BWA_index/{something}.{fasta}.0123",
-            "{somewhere}/BWA_index/{something}.{fasta}.amb",
-            "{somewhere}/BWA_index/{something}.{fasta}.ann",
-            "{somewhere}/BWA_index/{something}.{fasta}.bwt.2bit.64",
-            "{somewhere}/BWA_index/{something}.{fasta}.pac",
-        log:
-            "{somewhere}/BWA_index/BWA_index.{something}.{fasta}.log"
-        wildcard_constraints:
-            fasta     = 'fasta|fna',
-            something = '[^/]+'
-        shadow:
-            "minimal"
-        resources:
-            mem = lambda wildcards, input, attempt: 5 + int(22*input.size_mb/1024) + 40*(attempt-1),
-        threads: 4
-        conda:
-            config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
-        shell:
-            """
-            outdir=$(dirname {output[0]})
-            prefix=$(basename {input})
-            time (
-                bwa-mem2 index {input.fasta} -p $prefix
-                rsync -av --itemize-changes $prefix.* $outdir/
-            ) >& {log}
             """
