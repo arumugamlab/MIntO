@@ -546,7 +546,6 @@ rule gene_catalog_mapping_profiling:
         fwd=get_fwd_files_only,
         rev=get_rev_files_only,
     output:
-        filtered=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.bam",
         bwa_log=    "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.log",
         profile_tpm="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
         map_profile="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz"
@@ -597,7 +596,6 @@ __EOM__
 
             # rsync outputs to output dir
             parallel --jobs {threads} <<__EOM__
-rsync -a aligned.bam {output.filtered}
 rsync -a profile.TPM.txt.gz {output.profile_tpm}
 rsync -a profile.abund.all.txt.gz {output.map_profile}
 __EOM__
