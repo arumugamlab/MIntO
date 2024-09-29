@@ -505,55 +505,6 @@ __EOM__
         ) >& {log}
         """
 
-#########################
-# Calculate readcount from bedtools when bam file already exists
-#########################
-
-# Ideally, bedtools multicov is run in the same rule as bwa-mapping to avoid reading BAM file over NFS.
-# However, if the BAM file exists already, just running bedtools on the BAM files on NFS will be faster.
-# I have currently disabled this competition between the rules for making 'bed.gz' by renaming output file.
-# Could be turned back on in the future.
-
-ruleorder: gene_abund_compute > genome_mapping_profiling
-
-rule gene_abund_compute:
-    input:
-        bam=     "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
-        index=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
-        bed_mini="{wd}/DB/{minto_mode}/{minto_mode}-genes.bed.mini"
-    output:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.gene_abundances.p{identity}.bed.gz2"
-    shadow:
-        "minimal"
-    params:
-        sample_alias=lambda wildcards: sample2alias[wildcards.sample],
-    log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.gene_abundances.p{identity}.log"
-    threads: 1
-    resources:
-        mem=5
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #bedtools
-    shell:
-        """
-        time (
-            # Random sleep to avoid choking NFS
-            sleep $((1 + $RANDOM % 120))
-
-            # Rsync input files
-            rsync -a {input.bam} in.bam
-            rsync -a {input.index} in.bam.bai
-            rsync -a {input.bed_mini} in.bed
-
-            # Do the calculation
-            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
-            bedtools multicov -bams in.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
-
-            # Rsync output files
-            rsync -a out.bed.gz {output.absolute_counts}
-        ) >& {log}
-        """
-
 ###############################################################################################
 # MIntO mode: catalog
 ###############################################################################################
@@ -788,7 +739,7 @@ ___EOF___
 ############################
 
 # Merge individual bedtools multicov BED files from genome mapping
-# We don't set '--zeroes' because rule 'gene_abund_compute' removed all zero entries in individual BED files.
+# We don't set '--zeroes' because rule 'genome_mapping_profiling' removed all zero entries in individual BED files.
 # Memory is estimated based on a regression using 9Gb metagenomes.
 
 rule merge_gene_abund:
