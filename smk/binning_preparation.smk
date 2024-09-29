@@ -367,7 +367,7 @@ rule map_contigs_BWA_depth_coverM:
     params:
         map_threads = config['BWA_threads'],
         samtools_sort_threads = 3,
-        coverm_threads = min(int(config['BWA_threads']), 8),
+        coverm_threads = lambda wildcards, threads: min(threads, 8),
     log:
         "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.{min_length}.batch{batch}.bwa2.log"
     resources:
