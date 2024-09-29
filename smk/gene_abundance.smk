@@ -401,7 +401,7 @@ def get_genome_bwa_index(wildcards):
 
 #########################
 # Map reads using BWA2, profile using msamtools, sort bam file, and create gene-level BED file.
-# Mapping and computation of read counts using bedtools multicov are done in the same rule.
+# Mapping and computation of read counts using samtools bedcov are done in the same rule.
 # Mapping and sorting are in separate processes, so they don't need to share memory.
 # Memory estimates:
 # 1. bwa-mem2 mem
@@ -434,6 +434,8 @@ rule genome_mapping_profiling:
         length = config["msamtools_filter_length"],
         mapped_reads_threshold = config["MIN_mapped_reads"],
         sort_threads = 3,
+        bedcov_threads = lambda wildcards, threads: min(10, threads),
+        bedcov_lines = 500000,
         sample_alias = lambda wildcards: sample2alias[wildcards.sample],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
@@ -466,7 +468,8 @@ rule genome_mapping_profiling:
 
         # Estimate samtools sort memory
         sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))
-        echo "Using $sort_memory GB memory per thread for samtools sort"
+        echo "Using {params.sort_threads} threads and $sort_memory GB memory per thread for 'samtools sort'"
+        echo "Using {params.bedcov_threads} threads and {params.bedcov_lines} lines per batch-file for 'samtools bedcov'"
 
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                     msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
@@ -485,19 +488,19 @@ msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=p
 samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m ${{sort_memory}}G --output-fmt=BAM
 __EOM__
 
-            # Use bedtools multicov to generate read-counts per gene
+            # Use samtools bedcov to generate read-counts per gene
             # 1. Index sorted.bam file
-            # 2. Enable parallelization by splitting the BED file into smaller files and then giving it to bedtools
-            #    a. Create smaller bed files with 10000 lines each, like x0000000.bedsub, x0000001.bedsub, ...
+            # 2. Enable parallelization by splitting the BED file into smaller files and then giving it to samtools bedcov
+            #    a. Create smaller bed files with {params.bedcov_lines} lines each, like x0000000.bedsub, x0000001.bedsub, ...
             #    b. Send 'ls' output to GNU parallel to process these smaller BED files.
 
             parallel --jobs {threads} <<__EOM__
 samtools index sorted.bam sorted.bam.bai -@ {threads}
-split -d --suffix-length=7 --additional-suffix=.bedsub --lines=10000 {input.bed_mini}
+split -d --suffix-length=7 --additional-suffix=.bedsub --lines={params.bedcov_lines} {input.bed_mini}
 __EOM__
 
             # Pipe it to parallel
-            time (ls | grep -E '\.bedsub$' | parallel --jobs {threads} --plus "bedtools multicov -bams sorted.bam -bed {{}} | cut -f4- | (grep -v $'\\t0$' || true) > {{.}}.bed.part")
+            time (ls | grep -E '\.bedsub$' | parallel --jobs {params.bedcov_threads} --plus "samtools bedcov -c -g SECONDARY {{}} sorted.bam | cut -f4,5,7 | (grep -v $'\\t0$' || true) > {{.}}.bed.part")
             (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}'; cat *.bed.part) | gzip -c > out.bed.gz
 
             # Rsync output bed file
@@ -733,10 +736,10 @@ ___EOF___
         """
 
 ############################
-# Merge bedtools profiles
+# Merge bedcov profiles
 ############################
 
-# Merge individual bedtools multicov BED files from genome mapping
+# Merge individual bedcov BED files from genome mapping
 # We don't set '--zeroes' because rule 'genome_mapping_profiling' removed all zero entries in individual BED files.
 # Memory is estimated based on a regression using 9Gb metagenomes.
 
