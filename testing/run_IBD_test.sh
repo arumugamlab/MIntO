@@ -54,8 +54,8 @@ fi
 
 # Set up cluster definition
 
-sed -i -e "s/CLUSTER_WORKLOAD_MANAGER.*/CLUSTER_WORKLOAD_MANAGER = 'slurm'/" $MINTO_DIR/site/cluster_def.py
-sed -i -e "s^CLUSTER_LOCAL_DIR.*^CLUSTER_LOCAL_DIR = '/scratch/MIntO/mirror'^" $MINTO_DIR/site/cluster_def.py
+sed -i -e "s%^CLUSTER_WORKLOAD_MANAGER.*%CLUSTER_WORKLOAD_MANAGER = 'slurm'%" $MINTO_DIR/site/cluster_def.py
+sed -i -e "s%^CLUSTER_LOCAL_DIR.*%CLUSTER_LOCAL_DIR = '/scratch/MIntO/mirror'%" $MINTO_DIR/site/cluster_def.py
 
 # Record the snakemake commands that have been run
 
