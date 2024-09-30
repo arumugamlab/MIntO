@@ -411,7 +411,7 @@ def get_genome_bwa_index(wildcards):
 #   But we recommend at least 5GB per thread, even if the database is smaller.
 #   That's where the 'mem = max(3*5, x)' comes from.
 #   And, for whatever reason, 'samtools sort' uses ~10% more memory than what you allocated, so we adjust for this behavior.
-#   That's where the 0.9 in 'sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))' comes from.
+#   That's where the 0.9 in 'sort_memory=$((9*{resources.mem}/{resources.sort_threads}/10))' comes from.
 #########################
 
 rule genome_mapping_profiling:
@@ -433,8 +433,6 @@ rule genome_mapping_profiling:
     params:
         length = config["msamtools_filter_length"],
         mapped_reads_threshold = config["MIN_mapped_reads"],
-        sort_threads = 3,
-        bedcov_threads = lambda wildcards, threads: min(10, threads),
         bedcov_lines = 500000,
         sample_alias = lambda wildcards: sample2alias[wildcards.sample],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
@@ -446,6 +444,8 @@ rule genome_mapping_profiling:
     threads:
         config["BWA_threads"]
     resources:
+        sort_threads = 3,
+        bedcov_threads = lambda wildcards, threads: min(10, threads),
         mem = lambda wildcards, input, attempt: max(3*5, 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9)) + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl + parallel
@@ -467,9 +467,9 @@ rule genome_mapping_profiling:
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
 
         # Estimate samtools sort memory
-        sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))
-        echo "Using {params.sort_threads} threads and $sort_memory GB memory per thread for 'samtools sort'"
-        echo "Using {params.bedcov_threads} threads and {params.bedcov_lines} lines per batch-file for 'samtools bedcov'"
+        sort_memory=$((9*{resources.mem}/{resources.sort_threads}/10))
+        echo "Using {resources.sort_threads} threads and $sort_memory GB memory per thread for 'samtools sort'"
+        echo "Using {resources.bedcov_threads} threads and {params.bedcov_lines} lines per batch-file for 'samtools bedcov'"
 
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                     msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
@@ -477,7 +477,7 @@ rule genome_mapping_profiling:
             #echo $total_reads
 
             # Run multiple msamtools modes + samtools sort in parallel using GNU parallel.
-            # We need 4 threads for msamtools and '$sort_threads' threads for samtools sort.
+            # We need 4 threads for msamtools and {resources.sort_threads} threads for samtools sort.
             # We cap it by 'threads' limit to parallel.
             common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
             parallel --jobs {threads} <<__EOM__
@@ -485,7 +485,7 @@ msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=a
 msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
 msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
 msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=prop --unit=rel           --genome {input.genome_def}
-samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m ${{sort_memory}}G --output-fmt=BAM
+samtools sort aligned.bam -o sorted.bam -@ {resources.sort_threads} -m ${{sort_memory}}G --output-fmt=BAM
 __EOM__
 
             # Use samtools bedcov to generate read-counts per gene
@@ -500,7 +500,7 @@ split -d --suffix-length=7 --additional-suffix=.bedsub --lines={params.bedcov_li
 __EOM__
 
             # Pipe it to parallel
-            time (ls | grep -E '\.bedsub$' | parallel --jobs {params.bedcov_threads} --plus "samtools bedcov -c -g SECONDARY {{}} sorted.bam | cut -f4,5,7 | (grep -v $'\\t0$' || true) > {{.}}.bed.part")
+            time (ls | grep -E '\.bedsub$' | parallel --jobs {resources.bedcov_threads} --plus "samtools bedcov -c -g SECONDARY {{}} sorted.bam | cut -f4,5,7 | (grep -v $'\\t0$' || true) > {{.}}.bed.part")
             (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}'; cat *.bed.part) | gzip -c > out.bed.gz
 
             # Rsync output bed file
