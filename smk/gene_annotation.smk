@@ -275,7 +275,7 @@ rule rename_prokka_sequences:
         "{wd}/logs/DB/{minto_mode}/{genome}.rename_prokka.log"
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
+        config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed from bedops
     shell:
         """
         time (
