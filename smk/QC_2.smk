@@ -566,7 +566,7 @@ if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != No
             "minimal"
         wildcard_constraints:
             merged_sample = '|'.join(merged_illumina_samples.keys()),
-            location='5-1-sortmerna|4-hostfree'
+            location      = r'5-1-sortmerna|4-hostfree'
         shell:
             """
             cat {input.fastq} > combined.fq.gz
@@ -634,7 +634,7 @@ rule metaphlan_combine_profiles:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table_species.txt",
     wildcard_constraints:
-        taxonomy='metaphlan'
+        taxonomy = r'metaphlan'
     threads: 1
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}.{version}_combine.log"
@@ -710,7 +710,7 @@ rule motus_combine_profiles:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
         species="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table_species.txt",
     wildcard_constraints:
-        taxonomy='motus_(raw|rel)'
+        taxonomy = r'motus_(raw|rel)'
     params:
         motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else "",
         cut_fields='1,3-',
@@ -736,7 +736,7 @@ rule plot_taxonomic_profile:
         pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.PCoA.Bray_Curtis.pdf",
         barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.Top15genera.pdf",
     wildcard_constraints:
-        taxonomy='motus_(raw|rel)|metaphlan'
+        taxonomy = r'motus_(raw|rel)|metaphlan'
     params:
         plot_args=plot_args_str
     threads: 1
@@ -851,7 +851,7 @@ rule plot_sourmash_kmers:
         barplot="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.clusters.pdf",
         tsv="{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.sourmash_clusters.tsv"
     wildcard_constraints:
-        omics='metaG|metaT'
+        omics = r'metaG|metaT'
     params:
         cutoff=config['SOURMASH_cutoff'],
         plot_args=plot_args_str

@@ -357,7 +357,7 @@ rule make_merged_genome_fna:
     log:
         "{wd}/logs/DB/{minto_mode}/{minto_mode}.merge_genome.log"
     wildcard_constraints:
-        minto_mode='MAG|refgenome'
+        minto_mode = r'MAG|refgenome'
     shell:
         """
         time (
@@ -439,8 +439,8 @@ rule genome_mapping_profiling:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}.map_profile.log"
     wildcard_constraints:
-        identity=r'\d+',
-        minto_mode='MAG|refgenome'
+        identity   = r'\d+',
+        minto_mode = r'MAG|refgenome'
     threads:
         config["BWA_threads"]
     resources:
@@ -562,7 +562,7 @@ rule gene_catalog_mapping_profiling:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}_bwa.log"
     wildcard_constraints:
-        minto_mode='catalog'
+        minto_mode = r'catalog'
     threads:
         config["BWA_threads"]
     resources:
@@ -666,8 +666,8 @@ rule merge_msamtools_profiles:
         mem=30
     threads: lambda wildcards,input: min(10, len(input.single))
     wildcard_constraints:
-        filename='gene_abundances|genome_abundances|contig_abundances',
-        identity='[0-9]+'
+        filename = r'gene_abundances|genome_abundances|contig_abundances',
+        identity = r'\d+',
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
@@ -691,8 +691,8 @@ rule add_annotation_to_genome_profiles:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.log"
     wildcard_constraints:
-        taxonomy='gtdb|phylophlan',
-        identity='[0-9]+'
+        taxonomy = r'gtdb|phylophlan',
+        identity = r'\d+',
     resources:
         mem=10
     conda:
@@ -822,7 +822,7 @@ rule gene_abund_normalization:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{norm}.log"
     wildcard_constraints:
-        minto_mode='MAG|refgenome'
+        minto_mode = r'MAG|refgenome'
     threads: 4
     resources:
         mem = lambda wildcards, input, attempt: 4 + 0.016*os.path.getsize(input.absolute_counts)/1e9 + 10*(attempt-1)
@@ -862,7 +862,7 @@ rule read_map_stats:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/mapping.p{identity}.read_map_stats.log"
     wildcard_constraints:
-        identity=r'\d+'
+        identity = r'\d+'
     threads: 1
     resources:
         mem=2

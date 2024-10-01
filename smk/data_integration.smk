@@ -256,7 +256,7 @@ rule integration_gene_profiles:
         gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
         gene_abund_plots=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     wildcard_constraints:
-            omics_alphabet='[ATE]',
+            omics_alphabet = r'[ATE]',
     params:
         shape_factor = f"--shape-factor {plot_factor2}" if plot_factor2 != None else '',
         label_factor = f"--label-factor {plot_time}"    if plot_time    != None else '',
@@ -368,7 +368,7 @@ if omics == 'metaG_metaT':
             FT_physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/FT.{funcat}.qs",
             FT_pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/FT.{funcat}.PCA.pdf",
         wildcard_constraints:
-            normalization='MG|TPM',
+            normalization = r'MG|TPM',
         params:
             shape_factor = f"--shape-factor {plot_factor2}" if plot_factor2 != None else '',
             label_factor = f"--label-factor {plot_time}"    if plot_time    != None else '',
@@ -433,8 +433,8 @@ else :
             physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.qs",
             pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
         wildcard_constraints:
-            normalization='MG|TPM',
-            omics_prof='A|T'
+            normalization = r'MG|TPM',
+            omics_prof    = r'[AT]'
         params:
             shape_factor = f"--shape-factor {plot_factor2}" if plot_factor2 != None else '',
             label_factor = f"--label-factor {plot_time}"    if plot_time    != None else '',

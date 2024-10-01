@@ -293,8 +293,8 @@ checkpoint make_assembly_batches:
     log:
         "{wd}/logs/{omics}/8-1-binning/scaffolds_{scaf_type}.{min_length}.batching.log"
     wildcard_constraints:
-        min_length = '\d+',
-        scaf_type  = 'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
+        min_length = r'\d+',
+        scaf_type  = r'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
     resources:
         mem = 5
     params:
@@ -368,8 +368,8 @@ rule map_contigs_BWA_depth_coverM:
     log:
         "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.{min_length}.batch{batch}.bwa2.log"
     wildcard_constraints:
-        batch='\d+',
-        illumina='[^/]+'
+        batch    = r'\d+',
+        illumina = r'[^/]+'
     resources:
         samtools_sort_threads = 3,
         map_threads = lambda wildcards, threads: max(1, threads - 3),
@@ -410,7 +410,7 @@ rule combine_contig_depths_for_batch:
     log:
         "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.log"
     wildcard_constraints:
-        batch='\d+',
+        batch = r'\d+',
     shadow:
         "minimal"
     resources:
@@ -526,8 +526,8 @@ rule combine_fasta_batches:
     output:
         fasta_combined="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.fasta"
     wildcard_constraints:
-        min_length = '\d+',
-        scaf_type  = 'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
+        min_length = r'\d+',
+        scaf_type  = r'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
     shadow:
         "minimal"
     params:
