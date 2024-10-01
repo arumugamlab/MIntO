@@ -275,7 +275,7 @@ rule rename_prokka_sequences:
         "{wd}/logs/DB/{minto_mode}/{genome}.rename_prokka.log"
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed
+        config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed from bedops
     shell:
         """
         time (
@@ -371,7 +371,7 @@ rule combine_individual_beds:
     shadow:
         "minimal"
     wildcard_constraints:
-        minto_mode='MAG|refgenome'
+        minto_mode = r'MAG|refgenome'
     run:
         import shutil
         process_genome_bed_list(input, 'full.bed', 'mini.bed', log)
@@ -723,7 +723,7 @@ rule combine_annotation_batches:
         "{wd}/logs/DB/{minto_mode}/combine_{annot}.log"
     localrule: True
     wildcard_constraints:
-        annot="eggNOG|kofam|dbCAN"
+        annot = r'eggNOG|kofam|dbCAN'
     shadow:
         "minimal"
     shell:

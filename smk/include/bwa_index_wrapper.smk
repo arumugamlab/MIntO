@@ -83,8 +83,8 @@ rule BWA_index_in_place:
     log:
         "{somewhere}/BWA_index/BWA_index.{something}.{fasta}.log"
     wildcard_constraints:
-        fasta     = 'fasta|fna',
-        something = '[^/]+'
+        fasta     = r'fasta|fna',
+        something = r'[^/]+'
     shadow:
         "minimal"
     resources:
@@ -135,8 +135,8 @@ if CLUSTER_NODES is not None:
             "{somewhere}/BWA_index/sync.{something}.{fasta}.{node}.log"
         wildcard_constraints:
             node      = '|'.join(CLUSTER_NODES),
-            fasta     = 'fasta|fna',
-            something = '[^/]+'
+            fasta     = r'fasta|fna',
+            something = r'[^/]+'
 
     def get_node_request_argument(node, cluster_workload_manager):
         if cluster_workload_manager.upper() == 'SLURM':
@@ -195,8 +195,8 @@ if CLUSTER_NODES is not None:
         log:
             "{somewhere}/BWA_index/symlink_local.{something}.{fasta}.log",
         wildcard_constraints:
-            fasta     = 'fasta|fna',
-            something = '[^/]+'
+            fasta     = r'fasta|fna',
+            something = r'[^/]+'
         shell:
             """
             time (
@@ -262,8 +262,8 @@ if CLUSTER_NODES is not None:
         output:
             "{somewhere}/BWA_index/{something}.{fasta}.clustersync/cleaning.done",
         wildcard_constraints:
-            fasta     = 'fasta|fna',
-            something = '[^/]+'
+            fasta     = r'fasta|fna',
+            something = r'[^/]+'
         shell:
             """
             # Delete symlinks

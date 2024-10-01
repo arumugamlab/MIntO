@@ -293,8 +293,8 @@ checkpoint make_assembly_batches:
     log:
         "{wd}/logs/{omics}/8-1-binning/scaffolds_{scaf_type}.{min_length}.batching.log"
     wildcard_constraints:
-        min_length = '\d+',
-        scaf_type  = 'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
+        min_length = r'\d+',
+        scaf_type  = r'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
     resources:
         mem = 5
     params:
@@ -353,6 +353,7 @@ def get_contig_bwa_index(wildcards):
 #   Total = BWA + Sort
 #   E.g. 25GB for BWA, 2 sort threads and 10GB per-thread = 45GB
 # If an attempt fails, 30GB extra per sort thread + 30GB extra for BWA.
+# Threads for individual tasks: Work backwards from {threads} from snakemake
 # Once mapping succeeds, run coverM to get contig depth for this bam
 
 rule map_contigs_BWA_depth_coverM:
@@ -364,13 +365,15 @@ rule map_contigs_BWA_depth_coverM:
         depth="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}/{illumina}.depth.txt.gz"
     shadow:
         "minimal"
-    params:
-        map_threads = config['BWA_threads'],
-        samtools_sort_threads = 3,
-        coverm_threads = min(int(config['BWA_threads']), 8),
     log:
         "{wd}/logs/{omics}/6-mapping/{illumina}/{illumina}.scaffolds_{scaf_type}.{min_length}.batch{batch}.bwa2.log"
+    wildcard_constraints:
+        batch    = r'\d+',
+        illumina = r'[^/]+'
     resources:
+        samtools_sort_threads = 3,
+        map_threads = lambda wildcards, threads: max(1, threads - 3),
+        coverm_threads = lambda wildcards, threads: min(8, threads),
         mem = lambda wildcards, input, attempt: int(10 + 3.1*os.path.getsize(input.bwaindex[0])/1e9 + 1.1*3*(config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1))),
         sort_mem = lambda wildcards, attempt: config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1)
     threads:
@@ -381,11 +384,11 @@ rule map_contigs_BWA_depth_coverM:
         """
         mkdir -p $(dirname {output})
         db_name=$(echo {input.bwaindex[0]} | sed "s/.0123//")
-        time (bwa-mem2 mem -P -a -t {params.map_threads} $db_name {input.fwd} {input.rev} \
+        time (bwa-mem2 mem -P -a -t {resources.map_threads} $db_name {input.fwd} {input.rev} \
                 | msamtools filter -buS -p 95 -l 45 - \
-                | samtools sort -m {resources.sort_mem}G --threads {params.samtools_sort_threads} - \
+                | samtools sort -m {resources.sort_mem}G --threads {resources.samtools_sort_threads} - \
                 > {wildcards.illumina}.bam
-              coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {params.coverm_threads} --output-file sorted.depth --bam-files {wildcards.illumina}.bam
+              coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {resources.coverm_threads} --output-file sorted.depth --bam-files {wildcards.illumina}.bam
               gzip sorted.depth
               rsync -a sorted.depth.gz {output.depth}
         ) >& {log}
@@ -404,14 +407,16 @@ rule combine_contig_depths_for_batch:
                                             illumina=ilmn_samples)
     output:
         depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.txt.gz",
+    log:
+        "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.log"
+    wildcard_constraints:
+        batch = r'\d+',
     shadow:
         "minimal"
     resources:
         mem = lambda wildcards, input: 5+len(input.depths)*0.1
     threads:
         2
-    log:
-        "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.log"
     run:
         import pandas as pd
         import hashlib
@@ -521,8 +526,8 @@ rule combine_fasta_batches:
     output:
         fasta_combined="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.fasta"
     wildcard_constraints:
-        min_length = '\d+',
-        scaf_type  = 'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
+        min_length = r'\d+',
+        scaf_type  = r'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
     shadow:
         "minimal"
     params:

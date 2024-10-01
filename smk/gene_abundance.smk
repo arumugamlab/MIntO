@@ -357,7 +357,7 @@ rule make_merged_genome_fna:
     log:
         "{wd}/logs/DB/{minto_mode}/{minto_mode}.merge_genome.log"
     wildcard_constraints:
-        minto_mode='MAG|refgenome'
+        minto_mode = r'MAG|refgenome'
     shell:
         """
         time (
@@ -401,7 +401,7 @@ def get_genome_bwa_index(wildcards):
 
 #########################
 # Map reads using BWA2, profile using msamtools, sort bam file, and create gene-level BED file.
-# Mapping and computation of read counts using bedtools multicov are done in the same rule.
+# Mapping and computation of read counts using samtools bedcov are done in the same rule.
 # Mapping and sorting are in separate processes, so they don't need to share memory.
 # Memory estimates:
 # 1. bwa-mem2 mem
@@ -411,7 +411,7 @@ def get_genome_bwa_index(wildcards):
 #   But we recommend at least 5GB per thread, even if the database is smaller.
 #   That's where the 'mem = max(3*5, x)' comes from.
 #   And, for whatever reason, 'samtools sort' uses ~10% more memory than what you allocated, so we adjust for this behavior.
-#   That's where the 0.9 in 'sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))' comes from.
+#   That's where the 0.9 in 'sort_memory=$((9*{resources.mem}/{resources.sort_threads}/10))' comes from.
 #########################
 
 rule genome_mapping_profiling:
@@ -433,17 +433,19 @@ rule genome_mapping_profiling:
     params:
         length = config["msamtools_filter_length"],
         mapped_reads_threshold = config["MIN_mapped_reads"],
-        sort_threads = 3,
+        bedcov_lines = 500000,
         sample_alias = lambda wildcards: sample2alias[wildcards.sample],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}.map_profile.log"
     wildcard_constraints:
-        identity=r'\d+',
-        minto_mode='MAG|refgenome'
+        identity   = r'\d+',
+        minto_mode = r'MAG|refgenome'
     threads:
         config["BWA_threads"]
     resources:
+        sort_threads = 3,
+        bedcov_threads = lambda wildcards, threads: min(10, threads),
         mem = lambda wildcards, input, attempt: max(3*5, 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9)) + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl + parallel
@@ -465,8 +467,9 @@ rule genome_mapping_profiling:
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
 
         # Estimate samtools sort memory
-        sort_memory=$((9*{resources.mem}/{params.sort_threads}/10))
-        echo "Using $sort_memory GB memory per thread for samtools sort"
+        sort_memory=$((9*{resources.mem}/{resources.sort_threads}/10))
+        echo "Using {resources.sort_threads} threads and $sort_memory GB memory per thread for 'samtools sort'"
+        echo "Using {resources.bedcov_threads} threads and {params.bedcov_lines} lines per batch-file for 'samtools bedcov'"
 
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                     msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
@@ -474,7 +477,7 @@ rule genome_mapping_profiling:
             #echo $total_reads
 
             # Run multiple msamtools modes + samtools sort in parallel using GNU parallel.
-            # We need 4 threads for msamtools and '$sort_threads' threads for samtools sort.
+            # We need 4 threads for msamtools and {resources.sort_threads} threads for samtools sort.
             # We cap it by 'threads' limit to parallel.
             common_args="--label {wildcards.omics}.{params.sample_alias} --total=$total_reads --mincount={params.mapped_reads_threshold} --pandas"
             parallel --jobs {threads} <<__EOM__
@@ -482,74 +485,25 @@ msamtools profile aligned.bam $common_args -o {output.raw_all_seq}     --multi=a
 msamtools profile aligned.bam $common_args -o {output.raw_prop_seq}    --multi=prop --unit=abund --nolen
 msamtools profile aligned.bam $common_args -o {output.raw_prop_genome} --multi=prop --unit=abund --nolen --genome {input.genome_def}
 msamtools profile aligned.bam $common_args -o {output.rel_prop_genome} --multi=prop --unit=rel           --genome {input.genome_def}
-samtools sort aligned.bam -o sorted.bam -@ {params.sort_threads} -m ${{sort_memory}}G --output-fmt=BAM
+samtools sort aligned.bam -o sorted.bam -@ {resources.sort_threads} -m ${{sort_memory}}G --output-fmt=BAM
 __EOM__
 
-            # Use bedtools multicov to generate read-counts per gene
+            # Use samtools bedcov to generate read-counts per gene
             # 1. Index sorted.bam file
-            # 2. Enable parallelization by splitting the BED file into smaller files and then giving it to bedtools
-            #    a. Create smaller bed files with 10000 lines each, like x0000000.bedsub, x0000001.bedsub, ...
+            # 2. Enable parallelization by splitting the BED file into smaller files and then giving it to samtools bedcov
+            #    a. Create smaller bed files with {params.bedcov_lines} lines each, like x0000000.bedsub, x0000001.bedsub, ...
             #    b. Send 'ls' output to GNU parallel to process these smaller BED files.
 
             parallel --jobs {threads} <<__EOM__
 samtools index sorted.bam sorted.bam.bai -@ {threads}
-split -d --suffix-length=7 --additional-suffix=.bedsub --lines=10000 {input.bed_mini}
+split -d --suffix-length=7 --additional-suffix=.bedsub --lines={params.bedcov_lines} {input.bed_mini}
 __EOM__
 
             # Pipe it to parallel
-            time (ls | grep -E '\.bedsub$' | parallel --jobs {threads} --plus "bedtools multicov -bams sorted.bam -bed {{}} | cut -f4- | (grep -v $'\\t0$' || true) > {{.}}.bed.part")
+            time (ls | grep -E '\.bedsub$' | parallel --jobs {resources.bedcov_threads} --plus "samtools bedcov -c -g SECONDARY {{}} sorted.bam | cut -f4,5,7 | (grep -v $'\\t0$' || true) > {{.}}.bed.part")
             (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}'; cat *.bed.part) | gzip -c > out.bed.gz
 
             # Rsync output bed file
-            rsync -a out.bed.gz {output.absolute_counts}
-        ) >& {log}
-        """
-
-#########################
-# Calculate readcount from bedtools when bam file already exists
-#########################
-
-# Ideally, bedtools multicov is run in the same rule as bwa-mapping to avoid reading BAM file over NFS.
-# However, if the BAM file exists already, just running bedtools on the BAM files on NFS will be faster.
-# I have currently disabled this competition between the rules for making 'bed.gz' by renaming output file.
-# Could be turned back on in the future.
-
-ruleorder: gene_abund_compute > genome_mapping_profiling
-
-rule gene_abund_compute:
-    input:
-        bam=     "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam",
-        index=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.sorted.bam.bai",
-        bed_mini="{wd}/DB/{minto_mode}/{minto_mode}-genes.bed.mini"
-    output:
-        absolute_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.gene_abundances.p{identity}.bed.gz2"
-    shadow:
-        "minimal"
-    params:
-        sample_alias=lambda wildcards: sample2alias[wildcards.sample],
-    log:
-        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.gene_abundances.p{identity}.log"
-    threads: 1
-    resources:
-        mem=5
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #bedtools
-    shell:
-        """
-        time (
-            # Random sleep to avoid choking NFS
-            sleep $((1 + $RANDOM % 120))
-
-            # Rsync input files
-            rsync -a {input.bam} in.bam
-            rsync -a {input.index} in.bam.bai
-            rsync -a {input.bed_mini} in.bed
-
-            # Do the calculation
-            (echo -e 'gene_length\\tID\\t{wildcards.omics}.{params.sample_alias}';
-            bedtools multicov -bams in.bam -bed in.bed | cut -f4- | grep -v $'\\t0$') | gzip -c > out.bed.gz
-
-            # Rsync output files
             rsync -a out.bed.gz {output.absolute_counts}
         ) >& {log}
         """
@@ -595,7 +549,6 @@ rule gene_catalog_mapping_profiling:
         fwd=get_fwd_files_only,
         rev=get_rev_files_only,
     output:
-        filtered=   "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.bam",
         bwa_log=    "{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.log",
         profile_tpm="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.TPM.txt.gz",
         map_profile="{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz"
@@ -609,7 +562,7 @@ rule gene_catalog_mapping_profiling:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}_bwa.log"
     wildcard_constraints:
-        minto_mode='catalog'
+        minto_mode = r'catalog'
     threads:
         config["BWA_threads"]
     resources:
@@ -646,7 +599,6 @@ __EOM__
 
             # rsync outputs to output dir
             parallel --jobs {threads} <<__EOM__
-rsync -a aligned.bam {output.filtered}
 rsync -a profile.TPM.txt.gz {output.profile_tpm}
 rsync -a profile.abund.all.txt.gz {output.map_profile}
 __EOM__
@@ -714,8 +666,8 @@ rule merge_msamtools_profiles:
         mem=30
     threads: lambda wildcards,input: min(10, len(input.single))
     wildcard_constraints:
-        filename='gene_abundances|genome_abundances|contig_abundances',
-        identity='[0-9]+'
+        filename = r'gene_abundances|genome_abundances|contig_abundances',
+        identity = r'\d+',
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
     shell:
@@ -739,8 +691,8 @@ rule add_annotation_to_genome_profiles:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.log"
     wildcard_constraints:
-        taxonomy='gtdb|phylophlan',
-        identity='[0-9]+'
+        taxonomy = r'gtdb|phylophlan',
+        identity = r'\d+',
     resources:
         mem=10
     conda:
@@ -784,11 +736,11 @@ ___EOF___
         """
 
 ############################
-# Merge bedtools profiles
+# Merge bedcov profiles
 ############################
 
-# Merge individual bedtools multicov BED files from genome mapping
-# We don't set '--zeroes' because rule 'gene_abund_compute' removed all zero entries in individual BED files.
+# Merge individual bedcov BED files from genome mapping
+# We don't set '--zeroes' because rule 'genome_mapping_profiling' removed all zero entries in individual BED files.
 # Memory is estimated based on a regression using 9Gb metagenomes.
 
 rule merge_gene_abund:
@@ -870,7 +822,7 @@ rule gene_abund_normalization:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{norm}.log"
     wildcard_constraints:
-        minto_mode='MAG|refgenome'
+        minto_mode = r'MAG|refgenome'
     threads: 4
     resources:
         mem = lambda wildcards, input, attempt: 4 + 0.016*os.path.getsize(input.absolute_counts)/1e9 + 10*(attempt-1)
@@ -910,7 +862,7 @@ rule read_map_stats:
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/mapping.p{identity}.read_map_stats.log"
     wildcard_constraints:
-        identity=r'\d+'
+        identity = r'\d+'
     threads: 1
     resources:
         mem=2
