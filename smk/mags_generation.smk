@@ -364,7 +364,7 @@ rule merge_checkm_batches:
 # ARG_MAX on our system was 2^21, and with our projects we hit it around 12,000 files.
 # Therefore, we make the list of files using 'find' and process in batches of 5000 so that ARG_MAX is not reached.
 # If this rule fails in your hands with 'cp: Argument list too long', that means that your file paths are longer than 2000 characters.
-# It is strange, but not wrong. In that case, please reduce params.batch_size=5000 below and you should be fine.
+# It is strange, but not wrong. In that case, please reduce 'params.batch_size' below from 5000 to a suitably lower value, and you should be fine.
 # Use of readarray was inspired by: https://stackoverflow.com/a/41268405
 ########################
 
