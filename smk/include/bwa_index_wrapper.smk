@@ -62,14 +62,15 @@ import os
 # when running without --cluster, if you define CLUSTER_NODES with just your exec node's name.
 ################################################################################################
 
-#################
+############################################
 # First, make the index
-#################
+# bwa-mem2 index can handle gzipped files
+############################################
 
 # Memory requirements:
 # --------------------
 # Baseline    : 5 GB
-# Size-based  : 22 byte per byte file size
+# Size-based  : 22 byte per byte file size (3x22=66 if gzipped)
 # New attempts: +40 GB each time
 rule BWA_index_in_place:
     input:
@@ -83,12 +84,12 @@ rule BWA_index_in_place:
     log:
         "{somewhere}/BWA_index/BWA_index.{something}.{fasta}.log"
     wildcard_constraints:
-        fasta     = r'fasta|fna',
+        fasta     = r'fasta|fna|fasta\.gz|fna\.gz',
         something = r'[^/]+'
     shadow:
         "minimal"
     resources:
-        mem = lambda wildcards, input, attempt: 5 + int(22*input.size_mb/1024) + 40*(attempt-1),
+        mem = lambda wildcards, input, attempt: 5 + int((66 if input.fasta.endswith('.gz') else 22)*os.path.getsize(input.fasta)/1e9) + 40*(attempt-1),
     threads: 4
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
@@ -135,7 +136,7 @@ if CLUSTER_NODES is not None:
             "{somewhere}/BWA_index/sync.{something}.{fasta}.{node}.log"
         wildcard_constraints:
             node      = '|'.join(CLUSTER_NODES),
-            fasta     = r'fasta|fna',
+            fasta     = r'fasta|fna|fasta\.gz|fna\.gz',
             something = r'[^/]+'
 
     def get_node_request_argument(node, cluster_workload_manager):
@@ -195,7 +196,7 @@ if CLUSTER_NODES is not None:
         log:
             "{somewhere}/BWA_index/symlink_local.{something}.{fasta}.log",
         wildcard_constraints:
-            fasta     = r'fasta|fna',
+            fasta     = r'fasta|fna|fasta\.gz|fna\.gz',
             something = r'[^/]+'
         shell:
             """
@@ -262,7 +263,7 @@ if CLUSTER_NODES is not None:
         output:
             "{somewhere}/BWA_index/{something}.{fasta}.clustersync/cleaning.done",
         wildcard_constraints:
-            fasta     = r'fasta|fna',
+            fasta     = r'fasta|fna|fasta\.gz|fna\.gz',
             something = r'[^/]+'
         shell:
             """
