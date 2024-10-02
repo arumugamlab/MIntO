@@ -128,7 +128,7 @@ rule all:
 ### Run Vamb
 rule run_vamb_vae:
     input:
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
                                 wd = wildcards.wd,
                                 omics = wildcards.omics,
                                 min_fasta_length = config['MIN_FASTA_LENGTH']),
@@ -169,7 +169,7 @@ rule run_vamb_vae:
 # TODO: adjust mem based on #samples or better yet #contigs. With 22M contigs, vamb uses 150G.
 rule run_vamb_aae:
     input:
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
                                 wd = wildcards.wd,
                                 omics = wildcards.omics,
                                 min_fasta_length = config['MIN_FASTA_LENGTH']),
@@ -230,12 +230,13 @@ rule vae_tsv:
         cat {input} | sed "s/^vae_//" | sort -k1,1 -k5,5nr -t '_' > {output}
         """
 
+# TODO: estimate memory requirement
 ### Select MAGs that satisfy min_fasta_length criterion
 # this is on vamb, if there are other binners, depending on the output, the bins should be processed differently
 rule make_avamb_mags:
     input:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}_clusters.tsv",
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
                                 wd = wildcards.wd,
                                 omics = wildcards.omics,
                                 min_fasta_length = config['MIN_FASTA_LENGTH']),
