@@ -395,6 +395,7 @@ rule map_contigs_BWA_depth_coverM:
         """
 
 # Combine coverM depths from individual samples
+# Ignore columns ending with '-var'
 rule combine_contig_depths_for_batch:
     input:
         depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}/{illumina}.depth.txt.gz",
@@ -429,18 +430,36 @@ rule combine_contig_depths_for_batch:
         with open(str(log), 'w') as f:
             df_list = list()
             logme(f, "INFO: reading file 0")
+
+            # Read first file into df
             df = pd.read_csv(input.depths[0], header=0, sep = "\t", memory_map=True)
-            df_list.append(df)
+
+            # Drop columns ending in '-var' as this is not used by vamb, and add to df_list
+            df_list.append(df.drop(df.filter(regex='-var$').columns, axis='columns'))
+
+            # Get md5 of first 2 columns
             md5_first = hashlib.md5(pickle.dumps(df.iloc[:, 0:2])).hexdigest() # make hash for seqname and seqlen
+
+            # Process remaining files
             for i in range(1, len(input.depths)):
                 logme(f, "INFO: reading file {}".format(i))
+
+                # Read next file
                 df = pd.read_csv(input.depths[i], header=0, sep = "\t", memory_map=True)
+
+                # Make sure md5 matches
                 md5_next = hashlib.md5(pickle.dumps(df.iloc[:, 0:2])).hexdigest()
                 if md5_next != md5_first:
                     raise Exception("combine_contig_depths_for_batch: Sequences don't match between {} and {}".format(input.depths[0], input.depths[i]))
-                df_list.append(df.drop(['contigName', 'contigLen', 'totalAvgDepth'], axis=1))
+
+                # Drop common columns and the '-var' column
+                df_list.append(df.drop(df.filter(regex='^contigName$|^contigLen$|^totalAvgDepth$|-var$').columns, axis='columns'))
+
+            # Concat df_list into single df
             logme(f, "INFO: concatenating {} files".format(len(input.depths)))
             df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
+
+            # Write output
             logme(f, "INFO: writing to temporary file")
             df.to_csv('depths.gz', sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
             logme(f, "INFO: copying to final output")
