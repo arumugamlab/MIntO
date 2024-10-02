@@ -59,6 +59,16 @@ rule get_fasta_length:
         cut -f1,2 {input} | sort -k2,2nr > {output}
         """
 
+# Open a file, possibly gzipped
+
+def open_file(filename, mode, compresslevel=2):
+    import gzip
+
+    if filename.endswith('.gz'):
+        return gzip.open(filename, mode, compresslevel=compresslevel)
+    else:
+        return open(filename, mode)
+
 def fasta_iter(infile):
     """
     Source: https://www.biostars.org/p/710/
@@ -70,7 +80,8 @@ def fasta_iter(infile):
     from itertools import groupby
 
     #first open the file outside
-    fh = open(infile)
+    fh = open_file(infile, mode='rt')
+
     # ditch the boolean (x[0]) and just keep the header or sequence since
     # we know they alternate.
     faiter = (x[1] for x in groupby(fh, lambda line: line[0] == ">"))
@@ -92,7 +103,7 @@ def filter_fasta_by_length(infile, outfile, min_length=2500):
         os.mkdir(os.path.dirname(outfile))
 
     # Open the output file
-    with open(outfile, 'w') as out:
+    with open_file(outfile, mode='wt') as out:
         # Go through the fasta file
         fiter = fasta_iter(infile)
         for entry in fiter:
@@ -110,7 +121,7 @@ def filter_fasta_list_by_length(infile_list, outfile, min_length=2500):
         os.mkdir(os.path.dirname(outfile))
 
     # Open the output file
-    with open(outfile, 'w') as out:
+    with open_file(outfile, mode='wt') as out:
         for infile in infile_list:
         # Go through the fasta file
             fiter = fasta_iter(infile)
