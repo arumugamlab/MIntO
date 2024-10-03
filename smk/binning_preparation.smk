@@ -623,10 +623,10 @@ rule check_depths:
 ### Prepare abundance.npz for avamb v4+
 # Memory requirement:
 # From regression of 'gzip -2' depth file sizes, number of samples and maxmem from GNU time:
-#    memKB = 3.335115e+5 + 1.6e-3*filesize - 3.6e+2*samples
-#    memGB = 0.33 + 1.6e-9*filesize - 3.6e-4*samples
+#    memKB = 4.336e+5 + 1.745e-3*filesize - 1.150e+3*samples
+#    memGB = 0.43 + 1.745e-9*filesize - 1.2e-3*samples
 # Ignored the negative effect of samples to err on cautious side.
-# Safely converted to 2 + int(1.6e-9*filesize)
+# Safely converted to 2 + int(1.75e-9*filesize)
 rule make_abundance_npz:
     input:
         contigs_file = rules.combine_fasta.output.fasta_combined,
@@ -645,7 +645,7 @@ rule make_abundance_npz:
     threads:
         1
     resources:
-        mem = lambda wildcards, input: 2 + int(1.6e-9*sum(os.path.getsize(f) for f in input.depths))
+        mem = lambda wildcards, input: 2 + int(1.75e-9*sum(os.path.getsize(f) for f in input.depths))
     conda:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
