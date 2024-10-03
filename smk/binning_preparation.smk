@@ -384,7 +384,7 @@ rule map_contigs_BWA_depth_coverM:
                 | samtools sort -m {resources.sort_mem}G --threads {resources.samtools_sort_threads} - \
                 > {wildcards.illumina}.bam
               coverm contig --methods metabat --trim-min 10 --trim-max 90 --min-read-percent-identity 95 --threads {resources.coverm_threads} --output-file sorted.depth --bam-files {wildcards.illumina}.bam
-              gzip sorted.depth
+              gzip -2 sorted.depth
               rsync -a sorted.depth.gz {output.depth}
         ) >& {log}
         """
@@ -456,7 +456,7 @@ rule colbind_sample_contig_depths_for_batch:
 
             # Write output
             logme(f, "INFO: writing to temporary file")
-            df.to_csv('depths.gz', sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 1})
+            df.to_csv('depths.gz', sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 2})
             logme(f, "INFO: copying to final output")
             shutil.copy2('depths.gz', output.depths)
             logme(f, "INFO: done")
@@ -527,7 +527,7 @@ rule combine_contig_depth_batches:
         if [ "{params.multi}" == "yes" ]; then
             (bash -c "zcat {input.depths[0]} | head -1";
              for file in {input.depths}; do zcat $file | tail -n +2; done
-            ) | gzip -c > combined.depth.gz
+            ) | gzip -2 -c > combined.depth.gz
             rsync -a combined.depth.gz {output.depths}
         else
             ln --symbolic --relative --force {input[0]} {output}
@@ -620,8 +620,13 @@ rule check_depths:
         fi
         """
 
-# TODO: estimate memory requirement
 ### Prepare abundance.npz for avamb v4+
+# Memory requirement:
+# From regression of 'gzip -2' depth file sizes, number of samples and maxmem from GNU time:
+#    memKB = 3.335115e+5 + 1.6e-3*filesize - 3.6e+2*samples
+#    memGB = 0.33 + 1.6e-9*filesize - 3.6e-4*samples
+# Ignored the negative effect of samples to err on cautious side.
+# Safely converted to 2 + int(1.6e-9*filesize)
 rule make_abundance_npz:
     input:
         contigs_file = rules.combine_fasta.output.fasta_combined,
@@ -639,6 +644,8 @@ rule make_abundance_npz:
         "minimal"
     threads:
         1
+    resources:
+        mem = lambda wildcards, input: 2 + int(1.6e-9*sum(os.path.getsize(f) for f in input.depths))
     conda:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
