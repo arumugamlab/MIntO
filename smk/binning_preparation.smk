@@ -20,11 +20,6 @@ use rule binning_preparation_base, binning_preparation_avamb from print_versions
 
 snakefile_name = print_versions.get_smk_filename()
 
-localrules: check_depth_batches, combine_contigs_depth_batches, combine_fasta_batches, \
-            combine_fasta, check_depths, combine_depth, config_yml_binning, \
-            make_abundance_npz
-
-#
 # configuration yaml file
 # import sys
 from os import path
@@ -396,7 +391,7 @@ rule map_contigs_BWA_depth_coverM:
 
 # Combine coverM depths from individual samples
 # Ignore columns ending with '-var'
-rule combine_contig_depths_for_batch:
+rule colbind_sample_contig_depths_for_batch:
     input:
         depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}/{illumina}.depth.txt.gz",
                                             wd = wildcards.wd,
@@ -450,7 +445,7 @@ rule combine_contig_depths_for_batch:
                 # Make sure md5 matches
                 md5_next = hashlib.md5(pickle.dumps(df.iloc[:, 0:2])).hexdigest()
                 if md5_next != md5_first:
-                    raise Exception("combine_contig_depths_for_batch: Sequences don't match between {} and {}".format(input.depths[0], input.depths[i]))
+                    raise Exception("colbind_sample_contig_depths_for_batch: Sequences don't match between {} and {}".format(input.depths[0], input.depths[i]))
 
                 # Drop common columns and the '-var' column
                 df_list.append(df.drop(df.filter(regex='^contigName$|^contigLen$|^totalAvgDepth$|-var$').columns, axis='columns'))
@@ -491,7 +486,8 @@ def get_depth_batches_for_scaf_type(wildcards):
     return(result)
 
 # Sanity check to ensure that the order of sample-depths in the depth file is the same. Otherwise binning will be wrong!
-rule check_depth_batches:
+rule check_contig_depth_batches:
+    localrule: True
     input:
         depths = get_depth_batches_for_scaf_type
     output:
@@ -511,10 +507,11 @@ rule check_depth_batches:
         fi
         """
 
-rule combine_contigs_depth_batches:
+rule combine_contig_depth_batches:
+    localrule: True
     input:
         depths = get_depth_batches_for_scaf_type,
-        ok = rules.check_depth_batches.output.ok
+        ok = rules.check_contig_depth_batches.output.ok
     output:
         depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz",
     shadow:
@@ -540,6 +537,7 @@ rule combine_contigs_depth_batches:
 
 # Combine multiple fasta files from batches into one per scaf_type
 rule combine_fasta_batches:
+    localrule: True
     input:
         fasta = get_fasta_batches_for_scaf_type
     output:
@@ -571,6 +569,7 @@ rule combine_fasta_batches:
 
 # Combine multiple fasta files into one
 rule combine_fasta:
+    localrule: True
     input:
         fasta=lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.fasta.gz",
                 wd = wildcards.wd,
@@ -599,6 +598,7 @@ rule combine_fasta:
 
 # Sanity check to ensure that the order of sample-depths in the depth file is the same. Otherwise binning will be wrong!
 rule check_depths:
+    localrule: True
     input:
         depths=lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz",
                 wd = wildcards.wd,
@@ -617,37 +617,6 @@ rule check_depths:
             # Headers were not unique. So report and set exit code for this rule to non-zero
             >&2 echo "Headers in depth files were not unique - please check depth files"
             test "1" == "2"
-        fi
-        """
-
-# Combine multiple depth files into one
-rule combine_depth:
-    input:
-        depths=lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                min_length = wildcards.min_length,
-                scaf_type = SCAFFOLDS_type),
-        depth_ok = rules.check_depths.output.ok
-    output:
-        depth_combined="{wd}/{omics}/8-1-binning/scaffolds.{min_length}.depth.txt.gz"
-    shadow:
-        "minimal"
-    params:
-        multi = lambda wildcards, input: "yes" if len(input.depths) > 1 else "no"
-    resources:
-       mem = 10
-    threads:
-        1
-    shell:
-        """
-        if [ "{params.multi}" == "yes" ]; then
-            (bash -c "zcat {input.depths[0]} | head -1";
-             for file in {input.depths}; do zcat $file | tail -n +2; done
-            ) | gzip -c > combined.depth.gz
-            rsync -a combined.depth.gz {output.depth_combined}
-        else
-            ln --symbolic --relative --force {input[0]} {output.depth_combined}
         fi
         """
 
@@ -688,6 +657,7 @@ rule make_abundance_npz:
 ###############################################################################################
 
 rule config_yml_binning:
+    localrule: True
     output:
         config_file="{wd}/{omics}/mags_generation.yaml",
     resources:
