@@ -23,6 +23,7 @@ import pandas as pd
 import time
 import yaml
 from Bio.SeqRecord import SeqRecord
+import gzip
 
 def read_params():
 	p = ap.ArgumentParser( description = ( "Given a cluster table from vamb, it retrieves the genome considereing the minimum length"),
@@ -67,18 +68,19 @@ output = args.output_folder
 discarded_genomes = args.discarded_genomes_info
 
 
-
-fasta_sequences = SeqIO.parse(open(contigs_file), "fasta")
+# create a dictionary with contigs and length
 
 dictionary_of_contigs_length = {}
 
-# create a dictionary with contigs and length
-for record in fasta_sequences:
-	contigs_name = str(record.id).split(" ")[0] # take only the name without the flag
-	sequence = record.seq
+file_opener = gzip.open if contigs_file.endswith('.gz') else open
+with file_opener(contigs_file, 'rt') as handle:
+	fasta_sequences = SeqIO.parse(handle, "fasta")
+	for record in fasta_sequences:
+		contigs_name = str(record.id).split(" ")[0] # take only the name without the flag
+		sequence = record.seq
 
-	if not contigs_name in dictionary_of_contigs_length:
-		dictionary_of_contigs_length[contigs_name] = sequence
+		if not contigs_name in dictionary_of_contigs_length:
+			dictionary_of_contigs_length[contigs_name] = sequence
 	
 # open the cluster.tsv table
 cluster_tsv = pd.read_csv(cluster_tsv, sep = "\t", names = ["bin", "contig"])

@@ -1,23 +1,32 @@
 #!/usr/bin/env Rscript
 
 library(optparse)
-library(R.utils)
-library(data.table)
-library(this.path)
-library(parallel)
-
-# Include common utility functions
-source(this.path::here('include', 'utils.R'))
-
 parser = OptionParser()
 parser = add_option(parser, c("-t", "--threads"), type="integer", default=4, help="number of threads [default: %default]")
 parser = add_option(parser, c("-m", "--memory"), type="integer", default=10, help="maximum memory to be used")
 parser = add_option(parser, c("-o", "--out"), type="character", default=NULL, help="output file")
-parser = add_option(parser, c("-i", "--input"), type="character", default=NULL, help="files to be combined")
-parser = add_option(parser, c("-k", "--keys"), type="character", default=NULL, help="columns shared across files and must be used for join")
+parser = add_option(parser, c("-i", "--input"), type="character", default=NULL, help="files to be combined; as one comma-delimited string")
+parser = add_option(parser, c("-k", "--keys"), type="character", default=NULL, help="columns shared across files and must be used for join; as one comma-delimited string")
 parser = add_option(parser, c("-z", "--zeroes"), action="store_true", default=FALSE, help="flag whether there are zeroes in the profile output that should be removed")
 
 opt = parse_args(parser)
+
+# Check required arguments
+
+if (is.null(opt$out)) {
+    print_help(parser)
+    stop("Missing required option '--out'")
+}
+if (is.null(opt$input)) {
+    print_help(parser)
+    stop("Missing required option '--input'")
+}
+if (is.null(opt$keys)) {
+    print_help(parser)
+    stop("Missing required option '--keys'")
+}
+
+# Store arguments
 
 threads_n = opt$threads
 memory_lim = opt$memory
@@ -26,8 +35,38 @@ in_files = as.list(strsplit(opt$input, ",", fixed=TRUE))[[1]]
 keys = as.vector(strsplit(opt$keys, ",", fixed=TRUE))[[1]]
 zeroes = opt$zeroes
 
+# Check input files
+
+for (f in in_files) {
+    if(!file.exists(f)) {
+        stop(sprintf("File '%s' does not exist", f))
+    }
+    if(file.access(f, 4) == -1) {
+        stop(sprintf("File '%s' cannot be read", f))
+    }
+}
+
+# Check output file
+
+if(file.access(out_file, 2) == -1) {
+    stop(sprintf("File '%s' cannot be written", f))
+}
+
+# Command line check done
+
+# Load libraries
+
+library(R.utils)
+library(data.table)
+library(this.path)
+library(parallel)
+
+# Include common utility functions
+source(this.path::here('include', 'utils.R'))
+
 setDTthreads(threads = threads_n)
 
+# Read contents of a file into data.table, remove zeroes if necessary, index by given keys, and return it
 get_dt_from_file <- function(filename, index_keys=c('ID'), remove_zeroes) {
     # Load libraries, for parallel
     library(R.utils)
@@ -69,6 +108,7 @@ secondary_keys = sort(setdiff(keys, c('ID')))
 merged_dt = NULL
 
 # Get list of DT from list of filenames
+# Use get_dt_from_file() as the workhorse
 logmsg("Reading ", length(in_files), " files using ", threads_n, " threads")
 if (threads_n > 1) {
     cluster <- makeCluster(threads_n)

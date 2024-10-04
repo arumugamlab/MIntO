@@ -128,7 +128,7 @@ rule all:
 ### Run Vamb
 rule run_vamb_vae:
     input:
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
                                 wd = wildcards.wd,
                                 omics = wildcards.omics,
                                 min_fasta_length = config['MIN_FASTA_LENGTH']),
@@ -169,7 +169,7 @@ rule run_vamb_vae:
 # TODO: adjust mem based on #samples or better yet #contigs. With 22M contigs, vamb uses 150G.
 rule run_vamb_aae:
     input:
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
                                 wd = wildcards.wd,
                                 omics = wildcards.omics,
                                 min_fasta_length = config['MIN_FASTA_LENGTH']),
@@ -230,12 +230,13 @@ rule vae_tsv:
         cat {input} | sed "s/^vae_//" | sort -k1,1 -k5,5nr -t '_' > {output}
         """
 
+# TODO: estimate memory requirement
 ### Select MAGs that satisfy min_fasta_length criterion
 # this is on vamb, if there are other binners, depending on the output, the bins should be processed differently
 rule make_avamb_mags:
     input:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}_clusters.tsv",
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta",
+        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
                                 wd = wildcards.wd,
                                 omics = wildcards.omics,
                                 min_fasta_length = config['MIN_FASTA_LENGTH']),
@@ -363,7 +364,7 @@ rule merge_checkm_batches:
 # ARG_MAX on our system was 2^21, and with our projects we hit it around 12,000 files.
 # Therefore, we make the list of files using 'find' and process in batches of 5000 so that ARG_MAX is not reached.
 # If this rule fails in your hands with 'cp: Argument list too long', that means that your file paths are longer than 2000 characters.
-# It is strange, but not wrong. In that case, please reduce params.batch_size=5000 below and you should be fine.
+# It is strange, but not wrong. In that case, please reduce 'params.batch_size' below from 5000 to a suitably lower value, and you should be fine.
 # Use of readarray was inspired by: https://stackoverflow.com/a/41268405
 ########################
 
