@@ -48,8 +48,8 @@ for (f in in_files) {
 
 # Check output file
 
-if(file.access(out_file, 2) == -1) {
-    stop(sprintf("File '%s' cannot be written", f))
+if (file.exists(out_file) && file.access(out_file, 2) == -1) {
+    stop(sprintf("Output file '%s' exists but cannot be overwritten", out_file))
 }
 
 # Command line check done
@@ -58,13 +58,15 @@ if(file.access(out_file, 2) == -1) {
 
 library(R.utils)
 library(data.table)
-library(this.path)
 library(parallel)
 
-# Include common utility functions
-source(this.path::here('include', 'utils.R'))
-
 setDTthreads(threads = threads_n)
+
+# Log progress
+
+logmsg <- function(...) {
+    message("# ", format(Sys.time(), digits=0), " - ", paste(list(...)), collapse=" ")
+}
 
 # Read contents of a file into data.table, remove zeroes if necessary, index by given keys, and return it
 get_dt_from_file <- function(filename, index_keys=c('ID'), remove_zeroes) {
