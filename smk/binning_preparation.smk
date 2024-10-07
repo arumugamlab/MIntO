@@ -401,7 +401,8 @@ rule colbind_sample_contig_depths_for_batch:
                                             batch = wildcards.batch,
                                             illumina=ilmn_samples)
     output:
-        depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.txt.gz",
+        depths = temp("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.txt.gz"),
+        header = temp("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.header.txt.gz"),
     log:
         "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.log"
     wildcard_constraints:
@@ -454,10 +455,14 @@ rule colbind_sample_contig_depths_for_batch:
             logme(f, "INFO: concatenating {} files".format(len(input.depths)))
             df = pd.concat(df_list, axis=1, ignore_index=False, copy=False, sort=False)
 
+            # Write header
+            logme(f, "INFO: writing header file")
+            df.head(0).to_csv(output.header, sep = "\t", header = True, index = False, compression={'method': 'gzip', 'compresslevel': 2})
+
             # Write output
-            logme(f, "INFO: writing to temporary file")
-            df.to_csv('depths.gz', sep = "\t", index = False, compression={'method': 'gzip', 'compresslevel': 2})
-            logme(f, "INFO: copying to final output")
+            logme(f, "INFO: writing depths to temporary file")
+            df.to_csv('depths.gz', sep = "\t", header = False, index = False, compression={'method': 'gzip', 'compresslevel': 2})
+            logme(f, "INFO: copying depth file to final output")
             shutil.copy2('depths.gz', output.depths)
             logme(f, "INFO: done")
 
@@ -465,44 +470,50 @@ rule colbind_sample_contig_depths_for_batch:
 # Combining across batches within a scaffold_type
 ##################################################
 
-def get_fasta_batches_for_scaf_type(wildcards):
-    checkpoint_output = checkpoints.make_assembly_batches.get(**wildcards).output[0]
-    result = expand("{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}.{min_length}/batch{batch}.fasta.gz",
-                    wd=wildcards.wd,
-                    omics = wildcards.omics,
-                    scaf_type = wildcards.scaf_type,
-                    min_length = wildcards.min_length,
-                    batch=glob_wildcards(os.path.join(checkpoint_output, 'batch{batch}.fasta.gz')).batch)
+def get_batches_for_scaf_type_generic(wildcards, filetype):
+    chkpnt_output = checkpoints.make_assembly_batches.get(**wildcards).output[0]
+    batches       = glob_wildcards(os.path.join(chkpnt_output, "batch{batch,\d+}.fasta.gz")).batch
+    prefix        = 'scaffolds' if (filetype == 'fasta') else 'depth'
+    result        = expand("{wd}/{omics}/8-1-binning/{prefix}_{scaf_type}.{min_length}/batch{batch}.{extension}.gz",
+                            wd = wildcards.wd,
+                            omics = wildcards.omics,
+                            prefix = prefix,
+                            scaf_type = wildcards.scaf_type,
+                            min_length = wildcards.min_length,
+                            extension = filetype,
+                            batch = batches)
     return(result)
+
+def get_fasta_batches_for_scaf_type(wildcards):
+    return(get_batches_for_scaf_type_generic(wildcards, filetype='fasta'))
 
 def get_depth_batches_for_scaf_type(wildcards):
-    checkpoint_output = checkpoints.make_assembly_batches.get(**wildcards).output[0]
-    result = expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}.depth.txt.gz",
-                    wd=wildcards.wd,
-                    omics = wildcards.omics,
-                    scaf_type = wildcards.scaf_type,
-                    min_length = wildcards.min_length,
-                    batch=glob_wildcards(os.path.join(checkpoint_output, 'batch{batch}.fasta.gz')).batch)
-    return(result)
+    return(get_batches_for_scaf_type_generic(wildcards, filetype='depth.txt'))
 
-# Sanity check to ensure that the order of sample-depths in the depth file is the same. Otherwise binning will be wrong!
-rule check_contig_depth_batches:
+def get_header_batches_for_scaf_type(wildcards):
+    return(get_batches_for_scaf_type_generic(wildcards, filetype='header.txt'))
+
+# Make one header for this scaf_type
+# Sanity check to ensure that the order of sample-depths in the per-batch depth files is the same. Otherwise binning will be wrong!
+rule combine_contig_depth_header_batches:
     localrule: True
     input:
-        depths = get_depth_batches_for_scaf_type
+        header = get_header_batches_for_scaf_type
     output:
-        ok="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batches.ok"
+        header = "{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.header.txt.gz",
     log:
         "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batches.check_depth.log"
     shell:
         """
         rm --force {output}
-        uniq_headers=$(for file in {input.depths}; do bash -c "zcat $file | head -1"; done | sort -u | wc -l)
+        uniq_headers=$(for file in {input.header}; do zcat $file; done | sort -u | wc -l)
         if [ "$uniq_headers" == "1" ]; then
-            touch {output}
+            rsync {input.header[0]} {output.header}
         else
             # Headers were not unique. So report and set exit code for this rule to non-zero
-            >&2 echo "Headers in depth files were not unique - please check depth files"
+            echo "Headers for depth files were not unique - please check depth and header files:"
+            for file in {input.header}; do zcat $file; done | sort -u
+            >&2 echo "Headers for depth files were not unique - please check depth and header files"
             test "1" == "2"
         fi
         """
@@ -511,27 +522,19 @@ rule combine_contig_depth_batches:
     localrule: True
     input:
         depths = get_depth_batches_for_scaf_type,
-        ok = rules.check_contig_depth_batches.output.ok
+        header = rules.combine_contig_depth_header_batches.output.header
     output:
-        depths="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz",
+        depths = "{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz",
     shadow:
         "minimal"
-    params:
-        multi = lambda wildcards, input: "yes" if len(input.depths) > 1 else "no"
     resources:
        mem = 10
     threads:
         1
     shell:
         """
-        if [ "{params.multi}" == "yes" ]; then
-            (bash -c "zcat {input.depths[0]} | head -1";
-             for file in {input.depths}; do zcat $file | tail -n +2; done
-            ) | gzip -2 -c > combined.depth.gz
-            rsync -a combined.depth.gz {output.depths}
-        else
-            ln --symbolic --relative --force {input[0]} {output}
-        fi
+        cat {input.depths} > combined.depth.gz
+        rsync -a combined.depth.gz {output.depths}
         """
 
 
@@ -567,15 +570,29 @@ rule combine_fasta_batches:
 # Combining across scaffold_type
 #####################################
 
+def get_files_across_scaffold_types_generic(wildcards, filetype):
+    files = expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.{extension}.gz",
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    min_length = wildcards.min_length,
+                    extension = filetype,
+                    scaf_type = SCAFFOLDS_type)
+    return(files)
+
+def get_fasta_files_across_scaffold_types(wildcards):
+    return(get_files_across_scaffold_types_generic(wildcards, 'fasta'))
+
+def get_depth_files_across_scaffold_types(wildcards):
+    return(get_files_across_scaffold_types_generic(wildcards, 'depth.txt'))
+
+def get_header_files_across_scaffold_types(wildcards):
+    return(get_files_across_scaffold_types_generic(wildcards, 'header.txt'))
+
 # Combine multiple fasta files into one
 rule combine_fasta:
     localrule: True
     input:
-        fasta=lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.fasta.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                min_length = wildcards.min_length,
-                scaf_type = SCAFFOLDS_type)
+        fasta = get_fasta_files_across_scaffold_types
     output:
         fasta_combined="{wd}/{omics}/8-1-binning/scaffolds.{min_length}.fasta.gz"
     shadow:
@@ -597,24 +614,21 @@ rule combine_fasta:
         """
 
 # Sanity check to ensure that the order of sample-depths in the depth file is the same. Otherwise binning will be wrong!
-rule check_depths:
+rule combine_contig_depth_header:
     localrule: True
     input:
-        depths=lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                min_length = wildcards.min_length,
-                scaf_type = SCAFFOLDS_type)
+        header = get_header_files_across_scaffold_types
     output:
-        ok="{wd}/{omics}/8-1-binning/depths.{min_length}.ok"
+        header = "{wd}/{omics}/8-1-binning/scaffolds.{min_length}.header.txt.gz"
     shell:
         """
         rm --force {output}
-        uniq_headers=$(for file in {input.depths}; do bash -c "zcat $file | head -1"; done | sort -u | wc -l)
+        uniq_headers=$(for file in {input.header}; do zcat $file; done | sort -u | wc -l)
         if [ "$uniq_headers" == "1" ]; then
-            touch {output}
+            rsync {input.header[0]} {output.header}
         else
             # Headers were not unique. So report and set exit code for this rule to non-zero
+            for file in {input.header}; do zcat $file; done | sort -u
             >&2 echo "Headers in depth files were not unique - please check depth files"
             test "1" == "2"
         fi
@@ -627,15 +641,12 @@ rule check_depths:
 #    memGB = 0.43 + 1.745e-9*filesize - 1.2e-3*samples
 # Ignored the negative effect of samples to err on cautious side.
 # Safely converted to 2 + int(1.75e-9*filesize)
+# Using dummy filesize value to allow --dry-run to work when files don't exist yet
 rule make_abundance_npz:
     input:
-        contigs_file = rules.combine_fasta.output.fasta_combined,
-        depths=lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                min_length = wildcards.min_length,
-                scaf_type = SCAFFOLDS_type),
-        depth_ok = rules.check_depths.output.ok
+        contigs = rules.combine_fasta.output.fasta_combined,
+        header  = rules.combine_contig_depth_header.output.header,
+        depths  = get_depth_files_across_scaffold_types,
     output:
         npz="{wd}/{omics}/8-1-binning/scaffolds.{min_length}.abundance.npz"
     log:
@@ -645,16 +656,14 @@ rule make_abundance_npz:
     threads:
         1
     resources:
-        mem = lambda wildcards, input: 2 + int(1.75e-9*sum(os.path.getsize(f) for f in input.depths))
+        mem = lambda wildcards, input: 2 + int(1.75e-9*sum((lambda file: os.path.getsize(file) if os.path.exists(file) else 1048576)(file) for file in input.depths))
     conda:
         config["minto_dir"]+"/envs/avamb.yml"
     shell:
         """
         time (
-            (bash -c "zcat {input.depths[0]} | head -1";
-             for file in {input.depths}; do zcat $file | tail -n +2; done
-            ) > combined.depth
-            python {script_dir}/make_vamb_abundance_npz.py --fasta {input.contigs_file} --jgi combined.depth --output abundance.npz --samples {ilmn_samples}
+            cat {input.header} {input.depths} > combined.depth.gz
+            python {script_dir}/make_vamb_abundance_npz.py --fasta {input.contigs} --jgi combined.depth.gz --output abundance.npz --samples {ilmn_samples}
             rsync -a abundance.npz {output.npz}
         ) >& {log}
         """
