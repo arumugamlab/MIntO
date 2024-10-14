@@ -120,6 +120,12 @@ if 'ILLUMINA' in config:
 
 # Define all the outputs needed by target 'all'
 
+def qc1_multiqc_output():
+    result = expand("{wd}/output/1-trimmed/{omics}_multiqc.html",
+                    wd = working_dir,
+                    omics = omics)
+    return(result)
+
 def qc1_read_length_cutoff_output():
     result = expand("{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf",
                     wd = working_dir,
@@ -134,6 +140,7 @@ def qc1_config_yml_output():
 
 rule all:
     input:
+        qc1_multiqc_output(),
         qc1_read_length_cutoff_output(),
         qc1_config_yml_output(),
         print_versions.get_version_output(snakefile_name)
@@ -177,6 +184,75 @@ def get_example_to_infer_index(sample):
     else:
         example_fqs = glob("{}/{}[.-_]{}".format(raw_dir, runs[0], ilmn_suffix[0]))
     return(example_fqs[0])
+
+##########
+# FastQC of the initial raw data
+##########
+
+rule initial_fastqc:
+    input:
+        unpack(get_raw_reads_for_sample_run)
+    output:
+        flag="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastqc.done",
+    params:
+        outdir="{wd}/{omics}/1-0-qc/{sample}"
+    log:
+        "{wd}/logs/{omics}/1-0-qc/{sample}_{run}_qc1_fastqc.log"
+    resources:
+        mem=4
+    threads:
+        2
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
+    shell:
+        """
+        time (
+            fastqc --noextract -f fastq -t {threads} -q -o {params.outdir} {input.read_fw} {input.read_rv} && \
+        echo "Fastqc done" > {output.flag} 
+        ) >& {log}
+        """
+
+rule qc1_fake_move_for_multiqc:
+    input:
+        fastqc_html=lambda wildcards: expand("{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastqc.done",
+                                            wd=wildcards.wd,
+                                            omics=wildcards.omics,
+                                            sample=wildcards.sample,
+                                            run=get_runs_for_sample(wildcards.sample)
+                                            )
+    output:
+        temp("{wd}/{omics}/1-0-qc/{sample}_fake.moved")
+    threads:
+        2
+    shell:
+        """
+        echo "{wildcards.sample} moved" > {output}
+        """
+
+rule qc1_create_multiqc:
+    input:
+        fqc_flag=lambda wildcards: expand("{wd}/{omics}/1-0-qc/{sample}_fake.moved",
+                                            wd=wildcards.wd,
+                                            omics=wildcards.omics,
+                                            sample=ilmn_samples
+                                            )
+    output:
+        "{wd}/output/1-trimmed/{omics}_multiqc.html"
+    params:
+        indir="{wd}/{omics}/1-0-qc",
+        outdir="{wd}/output/1-0-qc"
+    log:
+        "{wd}/logs/{omics}/1-trimmed/{omics}_multiqc.log"
+    threads:
+        2
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
+    shell:
+        """
+        time (
+            multiqc --filename {wildcards.omics}_multiqc.html --outdir {params.outdir} -d --zip-data-dir -q --no-ansi --interactive {params.indir}
+        ) >& {log}
+        """
 
 ##########
 # Index barcodes should be used for adaptor trimming
