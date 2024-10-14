@@ -121,7 +121,7 @@ if 'ILLUMINA' in config:
 # Define all the outputs needed by target 'all'
 
 def qc1_multiqc_output():
-    result = expand("{wd}/output/1-trimmed/{omics}_multiqc.html",
+    result = expand("{wd}/output/1-0-qc/{omics}_multiqc.html",
                     wd = working_dir,
                     omics = omics)
     return(result)
@@ -237,12 +237,12 @@ rule qc1_create_multiqc:
                                             sample=ilmn_samples
                                             )
     output:
-        "{wd}/output/1-trimmed/{omics}_multiqc.html"
+        "{wd}/output/1-0-qc/{omics}_multiqc.html"
     params:
         indir="{wd}/{omics}/1-0-qc",
         outdir="{wd}/output/1-0-qc"
     log:
-        "{wd}/logs/{omics}/1-trimmed/{omics}_multiqc.log"
+        "{wd}/logs/{omics}/1-0-qc/{omics}_multiqc.log"
     threads:
         2
     conda:
