@@ -313,7 +313,7 @@ checkpoint make_assembly_batches:
             print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
 
         with open(str(log), 'w') as f:
-            logme(f, "INFO: assemblies={} batch_size={}Mb".format(len(input.assemblies), batch_filesize))
+            logme(f, "INFO: assemblies={} batch_size={}Mb".format(len(input.assemblies), params.batch_filesize))
             start = 0
             batch = 1
             current_batchfilesize = 0
@@ -321,7 +321,7 @@ checkpoint make_assembly_batches:
                 current_assemblysize = os.path.getsize(input.assemblies[i]) / (1024**2)
 
                 # if adding the current assembly made batch larger than accepted, then write out batch
-                if (i and ((current_batchfilesize + current_assemblysize) > batch_filesize)) or (i+1 == len(input.assemblies)):
+                if (i and ((current_batchfilesize + current_assemblysize) > params.batch_filesize)) or (i+1 == len(input.assemblies)):
                     logme(f, "INFO: Making BATCH={} size={:.0f}Mb".format(batch, current_batchfilesize))
 
                     # take the final assembly too
