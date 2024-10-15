@@ -361,7 +361,7 @@ rule annotation_base:
     params:
         p1="|".join(["dbcan"]),
         p2="|".join(["aragorn", "barrnap", "infernal"]),
-        p3="|".join(["prodigal", "bedtools", "biopython", "blast", "hmmer", "parallel", "diamond", "mmseqs2"])
+        p3="|".join(["prodigal", "biopython", "blast", "hmmer", "parallel", "diamond", "mmseqs2"])
     resources:
         mem=1
     threads:
@@ -455,7 +455,6 @@ rule abundance_base:
         echo "bwa-mem2 v$(bwa-mem2 version 2> /dev/null)" >> $VOUT
         echo "msamtools $(msamtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
         echo "samtools $(samtools 2>&1 | grep "Version" | cut -d" " -f 2)" >> $VOUT
-        bedtools --version >> $VOUT
         touch {output}
         """
 
