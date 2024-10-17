@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+import argparse
+import os
+import sys
+
+from pyhmmer.plan7 import HMMFile
+from pyhmmer.easel import SequenceFile
+from pyhmmer import hmmsearch
+
+def open_file(fn):
+    of = sys.stdout
+    if fn != "stdout":
+        of = open(fn, "wb")
+    return of
+
+def main(args):
+    # parse and load hmm profile collection
+    hmm_obj = None
+    if os.path.exists(args.hmmfile) and os.path.isfile(args.hmmfile):
+        with HMMFile(args.hmmfile) as hmm_file:
+            hmm_obj = list(hmm_file)
+    else:
+        sys.exit("hmmfile doesn't exist")
+        
+    # digitalize the protein sequences
+    proteins_obj = None
+    if os.path.exists(args.seqdb) and os.path.isfile(args.seqdb):
+        with SequenceFile(args.seqdb, format = "fasta", digital=True) as seq_file:
+            proteins_obj = seq_file.read_block()
+    else:
+        sys.exit("seqdb doesn't exist")
+    
+    # search
+    tophits_list = list(hmmsearch(queries = hmm_obj, sequences = proteins_obj,
+     E=args.thr_E, T=args.thr_T, domE=args.domE, domT=args.domT, cpus = args.cpu))
+    
+    # write out in domtblout format
+    if args.domtblout is not None:
+        with open(args.domtblout, "wb") as f:
+            tophits_list[0].write(f, format="domains", header=True)
+            for hits in tophits_list[1:]:
+                hits.write(f, format="domains", header=False)
+    
+    if not args.output == "/dev/null":
+        f = open_file(args.output)
+        tophits_list[0].write(f, format="pfam", header=True)
+        for hits in tophits_list[1:]:
+            hits.write(f, format="pfam", header=False)
+        if args.output != "stdout":
+            f.close()
+    
+    return
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='pyhmmer implementaiton of hmmsearch')
+    parser.add_argument("hmmfile", help="hmm query")
+    parser.add_argument("seqdb", help="protein sequence fasta file")
+    parser.add_argument("-o", default = "stdout", dest='output', help="output to file")
+    parser.add_argument("--domtblout", help="domain output file")
+    parser.add_argument("-E", type = float, default = 10.0, dest='thr_E', help="report sequences <= this E-value threshold in output")
+    parser.add_argument("-T", type = float, default = 0, dest='thr_T', help="report sequences >= this score threshold in output")
+    parser.add_argument("-domE", type = float, default = 10.0, dest='domE', help="report individual domains <= this E-value threshold in output")
+    parser.add_argument("-domT", type = float, default = 0, dest='domT', help="report individual domains >= this score threshold in output")
+    parser.add_argument("--cpu", type = int, default = 8, help="number of parallel workers to use in pool")
+    
+    args = parser.parse_args()
+    
+    main(args)
