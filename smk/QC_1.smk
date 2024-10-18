@@ -75,6 +75,17 @@ ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
 if 'ILLUMINA_suffix' in config and config["ILLUMINA_suffix"] is not None:
     ilmn_suffix = config["ILLUMINA_suffix"]
 
+def sample_existence_check(top_raw_dir, sample_id, organisation_type = "folder"):
+    if organisation_type == "folder":
+        location = "{}/{}".format(top_raw_dir, sample_id)
+        if path.exists(location):
+            return(True)
+    else:
+        sample_pattern = "{}/{}[.-_]{}".format(top_raw_dir, sample_id, ilmn_suffix[0])
+        if glob(sample_pattern):
+            return(True)
+    return(False)
+
 # Make list of illumina samples, if ILLUMINA in config
 ilmn_samples = list()
 ilmn_samples_organisation = "folder"
@@ -103,20 +114,21 @@ if 'ILLUMINA' in config:
             md_df = pd.read_table(metadata)
             if not col_name in md_df.columns:
                 raise Exception(f"ERROR in {config_path}: column name specified for ILLUMINA does not exist in metadata or runs sheet. Please, complete {config_path}")
-            for sampleid in md_df[col_name].to_list():
-                sample_pattern = "{}/{}[.-_]{}".format(raw_dir, sampleid, ilmn_suffix[0])
-                if glob(sample_pattern) and sampleid not in ilmn_samples:
+            sampleid_list = md_df[col_name].to_list()
+            if sample_existence_check(raw_dir, sampleid_list[0]):
+                ilmn_samples_organisation = "folder"
+            for sampleid in sampleid_list:
+                if sample_existence_check(raw_dir, sampleid, ilmn_samples_organisation) and sampleid not in ilmn_samples:
                     ilmn_samples.append(sampleid)
                 else:
-                    raise Exception(f"ERROR: {sample_pattern} not in bulk data folder {raw_dir}")
+                    raise Exception(f"ERROR: {sampleid} not in raw data folder {raw_dir}")
     # listed samples
     else:
         for ilmn in config["ILLUMINA"]:
-            location = "{}/{}".format(raw_dir, ilmn)
-            if path.exists(location):
+            if sample_existence_check(raw_dir, ilmn):
                 ilmn_samples.append(ilmn)
             else:
-                raise Exception(f"ERROR: {location} in raw_dir does not exist. Please, locate {ilmn}")
+                raise Exception(f"ERROR: {ilmn} folder in raw_dir does not exist.")
 
 # Define all the outputs needed by target 'all'
 
