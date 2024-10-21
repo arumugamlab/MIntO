@@ -131,12 +131,12 @@ elif config['MEGAHIT_custom'] is not None:
                 config['MEGAHIT_presets'].append(f'meta-custom-{i+1}')
 
 max_job_ram_gb = 180
-if config['MAX_RAM_GB_AVAIL'] is None:
-    print('ERROR in ', config_path, ': MAX_RAM_GB_AVAIL variable is empty. Please, complete ', config_path)
-elif type(config['MAX_RAM_GB_AVAIL']) != int:
-    print('ERROR in ', config_path, ': MAX_RAM_GB_AVAIL variable is not an integer. Please, complete ', config_path)
+if config['MAX_RAM_GB_PER_JOB'] is None:
+    print('ERROR in ', config_path, ': MAX_RAM_GB_PER_JOB variable is empty. Please, complete ', config_path)
+elif type(config['MAX_RAM_GB_PER_JOB']) != int:
+    print('ERROR in ', config_path, ': MAX_RAM_GB_PER_JOB variable is not an integer. Please, complete ', config_path)
 else:
-    max_job_ram_gb = config['MAX_RAM_GB_AVAIL']
+    max_job_ram_gb = config['MAX_RAM_GB_PER_JOB']
 
 spades_contigs_or_scaffolds = "scaffolds"
 if config['SPADES_CONTIGS_OR_SCAFFOLDS'] in ('contigs', 'contig', 'scaffolds', 'scaffold'):

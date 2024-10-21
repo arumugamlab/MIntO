@@ -987,7 +987,7 @@ SPADES_CONTIGS_OR_SCAFFOLDS: contigs
 MIN_FASTA_LENGTH: 2500
 
 # maximum available run for a job to calculate assembly batch size for mapping reads to combined contig sets
-MAX_RAM_GB_AVAIL: 180
+MAX_RAM_GB_PER_JOB: 180
 
 # Should we exclude any assembly type during MAG generation?
 # E.g., if you make MAGs from metaT, individual sample assemblies
