@@ -308,10 +308,10 @@ checkpoint make_assembly_batches:
     run:
         import datetime
         import os
-
+        
         def logme(stream, msg):
             print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
-
+            
         with open(str(log), 'w') as f:
             logme(f, "INFO: assemblies={} batch_size={}Mb".format(len(input.assemblies), params.batch_filesize))
             start = 0
@@ -319,29 +319,32 @@ checkpoint make_assembly_batches:
             current_batchfilesize = 0
             for i in range(0, len(input.assemblies)):
                 current_assemblysize = os.path.getsize(input.assemblies[i]) / (1024**2)
-
+                
                 # if adding the current assembly made batch larger than accepted, then write out batch
-                if (i and ((current_batchfilesize + current_assemblysize) > params.batch_filesize)) or (i+1 == len(input.assemblies)):
+                if (i and ((current_batchfilesize + current_assemblysize) > params.batch_filesize)):
                     logme(f, "INFO: Making BATCH={} size={:.0f}Mb".format(batch, current_batchfilesize))
-
-                    # take the final assembly too
+                    
                     end = i
-                    if (i+1 == len(input.assemblies)):
-                        end = i+1
                     # from start to end
                     batch_input  = input.assemblies[start:end]
                     batch_output = output.location + f"/batch{batch}.fasta.gz"
                     logme(f, "INFO:   INPUT ={}".format(batch_input))
                     logme(f, "INFO:   OUTPUT={}".format(batch_output))
-
+                    
                     # write out batch
                     filter_fasta_list_by_length(batch_input, batch_output, params.min_length)
-
+                    
                     # reset variables
                     start = i
                     batch += 1
                     current_batchfilesize = 0
                 current_batchfilesize += current_assemblysize
+            # last assembly and batch
+            batch_input  = input.assemblies[start:]
+            batch_output = output.location + f"/batch{batch}.fasta.gz"
+            logme(f, "INFO:   INPUT ={}".format(batch_input))
+            logme(f, "INFO:   OUTPUT={}".format(batch_output))
+            filter_fasta_list_by_length(batch_input, batch_output, params.min_length)
             logme(f, "INFO: done")
 
 ################################################################################################
