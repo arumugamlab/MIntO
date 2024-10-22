@@ -130,13 +130,16 @@ elif config['MEGAHIT_custom'] is not None:
             else:
                 config['MEGAHIT_presets'].append(f'meta-custom-{i+1}')
 
-batch_size = 100
-if config['CONTIG_MAPPING_BATCH_SIZE'] is None:
-    print('ERROR in ', config_path, ': CONTIG_MAPPING_BATCH_SIZE variable is empty. Please, complete ', config_path)
-elif type(config['CONTIG_MAPPING_BATCH_SIZE']) != int:
-    print('ERROR in ', config_path, ': CONTIG_MAPPING_BATCH_SIZE variable is not an integer. Please, complete ', config_path)
+max_job_ram_gb = 180
+if config['MAX_RAM_GB_PER_JOB'] is None:
+    raise Exception(f"ERROR in {config_path}: MAX_RAM_GB_PER_JOB variable is empty. Please, complete {config_path}")
+elif type(config['MAX_RAM_GB_PER_JOB']) != int:
+    raise Exception(f"Incorrect value for MAX_RAM_GB_PER_JOB variable (should be integer). Please fix {config_path}")
+elif config['MAX_RAM_GB_PER_JOB'] < 10:
+    print('WARNING in ', config_path, ': MAX_RAM_GB_PER_JOB variable has to be minimum 10GB. Value adjusted to 10GB.')
+    max_job_ram_gb = 10
 else:
-    batch_size = config['CONTIG_MAPPING_BATCH_SIZE']
+    max_job_ram_gb = config['MAX_RAM_GB_PER_JOB']
 
 spades_contigs_or_scaffolds = "scaffolds"
 if config['SPADES_CONTIGS_OR_SCAFFOLDS'] in ('contigs', 'contig', 'scaffolds', 'scaffold'):
@@ -280,6 +283,16 @@ def get_assemblies_for_scaf_type(wildcards):
 
     return(asms)
 
+def calculate_batch_filesize_mb(wildcards):
+    filtered_batch_size = (max_job_ram_gb-5)/22*1024
+    if wildcards.scaf_type.endswith("nanopore"):
+        # assuming that size filtering doesn't drastically reduce file size
+        return(round(filtered_batch_size))
+    else:
+        # 2500bp filtering reduces file size by approx. half,
+        # we account for lower min. length and better assemblies here
+        return(round((filtered_batch_size-50)/0.6))
+
 checkpoint make_assembly_batches:
     input:
         assemblies = get_assemblies_for_scaf_type
@@ -293,25 +306,48 @@ checkpoint make_assembly_batches:
     resources:
         mem = 5
     params:
-        min_length = lambda wildcards: wildcards.min_length
+        min_length = lambda wildcards: wildcards.min_length,
+        batch_filesize = calculate_batch_filesize_mb
     run:
         import datetime
-
+        import os
+        
         def logme(stream, msg):
             print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
-
+            
         with open(str(log), 'w') as f:
-            logme(f, "INFO: assemblies={} batch_size={}".format(len(input.assemblies), batch_size))
-            for i in range(0, len(input.assemblies), batch_size):
-                batch = 1 + int(i/batch_size)
-                logme(f, "INFO: Making BATCH={}".format(batch))
-
-                batch_input  = input.assemblies[i:i+batch_size]
-                batch_output = output.location + f"/batch{batch}.fasta.gz"
-                logme(f, "INFO:   INPUT ={}".format(batch_input))
-                logme(f, "INFO:   OUTPUT={}".format(batch_output))
-
-                filter_fasta_list_by_length(batch_input, batch_output, params.min_length)
+            logme(f, "INFO: assemblies={} batch_size={}Mb".format(len(input.assemblies), params.batch_filesize))
+            start = 0
+            batch = 1
+            current_batchfilesize = 0
+            for i in range(0, len(input.assemblies)):
+                current_assemblysize = os.path.getsize(input.assemblies[i]) / (1024**2)
+                
+                # if adding the current assembly made batch larger than accepted, then write out batch
+                if (i and ((current_batchfilesize + current_assemblysize) > params.batch_filesize)):
+                    logme(f, "INFO: Making BATCH={} size={:.0f}Mb".format(batch, current_batchfilesize))
+                    
+                    end = i
+                    # from start to end
+                    batch_input  = input.assemblies[start:end]
+                    batch_output = output.location + f"/batch{batch}.fasta.gz"
+                    logme(f, "INFO:   INPUT ={}".format(batch_input))
+                    logme(f, "INFO:   OUTPUT={}".format(batch_output))
+                    
+                    # write out batch
+                    filter_fasta_list_by_length(batch_input, batch_output, params.min_length)
+                    
+                    # reset variables
+                    start = i
+                    batch += 1
+                    current_batchfilesize = 0
+                current_batchfilesize += current_assemblysize
+            # last assembly and batch
+            batch_input  = input.assemblies[start:]
+            batch_output = output.location + f"/batch{batch}.fasta.gz"
+            logme(f, "INFO:   INPUT ={}".format(batch_input))
+            logme(f, "INFO:   OUTPUT={}".format(batch_output))
+            filter_fasta_list_by_length(batch_input, batch_output, params.min_length)
             logme(f, "INFO: done")
 
 ################################################################################################

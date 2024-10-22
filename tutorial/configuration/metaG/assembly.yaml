@@ -72,8 +72,8 @@ SPADES_CONTIGS_OR_SCAFFOLDS: contigs
 # minimum contig/scaffold fasta length
 MIN_FASTA_LENGTH: 2500
 
-# assembly batch size for mapping reads to combined contig sets
-CONTIG_MAPPING_BATCH_SIZE: 100
+# maximum available run for a job to calculate assembly batch size for mapping reads to combined contig sets
+MAX_RAM_GB_PER_JOB: 180
 
 # Should we exclude any assembly type during MAG generation?
 # E.g., if you make MAGs from metaT, individual sample assemblies

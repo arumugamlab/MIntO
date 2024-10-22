@@ -486,6 +486,7 @@ rule run_coverm:
     shell:
         """
         time (
+            export OMP_NUM_THREADS=1
             coverm cluster --genome-fasta-directory {params.HQ_folder} --checkm2-quality-report {input.checkm_HQ} -x fna --cluster-method fastani --ani 99 --fragment-length 2500 --min-aligned-fraction 30 --output-cluster-definition {output.cluster_tsv} --threads {threads} --precluster-method finch --precluster-ani 93
         ) &> {log}
         """

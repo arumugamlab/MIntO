@@ -75,6 +75,17 @@ ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
 if 'ILLUMINA_suffix' in config and config["ILLUMINA_suffix"] is not None:
     ilmn_suffix = config["ILLUMINA_suffix"]
 
+def sample_existence_check(top_raw_dir, sample_id, organisation_type = "folder"):
+    if organisation_type == "folder":
+        location = "{}/{}".format(top_raw_dir, sample_id)
+        if path.exists(location):
+            return(True)
+    else:
+        sample_pattern = "{}/{}[.-_]{}".format(top_raw_dir, sample_id, ilmn_suffix[0])
+        if glob(sample_pattern):
+            return(True)
+    return(False)
+
 # Make list of illumina samples, if ILLUMINA in config
 ilmn_samples = list()
 ilmn_samples_organisation = "folder"
@@ -103,22 +114,29 @@ if 'ILLUMINA' in config:
             md_df = pd.read_table(metadata)
             if not col_name in md_df.columns:
                 raise Exception(f"ERROR in {config_path}: column name specified for ILLUMINA does not exist in metadata or runs sheet. Please, complete {config_path}")
-            for sampleid in md_df[col_name].to_list():
-                sample_pattern = "{}/{}[.-_]{}".format(raw_dir, sampleid, ilmn_suffix[0])
-                if glob(sample_pattern) and sampleid not in ilmn_samples:
+            sampleid_list = md_df[col_name].to_list()
+            if sample_existence_check(raw_dir, sampleid_list[0]):
+                ilmn_samples_organisation = "folder"
+            for sampleid in sampleid_list:
+                if sample_existence_check(raw_dir, sampleid, ilmn_samples_organisation) and sampleid not in ilmn_samples:
                     ilmn_samples.append(sampleid)
                 else:
-                    raise Exception(f"ERROR: {sample_pattern} not in bulk data folder {raw_dir}")
+                    raise Exception(f"ERROR: {sampleid} not in raw data folder {raw_dir}")
     # listed samples
     else:
         for ilmn in config["ILLUMINA"]:
-            location = "{}/{}".format(raw_dir, ilmn)
-            if path.exists(location):
+            if sample_existence_check(raw_dir, ilmn):
                 ilmn_samples.append(ilmn)
             else:
-                raise Exception(f"ERROR: {location} in raw_dir does not exist. Please, locate {ilmn}")
+                raise Exception(f"ERROR: {ilmn} folder in raw_dir does not exist.")
 
 # Define all the outputs needed by target 'all'
+
+def qc1_multiqc_output():
+    result = expand("{wd}/output/1-0-qc/{omics}_multiqc.html",
+                    wd = working_dir,
+                    omics = omics)
+    return(result)
 
 def qc1_read_length_cutoff_output():
     result = expand("{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf",
@@ -134,6 +152,7 @@ def qc1_config_yml_output():
 
 rule all:
     input:
+        qc1_multiqc_output(),
         qc1_read_length_cutoff_output(),
         qc1_config_yml_output(),
         print_versions.get_version_output(snakefile_name)
@@ -177,6 +196,75 @@ def get_example_to_infer_index(sample):
     else:
         example_fqs = glob("{}/{}[.-_]{}".format(raw_dir, runs[0], ilmn_suffix[0]))
     return(example_fqs[0])
+
+##########
+# FastQC of the initial raw data
+##########
+
+rule initial_fastqc:
+    input:
+        unpack(get_raw_reads_for_sample_run)
+    output:
+        flag="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastqc.done",
+    params:
+        outdir="{wd}/{omics}/1-0-qc/{sample}"
+    log:
+        "{wd}/logs/{omics}/1-0-qc/{sample}_{run}_qc1_fastqc.log"
+    resources:
+        mem=4
+    threads:
+        2
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
+    shell:
+        """
+        time (
+            fastqc --noextract -f fastq -t {threads} -q -o {params.outdir} {input.read_fw} {input.read_rv} && \
+        echo "Fastqc done" > {output.flag} 
+        ) >& {log}
+        """
+
+rule qc1_fake_move_for_multiqc:
+    input:
+        fastqc_html=lambda wildcards: expand("{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastqc.done",
+                                            wd=wildcards.wd,
+                                            omics=wildcards.omics,
+                                            sample=wildcards.sample,
+                                            run=get_runs_for_sample(wildcards.sample)
+                                            )
+    output:
+        temp("{wd}/{omics}/1-0-qc/{sample}_fake.moved")
+    threads:
+        2
+    shell:
+        """
+        echo "{wildcards.sample} moved" > {output}
+        """
+
+rule qc1_create_multiqc:
+    input:
+        fqc_flag=lambda wildcards: expand("{wd}/{omics}/1-0-qc/{sample}_fake.moved",
+                                            wd=wildcards.wd,
+                                            omics=wildcards.omics,
+                                            sample=ilmn_samples
+                                            )
+    output:
+        "{wd}/output/1-0-qc/{omics}_multiqc.html"
+    params:
+        indir="{wd}/{omics}/1-0-qc",
+        outdir="{wd}/output/1-0-qc"
+    log:
+        "{wd}/logs/{omics}/1-0-qc/{omics}_multiqc.log"
+    threads:
+        2
+    conda:
+        config["minto_dir"]+"/envs/MIntO_base.yml"
+    shell:
+        """
+        time (
+            multiqc --filename {wildcards.omics}_multiqc.html --outdir {params.outdir} -d --zip-data-dir -q --no-ansi --interactive {params.indir}
+        ) >& {log}
+        """
 
 ##########
 # Index barcodes should be used for adaptor trimming

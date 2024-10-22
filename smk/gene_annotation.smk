@@ -654,8 +654,9 @@ rule gene_annot_dbcan:
         config["minto_dir"]+"/envs/gene_annotation.yml"
     shell:
         """
+        export PATH="{script_dir:q}:$PATH"
         time (
-            run_dbcan {input.faa} protein --db_dir $(dirname {input.dbcan_db}) --dia_cpu {threads} --out_pre dbcan_ --out_dir out
+            run_dbcan {input.faa} protein --db_dir $(dirname {input.dbcan_db}) --dia_cpu {threads} --hmm_cpu {threads} --out_pre dbcan_ --out_dir out
             echo -e "#Database downloaded\\t$(conda list | sed -E 's|[[:space:]]+| |g' | cut -d' ' -f 1-2 | grep -P dbcan)\\t$(stat -c '%y' {input.dbcan_db} | cut -d' ' -f 1)" > dbcan_processed.txt
             {script_dir}/process_dbcan_overview.pl out/dbcan_overview.txt >> dbcan_processed.txt
             rsync -a dbcan_processed.txt {output}
