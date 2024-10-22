@@ -132,9 +132,12 @@ elif config['MEGAHIT_custom'] is not None:
 
 max_job_ram_gb = 180
 if config['MAX_RAM_GB_PER_JOB'] is None:
-    print('ERROR in ', config_path, ': MAX_RAM_GB_PER_JOB variable is empty. Please, complete ', config_path)
+    raise Exception(f"ERROR in {config_path}: MAX_RAM_GB_PER_JOB variable is empty. Please, complete {config_path}")
 elif type(config['MAX_RAM_GB_PER_JOB']) != int:
-    print('ERROR in ', config_path, ': MAX_RAM_GB_PER_JOB variable is not an integer. Please, complete ', config_path)
+    raise Exception(f"Incorrect value for MAX_RAM_GB_PER_JOB variable (should be integer). Please fix {config_path}")
+elif config['MAX_RAM_GB_PER_JOB'] < 10:
+    print('WARNING in ', config_path, ': MAX_RAM_GB_PER_JOB variable has to be minimum 10GB. Value adjusted to 10GB.)
+    max_job_ram_gb = 10
 else:
     max_job_ram_gb = config['MAX_RAM_GB_PER_JOB']
 
@@ -280,8 +283,8 @@ def get_assemblies_for_scaf_type(wildcards):
 
     return(asms)
 
-def calculate_batch_filesize(wildcards):
-    filtered_batch_size = (max_job_ram_gb-2)/22*1024
+def calculate_batch_filesize_mb(wildcards):
+    filtered_batch_size = (max_job_ram_gb-5)/22*1024
     if wildcards.scaf_type.endswith("nanopore"):
         # assuming that size filtering doesn't drastically reduce file size
         return(round(filtered_batch_size))
@@ -304,7 +307,7 @@ checkpoint make_assembly_batches:
         mem = 5
     params:
         min_length = lambda wildcards: wildcards.min_length,
-        batch_filesize = calculate_batch_filesize
+        batch_filesize = calculate_batch_filesize_mb
     run:
         import datetime
         import os
