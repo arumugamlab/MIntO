@@ -136,7 +136,7 @@ if config['MAX_RAM_GB_PER_JOB'] is None:
 elif type(config['MAX_RAM_GB_PER_JOB']) != int:
     raise Exception(f"Incorrect value for MAX_RAM_GB_PER_JOB variable (should be integer). Please fix {config_path}")
 elif config['MAX_RAM_GB_PER_JOB'] < 10:
-    print('WARNING in ', config_path, ': MAX_RAM_GB_PER_JOB variable has to be minimum 10GB. Value adjusted to 10GB.)
+    print('WARNING in ', config_path, ': MAX_RAM_GB_PER_JOB variable has to be minimum 10GB. Value adjusted to 10GB.')
     max_job_ram_gb = 10
 else:
     max_job_ram_gb = config['MAX_RAM_GB_PER_JOB']
