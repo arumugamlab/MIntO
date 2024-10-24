@@ -270,25 +270,32 @@ def config_yaml():
                 wd = working_dir)
     return(result)
 
-def clean_bwa_index():
-    if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+# If BWA index clean-up requested, only do cleanup and nothing else
+if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+
+    print("NOTE: BWA index cleanup mode requested.")
+
+    def clean_bwa_index():
         if MINTO_MODE == 'catalog':
             return(f"{gene_catalog_path}/BWA_index/{gene_catalog_name}.clustersync/cleaning.done")
         else:
             return(f"{working_dir}/DB/{MINTO_MODE}/BWA_index/{MINTO_MODE}.fna.clustersync/cleaning.done")
-    else:
-        return([])
 
-rule all:
-    input:
-        clean_bwa_index(),
-        combined_genome_profiles_annotated(),
-        combined_genome_profiles(),
-        combined_gene_abundance_profiles(),
-        mapping_statistics(),
-        config_yaml(),
-        print_versions.get_version_output(snakefile_name)
-    default_target: True
+    rule all:
+        input:
+            clean_bwa_index()
+        default_target: True
+
+else:
+    rule all:
+        input:
+            combined_genome_profiles_annotated(),
+            combined_genome_profiles(),
+            combined_gene_abundance_profiles(),
+            mapping_statistics(),
+            config_yaml(),
+            print_versions.get_version_output(snakefile_name)
+        default_target: True
 
 ###############################################################################################
 # Functions to get samples, runs and files
