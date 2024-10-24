@@ -6,6 +6,8 @@ Config file parser
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
+import os.path
+
 ################################
 # config file name:
 # Getting the configfile's name is simple but just not obvious.
@@ -36,7 +38,7 @@ else:
 
 if config['working_dir'] is None:
     print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
-elif path.exists(config['working_dir']) is False:
+elif os.path.exists(config['working_dir']) is False:
     print('WARNING in ', config_path, ': working_dir path does not exit. The directory will be created by MIntO')
     working_dir = config['working_dir']
 else:
@@ -49,7 +51,7 @@ else:
 
 if config['minto_dir'] is None:
     print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
-elif path.exists(config['minto_dir']) is False:
+elif os.path.exists(config['minto_dir']) is False:
     print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
 else:
     minto_dir=config["minto_dir"]
@@ -62,7 +64,7 @@ elif config['METADATA'] == "None":
     print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
     metadata=config["METADATA"]
 if config['METADATA'] is not None:
-    if path.exists(config['METADATA']) is False:
+    if os.path.exists(config['METADATA']) is False:
         print('ERROR in ', config_path, ': METADATA variable path does not exit. Please, complete ', config_path)
     else:
         metadata=config["METADATA"]
