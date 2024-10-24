@@ -828,7 +828,12 @@ def get_gene_abund_normalization_input(wildcards):
                     identity = wildcards.identity)
             }
 
-# Memory requirement: estimated as 0.016 bytes per byte of input bed file
+# Memory estimates:
+# MG:  '1.157e+07 + 1.727e-02*bed - 2.122e+00*mg - 8.937e+04*samples' in memKB
+# TPM: '1.990e+06 + 1.541e-02*bed                - 1.783e+04*samples' in memKB
+# Simplified to 'ceil(1.73e-04*bed) + MG?12:2' in memGB
+# Ignore the reduction of memory per sample
+# And add 10GB with each new attempt
 rule gene_abund_normalization:
     input:
         unpack(get_gene_abund_normalization_input)
@@ -843,7 +848,7 @@ rule gene_abund_normalization:
         minto_mode = r'MAG|refgenome'
     threads: 4
     resources:
-        mem = lambda wildcards, input, attempt: 4 + math.ceil(1.6e-11*get_file_size(input.absolute_counts)) + 10*(attempt-1)
+        mem = lambda wildcards, input, attempt: (12 if wildcards.norm == 'MG' else 2) + math.ceil(1.73e-4*get_file_size(input.absolute_counts)) + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
