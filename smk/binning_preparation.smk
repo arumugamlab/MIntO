@@ -746,7 +746,6 @@ BINNERS:
 - vae384
 
 VAMB_THREADS: 20
-VAMB_memory: 40
 
 # Use GPU in VAMB:
 # could be yes or no
