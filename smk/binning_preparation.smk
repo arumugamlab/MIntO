@@ -22,7 +22,7 @@ snakefile_name = print_versions.get_smk_filename()
 
 # configuration yaml file
 # import sys
-from os import path
+import os.path
 import math
 
 # args = sys.argv
@@ -43,14 +43,14 @@ else:
 
 if config['working_dir'] is None:
     print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
-elif path.exists(config['working_dir']) is False:
+elif os.path.exists(config['working_dir']) is False:
     print('ERROR in ', config_path, ': working_dir variable path does not exit. Please, complete ', config_path)
 else:
     working_dir = config['working_dir']
 
 if config['minto_dir'] is None:
     print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
-elif path.exists(config['minto_dir']) is False:
+elif os.path.exists(config['minto_dir']) is False:
     print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
 else:
     minto_dir=config["minto_dir"]
@@ -62,7 +62,7 @@ if config['METADATA'] is None:
 elif config['METADATA'] == "None":
     print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
     metadata=config["METADATA"]
-elif path.exists(config['METADATA']) is False:
+elif os.path.exists(config['METADATA']) is False:
     print('ERROR in ', config_path, ': METADATA variable path does not exit. Please, complete ', config_path)
 else:
     metadata=config["METADATA"]
@@ -229,19 +229,40 @@ include: minto_dir + '/site/cluster_def.py'
 
 include: 'include/bwa_index_wrapper.smk'
 
+# If BWA index clean-up requested, only do cleanup and nothing else
+if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+
+    print("NOTE: BWA index cleanup mode requested.")
+
+    def clean_bwa_index():
+        # Get the cleanup flag for index files per scaf_type
+        files = expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/BWA_index.batches.cleaning.done",
+                            wd         = working_dir,
+                            omics      = config['omics'],
+                            scaf_type  = SCAFFOLDS_type,
+                            min_length = config['MIN_FASTA_LENGTH'])
+        return(files)
+
+    rule all:
+        input:
+            clean_bwa_index()
+        default_target: True
+
+else:
+
 # Define all the outputs needed by target 'all'
 
-rule all:
-    input:
-        abundance = "{wd}/{omics}/8-1-binning/scaffolds.{min_seq_length}.abundance.npz".format(
-                wd = working_dir,
-                omics = config['omics'],
-                min_seq_length = config['MIN_FASTA_LENGTH']),
-        config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
-                wd = working_dir,
-                omics = config['omics']),
-        versions = print_versions.get_version_output(snakefile_name)
-    default_target: True
+    rule all:
+        input:
+            abundance = "{wd}/{omics}/8-1-binning/scaffolds.{min_seq_length}.abundance.npz".format(
+                    wd = working_dir,
+                    omics = config['omics'],
+                    min_seq_length = config['MIN_FASTA_LENGTH']),
+            config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
+                    wd = working_dir,
+                    omics = config['omics']),
+            versions = print_versions.get_version_output(snakefile_name)
+        default_target: True
 
 ###############################################################################################
 # Filter contigs from
@@ -573,7 +594,6 @@ rule combine_contig_depth_batches:
         rsync -a combined.depth.gz {output.depths}
         """
 
-
 # Combine multiple fasta files from batches into one per scaf_type
 rule combine_fasta_batches:
     localrule: True
@@ -702,6 +722,41 @@ rule make_abundance_npz:
             python {script_dir}/make_vamb_abundance_npz.py --fasta {input.contigs} --jgi combined.depth.gz --output abundance.npz --samples {ilmn_samples}
             rsync -a abundance.npz {output.npz}
         ) >& {log}
+        """
+
+##################################################
+# Clean up BWA index files in the mirror locations
+##################################################
+
+# Get list of clean flags for cleaning up all batches for this scaf_type
+def get_flags_to_clean_bwaindex_mirror_for_scaf_type(wildcards):
+    chkpnt_output = checkpoints.make_assembly_batches.get(**wildcards).output[0]
+    batches       = glob_wildcards(os.path.join(chkpnt_output, "batch{batch,\d+}.fasta.gz")).batch
+    result        = expand("{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}.{min_length}/BWA_index/batch{batch}.fasta.gz.clustersync/cleaning.done",
+                            wd = wildcards.wd,
+                            omics = wildcards.omics,
+                            scaf_type = wildcards.scaf_type,
+                            min_length = wildcards.min_length,
+                            batch = batches)
+    return(result)
+
+# Clean BWA index for all batches for a given scaf_type
+rule clean_bwaindex_mirror_for_scaf_type:
+    localrule: True
+    input:
+        fasta = get_flags_to_clean_bwaindex_mirror_for_scaf_type
+    output:
+        temp("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/BWA_index.batches.cleaning.done")
+    wildcard_constraints:
+        min_length = r'\d+',
+        scaf_type  = r'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
+    shadow:
+        "minimal"
+    threads:
+        1
+    shell:
+        """
+        touch {output}
         """
 
 ###############################################################################################
