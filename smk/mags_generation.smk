@@ -27,6 +27,7 @@ localrules: aae_tsv, vae_tsv, collect_genomes_from_all_binners, copy_best_genome
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
+include: 'include/resources.smk'
 
 module print_versions:
     snakefile:
@@ -121,15 +122,6 @@ rule all:
 ##############################
 ### Run Vamb
 ##############################
-
-# If file exists, return its size.
-# If not, return 1GB - this is placeholder for allowing --dry-run to work
-def get_file_size(f):
-    import os.path
-    if os.path.exists(f):
-        return(os.path.getsize(f))
-    else:
-        return(1<<9)
 
 # VAE mode
 # Memory estimates:

@@ -21,6 +21,7 @@ localrules: make_merged_genome_fna, make_genome_def, \
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
+include: 'include/resources.smk'
 
 module print_versions:
     snakefile:
@@ -198,16 +199,6 @@ include: minto_dir + '/site/cluster_def.py'
 # Cluster-aware bwa-index rules
 
 include: 'include/bwa_index_wrapper.smk'
-
-# If file exists, return its size.
-# If not, return 1GB
-# Using placeholder filesize value allows --dry-run to work when files don't exist yet
-def get_file_size(f):
-    import os.path
-    if os.path.exists(f):
-        return(os.path.getsize(f))
-    else:
-        return(1<<9)
 
 ######
 # Make a lookup table for sample --> sample_alias using metadata file
