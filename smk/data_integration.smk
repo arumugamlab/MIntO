@@ -376,7 +376,7 @@ if omics == 'metaG_metaT':
         log:
             "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.FE.{funcat}.log"
         resources:
-            mem = lambda wildcards, input, attempt: 6 + 4*8*get_tsv_cells(input.gene_abund_tsv) + 10*(attempt-1)
+            mem = lambda wildcards, input, attempt: 6 + math.ceil(4e-9*8*get_tsv_cells(input.gene_abund_tsv)) + 10*(attempt-1)
         threads: config["MERGE_threads"]
         conda:
             config["minto_dir"]+"/envs/r_pkgs.yml" #R
@@ -450,7 +450,7 @@ else :
         log:
             "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_alphabet}.{funcat}.log"
         resources:
-            mem = lambda wildcards, input, attempt: 6 + 4*8*get_tsv_cells(input.gene_abund_tsv) + 10*(attempt-1)
+            mem = lambda wildcards, input, attempt: 6 + math.ceil(4e-9*8*get_tsv_cells(input.gene_abund_tsv)) + 10*(attempt-1)
         threads: config["MERGE_threads"]
         conda:
             config["minto_dir"]+"/envs/r_pkgs.yml" #R
