@@ -17,6 +17,7 @@ import re
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
+include: 'include/resources.smk'
 
 module print_versions:
     snakefile:
@@ -424,9 +425,14 @@ else :
 
         return ret_dict
 
+    # Memory estimate: Original table is num_genes X num_samples, with 8 bytes per cell.
+    #                  It also has 'gene_id' column, that has 16chars.
+    #                  Running it on large datasets lead to up to 4 times that size.
+    #                  TODO: optimize code within the R script to reduce mem usage.
     rule integration_function_profiles_FA_FT:
         input:
-            unpack(get_function_profile_integration_input_FA_FT)
+            unpack(get_function_profile_integration_input_FA_FT),
+            gene_abund_tsv=rules.integration_merge_profiles.output.merged
         output:
             abundance="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_alphabet}.{funcat}.tsv",
             features= "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}_F{omics_alphabet}_features.{funcat}.tsv",
@@ -448,7 +454,7 @@ else :
         log:
             "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_alphabet}.{funcat}.log"
         resources:
-            mem=config["MERGE_memory"]
+            mem = lambda wildcards, input, attempt: 6 + 4*8*get_tsv_cells(input.gene_abund_tsv) + 10*(attempt-1)
         threads: config["MERGE_threads"]
         conda:
             config["minto_dir"]+"/envs/r_pkgs.yml" #R
