@@ -400,12 +400,12 @@ if omics == 'metaG_metaT':
         """
 else :
     def get_function_profile_integration_input_FA_FT(wildcards):
-        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs".format(
+        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs".format(
                 wd = wildcards.wd,
                 omics = wildcards.omics,
                 gene_db = wildcards.gene_db,
                 identity = wildcards.identity,
-                omics_prof = wildcards.omics_prof,
+                omics_alphabet = wildcards.omics_alphabet,
                 normalization = wildcards.normalization)
         ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
 
@@ -428,13 +428,13 @@ else :
         input:
             unpack(get_function_profile_integration_input_FA_FT)
         output:
-            abundance="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
-            features= "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_prof}_F{omics_prof}_features.{funcat}.tsv",
-            physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.qs",
-            pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
+            abundance="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_alphabet}.{funcat}.tsv",
+            features= "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}_F{omics_alphabet}_features.{funcat}.tsv",
+            physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_alphabet}.{funcat}.qs",
+            pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_alphabet}.{funcat}.PCA.pdf",
         wildcard_constraints:
             normalization = r'MG|TPM',
-            omics_prof    = r'[AT]'
+            omics_alphabet = r'[AT]'
         params:
             shape_factor = f"--shape-factor {plot_factor2}" if plot_factor2 != None else '',
             label_factor = f"--label-factor {plot_time}"    if plot_time    != None else '',
@@ -446,7 +446,7 @@ else :
                                                          else f"--genome-weights-metaT {input.metaT_profile}" \
                                                         )
         log:
-            "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_prof}.{funcat}.log"
+            "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_alphabet}.{funcat}.log"
         resources:
             mem=config["MERGE_memory"]
         threads: config["MERGE_threads"]
