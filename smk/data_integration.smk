@@ -9,7 +9,7 @@ Authors: Carmen Saenz, Mani Arumugam
 # configuration yaml file
 # import sys
 import os.path
-from os import path
+import math
 import re
 
 # Get common config variables
@@ -17,6 +17,7 @@ import re
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
+include: 'include/resources.smk'
 
 module print_versions:
     snakefile:
@@ -79,11 +80,6 @@ elif type(config['alignment_identity']) != int:
     raise Exception("ERROR in {}: alignment_identity variable is not an integer. Please, fix.".format(config_path))
 identity=config['alignment_identity']
 
-if config['MERGE_memory'] is None:
-    raise Exception("ERROR in {}: MERGE_memory variable is empty. Please, fix.".format(config_path))
-elif type(config['MERGE_memory']) != int:
-    raise Exception("ERROR in {}: MERGE_memory variable is not an integer. Please, fix.".format(config_path))
-
 if config['MERGE_threads'] is None:
     raise Exception("ERROR in {}: MERGE_threads variable is empty. Please, fix.".format(config_path))
 elif type(config['MERGE_threads']) != int:
@@ -92,9 +88,9 @@ elif type(config['MERGE_threads']) != int:
 if MINTO_MODE == 'catalog':
     if config['ANNOTATION_file'] is None:
         raise Exception("Gene functional annotation needs to be provided via ANNOTATION_file variable")
-    elif path.exists(config['ANNOTATION_file']) is False:
+    elif os.path.exists(config['ANNOTATION_file']) is False:
         raise Exception("File specified in ANNOTATION_file variable does not exist")
-    elif path.exists(config['ANNOTATION_file']) is True:
+    elif os.path.exists(config['ANNOTATION_file']) is True:
         annot_file=config['ANNOTATION_file']
 
 if config['ANNOTATION_ids'] is None:
@@ -114,8 +110,8 @@ elif omics == 'metaG_metaT':
 print('NOTE: MIntO is using ', omics, ' as omics variable.')
 
 for omics_type in omics.split("_"):
-    omics_folder = path.join(working_dir, omics_type)
-    if not path.exists(omics_folder):
+    omics_folder = os.path.join(working_dir, omics_type)
+    if not os.path.exists(omics_folder):
         raise Exception(f"ERROR in {omics} setting, the folder {omics_folder} does not exist.")
 
 GENE_DB_TYPE = MINTO_MODE + '-genes'
@@ -225,7 +221,7 @@ rule integration_merge_profiles:
     log:
         "{wd}/logs/output/data_integration/{gene_db}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
     resources:
-        mem=config["MERGE_memory"]
+        mem = lambda wildcards, input, attempt: 6 + math.ceil(3.2e-9*8*sum([get_tsv_cells(i) for i in input.single])) + 10*(attempt-1)
     threads: 1
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
@@ -268,7 +264,7 @@ rule integration_gene_profiles:
     log:
         "{wd}/logs/output/data_integration/{gene_db}/integration_gene_profiles.{omics}.p{identity}.{normalization}.G{omics_alphabet}.log"
     resources:
-        mem=25
+        mem = lambda wildcards, input, attempt: 6 + math.ceil(5e-9*8*get_tsv_cells(input.gene_abund_merge)) + 10*(attempt-1)
     threads: config["MERGE_threads"]
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml"
@@ -353,7 +349,8 @@ if omics == 'metaG_metaT':
 
     rule integration_function_profiles_FE:
         input:
-            unpack(get_function_profile_integration_input_FE)
+            unpack(get_function_profile_integration_input_FE),
+            gene_abund_tsv=rules.integration_merge_profiles.output.merged
         output:
             abundance=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/FE.{funcat}.tsv",
             features=    "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/GE_FE_features.{funcat}.tsv",
@@ -379,7 +376,7 @@ if omics == 'metaG_metaT':
         log:
             "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.FE.{funcat}.log"
         resources:
-            mem=config["MERGE_memory"]
+            mem = lambda wildcards, input, attempt: 6 + math.ceil(4e-9*8*get_tsv_cells(input.gene_abund_tsv)) + 10*(attempt-1)
         threads: config["MERGE_threads"]
         conda:
             config["minto_dir"]+"/envs/r_pkgs.yml" #R
@@ -400,12 +397,12 @@ if omics == 'metaG_metaT':
         """
 else :
     def get_function_profile_integration_input_FA_FT(wildcards):
-        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs".format(
+        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs".format(
                 wd = wildcards.wd,
                 omics = wildcards.omics,
                 gene_db = wildcards.gene_db,
                 identity = wildcards.identity,
-                omics_prof = wildcards.omics_prof,
+                omics_alphabet = wildcards.omics_alphabet,
                 normalization = wildcards.normalization)
         ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
 
@@ -424,17 +421,22 @@ else :
 
         return ret_dict
 
+    # Memory estimate: Original table is num_genes X num_samples, with 8 bytes per cell.
+    #                  It also has 'gene_id' column, that has 16chars.
+    #                  Running it on large datasets lead to up to 4 times that size.
+    #                  TODO: optimize code within the R script to reduce mem usage.
     rule integration_function_profiles_FA_FT:
         input:
-            unpack(get_function_profile_integration_input_FA_FT)
+            unpack(get_function_profile_integration_input_FA_FT),
+            gene_abund_tsv=rules.integration_merge_profiles.output.merged
         output:
-            abundance="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_prof}.{funcat}.tsv",
-            features= "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_prof}_F{omics_prof}_features.{funcat}.tsv",
-            physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_prof}.{funcat}.qs",
-            pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_prof}.{funcat}.PCA.pdf",
+            abundance="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/F{omics_alphabet}.{funcat}.tsv",
+            features= "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}_F{omics_alphabet}_features.{funcat}.tsv",
+            physeq=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/F{omics_alphabet}.{funcat}.qs",
+            pca=      "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/F{omics_alphabet}.{funcat}.PCA.pdf",
         wildcard_constraints:
             normalization = r'MG|TPM',
-            omics_prof    = r'[AT]'
+            omics_alphabet = r'[AT]'
         params:
             shape_factor = f"--shape-factor {plot_factor2}" if plot_factor2 != None else '',
             label_factor = f"--label-factor {plot_time}"    if plot_time    != None else '',
@@ -446,9 +448,9 @@ else :
                                                          else f"--genome-weights-metaT {input.metaT_profile}" \
                                                         )
         log:
-            "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_prof}.{funcat}.log"
+            "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_alphabet}.{funcat}.log"
         resources:
-            mem=config["MERGE_memory"]
+            mem = lambda wildcards, input, attempt: 6 + math.ceil(4e-9*8*get_tsv_cells(input.gene_abund_tsv)) + 10*(attempt-1)
         threads: config["MERGE_threads"]
         conda:
             config["minto_dir"]+"/envs/r_pkgs.yml" #R
@@ -500,7 +502,7 @@ rule make_feature_count_plot:
     output:
         pdf="{somewhere}/plots/{something}_features.pdf"
     resources:
-        mem=config["MERGE_memory"]
+        mem = 5
     threads: 1
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R

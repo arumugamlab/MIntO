@@ -18,7 +18,7 @@ Authors: Eleonora Nigro, Mani Arumugam
 # configuration yaml file
 # import sys
 import os.path
-from os import path
+import math
 
 localrules: aae_tsv, vae_tsv, collect_genomes_from_all_binners, copy_best_genomes, prepare_bins_for_checkm, collect_HQ_genomes
 
@@ -27,6 +27,7 @@ localrules: aae_tsv, vae_tsv, collect_genomes_from_all_binners, copy_best_genome
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
+include: 'include/resources.smk'
 
 module print_versions:
     snakefile:
@@ -56,11 +57,6 @@ if config['VAMB_THREADS'] is None:
     print('ERROR in ', config_path, ': VAMB_THREADS variable is empty. Please, complete ', config_path)
 elif type(config['VAMB_THREADS']) != int:
     print('ERROR in ', config_path, ': VAMB_THREADS variable is not an integer. Please, complete ', config_path)
-
-if config['VAMB_memory'] is None:
-    print('ERROR in ', config_path, ': VAMB_memory variable is empty. Please, complete ', config_path)
-elif type(config['VAMB_memory']) != int:
-    print('ERROR in ', config_path, ': VAMB_memory variable is not an integer. Please, complete ', config_path)
 
 if config['VAMB_GPU'] is None:
     print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
@@ -124,18 +120,19 @@ rule all:
     default_target: True
 
 ##############################
-
 ### Run Vamb
+##############################
+
+# VAE mode
+# Memory estimates:
+# GPU: '2.345e+06 + 1.635e-03*npzsize + 2.051e-04*fastasize' in memKB
+# CPU: '2.448e+05 + 1.688e-03*npzsize + 2.457e-04*fastasize' in memKB
+# Simplified to 'ceil(2.35 + 1.69e-09*npzsize + 2.46e-10*fastasize)' in memGB
+# And add 10GB with each new attempt
 rule run_vamb_vae:
     input:
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
-                                wd = wildcards.wd,
-                                omics = wildcards.omics,
-                                min_fasta_length = config['MIN_FASTA_LENGTH']),
-        rpkm_file    = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.abundance.npz",
-                                wd = wildcards.wd,
-                                omics = wildcards.omics,
-                                min_fasta_length = config['MIN_FASTA_LENGTH'])
+        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.fasta.gz",
+        rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.abundance.npz",
     output:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/vae{vbinner}/vae_clusters.tsv"
     shadow:
@@ -146,7 +143,7 @@ rule run_vamb_vae:
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/run_vamb_vae{vbinner}.log"
     resources:
-        mem=config['VAMB_memory'],
+        mem = lambda wildcards, input, attempt: 10*(attempt-1) + math.ceil(2.35 + 1.69e-9*get_file_size(input.rpkm_file) + 2.46e-10*get_file_size(input.contigs_file)),
         gpu=1 if vamb_gpu == "yes" else 0
     threads:
         4 if vamb_gpu == "yes" else config["VAMB_THREADS"]
@@ -166,17 +163,16 @@ rule run_vamb_vae:
         rsync -a out/* $(dirname {output.tsv})
         """
 
-# TODO: adjust mem based on #samples or better yet #contigs. With 22M contigs, vamb uses 150G.
+# AAE mode
+# Memory estimates:
+# GPU: '2.176e+06 + 1.905e-03*npzsize + 4.859e-04*fastasize' in memKB
+# CPU: '1.232e+05 + 1.920e-03*npzsize + 4.662e-04*fastasize' in memKB
+# Simplified to 'ceil(2.18 + 1.92e-09*npzsize + 4.86e-10*fastasize)' in memGB
+# And add 10GB with each new attempt
 rule run_vamb_aae:
     input:
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
-                                wd = wildcards.wd,
-                                omics = wildcards.omics,
-                                min_fasta_length = config['MIN_FASTA_LENGTH']),
-        rpkm_file    = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.abundance.npz",
-                                wd = wildcards.wd,
-                                omics = wildcards.omics,
-                                min_fasta_length = config['MIN_FASTA_LENGTH'])
+        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.fasta.gz",
+        rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.abundance.npz",
     output:
         tsv_y="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_y_clusters.tsv",
         tsv_z="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_z_clusters.tsv"
@@ -187,7 +183,7 @@ rule run_vamb_aae:
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/run_vamb_aae.log"
     resources:
-        mem=config['VAMB_memory'],
+        mem = lambda wildcards, input, attempt: 10*(attempt-1) + math.ceil(2.18 + 1.85e-9*get_file_size(input.rpkm_file) + 1.73e-10*get_file_size(input.contigs_file)),
         gpu=1 if vamb_gpu == "yes" else 0
     threads:
         4 if vamb_gpu == "yes" else config["VAMB_THREADS"]
@@ -236,10 +232,7 @@ rule vae_tsv:
 rule make_avamb_mags:
     input:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}_clusters.tsv",
-        contigs_file = lambda wildcards: expand("{wd}/{omics}/8-1-binning/scaffolds.{min_fasta_length}.fasta.gz",
-                                wd = wildcards.wd,
-                                omics = wildcards.omics,
-                                min_fasta_length = config['MIN_FASTA_LENGTH']),
+        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.fasta.gz",
     output:
         discarded_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}_discarded_genomes.txt",
         bin_folder = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins"),

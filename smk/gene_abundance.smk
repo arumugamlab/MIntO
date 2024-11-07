@@ -8,8 +8,9 @@ Authors: Carmen Saenz, Mani Arumugam
 
 # configuration yaml file
 # import sys
-from os import path
+import os.path
 import pathlib
+import math
 
 localrules: make_merged_genome_fna, make_genome_def, \
             config_yml_integration, read_map_stats
@@ -20,6 +21,7 @@ localrules: make_merged_genome_fna, make_genome_def, \
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
+include: 'include/resources.smk'
 
 module print_versions:
     snakefile:
@@ -35,8 +37,8 @@ read_dir=get_qc2_output_location(omics)
 
 # If the original reads have been removed for whatever reasons (running out of space, may be?),
 # then we look for error-corrected reads
-if path.exists("{}/{}/{}/".format(working_dir, omics, read_dir)) is False:
-    if path.exists("{}/{}/{}/".format(working_dir, omics, '6-corrected')) is True:
+if os.path.exists("{}/{}/{}/".format(working_dir, omics, read_dir)) is False:
+    if os.path.exists("{}/{}/{}/".format(working_dir, omics, '6-corrected')) is True:
         read_dir='6-corrected'
     else:
         raise Exception("ERROR in {}: One of {} or 6-corrected must exist. Please correct {}".format(config_path, get_qc2_output_location(omics), working_dir))
@@ -65,7 +67,7 @@ if 'ILLUMINA' in config:
         if 'ILLUMINA' in config:
             #print("Samples:")
             for ilmn in config["ILLUMINA"]:
-                if path.exists("{}/{}/{}/{}".format(working_dir, omics, read_dir, ilmn)) is True:
+                if os.path.exists("{}/{}/{}/{}".format(working_dir, omics, read_dir, ilmn)) is True:
                     #print(ilmn)
                     ilmn_samples.append(ilmn)
                 else:
@@ -132,14 +134,14 @@ if MINTO_MODE == 'MAG':
 else:
     if config['PATH_reference'] is None:
         print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
-    elif path.exists(config['PATH_reference']) is False:
+    elif os.path.exists(config['PATH_reference']) is False:
         print('ERROR in ', config_path, ': PATH_reference variable path does not exit. Please, complete ', config_path)
     else:
         if MINTO_MODE == 'refgenome':
             reference_dir=config["PATH_reference"]
             print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
         elif MINTO_MODE == 'catalog':
-            if path.exists(config['PATH_reference']+'/'+config['NAME_reference']) is True:
+            if os.path.exists(config['PATH_reference']+'/'+config['NAME_reference']) is True:
                 print('NOTE: MIntO is using "'+ config['PATH_reference']+'/'+config['NAME_reference']+'" as PATH_reference and NAME_reference variables.')
                 gene_catalog_path=config["PATH_reference"]
                 gene_catalog_name=config["NAME_reference"]
@@ -270,25 +272,32 @@ def config_yaml():
                 wd = working_dir)
     return(result)
 
-def clean_bwa_index():
-    if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+# If BWA index clean-up requested, only do cleanup and nothing else
+if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+
+    print("NOTE: BWA index cleanup mode requested.")
+
+    def clean_bwa_index():
         if MINTO_MODE == 'catalog':
             return(f"{gene_catalog_path}/BWA_index/{gene_catalog_name}.clustersync/cleaning.done")
         else:
             return(f"{working_dir}/DB/{MINTO_MODE}/BWA_index/{MINTO_MODE}.fna.clustersync/cleaning.done")
-    else:
-        return([])
 
-rule all:
-    input:
-        clean_bwa_index(),
-        combined_genome_profiles_annotated(),
-        combined_genome_profiles(),
-        combined_gene_abundance_profiles(),
-        mapping_statistics(),
-        config_yaml(),
-        print_versions.get_version_output(snakefile_name)
-    default_target: True
+    rule all:
+        input:
+            clean_bwa_index()
+        default_target: True
+
+else:
+    rule all:
+        input:
+            combined_genome_profiles_annotated(),
+            combined_genome_profiles(),
+            combined_gene_abundance_profiles(),
+            mapping_statistics(),
+            config_yaml(),
+            print_versions.get_version_output(snakefile_name)
+        default_target: True
 
 ###############################################################################################
 # Functions to get samples, runs and files
@@ -301,7 +310,7 @@ def get_runs_for_sample(wildcards):
         runs = [wildcards.sample]
     else:
         sample_dir = '{wd}/{omics}/{location}/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, location=read_dir, sample=wildcards.sample)
-        runs = sorted([ re.sub("\.1\.fq\.gz", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ])
+        runs = sorted([ re.sub("\.1\.fq\.gz", "", os.path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ])
         #print(runs)
     return(runs)
 
@@ -405,7 +414,7 @@ def get_genome_bwa_index(wildcards):
 # Mapping and sorting are in separate processes, so they don't need to share memory.
 # Memory estimates:
 # 1. bwa-mem2 mem
-#   BWA mem memory is estimated as 3.1 bytes per base in database (regression: mem = 5.556e+09 + 3.011*input).
+#   BWA mem memory is estimated as 3.1 bytes per base in database with 5.6GB offset (regression: mem = 5.556e+09 + 3.011*input).
 # 2. samtools sort
 #   Sorting uses a hard-coded 3 threads, so we divide the total memory by 3 and send it to 'samtools sort'.
 #   But we recommend at least 5GB per thread, even if the database is smaller.
@@ -446,7 +455,7 @@ rule genome_mapping_profiling:
     resources:
         sort_threads = 3,
         bedcov_threads = lambda wildcards, threads: min(10, threads),
-        mem = lambda wildcards, input, attempt: max(3*5, 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9)) + 10*(attempt-1)
+        mem = lambda wildcards, input, attempt: max(3*5, math.ceil(5.6 + 3.1e-9*get_file_size(input.bwaindex[0]))) + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl + parallel
     shell:
@@ -540,7 +549,7 @@ def get_catalog_bwa_index(wildcards):
 # Map reads using BWA2
 # Mapping, computation of read counts and TPM normalization is done in the same rule
 # TPM normalization: sequence depth and genes’ length
-# BWA mem memory is estimated as 3.1 bytes per base in database (regression: mem = 5.556e+09 + 3.011*input)
+# BWA mem memory is estimated as 3.1 bytes per base in database with 5.6GB offset (regression: mem = 5.556e+09 + 3.011*input).
 #########################
 
 rule gene_catalog_mapping_profiling:
@@ -566,7 +575,7 @@ rule gene_catalog_mapping_profiling:
     threads:
         config["BWA_threads"]
     resources:
-        mem = lambda wildcards, input, attempt: 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9) + 10*(attempt-1)
+        mem = lambda wildcards, input, attempt: math.ceil(5.6 + 3.1e-9*get_file_size(input.bwaindex[0])) + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"] #BWA + samtools
     shell:
@@ -810,7 +819,12 @@ def get_gene_abund_normalization_input(wildcards):
                     identity = wildcards.identity)
             }
 
-# Memory requirement: estimated as 0.016 bytes per byte of input bed file
+# Memory estimates:
+# MG:  '1.157e+07 + 1.727e-02*bed - 2.122e+00*mg - 8.937e+04*samples' in memKB
+# TPM: '1.990e+06 + 1.541e-02*bed                - 1.783e+04*samples' in memKB
+# Simplified to 'ceil(1.73e-08*bed) + MG?12:2' in memGB
+# Ignore the reduction of memory per sample
+# And add 10GB with each new attempt
 rule gene_abund_normalization:
     input:
         unpack(get_gene_abund_normalization_input)
@@ -825,7 +839,7 @@ rule gene_abund_normalization:
         minto_mode = r'MAG|refgenome'
     threads: 4
     resources:
-        mem = lambda wildcards, input, attempt: 4 + 0.016*os.path.getsize(input.absolute_counts)/1e9 + 10*(attempt-1)
+        mem = lambda wildcards, input, attempt: (12 if wildcards.norm == 'MG' else 2) + math.ceil(1.73e-8*get_file_size(input.absolute_counts)) + 10*(attempt-1)
     conda:
         config["minto_dir"]+"/envs/r_pkgs.yml" #R
     shell:
