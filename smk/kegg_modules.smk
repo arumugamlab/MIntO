@@ -89,7 +89,7 @@ rule all:
             normalization = normalization,
             omics_alphabet = omics_prof,
             annot = annot),
-        expand("{wd}/DB/{minto_mode}/4-annotations/{annot}/per_mag.{annot}.module_comp.tsv",
+        expand("{wd}/DB/{minto_mode}/4-annotations/per_mag.{annot}.module_comp.tsv",
             wd = working_dir,
             minto_mode = MINTO_MODE,
             annot = annot)
@@ -195,7 +195,7 @@ rule mag_completeness:
         kpc_class="{}/data/kofam_db/all_pathways_class.txt".format(minto_dir),
         kpc_names="{}/data/kofam_db/all_pathways_names.txt".format(minto_dir),
     output:
-        "{wd}/DB/{minto_mode}/4-annotations/{annot}/per_mag.{annot}.module_comp.tsv"
+        "{wd}/DB/{minto_mode}/4-annotations/per_mag.{annot}.module_comp.tsv"
     shadow:
         "minimal"
     log:
