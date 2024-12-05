@@ -1,0 +1,22 @@
+######################
+# General settings
+######################
+PROJECT: IBD_tutorial
+working_dir: /mypath/IBD_tutorial
+omics: metaG_metaT
+minto_dir: /mypath/MIntO
+METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
+
+######################
+# Program settings
+######################
+
+# per sample parameters
+alignment_identity: 97
+abundance_normalization: MG
+MINTO_MODE: MAG
+
+# per mag and sample parameters
+ANNOTATION:
+ - eggNOG
+ - kofam

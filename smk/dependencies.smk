@@ -356,6 +356,40 @@ rule KEGG_maps:
         ) &> {log}
         """
 
+# https://github.com/EBI-Metagenomics/kegg-pathways-completeness-tool/tree/master/kegg_pathways_completeness/pathways_data
+rule module_desc:
+    output:
+        kpc_pathways="{minto_dir}/data/kofam_db/all_pathways.txt",
+        kpc_class="{minto_dir}/data/kofam_db/all_pathways_class.txt",
+        kpc_names="{minto_dir}/data/kofam_db/all_pathways_names.txt",
+    resources: mem=download_memory
+    threads: download_threads
+    log:
+        "{minto_dir}/logs/KEGG_maps_download.log"
+    conda:
+        config["minto_dir"]+"/envs/gene_annotation.yml"
+    shell:
+        """
+        mkdir -p {minto_dir}/data/kofam_db/
+        cd {minto_dir}/data/kofam_db/
+        time (
+
+            # copy  http://rest.kegg.jp/list/module 
+            wget -O - http://rest.kegg.jp/list/module > list_modules.txt
+            
+            # download module definitions
+            rm all_pathways.txt
+            rm all_pathways_class.txt
+            cut -f 1 list_modules.txt | while read line; do 
+                DC=$(wget -O - http://rest.kegg.jp/get/$line | grep -P "^DEFINITION|^CLASS" | cut -c 13-);
+                D=$(echo "$DC" | head -n 1); echo "${line}:${D}" >> all_pathways.txt;
+                C=$(echo "$DC" | tail -n 1); echo "${line}:${C}" >> all_pathways_class.txt;
+            done
+
+            echo 'KEGG module descriptions downloaded'
+        ) &> {log}
+        """
+
 rule functional_db_descriptions:
     input:
         kegg_ko="{minto_dir}/data/descriptions/include/KEGG_KO.tsv",
