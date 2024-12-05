@@ -1,0 +1,7 @@
+name: kpc
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - kegg-pathways-completeness=1.0.5
