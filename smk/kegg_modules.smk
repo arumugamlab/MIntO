@@ -146,9 +146,11 @@ rule prepare_per_mag_input:
         mag_kos = {}
         with open(input.tsv, "r") as fp:
             _ = fp.readline()
+            if _.startswith("#"):
+                _ = fp.readline()
             for line in fp:
                 tmp = line.strip().split("\t")
-                mag_id = tmp[0].split("_")[0]
+                mag_id = tmp[0].split("|")[-1].split("_")[0]
                 kos = tmp[2].split(",")
                 if "-" not in kos:
                     if mag_id in mag_kos:
