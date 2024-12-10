@@ -210,8 +210,8 @@ if FASTP_adapters == 'Skip':
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
             json="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.json"
         localrule: True
         log:
@@ -228,8 +228,8 @@ elif adapter_trimming_args:
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
             json="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.json",
             html="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.html"
         shadow:
@@ -263,8 +263,8 @@ else:
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
-            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.paired.fq.gz",
-            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.paired.fq.gz",
+            pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
+            pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
             json="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.json"
         shadow:
             "minimal"
@@ -347,7 +347,7 @@ rule qc0_create_multiqc:
 
 rule qc1_check_read_length:
     input:
-        pairead=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{run}.{group}.paired.fq.gz",
+        pairead=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{run}.{group}.fq.gz",
                                             wd=wildcards.wd,
                                             omics=wildcards.omics,
                                             sample=wildcards.sample,
