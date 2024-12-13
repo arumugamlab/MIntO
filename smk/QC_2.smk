@@ -378,94 +378,96 @@ rule qc2_host_filter:
 # Pre-processing of metaT data - rRNA filtering - only on metaT data
 ###############################################################################################
 
-def get_rRNA_db_files(wildcards):
-    files = ["rfam-5.8s-database-id98.fasta",
-            "rfam-5s-database-id98.fasta",
-            "silva-arc-16s-id95.fasta",
-            "silva-arc-23s-id98.fasta",
-            "silva-bac-16s-id90.fasta",
-            "silva-bac-23s-id98.fasta",
-            "silva-euk-18s-id95.fasta",
-            "silva-euk-28s-id98.fasta"]
-    return(expand("{sortmeRNA_db}/{f}",
-                    sortmeRNA_db=sortmeRNA_db,
-                    f=files))
+if omics == 'metaT':
 
-rule qc2_filter_rRNA_index:
-    input:
-        rRNA_db=get_rRNA_db_files
-    output:
-        rRNA_db_index_file = "{sortmeRNA_db_idx}/rRNA_db_index.log".format(sortmeRNA_db_idx=sortmeRNA_db_idx),
-        rRNA_db_index = directory(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
-    shadow:
-        "minimal"
-    resources:
-        mem=sortmeRNA_memory
-    threads:
-        sortmeRNA_threads
-    log:
-        "{wd}/logs/{omics}/5-1-sortmerna/rRNA_index.log".format(wd=working_dir, omics = omics),
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
-    shell:
-        """
-        time (
-            sortmerna --workdir . --idx-dir ./idx/ -index 1 \
-                --ref {input.rRNA_db[0]} \
-                --ref {input.rRNA_db[1]} \
-                --ref {input.rRNA_db[2]} \
-                --ref {input.rRNA_db[3]} \
-                --ref {input.rRNA_db[4]} \
-                --ref {input.rRNA_db[5]} \
-                --ref {input.rRNA_db[6]} \
-                --ref {input.rRNA_db[7]}
-            rsync -a ./idx/* {output.rRNA_db_index}
-            echo 'SortMeRNA indexed rRNA_databases done' > {sortmeRNA_db_idx}/rRNA_db_index.log
-        ) >& {log}
-        """
+    def get_rRNA_db_files(wildcards):
+        files = ["rfam-5.8s-database-id98.fasta",
+                "rfam-5s-database-id98.fasta",
+                "silva-arc-16s-id95.fasta",
+                "silva-arc-23s-id98.fasta",
+                "silva-bac-16s-id90.fasta",
+                "silva-bac-23s-id98.fasta",
+                "silva-euk-18s-id95.fasta",
+                "silva-euk-28s-id98.fasta"]
+        return(expand("{sortmeRNA_db}/{f}",
+                        sortmeRNA_db=sortmeRNA_db,
+                        f=files))
 
-rule qc2_filter_rRNA:
-    input:
-        host_free_fw=rules.qc2_host_filter.output.host_free_fw,
-        host_free_rv=rules.qc2_host_filter.output.host_free_rv,
-        rRNA_db_index=ancient(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
-    output:
-        rRNA_out="{wd}/{omics}/5-1-sortmerna/{sample}/out/{run}.aligned.log",
-        rRNA_free_fw="{wd}/{omics}/5-1-sortmerna/{sample}/{run}.1.fq.gz",
-        rRNA_free_rv="{wd}/{omics}/5-1-sortmerna/{sample}/{run}.2.fq.gz"
-    shadow:
-        "minimal"
-    params:
-        db_idx_dir=sortmeRNA_db_idx,
-        db_dir=sortmeRNA_db,
-    resources:
-        mem=sortmeRNA_memory
-    threads:
-        sortmeRNA_threads
-    log:
-        "{wd}/logs/{omics}/5-1-sortmerna/{sample}_{run}.log"
-    conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
-    shell:
-        """
-        time (
-            sortmerna --paired_in --fastx --out2 --other --threads {threads} --no-best --num_alignments 1 --workdir . --idx-dir {params.db_idx_dir}/ \
-                        --ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
-                        --ref {params.db_dir}/rfam-5s-database-id98.fasta \
-                        --ref {params.db_dir}/silva-arc-16s-id95.fasta \
-                        --ref {params.db_dir}/silva-arc-23s-id98.fasta \
-                        --ref {params.db_dir}/silva-bac-16s-id90.fasta \
-                        --ref {params.db_dir}/silva-bac-23s-id98.fasta \
-                        --ref {params.db_dir}/silva-euk-18s-id95.fasta \
-                        --ref {params.db_dir}/silva-euk-28s-id98.fasta \
-                        --reads {input.host_free_fw} --reads {input.host_free_rv}
-            parallel --jobs {threads} <<__EOM__
-rsync -a out/other_fwd.fq.gz {output.rRNA_free_fw}
-rsync -a out/other_rev.fq.gz {output.rRNA_free_rv}
-rsync -a out/aligned.log {output.rRNA_out}
-__EOM__
-        ) >& {log}
-        """
+    rule qc2_filter_rRNA_index:
+        input:
+            rRNA_db=get_rRNA_db_files
+        output:
+            rRNA_db_index_file = "{sortmeRNA_db_idx}/rRNA_db_index.log".format(sortmeRNA_db_idx=sortmeRNA_db_idx),
+            rRNA_db_index = directory(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
+        shadow:
+            "minimal"
+        resources:
+            mem=sortmeRNA_memory
+        threads:
+            sortmeRNA_threads
+        log:
+            "{wd}/logs/{omics}/5-1-sortmerna/rRNA_index.log".format(wd=working_dir, omics = omics),
+        conda:
+            config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
+        shell:
+            """
+            time (
+                sortmerna --workdir . --idx-dir ./idx/ -index 1 \
+                    --ref {input.rRNA_db[0]} \
+                    --ref {input.rRNA_db[1]} \
+                    --ref {input.rRNA_db[2]} \
+                    --ref {input.rRNA_db[3]} \
+                    --ref {input.rRNA_db[4]} \
+                    --ref {input.rRNA_db[5]} \
+                    --ref {input.rRNA_db[6]} \
+                    --ref {input.rRNA_db[7]}
+                rsync -a ./idx/* {output.rRNA_db_index}
+                echo 'SortMeRNA indexed rRNA_databases done' > {sortmeRNA_db_idx}/rRNA_db_index.log
+            ) >& {log}
+            """
+
+    rule qc2_filter_rRNA:
+        input:
+            host_free_fw=rules.qc2_host_filter.output.host_free_fw,
+            host_free_rv=rules.qc2_host_filter.output.host_free_rv,
+            rRNA_db_index=ancient(expand("{sortmeRNA_db_idx}", sortmeRNA_db_idx=sortmeRNA_db_idx))
+        output:
+            rRNA_out="{wd}/{omics}/5-1-sortmerna/{sample}/out/{run}.aligned.log",
+            rRNA_free_fw="{wd}/{omics}/5-1-sortmerna/{sample}/{run}.1.fq.gz",
+            rRNA_free_rv="{wd}/{omics}/5-1-sortmerna/{sample}/{run}.2.fq.gz"
+        shadow:
+            "minimal"
+        params:
+            db_idx_dir=sortmeRNA_db_idx,
+            db_dir=sortmeRNA_db,
+        resources:
+            mem=sortmeRNA_memory
+        threads:
+            sortmeRNA_threads
+        log:
+            "{wd}/logs/{omics}/5-1-sortmerna/{sample}_{run}.log"
+        conda:
+            config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
+        shell:
+            """
+            time (
+                sortmerna --paired_in --fastx --out2 --other --threads {threads} --no-best --num_alignments 1 --workdir . --idx-dir {params.db_idx_dir}/ \
+                            --ref {params.db_dir}/rfam-5.8s-database-id98.fasta \
+                            --ref {params.db_dir}/rfam-5s-database-id98.fasta \
+                            --ref {params.db_dir}/silva-arc-16s-id95.fasta \
+                            --ref {params.db_dir}/silva-arc-23s-id98.fasta \
+                            --ref {params.db_dir}/silva-bac-16s-id90.fasta \
+                            --ref {params.db_dir}/silva-bac-23s-id98.fasta \
+                            --ref {params.db_dir}/silva-euk-18s-id95.fasta \
+                            --ref {params.db_dir}/silva-euk-28s-id98.fasta \
+                            --reads {input.host_free_fw} --reads {input.host_free_rv}
+                parallel --jobs {threads} <<__EOM__
+    rsync -a out/other_fwd.fq.gz {output.rRNA_free_fw}
+    rsync -a out/other_rev.fq.gz {output.rRNA_free_rv}
+    rsync -a out/aligned.log {output.rRNA_out}
+    __EOM__
+            ) >& {log}
+            """
 
 ###############################################################################################
 # Create pseudo-samples that are created by merging multiple samples.
@@ -477,7 +479,9 @@ if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != No
 
     localrules: merge_fastqs_for_composite_samples
     ruleorder: merge_fastqs_for_composite_samples > qc2_host_filter
-    ruleorder: merge_fastqs_for_composite_samples > qc2_filter_rRNA
+
+    if omics == 'metaT':
+        ruleorder: merge_fastqs_for_composite_samples > qc2_filter_rRNA
 
     # Get the individual reps for the sample
     # And concat all the files for each rep into one
