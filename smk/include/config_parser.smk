@@ -33,6 +33,9 @@ GLOBAL_CONFIG_KEYTYPES = {
     'download_memory' : int,
     'download_threads' : int,
     'enable_COASSEMBLY' : bool,
+    'enable_GTDB' : bool,
+    'enable_metaphlan' : bool,
+    'enable_motus' : bool,
     'EXCLUDE_ASSEMBLY_TYPES' : list,
     'FASTP_adapters' : str,
     'FASTP_front_mean_qual' : int,
@@ -42,11 +45,12 @@ GLOBAL_CONFIG_KEYTYPES = {
     'FASTP_threads' : int,
     'GTDB_TAXONOMY_VERSION' : str,
     'HYBRID' : dict,
-    'ILLUMINA' : list,
+    'ILLUMINA' : [list, 'file', str],
     'ILLUMINA_suffix' : list,
     'MAG_omics' : str,
     'MAIN_factor' : str,
     'MAX_RAM_GB_PER_JOB' : int,
+    'MEGAHIT_custom' : [str, list],
     'MEGAHIT_memory' : int,
     'MEGAHIT_presets' : list,
     'MEGAHIT_threads' : int,
@@ -115,6 +119,9 @@ GLOBAL_CONFIG_KEYTYPES = {
     'working_dir' : 'directory'
 }
 
+# Aliases for keys.
+# E.g., This module will always refer to minimum read length with 'READ_minlen'.
+#       But if it cannot find 'READ_minlen', it will look for 'TRIMMOMATIC_minlen'.
 ALIASES = {
     'READ_minlen' : ['TRIMMOMATIC_minlen'],
     'FASTP_adapters' : ['FASTP_adaptors'],
@@ -141,24 +148,50 @@ def validate_keytype(config, type_dict, key):
     for x in pos_keys:
         if x in config:
             value = config[x]
-    if not value:
+            break
+    if value == None:
         return None
 
-    expected_type = type_dict[key]
+    # Get list of expected types
+    expected_types = type_dict[key]
+    if not isinstance(expected_types, list):
+        expected_types = [expected_types]
 
-    # Handle simple cases: expected_type is inbuilt python type
-    if not isinstance(expected_type, str):
-        if not isinstance(value, expected_type):
-            raise TypeError(f"Configuration key '{key}' should be of type {expected_type.__name__}, but got {type(value).__name__}")
+    # Set up type discovery
+    valid_type = False
+    found_type = None
 
-    # Handle special cases: file and directory
-    if isinstance(expected_type, str):
-        if expected_type == 'file':
-            if not os.path.isfile(value):
-                raise TypeError(f"File mapped to configuration key '{key}' does not exist: {value}")
-        if expected_type == 'directory':
-            if not os.path.isdir(value):
-                raise TypeError(f"Directory mapped to configuration key '{key}' does not exist: {value}")
+    # Check for each possible valid type
+
+    for etype in expected_types:
+
+        # Handle simple cases: etype is inbuilt python type
+        if not isinstance(etype, str):
+            if isinstance(value, etype):
+                valid_type = True
+                found_type = etype
+                break
+
+        # Handle special cases: file and directory
+        if isinstance(etype, str):
+            if etype == 'file':
+                found_type = etype
+                if os.path.isfile(value):
+                    valid_type = True
+            if etype == 'directory':
+                found_type = etype
+                if os.path.isdir(value):
+                    valid_type = True
+
+    # Raise error if right type was not found
+
+    if not valid_type:
+        if found_type == 'directory':
+            raise TypeError(f"Directory mapped to configuration key '{key}' does not exist: {value}")
+        elif found_type == 'file':
+            raise TypeError(f"File mapped to configuration key '{key}' does not exist: {value}")
+        else:
+            raise TypeError("Configuration key '{}' should be of type {}, but got {}".format(key, ' or '.join(x.__name__ for x in expected_types), type(value).__name__))
 
     # return
     return(value)
@@ -168,7 +201,7 @@ def validate_required_key(config, key):
     # Check if key is present and the right type
     val = validate_keytype(config, GLOBAL_CONFIG_KEYTYPES, key)
 
-    if not val:
+    if val == None:
         raise KeyError(f"Missing required configuration key: {key}")
 
     # return
