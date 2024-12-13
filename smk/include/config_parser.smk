@@ -6,6 +6,10 @@ Config file parser
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
+##############################################
+# Config key dictionary
+##############################################
+
 GLOBAL_CONFIG_KEYTYPES = {
     'abundance_normalization' : str,
     'alignment_identity' : int,
@@ -18,6 +22,7 @@ GLOBAL_CONFIG_KEYTYPES = {
     'CHECKM_BATCH_SIZE' : int,
     'CHECKM_COMPLETENESS' : int,
     'CHECKM_CONTAMINATION' : int,
+    'CLEAN_BWA_INDEX' : bool,
     'COAS_factor' : str,
     'COASSEMBLY' : dict,
     'CONTIG_MAPPING_BATCH_SIZE' : int,
@@ -34,10 +39,12 @@ GLOBAL_CONFIG_KEYTYPES = {
     'FASTP_tail_mean_qual' : int,
     'FASTP_threads' : int,
     'GTDB_TAXONOMY_VERSION' : str,
+    'HYBRID' : dict,
     'ILLUMINA' : list,
     'ILLUMINA_suffix' : list,
     'MAG_omics' : str,
     'MAIN_factor' : str,
+    'MAX_RAM_GB_PER_JOB' : int,
     'MEGAHIT_memory' : int,
     'MEGAHIT_presets' : list,
     'MEGAHIT_threads' : int,
@@ -63,6 +70,7 @@ GLOBAL_CONFIG_KEYTYPES = {
     'MULTIPLEX_TECH' : str,
     'NAME_host_genome' : str,
     'NAME_reference' : str,
+    'NANOPORE' : list,
     'omics' : str,
     'PATH_host_genome' : 'directory',
     'PATH_reference' : 'directory',
@@ -93,7 +101,7 @@ GLOBAL_CONFIG_KEYTYPES = {
     'TAXONOMY_CPUS' : int,
     'TAXONOMY_memory' : int,
     'TAXONOMY_NAME' : str,
-    'TRIMMOMATIC_adaptors' : 'file',
+    'TRIMMOMATIC_adaptors' : str,
     'TRIMMOMATIC_index_barcodes' : str,
     'TRIMMOMATIC_memory' : int,
     'TRIMMOMATIC_palindrome' : 'file',
@@ -105,14 +113,34 @@ GLOBAL_CONFIG_KEYTYPES = {
     'working_dir' : 'directory'
 }
 
-def validate_keytype(config, type_dict, key):
-    # Check for key in global type registry
-    if key not in type_dict or config[key] is None:
-        raise KeyError(f"Configuration key not found in global registry: {key}")
-    expected_type = type_dict[key]
+ALIASES = {
+    'READ_minlen' : ['TRIMMOMATIC_minlen']
+}
 
+##############################################
+# Functions to parse the keys
+##############################################
+
+def validate_keytype(config, type_dict, key):
+    # Get all possible aliases
+    pos_keys = [key]
+    if key in ALIASES:
+        pos_keys += ALIASES[key]
+
+    # Check for key in global type registry
+    if key not in type_dict:
+        raise KeyError(f"Configuration key not found in global registry: {key}")
+
+    # Check for all aliases
     # Get value
-    value = config[key]
+    value = None
+    for x in pos_keys:
+        if x in config:
+            value = config[x]
+    if not value:
+        return None
+
+    expected_type = type_dict[key]
 
     # Handle simple cases: expected_type is inbuilt python type
     if not isinstance(expected_type, str):
@@ -134,20 +162,21 @@ def validate_keytype(config, type_dict, key):
 def validate_required_key(config, key):
 
     # Check if key is present and the right type
-    if key not in config:
+    val = validate_keytype(config, GLOBAL_CONFIG_KEYTYPES, key)
+
+    if not val:
         raise KeyError(f"Missing required configuration key: {key}")
 
     # return
-    return(validate_keytype(config, GLOBAL_CONFIG_KEYTYPES, key))
+    return(val)
 
 def validate_optional_key(config, key):
 
     # Check if key is present and the right type
-    if key not in config or config[key] is None:
-        return(None)
+    val = validate_keytype(config, GLOBAL_CONFIG_KEYTYPES, key)
 
     # return
-    return(validate_keytype(config, GLOBAL_CONFIG_KEYTYPES, key))
+    return(val)
 
 ################################
 # config file name:
@@ -169,24 +198,14 @@ print("  ")
 
 # Set script_dir relative to calling snakemake script
 
-script_dir=workflow.basedir+"/../scripts"
+script_dir = os.path.join(os.path.dirname(workflow.basedir), 'scripts')
 
 # Variables from configuration yaml file
 
-project_id  = validate_required_key(config, 'PROJECT')
-omics       = validate_required_key(config, 'omics')
-working_dir = validate_required_key(config, 'working_dir')
 minto_dir   = validate_required_key(config, 'minto_dir')
-
+project_id  = validate_required_key(config, 'PROJECT')
 metadata    = validate_optional_key(config, 'METADATA')
+working_dir = validate_required_key(config, 'working_dir')
+omics       = validate_required_key(config, 'omics')
 
-# Sanity check for omics
-if omics not in ('metaG', 'metaT', 'metaG_metaT'):
-    raise Exception(f"ERROR in {config_path}: omics={omics} is not allows. 'omics' variable should be metaG, metaT or metaG_metaT.")
-
-# Make list of illumina samples, if ILLUMINA in config
-if 'ILLUMINA' in config:
-    if config['ILLUMINA'] is None:
-        print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
-else:
-    print('WARNING in ', config_path, ': ILLUMINA list of samples is missing. Proceed with caution.')
+check_allowed_values('omics', omics, ('metaG', 'metaT', 'metaG_metaT'))
