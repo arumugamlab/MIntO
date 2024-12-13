@@ -465,7 +465,7 @@ if omics == 'metaT':
     rsync -a out/other_fwd.fq.gz {output.rRNA_free_fw}
     rsync -a out/other_rev.fq.gz {output.rRNA_free_rv}
     rsync -a out/aligned.log {output.rRNA_out}
-    __EOM__
+__EOM__
             ) >& {log}
             """
 
