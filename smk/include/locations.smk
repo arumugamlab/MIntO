@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os.path
+
 ##############################################
 # Clarify where the final QC_2 reads are located
 ##############################################
@@ -34,8 +36,8 @@ def get_runs_for_sample(wd, omics, sample):
     # If user wants to skip earlier steps and start with later step, it will also work.
     for loc in ['1-trimmed', '3-minlength', '4-hostfree', '5-1-sortmerna', '5-corrected-runs']:
         sample_dir = f"{wd}/{omics}/{loc}/{sample}"
-        if path.exists(sample_dir):
-            runs = [ re.sub("\.1\.fq\.gz$", "", path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(".1.fq.gz") ]
+        if os.path.exists(sample_dir):
+            runs = [ re.sub("\.1\.fq\.gz$", "", os.path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(".1.fq.gz") ]
             if len(runs) > 0:
                 break
             else:
