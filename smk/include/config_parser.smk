@@ -178,6 +178,32 @@ def validate_optional_key(config, key):
     # return
     return(val)
 
+##############################################
+# Functions to verify the keys
+##############################################
+
+def check_allowed_values(key, value, allowed):
+    if value not in allowed:
+        raise ValueError("Invalid variable '{}={}' : must be one of {}".format(key, value, ', '.join(allowed)))
+
+def check_number_is_odd(key, value):
+    if value%2 == 0:
+        raise ValueError(f"Invalid variable '{key}={value}' : must be an odd integer!")
+
+def check_number_is_between(key, value, n_from, n_to):
+    if value < n_from or value > n_to:
+        raise ValueError(f"Invalid variable '{key}={value}' : must be in range [{n_from}, {n_to}]")
+
+def check_fastq_file_locations(samples, locations):
+    for x in samples:
+        file_found = False
+        for loc in locations:
+            folder = "{}/{}/{}/{}".format(working_dir, omics, loc, x)
+            if (os.path.exists(folder)):
+                   file_found = True
+        if not file_found:
+            raise Exception(f"ERROR in {config_path}: fastq directory for sample {x} does not exist.")
+
 ################################
 # config file name:
 # Getting the configfile's name is simple but just not obvious.
