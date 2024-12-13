@@ -6,6 +6,8 @@ Config file parser
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
+import os.path
+
 ##############################################
 # Config key dictionary
 ##############################################
@@ -114,7 +116,9 @@ GLOBAL_CONFIG_KEYTYPES = {
 }
 
 ALIASES = {
-    'READ_minlen' : ['TRIMMOMATIC_minlen']
+    'READ_minlen' : ['TRIMMOMATIC_minlen'],
+    'FASTP_adapters' : ['FASTP_adaptors'],
+    'TRIMMOMATIC_adaptors' : ['TRIMMOMATIC_adapters']
 }
 
 ##############################################
@@ -209,7 +213,7 @@ def check_fastq_file_locations(samples, locations):
 # Getting the configfile's name is simple but just not obvious.
 # See: https://stackoverflow.com/a/72096363
 ################################
-config_path = 'configuration yaml file' #args[args_idx+1]
+config_path = 'configuration yaml file'
 if '--configfile' in sys.argv:
     i = sys.argv.index('--configfile')
     config_path = sys.argv[i+1]
