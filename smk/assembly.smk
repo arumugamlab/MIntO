@@ -306,7 +306,13 @@ rule merge_runs:
         """
 
 ###############################################################################################
-########  Individual assembly of illumina samples
+# Assembling illumina samples
+###############################################################################################
+
+ruleorder: hybrid_assembly_metaspades > illumina_assembly_metaspades
+
+###############################################################################################
+# Individual assembly of illumina samples
 ###############################################################################################
 rule illumina_assembly_metaspades:
     input:
@@ -349,8 +355,8 @@ rule illumina_assembly_metaspades:
 ###############################################################################################
 rule hybrid_assembly_metaspades:
     input:
-        fwd=rules.correct_spadeshammer.output.fwd,
-        rev=rules.correct_spadeshammer.output.rev,
+        fwd="{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz",
+        rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
         ont="{wd}/{omics}/6-corrected/{nanopore}/{nanopore}.nanopore.fq.gz"
     output:
         "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/contigs.fasta",
