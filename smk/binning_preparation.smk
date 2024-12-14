@@ -725,7 +725,7 @@ rule config_yml_binning:
         time (echo "######################
 # General settings
 ######################
-PROJECT: {project_name}
+PROJECT: {project_id}
 working_dir: {wildcards.wd}
 omics: {wildcards.omics}
 minto_dir: {minto_dir}
