@@ -10,8 +10,6 @@ Assembly-free taxonomy profiling step
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-# configuration yaml file
-# import sys
 import re
 import os.path
 
@@ -117,11 +115,6 @@ for x in taxonomy.split(","):
 
 metaphlan_version = validate_required_key(config, 'metaphlan_version')
 motus_version     = validate_required_key(config, 'motus_version')
-
-# FIX
-motus_db_path     = os.path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
-if not os.path.exists(motus_db_path):
-    motus_db_path = None
 
 taxonomies = taxonomy.split(",")
 for t in taxonomies:
@@ -585,7 +578,7 @@ rule motus_map_db:
     params:
         fwd_files = lambda wildcards, input: ",".join(input.fwd),
         rev_files = lambda wildcards, input: ",".join(input.rev),
-        motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else ""
+        motus_db  = lambda wildcards, input: os.path.dirname(input.db)
     resources:
         mem=TAXA_memory
     threads:
@@ -597,20 +590,21 @@ rule motus_map_db:
     shell:
         """
         time (
-            motus map_tax   -t {threads} -f {params.fwd_files} -r {params.rev_files} {params.motus_db} -o {wildcards.sample}.motus.bam -b
-            motus calc_mgc  -n {wildcards.sample}                                    {params.motus_db} -i {wildcards.sample}.motus.bam -o {wildcards.sample}.motus.mgc
+            motus map_tax   -t {threads} -f {params.fwd_files} -r {params.rev_files} -db {params.motus_db} -o {wildcards.sample}.motus.bam -b
+            motus calc_mgc  -n {wildcards.sample}                                    -db {params.motus_db} -i {wildcards.sample}.motus.bam -o {wildcards.sample}.motus.mgc
             rsync -a {wildcards.sample}.motus.mgc {output.mgc}
         ) >& {log}
         """
 
 rule motus_calc_motu:
     input:
+        db = f"{minto_dir}/data/motus/{{version}}/db_mOTU/db_mOTU_versions",
         mgc=rules.motus_map_db.output.mgc,
     output:
         raw="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw.{version}.tsv",
         rel="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel.{version}.tsv"
     params:
-        motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else ""
+        motus_db = lambda wildcards, input: os.path.dirname(input.db)
     resources:
         mem=TAXA_memory
     threads: 2
@@ -621,13 +615,14 @@ rule motus_calc_motu:
     shell:
         """
         time (
-            motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.rel} -p -q
-            motus calc_motu -n {wildcards.sample} {params.motus_db} -i {input.mgc} -o {output.raw} -p -q -c
+            motus calc_motu -n {wildcards.sample} -db {params.motus_db} -i {input.mgc} -o {output.rel} -p -q
+            motus calc_motu -n {wildcards.sample} -db {params.motus_db} -i {input.mgc} -o {output.raw} -p -q -c
         ) >& {log}
         """
 
 rule motus_combine_profiles:
     input:
+        db = f"{minto_dir}/data/motus/{{version}}/db_mOTU/db_mOTU_versions",
         profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = nonredundant_ilmn_samples),
     output:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
@@ -635,9 +630,9 @@ rule motus_combine_profiles:
     wildcard_constraints:
         taxonomy = r'motus_(raw|rel)'
     params:
-        motus_db = lambda wildcards: f"-db {motus_db_path}" if motus_db_path else "",
-        cut_fields='1,3-',
-        files=lambda wildcards, input: ",".join(input.profiles)
+        motus_db   = lambda wildcards, input: os.path.dirname(input.db),
+        cut_fields = '1,3-',
+        files      = lambda wildcards, input: ",".join(input.profiles)
     threads: 1
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}.{version}_combine.log"
@@ -646,7 +641,7 @@ rule motus_combine_profiles:
     shell:
         """
         time (
-            motus merge {params.motus_db} -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/' -e 's/^unassigned .unassigned./Unknown/' | cut -f{params.cut_fields}  > {output.merged}
+            motus merge -db {params.motus_db} -i {params.files} | sed 's/^\(\S*\)\s\([^\\t]\+\)\\t/\\2 [\\1]\\t/' | sed -e 's/^consensus_taxonomy \[#mOTU\]/clade_name/' -e 's/NCBI_tax_id/clade_taxid/' -e 's/^unassigned .unassigned./Unknown/' | cut -f{params.cut_fields}  > {output.merged}
             grep -E "s__|clade_name" {output.merged} | sed 's/^.*s__//' | sed 's/^clade_name/species/' > {output.species}
         ) >& {log}
         """
