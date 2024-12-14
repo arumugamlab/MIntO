@@ -23,12 +23,6 @@ phylophlan_db_version = 'Jun23'
 motus_version = '3.1.0'
 gtdb_release_number = '220'
 
-config_path = 'configuration yaml file' #args[args_idx+1]
-print(" *******************************")
-print(" Reading configuration yaml file: ") #, config_path)
-print(" *******************************")
-print("  ")
-
 def rRNA_db_out():
     files = ["rfam-5.8s-database-id98.fasta",
                 "rfam-5s-database-id98.fasta",
