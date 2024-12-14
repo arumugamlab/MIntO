@@ -3,7 +3,3 @@
 ######################
 minto_dir: <__MINTO_DIR__>
 
-download_memory: 5
-download_threads: 2
-rRNA_index_memory: 5
-rRNA_index_threads: 2
