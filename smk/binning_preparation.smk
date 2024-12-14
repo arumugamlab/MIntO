@@ -6,9 +6,16 @@ Binning preparation of contigs from assembly/coassembly.
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-import snakemake
+import os.path
+import math
 
+# Get common config variables
+# These are:
+#   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+
+NEED_PROJECT_VARIABLES = True
 include: 'include/cmdline_validator.smk'
+include: 'include/config_parser.smk'
 include: 'include/fasta_bam_helpers.smk'
 
 module print_versions:
@@ -20,184 +27,128 @@ use rule binning_preparation_base, binning_preparation_avamb from print_versions
 
 snakefile_name = print_versions.get_smk_filename()
 
-# configuration yaml file
-# import sys
-import os.path
-import math
-
-# args = sys.argv
-# config_path = args[args.index("--configfile") + 1]
-config_path = 'configuration yaml file' #args[args_idx+1]
-print(" *******************************")
-print(" Reading configuration yaml file")#: , config_path)
-print(" *******************************")
-print("  ")
-
 # Variables from configuration yaml file
 
-# some variables
-if config['PROJECT'] is None:
-    print('ERROR in ', config_path, ': PROJECT variable is empty. Please, complete ', config_path)
-else:
-    project_name = config['PROJECT']
+##############################################
+# Get sample list
+##############################################
 
-if config['working_dir'] is None:
-    print('ERROR in ', config_path, ': working_dir variable is empty. Please, complete ', config_path)
-elif os.path.exists(config['working_dir']) is False:
-    print('ERROR in ', config_path, ': working_dir variable path does not exit. Please, complete ', config_path)
-else:
-    working_dir = config['working_dir']
+# Make list of illumina samples, if ILLUMINA in config
 
-if config['minto_dir'] is None:
-    print('ERROR in ', config_path, ': minto_dir variable in configuration yaml file is empty. Please, complete ', config_path)
-elif os.path.exists(config['minto_dir']) is False:
-    print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
-else:
-    minto_dir=config["minto_dir"]
-    script_dir=config["minto_dir"]+"/scripts/"
+ilmn_samples = list()
+if (x := validate_required_key(config, 'ILLUMINA')):
+    check_fastq_file_locations(x, locations = ['6-corrected'])
+    ilmn_samples = x
 
-if config['METADATA'] is None:
-    print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
-    metadata=config["METADATA"]
-elif config['METADATA'] == "None":
-    print('WARNING in ', config_path, ': METADATA variable is empty. Samples will be analyzed excluding the metadata.')
-    metadata=config["METADATA"]
-elif os.path.exists(config['METADATA']) is False:
-    print('ERROR in ', config_path, ': METADATA variable path does not exit. Please, complete ', config_path)
-else:
-    metadata=config["METADATA"]
+###############################
+# MetaSPAdes parameters
+###############################
 
-if config['MIN_FASTA_LENGTH'] is None:
-    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is empty. Please, complete ', config_path)
-elif type(config['MIN_FASTA_LENGTH']) != int:
-    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is not an integer. Please, complete ', config_path)
+METASPADES_illumina_max_k = validate_required_key(config, 'METASPADES_illumina_max_k')
+check_number_is_odd('METASPADES_illumina_max_k', METASPADES_illumina_max_k)
+
+METASPADES_hybrid_max_k = validate_optional_key(config, 'METASPADES_hybrid_max_k')
+if METASPADES_hybrid_max_k is not None:
+    check_number_is_odd('METASPADES_hybrid_max_k', METASPADES_hybrid_max_k)
+
+if (x := validate_optional_key(config, 'METASPADES_custom_build')):
+    check_number_is_between('METASPADES_illumina_max_k', METASPADES_illumina_max_k, 19, 300)
+    if METASPADES_hybrid_max_k is not None:
+        check_number_is_between('METASPADES_hybrid_max_k', METASPADES_hybrid_max_k, 19, 300)
+else:
+    check_number_is_between('METASPADES_illumina_max_k', METASPADES_illumina_max_k, 19, 128)
+    if METASPADES_hybrid_max_k is not None:
+        check_number_is_between('METASPADES_hybrid_max_k', METASPADES_hybrid_max_k, 19, 128)
+
+###############################
+# MEGAHIT parameter sets
+###############################
+
+MEGAHIT_presets = list()
+mega_k_list = list()
+
+# Check for MEGAHIT_presets
+if (x := validate_optional_key(config, 'MEGAHIT_presets')):
+    MEGAHIT_presets = x
+
+# Also check for MEGAHIT_custom
+if (x := validate_optional_key(config, 'MEGAHIT_custom')):
+    # if the custom k-s are set, that should be added to the MEGAHIT assembly types
+    if isinstance(x, str):
+        x = [x]
+    for i, k_list in enumerate(x):
+        if k_list and not k_list.isspace():
+            MEGAHIT_presets.append(f'meta-custom-{i+1}')
+            mega_k_list.append(k_list)
+
+###############################
+# MetaFlye parameter sets
+###############################
+
+METAFLYE_presets = dict()
+
+# Check for METAFLYE_presets
+if (x := validate_optional_key(config, 'METAFLYE_presets')):
+    METAFLYE_presets = x
+
+max_job_ram_gb = validate_required_key(config, 'MAX_RAM_GB_PER_JOB')
+if max_job_ram_gb < 10:
+    print('WARNING in ', config_path, ': MAX_RAM_GB_PER_JOB variable has to be minimum 10GB. Value adjusted to 10GB.')
+    max_job_ram_gb = 10
+
+###############################
+# MAG building parameters
+###############################
+
+MIN_FASTA_LENGTH = validate_required_key(config, 'MIN_FASTA_LENGTH')
+
+spades_contigs_or_scaffolds = "scaffolds"
+if (x := validate_optional_key(config, 'SPADES_CONTIGS_OR_SCAFFOLDS')):
+    check_allowed_values('SPADES_CONTIGS_OR_SCAFFOLDS', x, ('contigs', 'contig', 'scaffolds', 'scaffold'))
+    if not x.endswith('s'):
+        x += 's'
+    spades_contigs_or_scaffolds = x
+
+BWA_threads = validate_required_key(config, 'BWA_threads')
+SAMTOOLS_sort_perthread_memgb = validate_required_key(config, 'SAMTOOLS_sort_perthread_memgb')
+
+###############################
+# Make a list of assemblies to use
+###############################
 
 # Scaffold type
 SCAFFOLDS_type = list()
-# Make list of illumina samples, if ILLUMINA in config
-ilmn_samples = list()
-if 'ILLUMINA' in config:
-    if config['ILLUMINA'] is None:
-        print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
-    else:
-        SCAFFOLDS_type.append('illumina_single')
-        #print("Samples:")
-        for ilmn in config["ILLUMINA"]:
-            #print(" "+ilmn)
-            ilmn_samples.append(ilmn)
-else:
-    print('WARNING in ', config_path, ': ILLUMINA list of samples is empty. Skipping short-reads assembly.')
 
-if type(config['METASPADES_hybrid_max_k']) != int or config['METASPADES_hybrid_max_k']%2==0:
-    print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be an odd integer')
-elif 'METASPADES_custom_build' in config:
-    if config['METASPADES_hybrid_max_k'] < 300:
-        hybrid_max_k = config['METASPADES_hybrid_max_k']
-    else:
-        print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be below 300.')
-else:
-    if config['METASPADES_hybrid_max_k'] < 128:
-        hybrid_max_k = config['METASPADES_hybrid_max_k']
-    else:
-        print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be below 128.')
+if ilmn_samples:
+    print(f"Found ILLUMINA in {config_path}.")
+    SCAFFOLDS_type.append('illumina_single')
 
-if type(config['METASPADES_illumina_max_k']) != int or config['METASPADES_illumina_max_k']%2==0:
-    print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be an odd integer')
-elif 'METASPADES_custom_build' in config:
-    if config['METASPADES_illumina_max_k'] < 300:
-        illumina_max_k = config['METASPADES_illumina_max_k']
-    else:
-        print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 300.')
-else:
-    if config['METASPADES_illumina_max_k'] < 128:
-        illumina_max_k = config['METASPADES_illumina_max_k']
-    else:
-        print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 128.')
+# Make list of nanopore samples, if NANOPORE in config
 
-if config['MEGAHIT_presets'] is None and config['MEGAHIT_custom'] is None:
-    print('ERROR in ', config_path, ': MEGAHIT_presets list of MEGAHIT parameters to run per co-assembly is empty. Please, complete ', config_path)
-
-if 'MEGAHIT_custom' not in config:
-    config['MEGAHIT_custom'] = None
-elif config['MEGAHIT_custom'] is not None:
-    # if the custom k-s are set, that should be added to the MEGAHIT assembly types
-    if isinstance(config['MEGAHIT_custom'], str):
-        config['MEGAHIT_custom'] = [config['MEGAHIT_custom']]
-    for i, k_list in enumerate(config['MEGAHIT_custom']):
-        if k_list and not k_list.isspace():
-            if config['MEGAHIT_presets'] is None:
-                config['MEGAHIT_presets'] = [f'meta-custom-{i+1}']
-            else:
-                config['MEGAHIT_presets'].append(f'meta-custom-{i+1}')
-
-max_job_ram_gb = 180
-if config['MAX_RAM_GB_PER_JOB'] is None:
-    raise Exception(f"ERROR in {config_path}: MAX_RAM_GB_PER_JOB variable is empty. Please, complete {config_path}")
-elif type(config['MAX_RAM_GB_PER_JOB']) != int:
-    raise Exception(f"Incorrect value for MAX_RAM_GB_PER_JOB variable (should be integer). Please fix {config_path}")
-elif config['MAX_RAM_GB_PER_JOB'] < 10:
-    print('WARNING in ', config_path, ': MAX_RAM_GB_PER_JOB variable has to be minimum 10GB. Value adjusted to 10GB.')
-    max_job_ram_gb = 10
-else:
-    max_job_ram_gb = config['MAX_RAM_GB_PER_JOB']
-
-spades_contigs_or_scaffolds = "scaffolds"
-if config['SPADES_CONTIGS_OR_SCAFFOLDS'] in ('contigs', 'contig', 'scaffolds', 'scaffold'):
-    spades_contigs_or_scaffolds = config['SPADES_CONTIGS_OR_SCAFFOLDS']
-
-if config['BWA_threads'] is None:
-    print('ERROR in ', config_path, ': BWA_threads variable is empty. Please, complete ', config_path)
-elif type(config['BWA_threads']) != int:
-    print('ERROR in ', config_path, ': BWA_threads variable is not an integer. Please, complete ', config_path)
-
-if config['SAMTOOLS_sort_perthread_memgb'] is None:
-    print('ERROR in ', config_path, ': SAMTOOLS_sort_perthread_memgb variable is empty. Please, complete ', config_path)
-elif type(config['SAMTOOLS_sort_perthread_memgb']) != int:
-    print('ERROR in ', config_path, ': SAMTOOLS_sort_perthread_memgb variable is not an integer. Please, complete ', config_path)
-
-# Make list of nanopore assemblies, if NANOPORE in config
 nanopore_assemblies = list()
-if 'NANOPORE' in config:
-    if config['NANOPORE'] is None:
-        print('ERRROR in ', config_path, ': NANOPORE list of samples is empty. Please, complete ', config_path)
-    else:
-        #print("Nanopore assemblies:")
-        SCAFFOLDS_type.append('nanopore')
-        for nano in config["NANOPORE"]:
-            #print(" "+nano)
-            nanopore_assemblies.append(nano)
-else:
-    print('WARNING in ', config_path, ': NANOPORE list of samples is empty. Skipping long-reads assembly.')
+if (x := validate_optional_key(config, 'NANOPORE')):
+    print(f"Found NANOPORE in {config_path}.")
+    check_fastq_file_locations(x, locations = ['7-assembly'])
+    nanopore_assemblies = x
+    SCAFFOLDS_type.append('nanopore')
 
 # Make list of nanopore-illumina hybrid assemblies, if HYBRID in config
+
 hybrid_assemblies = list()
-if 'HYBRID' in config:
-    if config['HYBRID'] is None:
-        print('ERROR in ', config_path, ': HYBRID list of samples is empty. Please, complete ', config_path)
-    else:
-        #print("Hybrid assemblies:")
-        SCAFFOLDS_type.append('illumina_single_nanopore')
-        for nano in config["HYBRID"]:
-            for ilmn in config["HYBRID"][nano].split("+"):
-                #print(" "+nano+"-"+ilmn)
-                hybrid_assemblies.append(nano+"-"+ilmn)
-else:
-    print('WARNING in ', config_path, ': HYBRID list of samples is empty. Skipping hybrid assembly.')
+if (x := validate_optional_key(config, 'HYBRID')):
+    print(f"Found HYBRID in {config_path}.")
+    SCAFFOLDS_type.append('illumina_single_nanopore')
+    for nano in x:
+        for ilmn in x[nano].split("+"):
+            hybrid_assemblies.append(nano+"-"+ilmn)
 
 # Make list of illumina coassemblies, if COASSEMBLY in config
 co_assemblies = list()
-if 'enable_COASSEMBLY' in config and config['enable_COASSEMBLY'] is not None and config['enable_COASSEMBLY'] is True:
-    if 'COASSEMBLY' in config:
-        if config['COASSEMBLY'] is None:
-            print('ERROR in ', config_path, ': COASSEMBLY list of samples is empty. Please, complete ', config_path)
-        else:
-            #print("Coassemblies:")
-            SCAFFOLDS_type.append('illumina_coas')
-            for co in config["COASSEMBLY"]:
-                #print(" "+co)
-                co_assemblies.append(co)
-else:
-    print('WARNING in ', config_path, ': COASSEMBLY list of samples is empty. Skipping co-assembly.')
+if validate_optional_key(config, 'enable_COASSEMBLY'):
+    if (x := validate_optional_key(config, 'COASSEMBLY')):
+        print(f"Found COASSEMBLY in {config_path}.")
+        SCAFFOLDS_type.append('illumina_coas')
+        co_assemblies = x
 
 # Initialize some variables
 
@@ -212,11 +163,11 @@ assemblies['illumina_single']          = ilmn_samples
 
 # Remove assembly types if specified
 
-if 'EXCLUDE_ASSEMBLY_TYPES' in config:
-    if config['EXCLUDE_ASSEMBLY_TYPES'] is not None:
-        for item in config['EXCLUDE_ASSEMBLY_TYPES']:
-            if item in SCAFFOLDS_type:
-                SCAFFOLDS_type.remove(item)
+if (x := validate_optional_key(config, 'EXCLUDE_ASSEMBLY_TYPES')):
+    for item in x:
+        if item in SCAFFOLDS_type:
+            print(f"Removing assembly_type={item} on request")
+            SCAFFOLDS_type.remove(item)
 
 # Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
 
@@ -230,7 +181,7 @@ include: minto_dir + '/site/cluster_def.py'
 include: 'include/bwa_index_wrapper.smk'
 
 # If BWA index clean-up requested, only do cleanup and nothing else
-if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+if CLUSTER_NODES != None and validate_optional_key(config, 'CLEAN_BWA_INDEX'):
 
     print("NOTE: BWA index cleanup mode requested.")
 
@@ -238,9 +189,9 @@ if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_I
         # Get the cleanup flag for index files per scaf_type
         files = expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/BWA_index.batches.cleaning.done",
                             wd         = working_dir,
-                            omics      = config['omics'],
+                            omics      = omics,
                             scaf_type  = SCAFFOLDS_type,
-                            min_length = config['MIN_FASTA_LENGTH'])
+                            min_length = MIN_FASTA_LENGTH)
         return(files)
 
     rule all:
@@ -254,14 +205,9 @@ else:
 
     rule all:
         input:
-            abundance = "{wd}/{omics}/8-1-binning/scaffolds.{min_seq_length}.abundance.npz".format(
-                    wd = working_dir,
-                    omics = config['omics'],
-                    min_seq_length = config['MIN_FASTA_LENGTH']),
-            config_yaml = "{wd}/{omics}/mags_generation.yaml".format(
-                    wd = working_dir,
-                    omics = config['omics']),
-            versions = print_versions.get_version_output(snakefile_name)
+            abundance   = f"{working_dir}/{omics}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.abundance.npz",
+            config_yaml = f"{working_dir}/{omics}/mags_generation.yaml",
+            versions    = print_versions.get_version_output(snakefile_name)
         default_target: True
 
 ###############################################################################################
@@ -278,20 +224,20 @@ def get_assemblies_for_scaf_type(wildcards):
                             wd = wildcards.wd,
                             omics = wildcards.omics,
                             assembly = assemblies[wildcards.scaf_type],
-                            assembly_preset = config['METAFLYE_presets'])
+                            assembly_preset = METAFLYE_presets)
     elif (wildcards.scaf_type == 'illumina_single'):
         asms = expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.{contig_or_scaffold}.fasta",
                             wd = wildcards.wd,
                             omics = wildcards.omics,
                             assembly = assemblies[wildcards.scaf_type],
-                            kmer_dir = "k21-" + str(illumina_max_k),
+                            kmer_dir = "k21-" + str(METASPADES_illumina_max_k),
                             contig_or_scaffold = spades_contigs_or_scaffolds)
     elif (wildcards.scaf_type == 'illumina_coas'):
         asms = expand("{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta",
                             wd = wildcards.wd,
                             omics = wildcards.omics,
                             coassembly = assemblies[wildcards.scaf_type],
-                            assembly_preset = config['MEGAHIT_presets'])
+                            assembly_preset = MEGAHIT_presets)
     elif (wildcards.scaf_type == 'illumina_single_nanopore'):
         asms = expand("{wd}/{omics}/7-assembly/{assembly}/{kmer_dir}/{assembly}.{contig_or_scaffold}.fasta",
                             wd = wildcards.wd,
@@ -426,12 +372,12 @@ rule map_contigs_BWA_depth_coverM:
         samtools_sort_threads = 3,
         map_threads = lambda wildcards, threads: max(1, threads - 3),
         coverm_threads = lambda wildcards, threads: min(8, threads),
-        mem = lambda wildcards, input, attempt: int(10 + 3.1*os.path.getsize(input.bwaindex[0])/1e9 + 1.1*3*(config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1))),
-        sort_mem = lambda wildcards, attempt: config['SAMTOOLS_sort_perthread_memgb'] + 30*(attempt-1)
+        mem = lambda wildcards, input, attempt: int(10 + 3.1*os.path.getsize(input.bwaindex[0])/1e9 + 1.1*3*(SAMTOOLS_sort_perthread_memgb + 30*(attempt-1))),
+        sort_mem = lambda wildcards, attempt: SAMTOOLS_sort_perthread_memgb + 30*(attempt-1)
     threads:
-        config['BWA_threads'] + 3
+        BWA_threads + 3
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
+        minto_dir + "/envs/MIntO_base.yml" #bwa-mem2
     shell:
         """
         mkdir -p $(dirname {output})
@@ -714,7 +660,7 @@ rule make_abundance_npz:
     resources:
         mem = lambda wildcards, input: 2 + int(1.75e-9*sum((lambda file: os.path.getsize(file) if os.path.exists(file) else 1048576)(file) for file in input.depths))
     conda:
-        config["minto_dir"]+"/envs/avamb.yml"
+        minto_dir + "/envs/avamb.yml"
     shell:
         """
         time (
@@ -773,7 +719,7 @@ rule config_yml_binning:
     log:
         "{wd}/logs/{omics}/config_yml_mags_generation.log"
     params:
-        min_fasta_length=config['MIN_FASTA_LENGTH']
+        min_fasta_length=MIN_FASTA_LENGTH
     shell:
         """
         time (echo "######################

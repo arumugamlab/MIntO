@@ -6,16 +6,15 @@ Assembling metagenomes from combinations of illumina/bgi-seq and nanopore sequen
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-localrules: merge_runs, mark_circular_metaspades_contigs, mark_circular_flye_contigs, rename_megahit_contigs
+import os.path
 
-#
-# configuration yaml file
-# import sys
-from os import path
+localrules: merge_runs, mark_circular_metaspades_contigs, mark_circular_flye_contigs, rename_megahit_contigs
 
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+
+NEED_PROJECT_VARIABLES = True
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
@@ -32,143 +31,124 @@ snakefile_name = print_versions.get_smk_filename()
 
 # Variables from configuration yaml file
 
-# Make list of illumina samples, if ILLUMINA in config
-if 'ILLUMINA' in config:
-    if config['ILLUMINA'] is None:
-        print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
-    else:
-        # Make list of illumina samples, if ILLUMINA in config
-        ilmn_samples = list()
-        #print("Samples:")
-        for ilmn in config['ILLUMINA']:
-            x = str(ilmn)
-            if path.exists("{}/{}/{}/{}".format(working_dir, omics, '6-corrected', x)) is True:
-                ilmn_samples.append(x)
-            elif path.exists("{}/{}/{}/{}".format(working_dir, omics, '5-corrected-runs', x)) is True:
-                ilmn_samples.append(x)
-            elif path.exists("{}/{}/{}/{}".format(working_dir, omics, get_qc2_output_location(omics), x)) is True:
-                ilmn_samples.append(x)
-            else:
-                raise Exception("ERROR in {}: ILLUMINA sequence does not exist for sample {}".format(config_path, x))
-else:
-    print('ERROR in', config_path, ': ILLUMINA list of samples is empty. Please, complete', config_path)
+ilmn_samples            = list()
+nanopore_samples        = list()
+merged_illumina_samples = dict()
 
 ##############################################
 # Register composite samples
 ##############################################
 
 # Make list of illumina coassemblies, if MERGE_ILLUMINA_SAMPLES in config
+if (x := validate_optional_key(config, 'MERGE_ILLUMINA_SAMPLES')):
+    for m in x:
+        merged_illumina_samples.append(m)
 
-merged_illumina_samples = dict()
-if 'MERGE_ILLUMINA_SAMPLES' in config:
-    if config['MERGE_ILLUMINA_SAMPLES'] is None:
-        print('WARNING in ', config_path, ': MERGE_ILLUMINA_SAMPLES list of samples is empty. Skipping sample-merging.')
-    else:
-        merged_illumina_samples = config['MERGE_ILLUMINA_SAMPLES']
-        #print(merged_illumina_samples)
+##############################################
+# Get sample list
+##############################################
 
-# Figure out SPAdes version
-spades_script = 'spades.py' # from conda environment
-if 'METASPADES_custom_build' in config:
-    spades_script = config['METASPADES_custom_build'] # custom built, e.g. for higher K
+# Make list of illumina samples, if ILLUMINA in config
+if (x := validate_optional_key(config, 'ILLUMINA')):
+    check_fastq_file_locations(x, locations = ['6-corrected', '5-corrected-runs', get_qc2_output_location(omics)])
+    ilmn_samples = x
+
+    # If it's composite sample, then don't need to see them until it gets merged later
+    for i in x:
+        if i in merged_illumina_samples.keys():
+            ilmn_samples.remove(i)
+
+
+# Make list of nanopore samples, if NANOPORE in config
+if (x := validate_optional_key(config, 'NANOPORE')):
+    check_fastq_file_locations(x, locations = ['6-corrected', get_qc2_output_location(omics)])
+    nanopore_samples = x
 
 # Make list of nanopore-illumina hybrid assemblies, if HYBRID in config
 hybrid_assemblies = list()
-if 'HYBRID' in config:
-    if config['HYBRID'] is None:
-        print('WARNING in ', config_path, ': HYBRID list of samples is empty. Skipping hybrid assembly.')
-    else:
-        #print("Hybrid assemblies:")
-        for nano in config["HYBRID"]:
-            for ilmn in config["HYBRID"][nano].split("+"):
-                #print(" "+nano+"-"+ilmn)
-                hybrid_assemblies.append(nano+"-"+ilmn)
+if (x := validate_optional_key(config, 'HYBRID')):
+    print(f"Found HYBRID in {config_path}. Enabling hybrid assembly.")
+    for nano in x:
+        for ilmn in x[nano].split("+"):
+            hybrid_assemblies.append(nano+"-"+ilmn)
 
 # Make list of illumina coassemblies, if enable_COASSEMBLY is set to "yes" in config
-co_assemblies = list()
-if 'enable_COASSEMBLY' in config and config['enable_COASSEMBLY'] is not None and config['enable_COASSEMBLY'] is True:
-    if 'COASSEMBLY' in config:
-        if config['COASSEMBLY'] is None:
-            print('WARNING in', config_path, ': COASSEMBLY list of samples is empty. Skipping co-assembly.')
-        else:
-            #print("Coassemblies:")
-            for co in config["COASSEMBLY"]:
-                #print(" "+co)
-                co_assemblies.append(co)
+co_assemblies = dict()
+if validate_optional_key(config, 'enable_COASSEMBLY'):
+    if (x := validate_optional_key(config, 'COASSEMBLY')):
+        print(f"Found COASSEMBLY in {config_path}. Enabling co-assembly.")
+        co_assemblies = x
 
-if config['METASPADES_qoffset'] in ('auto', '33', '64'):
-    pass
+###############################
+# MetaSPAdes parameters
+###############################
+
+METASPADES_qoffset = validate_required_key(config, 'METASPADES_qoffset')
+check_allowed_values('METASPADES_qoffset', METASPADES_qoffset, ('auto', '33', '64'))
+
+METASPADES_threads = validate_required_key(config, 'METASPADES_threads')
+METASPADES_memory  = validate_required_key(config, 'METASPADES_memory')
+
+METASPADES_illumina_max_k = validate_required_key(config, 'METASPADES_illumina_max_k')
+check_number_is_odd('METASPADES_illumina_max_k', METASPADES_illumina_max_k)
+
+METASPADES_hybrid_max_k = validate_optional_key(config, 'METASPADES_hybrid_max_k')
+if METASPADES_hybrid_max_k is not None:
+    check_number_is_odd('METASPADES_hybrid_max_k', METASPADES_hybrid_max_k)
+
+# Figure out SPAdes build
+# and verify kmer max
+
+spades_script = 'spades.py' # from conda environment
+if (x := validate_optional_key(config, 'METASPADES_custom_build')):
+    spades_script = x # custom built, e.g. for higher K
+    check_number_is_between('METASPADES_illumina_max_k', METASPADES_illumina_max_k, 19, 300)
+    if METASPADES_hybrid_max_k is not None:
+        check_number_is_between('METASPADES_hybrid_max_k', METASPADES_hybrid_max_k, 19, 300)
 else:
-    print('ERROR in ', config_path, ': METASPADES_qoffset variable is not correct. "METASPADES_qoffset" variable should be auto, 33 or 64.')
+    check_number_is_between('METASPADES_illumina_max_k', METASPADES_illumina_max_k, 19, 128)
+    if METASPADES_hybrid_max_k is not None:
+        check_number_is_between('METASPADES_hybrid_max_k', METASPADES_hybrid_max_k, 19, 128)
 
-if config['METASPADES_threads'] is None:
-    print('ERROR in ', config_path, ': METASPADES_threads variable is empty. Please, complete ', config_path)
-elif type(config['METASPADES_threads']) != int:
-    print('ERROR in ', config_path, ': METASPADES_threads variable is not an integer. Please, complete ', config_path)
+MEGAHIT_threads = validate_required_key(config, 'MEGAHIT_threads')
+MEGAHIT_memory  = validate_required_key(config, 'MEGAHIT_memory')
 
-if config['METASPADES_memory'] is None:
-    print('ERROR in ', config_path, ': METASPADES_memory variable is empty. Please, complete ', config_path)
-elif type(config['METASPADES_memory']) != int:
-    print('ERROR in ', config_path, ': METASPADES_memory variable is not an integer. Please, complete ', config_path)
+###############################
+# MEGAHIT parameter sets
+###############################
 
-if type(config['METASPADES_hybrid_max_k']) != int or config['METASPADES_hybrid_max_k']%2==0:
-    print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be an odd integer')
-elif 'METASPADES_custom_build' in config:
-    if config['METASPADES_hybrid_max_k'] < 300:
-        hybrid_max_k = config['METASPADES_hybrid_max_k']
-    else:
-        print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be below 300.')
-else:
-    if config['METASPADES_hybrid_max_k'] < 128:
-        hybrid_max_k = config['METASPADES_hybrid_max_k']
-    else:
-        print('ERROR in ', config_path, ': METASPADES_hybrid_max_k variable must be below 128.')
-
-if type(config['METASPADES_illumina_max_k']) != int or config['METASPADES_illumina_max_k']%2==0:
-    print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be an odd integer')
-elif 'METASPADES_custom_build' in config:
-    if config['METASPADES_illumina_max_k'] < 300:
-        illumina_max_k = config['METASPADES_illumina_max_k']
-    else:
-        print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 300.')
-else:
-    if config['METASPADES_illumina_max_k'] < 128:
-        illumina_max_k = config['METASPADES_illumina_max_k']
-    else:
-        print('ERROR in ', config_path, ': METASPADES_illumina_max_k variable must be below 128.')
-
-if config['MEGAHIT_threads'] is None:
-    print('ERROR in ', config_path, ': MEGAHIT_threads variable is empty. Please, complete ', config_path)
-elif type(config['MEGAHIT_threads']) != int:
-    print('ERROR in ', config_path, ': MEGAHIT_threads variable is not an integer. Please, complete ', config_path)
-
-if config['MEGAHIT_presets'] is None and config['MEGAHIT_custom'] is None:
-    print('ERROR in ', config_path, ': MEGAHIT_presets list of MEGAHIT parameters to run per co-assembly is empty. Please, complete ', config_path)
-
+MEGAHIT_presets = list()
 mega_k_list = []
-if 'MEGAHIT_custom' not in config:
-    config['MEGAHIT_custom'] = None
-elif config['MEGAHIT_custom'] is not None:
+
+# Check for MEGAHIT_presets
+if (x := validate_optional_key(config, 'MEGAHIT_presets')):
+    MEGAHIT_presets = x
+
+# Also check for MEGAHIT_custom
+if (x := validate_optional_key(config, 'MEGAHIT_custom')):
     # if the custom k-s are set, that should be added to the MEGAHIT assembly types
-    if isinstance(config['MEGAHIT_custom'], str):
-        config['MEGAHIT_custom'] = [config['MEGAHIT_custom']]
-    for i, k_list in enumerate(config['MEGAHIT_custom']):
+    if isinstance(x, str):
+        x = [x]
+    for i, k_list in enumerate(x):
         if k_list and not k_list.isspace():
-            if config['MEGAHIT_presets'] is None:
-                config['MEGAHIT_presets'] = [f'meta-custom-{i+1}']
-            else:
-                config['MEGAHIT_presets'].append(f'meta-custom-{i+1}')
+            MEGAHIT_presets.append(f'meta-custom-{i+1}')
             mega_k_list.append(k_list)
 
-if config['METAFLYE_presets'] is None:
-    print('ERROR in ', config_path, ': METAFLYE_presets list of METAFLYE parameters to run per long-read assembly is empty. Please, complete ', config_path)
+if co_assemblies and not MEGAHIT_presets:
+    raise Exception(f"ERROR in {config_path}: MEGAHIT_presets list of MEGAHIT parameters to run per co-assembly is empty")
 
-if config['MEGAHIT_memory'] is None:
-    print('ERROR in ', config_path, ': MEGAHIT_memory variable is empty. Please, complete ', config_path)
-elif type(config['MEGAHIT_memory']) != int:
-    print('ERROR in ', config_path, ': MEGAHIT_memory variable is not an integer. Please, complete ', config_path)
-elif type(config['MEGAHIT_memory']) == int:
-    memory_config=config['MEGAHIT_memory']
+###############################
+# MetaFlye parameter sets
+###############################
+
+METAFLYE_presets = dict()
+
+# Check for METAFLYE_presets
+if (x := validate_optional_key(config, 'METAFLYE_presets')):
+    METAFLYE_presets = x
+
+if nanopore_samples and not METAFLYE_presets:
+    raise Exception(f"ERROR in {config_path}: METAFLYE_presets variable listing MetaFlye parameters is missing")
 
 # Define all the outputs needed by target 'all'
 
@@ -177,7 +157,7 @@ def illumina_single_assembly_output():
                     wd = working_dir,
                     omics = omics,
                     sample = ilmn_samples,
-                    kmer_dir = "k21-" + str(illumina_max_k),
+                    kmer_dir = "k21-" + str(METASPADES_illumina_max_k),
                     sequence = ["contigs", "scaffolds"])
     return(result)
 
@@ -186,15 +166,15 @@ def illumina_co_assembly_output():
                     wd = working_dir,
                     omics = omics,
                     coassembly = co_assemblies,
-                    assembly_preset = config['MEGAHIT_presets'])
+                    assembly_preset = MEGAHIT_presets)
     return(result)
 
 def nanopore_single_assembly_output():
     result = expand("{wd}/{omics}/7-assembly/{sample}/{assembly_preset}/{sample}.assembly.fasta",
                     wd = working_dir,
                     omics = omics,
-                    sample = config["NANOPORE"] if "NANOPORE" in config else [],
-                    assembly_preset = config['METAFLYE_presets'])
+                    sample = nanopore_samples,
+                    assembly_preset = METAFLYE_presets)
     return(result)
 
 def hybrid_assembly_output():
@@ -202,7 +182,7 @@ def hybrid_assembly_output():
                     wd = working_dir,
                     omics = omics,
                     assembly = hybrid_assemblies,
-                    kmer_dir = "k21-" + str(hybrid_max_k),
+                    kmer_dir = "k21-" + str(METASPADES_hybrid_max_k),
                     sequence = ["contigs", "scaffolds"])
     return(result)
 
@@ -246,14 +226,15 @@ rule correct_spadeshammer:
     shadow:
         "minimal"
     params:
-        qoffset=config["METASPADES_qoffset"]
+        qoffset = METASPADES_qoffset
     resources:
-        mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
+        mem = lambda wildcards, attempt: attempt*METASPADES_memory
     log:
         "{wd}/logs/{omics}/5-corrected-runs/{illumina}/{run}_spadeshammer.log"
-    threads: config['METASPADES_threads']
+    threads:
+        METASPADES_threads
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #METASPADES
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         mkdir -p $(dirname {output.fwd})
@@ -305,14 +286,10 @@ rule merge_runs:
         fi
         """
 
-###############################################################################################
-# Assembling illumina samples
-###############################################################################################
-
 ruleorder: hybrid_assembly_metaspades > illumina_assembly_metaspades
 
 ###############################################################################################
-# Individual assembly of illumina samples
+########  Individual assembly of illumina samples
 ###############################################################################################
 rule illumina_assembly_metaspades:
     input:
@@ -324,18 +301,18 @@ rule illumina_assembly_metaspades:
     shadow:
         "minimal"
     params:
-        qoffset=config["METASPADES_qoffset"],
+        qoffset  = METASPADES_qoffset,
         asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
         kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
     resources:
-        mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
+        mem = lambda wildcards, attempt: attempt*METASPADES_memory
     log:
         "{wd}/logs/{omics}/7-assembly/{illumina}/k21-{maxk}/{illumina}_metaspades.log"
     threads:
-        config['METASPADES_threads']
+        METASPADES_threads
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         remote_dir=$(dirname {output[0]})
@@ -364,18 +341,18 @@ rule hybrid_assembly_metaspades:
     shadow:
         "minimal"
     params:
-        qoffset=config["METASPADES_qoffset"],
+        qoffset  = METASPADES_qoffset,
         asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
         kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
     resources:
-        mem = lambda wildcards, attempt: attempt*config["METASPADES_memory"]
+        mem = lambda wildcards, attempt: attempt*METASPADES_memory
     log:
         "{wd}/logs/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/{nanopore}-{illumina}_metaspades.log"
     threads:
-        config['METASPADES_threads']
+        METASPADES_threads
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         remote_dir=$(dirname {output[0]})
@@ -410,8 +387,8 @@ def get_megahit_parameters(wildcards, kk, k_list):
 
 rule coassembly_megahit:
     input:
-        fwd=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz', wd=working_dir, omics=omics, illumina=config["COASSEMBLY"][wildcards.coassembly].split('+')),
-        rev=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz', wd=working_dir, omics=omics, illumina=config["COASSEMBLY"][wildcards.coassembly].split('+'))
+        fwd=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz', wd=working_dir, omics=omics, illumina=co_assemblies[wildcards.coassembly].split('+')),
+        rev=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz', wd=working_dir, omics=omics, illumina=co_assemblies[wildcards.coassembly].split('+'))
     output:
         coassemblies= "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa"
     shadow:
@@ -419,16 +396,16 @@ rule coassembly_megahit:
     params:
         fwd_reads=lambda wildcards, input: ",".join(input.fwd),
         rev_reads=lambda wildcards, input: ",".join(input.rev),
-        asm_params=lambda wildcards: get_megahit_parameters(wildcards, illumina_max_k, mega_k_list),
-        memory_config=config['MEGAHIT_memory']
+        asm_params=lambda wildcards: get_megahit_parameters(wildcards, METASPADES_illumina_max_k, mega_k_list),
     resources:
-        mem = lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1))),
-        mem_bytes=lambda wildcards, input, attempt: min(900, len(input.fwd)*(memory_config+6*(attempt-1)))*1024*1024*1024
+        mem       = lambda wildcards, input, attempt: min(900, len(input.fwd)*(MEGAHIT_memory+6*(attempt-1))),
+        mem_bytes = lambda wildcards, input, attempt: min(900, len(input.fwd)*(MEGAHIT_memory+6*(attempt-1)))*1024*1024*1024
     log:
         "{wd}/logs/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}_{assembly_preset}_coassembly_megahit.log"
-    threads: config['MEGAHIT_threads']
+    threads:
+        MEGAHIT_threads
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         # Don't create the --out-dir directory as MEGAHIT wants it to not exist before
@@ -457,9 +434,9 @@ rule nanopore_assembly_metaflye:
         mem = lambda wildcards, attempt: 30*attempt
     threads: 16
     params:
-        options = lambda wildcards: config['METAFLYE_presets'][wildcards.assembly_preset]
+        options = lambda wildcards: METAFLYE_presets[wildcards.assembly_preset]
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         mkdir -p $(dirname {output[0]})
@@ -534,9 +511,9 @@ rule rename_megahit_contigs:
     output:
         "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/{coassembly}.contigs.fasta"
     wildcard_constraints:
-        assembly_preset = '|'.join(config['MEGAHIT_presets'])
+        assembly_preset = '|'.join(MEGAHIT_presets)
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         r"""
         perl -ne 's/^>k(\d+)_(\d+) (.*)len=(\d+)/>MEGAHIT.{wildcards.assembly_preset}.{wildcards.coassembly}_NODE_$2_length_$4_k_$1/ if m/^>/; print $_;' < {input} > {output}

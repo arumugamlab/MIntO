@@ -13,11 +13,13 @@ Authors: Carmen Saenz, Mani Arumugam
 # configuration yaml file
 # import sys
 import re
-from os import path
+import os.path
 
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+
+NEED_PROJECT_VARIABLES = True
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
@@ -44,8 +46,7 @@ merged_illumina_samples = dict()
 ##############################################
 
 # Make list of illumina coassemblies, if MERGE_ILLUMINA_SAMPLES in config
-x = validate_optional_key(config, 'MERGE_ILLUMINA_SAMPLES')
-if x is not None:
+if (x := validate_optional_key(config, 'MERGE_ILLUMINA_SAMPLES')):
     for m in x:
         #print(" "+m)
         merged_illumina_samples.append(m)
@@ -55,22 +56,14 @@ if x is not None:
 ##############################################
 
 # Make list of illumina samples, if ILLUMINA in config
-if 'ILLUMINA' in config:
-    #print("Samples:")
-    for ilmn in config["ILLUMINA"]:
-        # If it's composite sample, then don't need to see them until it gets merged later
-        if ilmn in merged_illumina_samples.keys():
-            continue
-        file_found = False
-        for loc in ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed']:
-            location = "{}/{}/{}/{}".format(working_dir, omics, loc, ilmn)
-            if (path.exists(location) is True):
-                   file_found = True
-        if file_found == True:
-            #print(ilmn)
-            ilmn_samples.append(ilmn)
-        else:
-            raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist.")
+if (x := validate_optional_key(config, 'ILLUMINA')):
+    check_fastq_file_locations(x, locations = ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed'])
+    ilmn_samples = x
+
+    # If it's composite sample, then don't need to see them until it gets merged later
+    for i in x:
+        if i in merged_illumina_samples.keys():
+            ilmn_samples.remove(i)
 
 ##############################################
 # Make list of clean illumina samples after merging reps
@@ -89,9 +82,9 @@ for i in ilmn_samples:
 host_genome_path = validate_required_key(config, 'PATH_host_genome')
 host_genome_name = validate_required_key(config, 'NAME_host_genome')
 
-if path.exists(f"{host_genome_path}/BWA_index/{host_genome_name}.pac") is True:
+if os.path.exists(f"{host_genome_path}/BWA_index/{host_genome_name}.pac"):
     print(f"Host genome db {host_genome_path}/BWA_index/{host_genome_name} will be used")
-elif path.exists(f"{host_genome_path}/{host_genome_name}") is True:
+elif os.path.exists(f"{host_genome_path}/{host_genome_name}"):
     print(f"Host genome sequence {host_genome_path}/{host_genome_name} will be used to create BWA db")
 else:
     raise Exception(f"NAME_host_genome={host_genome_name} does not exist as fasta or BWA db in PATH_host_genome={host_genome_path}. Please fix {config_path}")
@@ -104,16 +97,11 @@ read_min_len = validate_required_key(config, 'READ_minlen')
 if read_min_len < 50:
     read_min_len = 50
 
-# FIX
-#elif 'TRIMMOMATIC_minlen' in config and config['TRIMMOMATIC_minlen'] is not None:
-#    read_min_len = config['TRIMMOMATIC_minlen']
-
-
 ##############################################
 # BWA for host genome filtering
 ##############################################
 
-validate_required_key(config, 'BWA_host_threads')
+bwa_threads = validate_required_key(config, 'BWA_host_threads')
 
 ##############################################
 # taxonomy
@@ -122,21 +110,18 @@ validate_required_key(config, 'BWA_host_threads')
 TAXA_threads = validate_required_key(config, 'TAXA_threads')
 TAXA_memory  = validate_required_key(config, 'TAXA_memory')
 
-# FIX
+taxonomy = validate_required_key(config, 'TAXA_profiler')
 allowed = ('metaphlan', 'motus_rel', 'motus_raw')
-flags = [0 if x in allowed else 1 for x in config['TAXA_profiler'].split(",")]
-if sum(flags) == 0:
-    taxonomy=config["TAXA_profiler"]
-else:
-    print('ERROR in ', config_path, ': TAXA_profiler variable is not correct. "TAXA_profiler" variable should be metaphlan, motus_rel or motus_raw, or combinations thereof.')
+for x in taxonomy.split(","):
+    check_allowed_values('TAXA_profiler', x, allowed)
 
 metaphlan_version = validate_required_key(config, 'metaphlan_version')
 motus_version     = validate_required_key(config, 'motus_version')
 
 # FIX
-motus_db_path     = path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
-if not path.exists(motus_db_path):
-    motus_db_path = ""
+motus_db_path     = os.path.join(minto_dir, "data", "motus", motus_version, "db_mOTU")
+if not os.path.exists(motus_db_path):
+    motus_db_path = None
 
 taxonomies = taxonomy.split(",")
 for t in taxonomies:
@@ -244,7 +229,7 @@ def smash_plot_output():
 def merged_sample_output():
     return()
 
-if 'MERGE_ILLUMINA_SAMPLES' in config:
+if merged_illumina_samples:
     def merged_sample_output():
         result = expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
                         wd = working_dir,
@@ -262,7 +247,7 @@ def next_step_config_yml_output():
     return(result)
 
 def clean_bwa_index_host():
-    if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+    if CLUSTER_NODES != None and validate_optional_key(config, 'CLEAN_BWA_INDEX'):
         return(f"{host_genome_path}/BWA_index/{host_genome_name}.clustersync/cleaning.done")
     else:
         return([])
@@ -303,7 +288,7 @@ rule qc2_length_filter:
     threads:
         16
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         remote_dir=$(dirname {output.paired1})
@@ -360,9 +345,9 @@ rule qc2_host_filter:
     resources:
         mem = lambda wildcards, input, attempt: 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9) + 10*(attempt-1)
     threads:
-        config['BWA_host_threads']
+        bwa_threads
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2, msamtools>=1.1.1, samtools
+        minto_dir + "/envs/MIntO_base.yml" #bwa-mem2, msamtools>=1.1.1, samtools
     shell:
         """
         remote_dir=$(dirname {output.host_free_fw})
@@ -408,7 +393,7 @@ if omics == 'metaT':
         log:
             "{wd}/logs/{omics}/5-1-sortmerna/rRNA_index.log".format(wd=working_dir, omics = omics),
         conda:
-            config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
+            minto_dir + "/envs/MIntO_base.yml" #sortmerna
         shell:
             """
             time (
@@ -447,7 +432,7 @@ if omics == 'metaT':
         log:
             "{wd}/logs/{omics}/5-1-sortmerna/{sample}_{run}.log"
         conda:
-            config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
+            minto_dir + "/envs/MIntO_base.yml" #sortmerna
         shell:
             """
             time (
@@ -475,7 +460,7 @@ __EOM__
 #       and create profiles for this composite sample.
 ###############################################################################################
 
-if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != None:
+if merged_illumina_samples:
 
     localrules: merge_fastqs_for_composite_samples
     ruleorder: merge_fastqs_for_composite_samples > qc2_host_filter
@@ -488,7 +473,7 @@ if 'MERGE_ILLUMINA_SAMPLES' in config and config['MERGE_ILLUMINA_SAMPLES'] != No
     def get_rep_files_for_composite_sample(wildcards):
 
         files = []
-        reps = [x.strip() for x in config['MERGE_ILLUMINA_SAMPLES'][wildcards.merged_sample].split('+')]
+        reps = [x.strip() for x in merged_illumina_samples[wildcards.merged_sample].split('+')]
         for x in reps:
             files.extend(get_qc2_output_files_one_end(wildcards.wd, wildcards.omics, x, wildcards.pair))
         return(files)
@@ -546,7 +531,7 @@ rule metaphlan_tax_profile:
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{sample}.metaphlan.{version}.log"
     conda:
-        config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
+        minto_dir + "/envs/metaphlan.yml" #metaphlan
     shell:
         """
         remote_dir=$(dirname {output.ra})
@@ -577,7 +562,7 @@ rule metaphlan_combine_profiles:
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}.{version}_combine.log"
     conda:
-        config["minto_dir"]+"/envs/metaphlan.yml" #metaphlan
+        minto_dir + "/envs/metaphlan.yml" #metaphlan
     shell:
         """
         time (
@@ -608,7 +593,7 @@ rule motus_map_db:
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{sample}.motus.{version}.mgc.log"
     conda:
-        config["minto_dir"]+"/envs/motus_env.yml" #motus3
+        minto_dir + "/envs/motus_env.yml" #motus3
     shell:
         """
         time (
@@ -632,7 +617,7 @@ rule motus_calc_motu:
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{sample}.motus.{version}.log"
     conda:
-        config["minto_dir"]+"/envs/motus_env.yml" #motus3
+        minto_dir + "/envs/motus_env.yml" #motus3
     shell:
         """
         time (
@@ -657,7 +642,7 @@ rule motus_combine_profiles:
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}.{version}_combine.log"
     conda:
-        config["minto_dir"]+"/envs/motus_env.yml" #motus3
+        minto_dir + "/envs/motus_env.yml" #motus3
     shell:
         """
         time (
@@ -681,7 +666,7 @@ rule plot_taxonomic_profile:
     log:
         "{wd}/logs/{omics}/6-taxa_profile/{taxonomy}.{version}_plot.log"
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml" #R
+        minto_dir + "/envs/r_pkgs.yml" #R
     shell:
         """
         time (
@@ -714,7 +699,7 @@ rule sourmash_sketch:
     log:
         "{wd}/logs/{omics}/6-1-smash/{sample}.sourmash.sketch.log"
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         time (
@@ -740,7 +725,7 @@ rule sourmash_filter:
     log:
         "{wd}/logs/{omics}/6-1-smash/{sample}.sourmash.filter.log"
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         time (
@@ -768,7 +753,7 @@ rule sourmash_compare:
     log:
         "{wd}/logs/{omics}/6-1-smash/{omics}.sourmash.compare.log"
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         time (
@@ -798,7 +783,7 @@ rule plot_sourmash_kmers:
     log:
         "{wd}/logs/{omics}/6-1-smash/{omics}.{taxonomy_versioned}.sourmash.plot.log"
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml" #R
+        minto_dir + "/envs/r_pkgs.yml" #R
     shell:
         """
         time (
@@ -846,7 +831,7 @@ rule qc2_filter_config_yml_assembly:
     log:
         "{wd}/logs/{omics}/config_yml_assembly.log"
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         cat > {output} <<___EOF___
@@ -893,7 +878,7 @@ MEGAHIT_presets:
  - meta-sensitive
  - meta-large
 #MEGAHIT_custom:
-# -
+# - 21,29,39,59,79,99,119,141
 
 # MetaFlye settings
 #

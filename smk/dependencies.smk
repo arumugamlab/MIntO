@@ -6,11 +6,14 @@ Download and install dependencies
 Authors: Carmen Saenz, Mani Arumugam, Judit Szarvas
 '''
 
-# configuration yaml file
-from os import path
-import glob
+# Get common config variables
+# These are:
+#   config_path, minto_dir, script_dir
+# Do not need project-level info for installing dependencies
 
+NEED_PROJECT_VARIABLES = False
 include: 'include/cmdline_validator.smk'
+include: 'include/config_parser.smk'
 
 script_dir=workflow.basedir+"/../scripts"
 
@@ -26,45 +29,9 @@ print(" Reading configuration yaml file: ") #, config_path)
 print(" *******************************")
 print("  ")
 
-# Variables from configuration yaml file
-if config['minto_dir'] is None:
-    #print('ERROR in ')
-    print('ERROR in ', config_path, ': minto_dir variable is empty. Please, complete ', config_path)
-elif path.exists(config['minto_dir']) is False:
-    #print('ERROR in ')
-    print('ERROR in ', config_path, ': minto_dir variable path does not exit. Please, complete ', config_path)
-else:
-    minto_dir=config["minto_dir"]
-
-if config['download_threads'] is None:
-    print('ERROR in ', config_path, ': download_threads variable is empty. Please, complete ', config_path)
-elif type(config['download_threads']) != int:
-    print('ERROR in ', config_path, ': download_threads variable is not an integer. Please, complete ', config_path)
-else:
-    download_threads=config["download_threads"]
-
-
-if config['download_memory'] is None:
-    print('ERROR in ', config_path, ': download_memory variable is empty. Please, complete ', config_path)
-elif type(config['download_memory']) != int:
-    print('ERROR in ', config_path, ': download_memory variable is not an integer. Please, complete ', config_path)
-else:
-    download_memory=config["download_memory"]
-
-if config['rRNA_index_threads'] is None:
-    print('ERROR in ', config_path, ': rRNA_index_threads variable is empty. Please, complete ', config_path)
-elif type(config['rRNA_index_threads']) != int:
-    print('ERROR in ', config_path, ': rRNA_index_threads variable is not an integer. Please, complete ', config_path)
-else:
-    index_threads=config["rRNA_index_threads"]
-
-if config['rRNA_index_memory'] is None:
-    print('ERROR in ', config_path, ': rRNA_index_memory variable is empty. Please, complete ', config_path)
-elif type(config['rRNA_index_memory']) != int:
-    print('ERROR in ', config_path, ': rRNA_index_memory variable is not an integer. Please, complete ', config_path)
-else:
-    index_memory=config["rRNA_index_memory"]
-
+download_threads   = validate_required_key(config, 'download_threads')
+download_memory    = validate_required_key(config, 'download_memory')
+rRNA_index_memory  = validate_required_key(config, 'rRNA_index_memory')
 
 def rRNA_db_out():
     files = ["rfam-5.8s-database-id98.fasta",
@@ -213,10 +180,10 @@ rule all:
 rule rRNA_db_download:
     output:
         "{somewhere}/rRNA_databases/{something}.fasta"
-    resources: mem=index_memory
-    threads: index_threads
+    resources: mem=rRNA_index_memory
+    threads: 1
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
+        minto_dir + "/envs/MIntO_base.yml" #sortmerna
     shell:
         """
         mkdir -p {wildcards.somewhere}/rRNA_databases
@@ -247,12 +214,12 @@ rule rRNA_db_index:
         rRNA_db_index = directory("{somewhere}/data/rRNA_databases/idx")
     shadow:
         "minimal"
-    resources: mem=index_memory
-    threads: index_threads
+    resources: mem=rRNA_index_memory
+    threads: 4
     log:
        "{somewhere}/logs/rRNA_db_index.log"
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #sortmerna
+        minto_dir + "/envs/MIntO_base.yml" #sortmerna
     shell:
         """
         mkdir -p sortmerna/idx/
@@ -283,7 +250,7 @@ rule eggnog_db:
     log:
         "{minto_dir}/logs/eggnog_db_download.log"
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         mkdir -p {minto_dir}/data/eggnog_data/data
@@ -307,7 +274,7 @@ rule Kofam_db:
     log:
         "{minto_dir}/logs/kofam_db_download.log"
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         mkdir -p {minto_dir}/data/kofam_db/
@@ -333,7 +300,7 @@ rule KEGG_maps:
     log:
         "{minto_dir}/logs/KEGG_maps_download.log"
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         mkdir -p {minto_dir}/data/kofam_db/
@@ -372,7 +339,7 @@ rule functional_db_descriptions:
     log:
         "{minto_dir}/logs/func_db_desc_download.log"
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         mkdir -p {minto_dir}/data/descriptions/
@@ -426,7 +393,7 @@ rule dbCAN_db:
     log:
         "{minto_dir}/logs/dbCAN_db_download.log"
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         mkdir -p {minto_dir}/data/dbCAN_db/V12
@@ -451,7 +418,7 @@ rule metaphlan_db:
     log:
         "{minto_dir}/logs/metaphlan_{metaphlan_version}_{metaphlan_index}_download_db.log"
     conda:
-        config["minto_dir"]+"/envs/metaphlan.yml"
+        minto_dir + "/envs/metaphlan.yml"
     shell:
         """
         mkdir -p {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}
@@ -481,7 +448,7 @@ rule motus_db:
     log:
         "{minto_dir}/logs/motus_{motus_version}.download_db.log"
     conda:
-        config["minto_dir"]+"/envs/motus_env.yml"
+        minto_dir + "/envs/motus_env.yml"
     shell:
         """
         time (
@@ -523,7 +490,7 @@ rule checkm2_db:
     log:
         "{minto_dir}/logs/checkm2_download_db.log"
     conda:
-        config["minto_dir"]+"/envs/checkm2.yml"
+        minto_dir + "/envs/checkm2.yml"
     shell:
         """
         time (
@@ -580,7 +547,7 @@ rule download_phylophlan_db:
     log:
         "{minto_dir}/logs/phylophlan.SGB.{phylophlan_db_version}.download.log"
     conda:
-        config["minto_dir"]+"/envs/mags.yml"
+        minto_dir + "/envs/mags.yml"
     shell:
         """
         time (
@@ -622,7 +589,7 @@ rule download_GTDB_db:
     log:
         "{minto_dir}/logs/GTDB.r{gtdb_release_number}.download.log"
     conda:
-        config["minto_dir"]+"/envs/gtdb.yml"
+        minto_dir + "/envs/gtdb.yml"
     shell:
         """
         time (
@@ -656,7 +623,7 @@ rule r_pkgs:
     threads:
         download_threads
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         time (
@@ -672,7 +639,7 @@ rule mags_gen_vamb:
     threads:
         download_threads
     conda:
-        config["minto_dir"]+"/envs/avamb.yml"
+        minto_dir + "/envs/avamb.yml"
     shell:
         """
         time (
@@ -688,7 +655,7 @@ rule mags_gen:
     threads:
         download_threads
     conda:
-        config["minto_dir"]+"/envs/mags.yml"
+        minto_dir + "/envs/mags.yml"
     shell:
         """
         time (

@@ -6,14 +6,14 @@ Gene prediction and functional annotation step
 Authors: Vithiagaran Gunalan, Carmen Saenz, Judit Szarvas, Mani Arumugam
 '''
 
-# configuration yaml file
-# import sys
 import pathlib
-from os import path
+import os.path
 
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+
+NEED_PROJECT_VARIABLES = True
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
@@ -28,14 +28,11 @@ snakefile_name = print_versions.get_smk_filename()
 
 # MIntO mode and database-mapping
 
-# Define the 2 modes ('catalog' mode is not allowed here)
-valid_minto_modes = ['MAG', 'refgenome']
+# Which mode are we running?
+MINTO_MODE = validate_required_key(config, 'MINTO_MODE')
 
-# Which database are we mapping reads to?
-if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
-    MINTO_MODE=config['MINTO_MODE']
-else:
-    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be defined".format(config_path))
+# 'catalog' mode is not allowed here
+valid_minto_modes = ['MAG', 'refgenome']
 
 # Backward compatibility and common misnomers
 if MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
@@ -43,62 +40,43 @@ if MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenom
 elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
     MINTO_MODE = 'MAG'
 
-if not MINTO_MODE in valid_minto_modes:
-    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be {}.".format(config_path, valid_minto_modes))
+check_allowed_values('MINTO_MODE', MINTO_MODE, valid_minto_modes)
 
-mag_omics = 'metaG'
 if MINTO_MODE == 'MAG':
-    if 'MAG_omics' in config and config['MAG_omics'] != None:
-        mag_omics = config['MAG_omics']
-    reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd=working_dir, mag_omics=mag_omics)
+    mag_omics = 'metaG'
+    if (x := validate_optional_key(config, 'MAG_omics')):
+        mag_omics = x
+    reference_dir = f"{working_dir}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes"
     print('NOTE: MIntO is using "' + reference_dir + '" as PATH_reference variable')
 elif MINTO_MODE == 'refgenome':
-    if config['PATH_reference'] is None:
-        print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
-    reference_dir=config["PATH_reference"]
-    print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
+    if (x := validate_required_key(config, 'PATH_reference')):
+        reference_dir = x
+        print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
 
-if path.exists(reference_dir) is False:
-    print('ERROR in ', config_path, ': reference genome path ', reference_dir, ' does not exit. Please, complete ', config_path)
+# Taxonomic annotation of genomes
 
-run_taxonomy="no"
 taxonomies_versioned = list()
 taxonomies = list()
-if 'RUN_TAXONOMY' not in config or config['RUN_TAXONOMY'] is None:
-    print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
-elif config['RUN_TAXONOMY'] == True:
-    run_taxonomy = "yes"
-elif config['RUN_TAXONOMY'] == False:
-    run_taxonomy = "no"
-    print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs.')
-else:
-    raise Exception(f"Incorrect value for RUN_TAXONOMY variable (should be yes or no). Please fix {config_path}")
+run_taxonomy = False
+if (x := validate_optional_key(config, 'RUN_TAXONOMY')):
+    run_taxonomy = x
 
-if run_taxonomy == "yes":
-    if config['TAXONOMY_CPUS'] is None:
-        raise Exception(f"TAXONOMY_CPUS variable is empty. Please fix {config_path}")
-    elif type(config['TAXONOMY_CPUS']) != int:
-        raise Exception(f"TAXONOMY_CPUS variable must be an integer. Please fix {config_path}")
+if run_taxonomy:
+    TAXONOMY_CPUS   = validate_required_key(config, 'TAXONOMY_CPUS')
+    TAXONOMY_memory = validate_required_key(config, 'TAXONOMY_memory')
 
-    if config['TAXONOMY_memory'] is None:
-        raise Exception(f"TAXONOMY_memory variable is empty. Please fix {config_path}")
-    elif type(config['TAXONOMY_memory']) != int:
-        raise Exception(f"TAXONOMY_memory variable must be an integer. Please fix {config_path}")
-
+    TAXONOMY = validate_required_key(config, 'TAXONOMY_NAME')
     allowed = ('phylophlan', 'gtdb')
-    flags = [0 if x in allowed else 1 for x in config['TAXONOMY_NAME'].split(",")]
-    if sum(flags) == 0:
-        taxonomy=config["TAXONOMY_NAME"]
-    else:
-        raise Exception(f"TAXONOMY_NAME variable should be phylophlan, gtdb, or combinations thereof. Please fix {config_path}")
+    for x in TAXONOMY.split(","):
+        check_allowed_values('TAXONOMY_NAME', x, allowed)
 
-    taxonomies = taxonomy.split(",")
+    taxonomies = TAXONOMY.split(",")
     for t in taxonomies:
         version="unknown"
         if t == "phylophlan":
-            version=config["PHYLOPHLAN_TAXONOMY_VERSION"]
+            version = validate_required_key(config, "PHYLOPHLAN_TAXONOMY_VERSION")
         elif t == "gtdb":
-            version=config["GTDB_TAXONOMY_VERSION"]
+            version = validate_required_key(config, "GTDB_TAXONOMY_VERSION")
         taxonomies_versioned.append(t+"."+version)
     print('NOTE: MIntO is running taxonomy labelling of the unique MAGs using [{}].'.format(", ".join(taxonomies_versioned)))
 
@@ -110,26 +88,15 @@ if run_taxonomy == "yes":
     else:
         use rule annotation_base, annotation_gtdb from print_versions as version_*
 
-annot_list = list()
-if 'ANNOTATION' in config:
-    if config['ANNOTATION'] is None:
-        print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, kofam and/or eggNOG. Please, complete ', config_path)
-    else:
-        try:
-            for annot in config["ANNOTATION"]:
-                if annot in ['dbCAN', 'kofam', 'eggNOG']:
-                    annot_list.append(annot)
-                else:
-                    raise TypeError
-        except:
-            print('ERROR in ', config_path, ': ANNOTATION variable is not correct. "ANNOTATION" variable should be dbCAN, kofam and/or eggNOG. Please, complete ', config_path)
-else:
-    print('ERROR in ', config_path, ': ANNOTATION list is empty. "ANNOTATION" variable should be dbCAN, kofam and/or eggNOG. Please, complete', config_path)
+ANNOTATION = validate_required_key(config, 'ANNOTATION')
+for x in ANNOTATION:
+    check_allowed_values('ANNOTATION', x, ('dbCAN', 'kofam', 'eggNOG'))
 
 eggNOG_dbmem = True
-if 'eggNOG' in annot_list and 'eggNOG_dbmem' in config:
-    if not config['eggNOG_dbmem']:
-        eggNOG_dbmem = False
+if 'eggNOG' in ANNOTATION:
+    x = validate_optional_key(config, 'eggNOG_dbmem')
+    if x is not None:
+        eggNOG_dbmem = x
 
 # Define all the outputs needed by target 'all'
 
@@ -240,7 +207,7 @@ rule prokka_for_genome:
         mem=10
     threads: 8
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         time (
@@ -275,7 +242,7 @@ rule rename_prokka_sequences:
         "{wd}/logs/DB/{minto_mode}/{genome}.rename_prokka.log"
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #gff2bed from bedops
+        minto_dir + "/envs/MIntO_base.yml" #gff2bed from bedops
     shell:
         """
         time (
@@ -401,7 +368,7 @@ rule fetchMG_genome_cds_faa:
     log: '{wd}/logs/DB/{minto_mode}/fetchMGs/{genome}.log'
     threads: 8
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         time (
@@ -478,11 +445,11 @@ rule phylophlan_taxonomy_for_genome_collection:
     params:
         db_folder=lambda wildcards: "{minto_dir}/data/phylophlan".format(minto_dir=minto_dir)
     resources:
-        mem=config["TAXONOMY_memory"]
+        mem=TAXONOMY_memory
     threads:
-        config["TAXONOMY_CPUS"]
+        TAXONOMY_CPUS
     conda:
-        config["minto_dir"]+"/envs/mags.yml"
+        minto_dir + "/envs/mags.yml"
     shell:
         """
         time (
@@ -522,9 +489,9 @@ rule gtdb_taxonomy_for_genome_collection:
     resources:
         mem=70
     threads:
-        config["TAXONOMY_CPUS"]
+        TAXONOMY_CPUS
     conda:
-        config["minto_dir"]+"/envs/gtdb.yml"
+        minto_dir + "/envs/gtdb.yml"
     shell:
         """
         time (
@@ -625,7 +592,7 @@ rule gene_annot_kofamscan:
         mem=10
     threads: 16
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         remote_dir=$(dirname {output})
@@ -651,7 +618,7 @@ rule gene_annot_dbcan:
         mem=10
     threads: 16
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         export PATH="{script_dir:q}:$PATH"
@@ -679,7 +646,7 @@ rule gene_annot_eggnog:
         mem=lambda wildcards: 50 if eggNOG_dbmem else 16
     threads: lambda wildcards: 24 if eggNOG_dbmem else 10
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         time (
@@ -739,7 +706,7 @@ rule combine_annotation_batches:
 
 rule predicted_gene_annotation_collate:
     input:
-        annot_out=expand("{{wd}}/DB/{{minto_mode}}/4-annotations/{annot}.tsv", annot=annot_list)
+        annot_out=expand("{{wd}}/DB/{{minto_mode}}/4-annotations/{annot}.tsv", annot=ANNOTATION)
     output:
         annot_out="{wd}/DB/{minto_mode}/4-annotations/combined_annotations.tsv",
     log:
@@ -748,7 +715,7 @@ rule predicted_gene_annotation_collate:
         mem=10
     threads: 1
     conda:
-        config["minto_dir"]+"/envs/mags.yml" # python with pandas
+        minto_dir + "/envs/mags.yml" # python with pandas
     shell:
         """
         time (

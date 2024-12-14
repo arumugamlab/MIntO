@@ -32,6 +32,7 @@ GLOBAL_CONFIG_KEYTYPES = {
     'COVERM_THREADS' : int,
     'download_memory' : int,
     'download_threads' : int,
+    'eggNOG_dbmem' : bool,
     'enable_COASSEMBLY' : bool,
     'enable_GTDB' : bool,
     'enable_metaphlan' : bool,
@@ -266,9 +267,11 @@ script_dir = os.path.join(os.path.dirname(workflow.basedir), 'scripts')
 # Variables from configuration yaml file
 
 minto_dir   = validate_required_key(config, 'minto_dir')
-project_id  = validate_required_key(config, 'PROJECT')
-metadata    = validate_optional_key(config, 'METADATA')
-working_dir = validate_required_key(config, 'working_dir')
-omics       = validate_required_key(config, 'omics')
 
-check_allowed_values('omics', omics, ('metaG', 'metaT', 'metaG_metaT'))
+if NEED_PROJECT_VARIABLES:
+    project_id  = validate_required_key(config, 'PROJECT')
+    metadata    = validate_optional_key(config, 'METADATA')
+    working_dir = validate_required_key(config, 'working_dir')
+    omics       = validate_required_key(config, 'omics')
+
+    check_allowed_values('omics', omics, ('metaG', 'metaT', 'metaG_metaT'))
