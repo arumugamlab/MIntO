@@ -887,7 +887,6 @@ abundance_normalization: MG
 MINTO_MODE: {MINTO_MODE}
 
 MERGE_threads: 4
-MERGE_memory: 5
 
 ANNOTATION_file:
 

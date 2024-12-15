@@ -24,7 +24,6 @@ abundance_normalization: MG
 MINTO_MODE: MAG
 
 MERGE_threads: 4
-MERGE_memory: 5
 
 ANNOTATION_file:
 
