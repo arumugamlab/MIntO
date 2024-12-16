@@ -138,20 +138,21 @@ tr -s '\t' < per_sample.kos.tsv > {output.tsv}
 
 rule prepare_per_mag_input:
     input:
-        tsv = "{wd}/DB/{minto_mode}/4-annotations/{annot}.tsv"
+        tsv = "{wd}/DB/{minto_mode}/4-annotations/{annot}.tsv",
+        combi = "{wd}/DB/{minto_mode}/4-annotations/combined_annotations.tsv"
     output:
         tsv = temp("{wd}/DB/{minto_mode}/4-annotations/{annot}/per_mag.{annot}.tsv"),
     localrule: True
     run:
         mag_kos = {}
-        with open(input.tsv, "r") as fp:
-            _ = fp.readline()
-            if _.startswith("#"):
-                _ = fp.readline()
+        with open(input.combi, "r") as fp:
+            header = fp.readline().strip().split("\t")
+            col_name = f"{wildcards.annot}.KEGG_KO"
+            col_idx = header.index(col_name)
             for line in fp:
                 tmp = line.strip().split("\t")
                 mag_id = tmp[0].split("|")[-1].split("_")[0]
-                kos = tmp[2].split(",")
+                kos = tmp[col_idx].split(",")
                 if "-" not in kos:
                     if mag_id in mag_kos:
                         mag_kos[mag_id].extend(kos)
