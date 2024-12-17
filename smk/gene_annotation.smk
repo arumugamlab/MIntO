@@ -29,17 +29,10 @@ snakefile_name = print_versions.get_smk_filename()
 # MIntO mode and database-mapping
 
 # Which mode are we running?
-MINTO_MODE = validate_required_key(config, 'MINTO_MODE')
+MINTO_MODE = get_minto_mode(config)
 
 # 'catalog' mode is not allowed here
 valid_minto_modes = ['MAG', 'refgenome']
-
-# Backward compatibility and common misnomers
-if MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
-    MINTO_MODE = 'refgenome'
-elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
-    MINTO_MODE = 'MAG'
-
 check_allowed_values('MINTO_MODE', MINTO_MODE, valid_minto_modes)
 
 if MINTO_MODE == 'MAG':

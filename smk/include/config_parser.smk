@@ -145,13 +145,18 @@ def validate_keytype(config, type_dict, key):
 
     # Check for all aliases
     # Get value
-    value = None
+    value = "MINTO_KEY_NOT_FOUND_EXCEPTION"
     for x in pos_keys:
         if x in config:
+            # return None if the actual value in config file is 'None'
+            if config[x] == None:
+                return None
             value = config[x]
             break
-    if value == None:
-        return None
+
+    # If this key was not found, raise error for missing key
+    if value == "MINTO_KEY_NOT_FOUND_EXCEPTION":
+        return value
 
     # Get list of expected types
     expected_types = type_dict[key]
@@ -202,7 +207,12 @@ def validate_required_key(config, key):
     # Check if key is present and the right type
     val = validate_keytype(config, GLOBAL_CONFIG_KEYTYPES, key)
 
-    if val == None:
+    # If key was present but was explicitly 'None' then raise specific error
+    if val is None:
+        raise KeyError(f"Value for required configuration key '{key}' cannot be 'None'")
+
+    # If key was missing then raise specific error
+    if isinstance(val, str) and val == "MINTO_KEY_NOT_FOUND_EXCEPTION":
         raise KeyError(f"Missing required configuration key: {key}")
 
     # return
@@ -212,6 +222,11 @@ def validate_optional_key(config, key):
 
     # Check if key is present and the right type
     val = validate_keytype(config, GLOBAL_CONFIG_KEYTYPES, key)
+
+    # If key was missing return None
+
+    if isinstance(val, str) and val == "MINTO_KEY_NOT_FOUND_EXCEPTION":
+        return None
 
     # return
     return(val)
@@ -241,6 +256,23 @@ def check_fastq_file_locations(samples, locations):
                    file_found = True
         if not file_found:
             raise Exception(f"ERROR in {config_path}: fastq directory for sample {x} does not exist.")
+
+##############################################
+# Special functions to handle MINTO_MODE
+##############################################
+
+def get_minto_mode(config):
+    MINTO_MODE = validate_required_key(config, 'MINTO_MODE')
+
+    # Backward compatibility and common misnomers
+    if MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
+        MINTO_MODE = 'refgenome'
+    elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
+        MINTO_MODE = 'MAG'
+    elif MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
+        MINTO_MODE = 'catalog'
+
+    return MINTO_MODE
 
 ################################
 # config file name:

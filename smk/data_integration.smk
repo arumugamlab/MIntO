@@ -37,19 +37,10 @@ plot_time        = validate_optional_key(config, 'PLOT_time')
 # MIntO mode and database-mapping
 
 # Which mode are we running?
-MINTO_MODE = validate_required_key(config, 'MINTO_MODE')
+MINTO_MODE = get_minto_mode(config)
 
-# Define the 3 modes
+# Check allowed modes
 valid_minto_modes = ['MAG', 'refgenome', 'catalog']
-
-# Backward compatibility and common misnomers
-if MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
-    MINTO_MODE = 'catalog'
-elif MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
-    MINTO_MODE = 'refgenome'
-elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
-    MINTO_MODE = 'MAG'
-
 check_allowed_values('MINTO_MODE', MINTO_MODE, valid_minto_modes)
 
 # Normalization
