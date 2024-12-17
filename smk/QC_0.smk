@@ -43,10 +43,8 @@ FASTP_front_mean_qual= validate_required_key(config, 'FASTP_front_mean_qual')
 FASTP_tail_mean_qual = validate_required_key(config, 'FASTP_tail_mean_qual')
 
 FASTP_adapters       = validate_required_key(config, 'FASTP_adapters')
-if FASTP_adapters in ('Skip', 'Quality', 'Overlap', 'Detect'):
-    pass
-elif not os.path.exists(FASTP_adapters):
-    raise Exception(f"ERROR in {config_path}: FASTP_adapters file path does not exist.")
+if not os.path.exists(FASTP_adapters):
+    check_allowed_values('FASTP_adapters', FASTP_adapters, ('Skip', 'Quality', 'Overlap', 'Detect'))
 
 # file suffixes
 ilmn_suffix = ["1.fq.gz", "2.fq.gz"]

@@ -37,10 +37,8 @@ TRIMMOMATIC_threads  = validate_required_key(config, 'TRIMMOMATIC_threads')
 TRIMMOMATIC_memory   = validate_required_key(config, 'TRIMMOMATIC_memory')
 
 TRIMMOMATIC_adaptors = validate_required_key(config, 'TRIMMOMATIC_adaptors')
-if TRIMMOMATIC_adaptors in ('Skip', 'Quality'):
-    pass
-elif not os.path.exists(TRIMMOMATIC_adaptors):
-    raise Exception(f"ERROR in {config_path}: TRIMMOMATIC_adaptors file path does not exist.")
+if not os.path.exists(TRIMMOMATIC_adaptors):
+    check_allowed_values('TRIMMOMATIC_adaptors', TRIMMOMATIC_adaptors, ('Skip', 'Quality'))
 
 if (TRIMMOMATIC_palindrome := validate_optional_key(config, 'TRIMMOMATIC_palindrome')):
     if not os.path.exists(TRIMMOMATIC_palindrome):
