@@ -6,8 +6,6 @@ Gene and function profiling step
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-# configuration yaml file
-# import sys
 import os.path
 import math
 import re
@@ -15,6 +13,8 @@ import re
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+
+NEED_PROJECT_VARIABLES = True
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/resources.smk'
@@ -30,73 +30,38 @@ snakefile_name = print_versions.get_smk_filename()
 
 # some variables
 
-main_factor = None
-if 'MAIN_factor' in config and config['MAIN_factor'] is not None:
-    main_factor = config['MAIN_factor']
-
-plot_factor2 = None
-if 'PLOT_factor2' in config and config['PLOT_factor2'] is not None:
-    plot_factor2 = config['PLOT_factor2']
-
-plot_time = None
-if 'PLOT_time' in config and config['PLOT_time'] is not None:
-    plot_time = config['PLOT_time']
+main_factor      = validate_required_key(config, 'MAIN_factor')
+plot_factor2     = validate_optional_key(config, 'PLOT_factor2')
+plot_time        = validate_optional_key(config, 'PLOT_time')
 
 # MIntO mode and database-mapping
 
-# Define the 3 modes
+# Which mode are we running?
+MINTO_MODE = get_minto_mode(config)
+
+# Check allowed modes
 valid_minto_modes = ['MAG', 'refgenome', 'catalog']
+check_allowed_values('MINTO_MODE', MINTO_MODE, valid_minto_modes)
 
-# Which database are we mapping reads to?
-if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
-    MINTO_MODE=config['MINTO_MODE']
-else:
-    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be defined".format(config_path))
-
-# Backward compatibility and common misnomers
-if MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
-    MINTO_MODE = 'catalog'
-elif MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
-    MINTO_MODE = 'refgenome'
-elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
-    MINTO_MODE = 'MAG'
-
-if not MINTO_MODE in valid_minto_modes:
-    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be {}.".format(config_path, " or ".join(valid_minto_modes)))
-
-if config['abundance_normalization'] in ("MG", "TPM"):
-    normalization=config['abundance_normalization']
-else:
-    print('ERROR in ', config_path, ': abundance_normalization variable is not correct. "abundance_normalization" variable should be MG or TPM.')
-
-if normalization == 'MG' and MINTO_MODE in ("catalog"):
-    raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
-
-
-# Mapping percent identity
-if config['alignment_identity'] is None:
-    raise Exception("ERROR in {}: alignment_identity variable is empty. Please, fix.".format(config_path))
-elif type(config['alignment_identity']) != int:
-    raise Exception("ERROR in {}: alignment_identity variable is not an integer. Please, fix.".format(config_path))
-identity=config['alignment_identity']
-
-if config['MERGE_threads'] is None:
-    raise Exception("ERROR in {}: MERGE_threads variable is empty. Please, fix.".format(config_path))
-elif type(config['MERGE_threads']) != int:
-    raise Exception("ERROR in {}: MERGE_threads variable is not an integer. Please, fix.".format(config_path))
-
+# Normalization
+normalization = validate_required_key(config, 'abundance_normalization')
 if MINTO_MODE == 'catalog':
-    if config['ANNOTATION_file'] is None:
-        raise Exception("Gene functional annotation needs to be provided via ANNOTATION_file variable")
-    elif os.path.exists(config['ANNOTATION_file']) is False:
-        raise Exception("File specified in ANNOTATION_file variable does not exist")
-    elif os.path.exists(config['ANNOTATION_file']) is True:
-        annot_file=config['ANNOTATION_file']
-
-if config['ANNOTATION_ids'] is None:
-    raise Exception("ERROR in {}: ANNOTATION_ids variable in configuration yaml file is empty. Please, complete.".format(config_path))
+    check_allowed_values('abundance_normalization', normalization, ("TPM"))
 else:
-    funct_opt=config['ANNOTATION_ids']
+    check_allowed_values('abundance_normalization', normalization, ("MG", "TPM"))
+
+# Alignment filtering
+identity = validate_required_key(config, 'alignment_identity')
+
+MERGE_threads = validate_required_key(config, 'MERGE_threads')
+
+funct_opt = validate_required_key(config, 'ANNOTATION_ids')
+allowed  = expand("{db}.{cat}", db='dbCAN',  cat=['module', 'enzclass', 'subfamily', 'EC', 'eCAMI_subfamily', 'eCAMI_submodule'])
+allowed += expand("{db}.{cat}", db='eggNOG', cat=['OGs', 'PFAMs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO'])
+allowed += expand("{db}.{cat}", db='kofam',  cat=['KEGG_Pathway', 'KEGG_Module', 'KEGG_KO'])
+for x in funct_opt:
+    check_allowed_values('ANNOTATION_ids', x, allowed)
+
 
 # Define all the outputs needed by target 'all'
 
@@ -107,8 +72,6 @@ elif omics == 'metaT':
 elif omics == 'metaG_metaT':
     omics_prof=['A','T','E']
 
-print('NOTE: MIntO is using ', omics, ' as omics variable.')
-
 for omics_type in omics.split("_"):
     omics_folder = os.path.join(working_dir, omics_type)
     if not os.path.exists(omics_folder):
@@ -116,11 +79,13 @@ for omics_type in omics.split("_"):
 
 GENE_DB_TYPE = MINTO_MODE + '-genes'
 
-if MINTO_MODE in ['MAG', 'refgenome']:
+if MINTO_MODE == 'catalog':
+    annot_file = validate_required_key(config, 'ANNOTATION_file')
+elif MINTO_MODE in ['MAG', 'refgenome']:
     annot_file="{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(wd = working_dir, subdir = MINTO_MODE)
 
+print('NOTE: MIntO is using ', omics, ' as omics variable.')
 print('NOTE: MIntO is using ', annot_file ,' as ANNOTATION_file variable.')
-
 print('NOTE: MIntO is using ', funct_opt, ' as ANNOTATION_ids variable.')
 
 
@@ -224,7 +189,7 @@ rule integration_merge_profiles:
         mem = lambda wildcards, input, attempt: 6 + math.ceil(3.2e-9*8*sum([get_tsv_cells(i) for i in input.single])) + 10*(attempt-1)
     threads: 1
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         time (
@@ -265,9 +230,9 @@ rule integration_gene_profiles:
         "{wd}/logs/output/data_integration/{gene_db}/integration_gene_profiles.{omics}.p{identity}.{normalization}.G{omics_alphabet}.log"
     resources:
         mem = lambda wildcards, input, attempt: 6 + math.ceil(5e-9*8*get_tsv_cells(input.gene_abund_merge)) + 10*(attempt-1)
-    threads: config["MERGE_threads"]
+    threads: MERGE_threads
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         echo 'integration of gene profiles'
@@ -377,9 +342,9 @@ if omics == 'metaG_metaT':
             "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.FE.{funcat}.log"
         resources:
             mem = lambda wildcards, input, attempt: 6 + math.ceil(4e-9*8*get_tsv_cells(input.gene_abund_tsv)) + 10*(attempt-1)
-        threads: config["MERGE_threads"]
+        threads: MERGE_threads
         conda:
-            config["minto_dir"]+"/envs/r_pkgs.yml" #R
+            minto_dir + "/envs/r_pkgs.yml" #R
         shell:
             """
             echo 'integration of function profiles'
@@ -451,9 +416,9 @@ else :
             "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.F{omics_alphabet}.{funcat}.log"
         resources:
             mem = lambda wildcards, input, attempt: 6 + math.ceil(4e-9*8*get_tsv_cells(input.gene_abund_tsv)) + 10*(attempt-1)
-        threads: config["MERGE_threads"]
+        threads: MERGE_threads
         conda:
-            config["minto_dir"]+"/envs/r_pkgs.yml" #R
+            minto_dir + "/envs/r_pkgs.yml" #R
         shell:
             """
             echo 'integration of function profiles'
@@ -505,7 +470,7 @@ rule make_feature_count_plot:
         mem = 5
     threads: 1
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml" #R
+        minto_dir + "/envs/r_pkgs.yml" #R
     shell:
         """
         R --vanilla --silent --no-echo <<___EOF___

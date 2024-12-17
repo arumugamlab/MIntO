@@ -15,8 +15,6 @@ MAGs recovery and annotation
 Authors: Eleonora Nigro, Mani Arumugam
 '''
 
-# configuration yaml file
-# import sys
 import os.path
 import math
 
@@ -25,6 +23,8 @@ localrules: aae_tsv, vae_tsv, collect_genomes_from_all_binners, copy_best_genome
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+
+NEED_PROJECT_VARIABLES = True
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/resources.smk'
@@ -40,82 +40,42 @@ snakefile_name = print_versions.get_smk_filename()
 
 # Variables from configuration yaml file
 
-# some variables
+# Binners
+BINNERS              = validate_required_key(config, 'BINNERS')
+for x in BINNERS:
+    check_allowed_values('BINNERS', x, ('vae256', 'vae384', 'vae512', 'vae768', 'aaey', 'aaez'))
 
-if 'BINNERS' in config:
-    if config['BINNERS'] is None:
-        raise Exception(f"'BINNERS' variable is empty. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
-    else:
-        for bin in config["BINNERS"]:
-            if bin not in ('vae256', 'vae384', 'vae512', 'vae768', 'aaey', 'aaez'):
-                raise Exception(f"'BINNERS' variable contains incorrect value '{bin}'. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
-else:
-    raise Exception(f"'BINNERS' variable is missing. It should be combinations of vae256, vae384, vae512, vae768, aaey and aaez. Please correct {config_path}")
+# COVERM params
+COVERM_THREADS       = validate_required_key(config, 'COVERM_THREADS')
+COVERM_memory        = validate_required_key(config, 'COVERM_memory')
 
+# binning params
+MIN_FASTA_LENGTH     = validate_required_key(config, 'MIN_FASTA_LENGTH')
+MIN_MAG_LENGTH       = validate_required_key(config, 'MIN_MAG_LENGTH')
 
-if config['VAMB_THREADS'] is None:
-    print('ERROR in ', config_path, ': VAMB_THREADS variable is empty. Please, complete ', config_path)
-elif type(config['VAMB_THREADS']) != int:
-    print('ERROR in ', config_path, ': VAMB_THREADS variable is not an integer. Please, complete ', config_path)
+# CHECKM params
+CHECKM_COMPLETENESS  = validate_required_key(config, 'CHECKM_COMPLETENESS')
+CHECKM_CONTAMINATION = validate_required_key(config, 'CHECKM_CONTAMINATION')
+CHECKM_BATCH_SIZE    = 50
+if (x := validate_optional_key(config, 'CHECKM_BATCH_SIZE')):
+    CHECKM_BATCH_SIZE = x
 
-if config['VAMB_GPU'] is None:
-    print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
-elif config['VAMB_GPU'] == True:
-    vamb_gpu = "yes"
+# VAMB params
+VAMB_THREADS         = validate_required_key(config, 'VAMB_THREADS')
+VAMB_GPU             = validate_required_key(config, 'VAMB_GPU')
+if VAMB_GPU:
     print('NOTE: MIntO is using the GPU')
-elif config['VAMB_GPU'] == False:
-    vamb_gpu = "no"
+else:
     print('NOTE: MIntO is not using the GPU')
-else:
-    print('ERROR in ', config_path, ': VAMB_GPU variable is empty. "VAMB_GPU" variable should be yes or no')
 
-if config['MIN_FASTA_LENGTH'] is None:
-    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is empty. Please, complete ', config_path)
-elif type(config['MIN_FASTA_LENGTH']) != int:
-    print('ERROR in ', config_path, ': MIN_FASTA_LENGTH variable is not an integer. Please, complete ', config_path)
-
-if config['MIN_MAG_LENGTH'] is None:
-    print('ERROR in ', config_path, ': MIN_MAG_LENGTH variable is empty. Please, complete ', config_path)
-elif type(config['MIN_MAG_LENGTH']) != int:
-    print('ERROR in ', config_path, ': MIN_MAG_LENGTH variable is not an integer. Please, complete ', config_path)
-
-if config['CHECKM_COMPLETENESS'] is None:
-    print('ERROR in ', config_path, ': CHECKM_COMPLETENESS variable is empty. Please, complete ', config_path)
-elif type(config['CHECKM_COMPLETENESS']) != int:
-    print('ERROR in ', config_path, ': CHECKM_COMPLETENESS variable is not an integer. Please, complete ', config_path)
-
-if config['CHECKM_CONTAMINATION'] is None:
-    print('ERROR in ', config_path, ': CHECKM_CONTAMINATION variable is empty. Please, complete ', config_path)
-elif type(config['CHECKM_CONTAMINATION']) != int:
-    print('ERROR in ', config_path, ': CHECKM_CONTAMINATION variable is not an integer. Please, complete ', config_path)
-
-checkm_batch_size = 50
-if config['CHECKM_BATCH_SIZE'] is None:
-    print('WARNING in ', config_path, ': CHECKM_BATCH_SIZE variable is empty. Using 50', config_path)
-elif type(config['CHECKM_CONTAMINATION']) != int:
-    print('ERROR in ', config_path, ': CHECKM_CONTAMINATION variable is not an integer. Please, complete ', config_path)
-else:
-    checkm_batch_size = config['CHECKM_BATCH_SIZE']
-
-if config['COVERM_THREADS'] is None:
-    print('ERROR in ', config_path, ': COVERM_THREADS variable is empty. Please, complete ', config_path)
-elif type(config['COVERM_THREADS']) != int:
-    print('ERROR in ', config_path, ': COVERM_THREADS variable is not an integer. Please, complete ', config_path)
-
-if config['COVERM_memory'] is None:
-    print('ERROR in ', config_path, ': COVERM_memory variable is empty. Please, complete ', config_path)
-elif type(config['COVERM_memory']) != int:
-    print('ERROR in ', config_path, ': COVERM_memory variable is not an integer. Please, complete ', config_path)
-
-if config['SCORE_METHOD'] == 'checkm':
-    pass
-else:
-    print('ERROR in ', config_path, ': SCORE_METHOD variable can only be checkm at the moment!')
+# Scoring MAGs
+SCORE_METHOD         = validate_required_key(config, 'SCORE_METHOD')
+check_allowed_values('SCORE_METHOD', SCORE_METHOD, ('checkm'))
 
 
 rule all:
     input:
-        "{wd}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd = working_dir, omics = config['omics']),
+        f"{working_dir}/{omics}/8-1-binning/mags_generation_pipeline/unique_genomes",
         print_versions.get_version_output(snakefile_name)
     default_target: True
 
@@ -131,24 +91,24 @@ rule all:
 # And add 10GB with each new attempt
 rule run_vamb_vae:
     input:
-        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.fasta.gz",
-        rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.abundance.npz",
+        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.fasta.gz",
+        rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.abundance.npz",
     output:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/vae{vbinner}/vae_clusters.tsv"
     shadow:
         "minimal"
     params:
-        cuda="{}".format("--cuda" if vamb_gpu == "yes" else ""),
+        cuda="{}".format("--cuda" if VAMB_GPU else ""),
         latent=lambda wildcards: int(int(wildcards.vbinner)/16)
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/run_vamb_vae{vbinner}.log"
     resources:
         mem = lambda wildcards, input, attempt: 10*(attempt-1) + math.ceil(2.35 + 1.69e-9*get_file_size(input.rpkm_file) + 2.46e-10*get_file_size(input.contigs_file)),
-        gpu=1 if vamb_gpu == "yes" else 0
+        gpu=1 if VAMB_GPU else 0
     threads:
-        4 if vamb_gpu == "yes" else config["VAMB_THREADS"]
+        4 if VAMB_GPU else VAMB_THREADS
     conda:
-        config["minto_dir"]+"/envs/avamb.yml"
+        minto_dir + "/envs/avamb.yml"
     shell:
         """
         vamb --fasta {input.contigs_file} \
@@ -171,24 +131,24 @@ rule run_vamb_vae:
 # And add 10GB with each new attempt
 rule run_vamb_aae:
     input:
-        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.fasta.gz",
-        rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.abundance.npz",
+        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.fasta.gz",
+        rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.abundance.npz",
     output:
         tsv_y="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_y_clusters.tsv",
         tsv_z="{wd}/{omics}/8-1-binning/mags_generation_pipeline/aae/aae_z_clusters.tsv"
     shadow:
         "minimal"
     params:
-        cuda="{}".format("--cuda" if vamb_gpu == "yes" else "")
+        cuda="{}".format("--cuda" if VAMB_GPU else "")
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/run_vamb_aae.log"
     resources:
         mem = lambda wildcards, input, attempt: 10*(attempt-1) + math.ceil(2.18 + 1.85e-9*get_file_size(input.rpkm_file) + 1.73e-10*get_file_size(input.contigs_file)),
-        gpu=1 if vamb_gpu == "yes" else 0
+        gpu=1 if VAMB_GPU else 0
     threads:
-        4 if vamb_gpu == "yes" else config["VAMB_THREADS"]
+        4 if VAMB_GPU else VAMB_THREADS
     conda:
-        config["minto_dir"]+"/envs/avamb.yml"
+        minto_dir + "/envs/avamb.yml"
     shell:
         """
         vamb --fasta {input.contigs_file} \
@@ -232,12 +192,12 @@ rule vae_tsv:
 rule make_avamb_mags:
     input:
         tsv="{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}_clusters.tsv",
-        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{config['MIN_FASTA_LENGTH']}.fasta.gz",
+        contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.fasta.gz",
     output:
         discarded_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}_discarded_genomes.txt",
         bin_folder = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/bins"),
     params:
-        min_mag_length = config["MIN_MAG_LENGTH"]
+        min_mag_length = MIN_MAG_LENGTH
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/avamb_{binner}.take_all_genomes_for_each_run.log"
     resources:
@@ -245,7 +205,7 @@ rule make_avamb_mags:
     threads:
         2 # Decide number of threads
     conda:
-        config["minto_dir"]+"/envs/mags.yml"
+        minto_dir + "/envs/mags.yml"
     shell:
         """
         time (
@@ -270,7 +230,7 @@ checkpoint prepare_bins_for_checkm:
     output:
         checkm_groups = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/checkm")
     params:
-        batch_size = checkm_batch_size
+        batch_size = CHECKM_BATCH_SIZE
     shell:
         """
         mkdir -p {output.checkm_groups}
@@ -311,7 +271,7 @@ rule checkm_batch:
     shadow:
         "minimal"
     conda:
-        config["minto_dir"]+"/envs/checkm2.yml"
+        minto_dir + "/envs/checkm2.yml"
     threads: 16
     resources:
         mem = 32
@@ -366,7 +326,7 @@ rule collect_genomes_from_all_binners:
         checkm_out = lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt",
                                 wd = wildcards.wd,
                                 omics=wildcards.omics,
-                                binner = config['BINNERS'])
+                                binner = BINNERS)
     output:
         all_genomes = directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all"),
         collected = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/collect_genomes.done"
@@ -400,7 +360,7 @@ rule make_comprehensive_table:
         lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/{binner}/{binner}.checkM.txt",
                                 wd = wildcards.wd,
                                 omics=wildcards.omics,
-                                binner = config['BINNERS'])
+                                binner = BINNERS)
     output:
         checkm_all = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/checkm/checkm-comprehensive.tsv"
     log:
@@ -430,8 +390,8 @@ rule collect_HQ_genomes:
         HQ_folder=directory("{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes")
     params:
         all_genomes_folder = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/avamb/all/",
-        completeness = config["CHECKM_COMPLETENESS"],
-        contamination = config["CHECKM_CONTAMINATION"]
+        completeness = CHECKM_COMPLETENESS,
+        contamination = CHECKM_CONTAMINATION
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/collect_HQ_genomes.log"
     resources:
@@ -471,11 +431,11 @@ rule run_coverm:
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/run_coverm.log"
     resources:
-        mem=config["COVERM_memory"]
+        mem=COVERM_memory
     threads:
-        config["COVERM_THREADS"]
+        COVERM_THREADS
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" # coverm
+        minto_dir + "/envs/MIntO_base.yml" # coverm
     shell:
         """
         time (
@@ -493,7 +453,7 @@ rule calculate_score_genomes:
         scored_genomes = "{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes_checkm_scored.tsv"
     params:
         HQ_folder="{wd}/{omics}/8-1-binning/mags_generation_pipeline/HQ_genomes",
-        score_method = config["SCORE_METHOD"]
+        score_method = SCORE_METHOD
     log:
         "{wd}/logs/{omics}/8-1-binning/mags_generation/calculate_score_genomes.log"
     resources:
@@ -501,7 +461,7 @@ rule calculate_score_genomes:
     threads:
         2 # Decide number of threads
     conda:
-        config["minto_dir"]+"/envs/mags.yml"
+        minto_dir + "/envs/mags.yml"
     shell:
         """
         time (

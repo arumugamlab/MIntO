@@ -8,6 +8,7 @@
 
 MINTO_STABLE_VERSION="tags/2.2.0"
 TEST_SLURM="" # leave it empty to turn off slurm-testing
+TEST_BULK="yes" # change from 'yes' to turn off bulk-mode testing
 
 function profile_command() {
     local cmd=$1
@@ -105,7 +106,7 @@ echo ""
 
 # Symlink samples for testing bulk mode
 
-if [[ "$1" = "--bulk" ]]; then
+if [[ "$TEST_BULK" == "yes" ]]; then
   mkdir -p IBD_tutorial_bulk/metaG
   for SAMPLE in CD136 CD140 CD237 CD240;
   do
@@ -144,7 +145,7 @@ for OMICS in metaG metaT; do
 
   COMMAND_LOG="commands_${OMICS}.txt"
 
-  if [[ "$1" == "--bulk" && "$OMICS" == "metaG" ]]; then
+  if [[ "$TEST_BULK" == "yes" && "$OMICS" == "metaG" ]]; then
       echo -n "QC_1 bulk: "
       cat $MINTO_DIR/testing/QC_1.bulk.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__TEST_DIR__>@$TEST_DIR@;s@<__OMICS__>@$OMICS@;" > QC_1.bulk.yaml
       cmd="snakemake --snakefile $CODE_DIR/smk/QC_1.smk --configfile QC_1.bulk.yaml $SNAKE_PARAMS >& QC_1_bulk.log"
@@ -163,6 +164,8 @@ for OMICS in metaG metaT; do
 
   echo -n "ASSEMBLY: "
   perl -pe "s/enable_COASSEMBLY: no/enable_COASSEMBLY: yes/; s/^# Contig-depth: bwa/EXCLUDE_ASSEMBLY_TYPES:\n - illumina_coas\n\n# Contig-depth: bwa/" < assembly.yaml > assembly.yaml.fixed
+  echo -e "\nMEGAHIT_custom:\n - 21,29,39,59,79,99,119,141\n - 21,29,39,59,79,99" >> assembly.yaml.fixed
+
   cmd="snakemake --snakefile $CODE_DIR/smk/assembly.smk --configfile assembly.yaml.fixed $SNAKE_PARAMS >& assembly.log"
   profile_command "$cmd"
 

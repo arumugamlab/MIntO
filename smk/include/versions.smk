@@ -7,8 +7,9 @@ Authors: Judit Szarvas
 '''
 
 import sys
-from os import path
+import os.path
 
+NEED_PROJECT_VARIABLES = True
 include: 'config_parser.smk'
 
 def get_smk_filename():
@@ -16,7 +17,7 @@ def get_smk_filename():
         i = sys.argv.index('-s')
     elif '--snakefile' in sys.argv:
         i = sys.argv.index('--snakefile')
-    smk_name = path.splitext(path.basename(sys.argv[i+1]))[0]
+    smk_name = os.path.splitext(os.path.basename(sys.argv[i+1]))[0]
     return smk_name
 
 def get_version_output(smkfilename):
@@ -31,22 +32,24 @@ def get_version_output(smkfilename):
 snakefile_name = get_smk_filename()
 
 metaphlan_version = ""
-if "metaphlan_version" in config and config['metaphlan_version'] is not None:
-    metaphlan_version = config['metaphlan_version']
+if (x := validate_optional_key(config, 'metaphlan_version')):
+    metaphlan_version = x
+
 motus_version = ""
-if "motus_version" in config and config['motus_version'] is not None:
-    motus_version = config['motus_version']
+if (x := validate_optional_key(config, 'motus_version')):
+    motus_version = x
 
 spades_script = 'spades.py' # from conda environment
-if 'METASPADES_custom_build' in config:
-    spades_script = config['METASPADES_custom_build']
+if (x := validate_optional_key(config, 'METASPADES_custom_build')):
+    spades_script = x
 
 ppl_version = ""
+if (x := validate_optional_key(config, 'PHYLOPHLAN_TAXONOMY_VERSION')):
+    ppl_version = x
+
 gtdb_version = ""
-if "PHYLOPHLAN_TAXONOMY_VERSION" in config and config["PHYLOPHLAN_TAXONOMY_VERSION"] is not None:
-    ppl_version = config["PHYLOPHLAN_TAXONOMY_VERSION"]
-if "GTDB_TAXONOMY_VERSION" in config and config["GTDB_TAXONOMY_VERSION"] is not None:
-    gtdb_version = config["GTDB_TAXONOMY_VERSION"]
+if (x := validate_optional_key(config, 'GTDB_TAXONOMY_VERSION')):
+    gtdb_version = x
 
 ##################################
 #  Rules for TESTING
@@ -61,7 +64,7 @@ rule test_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -81,7 +84,7 @@ rule QC_0_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -101,7 +104,7 @@ rule QC_0_rpkg:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         Rscript --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -121,7 +124,7 @@ rule QC_1_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -140,7 +143,7 @@ rule QC_1_rpkg:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         Rscript --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -160,7 +163,7 @@ rule QC_2_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -184,7 +187,7 @@ rule QC_2_mpl:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/metaphlan.yml"
+        minto_dir + "/envs/metaphlan.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -203,7 +206,7 @@ rule QC_2_motus:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/motus_env.yml"
+        minto_dir + "/envs/motus_env.yml"
     shell:
         """
         (motus -db {minto_dir}/data/motus/{motus_version}/db_mOTU --version || motus --version) 2> /dev/null >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -222,7 +225,7 @@ rule QC_2_rpkg:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         Rscript --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -242,7 +245,7 @@ rule assembly_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -266,7 +269,7 @@ rule binning_preparation_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -288,7 +291,7 @@ rule binning_preparation_avamb:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/avamb.yml"
+        minto_dir + "/envs/avamb.yml"
     shell:
         """
         vamb --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -308,7 +311,7 @@ rule mags_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -327,7 +330,7 @@ rule mags_avamb:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/avamb.yml"
+        minto_dir + "/envs/avamb.yml"
     shell:
         """
         vamb --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -344,7 +347,7 @@ rule mags_checkm2:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/checkm2.yml"
+        minto_dir + "/envs/checkm2.yml"
     shell:
         """
         echo "checkm2 v$(checkm2 predict --version)" >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -368,7 +371,7 @@ rule annotation_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -405,7 +408,7 @@ rule annotation_phylophlan:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/mags.yml"
+        minto_dir + "/envs/mags.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -425,7 +428,7 @@ rule annotation_gtdb:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/gtdb.yml"
+        minto_dir + "/envs/gtdb.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -447,7 +450,7 @@ rule abundance_base:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -468,7 +471,7 @@ rule abundance_rpkg:
     threads: 1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         Rscript --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
@@ -488,7 +491,7 @@ rule integration_rpkg:
         1
     localrule: True
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt

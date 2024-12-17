@@ -6,8 +6,6 @@ Alignment, normalization and integration step
 Authors: Carmen Saenz, Mani Arumugam
 '''
 
-# configuration yaml file
-# import sys
 import os.path
 import pathlib
 import math
@@ -18,6 +16,8 @@ localrules: make_merged_genome_fna, make_genome_def, \
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+
+NEED_PROJECT_VARIABLES = True
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 include: 'include/locations.smk'
@@ -45,147 +45,84 @@ if os.path.exists("{}/{}/{}/".format(working_dir, omics, read_dir)) is False:
 
 print("NOTE: MIntO is using '{}' as read directory".format(read_dir))
 
-main_factor = None
-if config['MAIN_factor'] is not None:
-    main_factor = config['MAIN_factor']
-
-plot_factor2 = ''
-if config['PLOT_factor2'] is not None:
-    plot_factor2 = config['PLOT_factor2']
-
-plot_time = ''
-if config['PLOT_time'] is not None:
-    plot_time = config['PLOT_time']
+main_factor      = validate_required_key(config, 'MAIN_factor')
+plot_factor2     = validate_optional_key(config, 'PLOT_factor2')
+plot_time        = validate_optional_key(config, 'PLOT_time')
+MIN_mapped_reads = validate_required_key(config, 'MIN_mapped_reads')
 
 # Make list of illumina samples, if ILLUMINA in config
-if 'ILLUMINA' in config:
-    if config['ILLUMINA'] is None:
-        print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
-    else:
-        # Make list of illumina samples, if ILLUMINA in config
-        ilmn_samples = list()
-        if 'ILLUMINA' in config:
-            #print("Samples:")
-            for ilmn in config["ILLUMINA"]:
-                if os.path.exists("{}/{}/{}/{}".format(working_dir, omics, read_dir, ilmn)) is True:
-                    #print(ilmn)
-                    ilmn_samples.append(ilmn)
-                else:
-                    raise Exception(f"ERROR in {config_path}: ILLUMINA sample {ilmn} does not exist. Please correct.")
-        n_samples=len(ilmn_samples)+3
-else:
-    print('ERROR in ', config_path, ': ILLUMINA list of samples is empty. Please, complete ', config_path)
+
+ilmn_samples = list()
+if (x := validate_required_key(config, 'ILLUMINA')):
+    check_fastq_file_locations(x, locations = [read_dir])
+    ilmn_samples = x
 
 # MIntO mode and database-mapping
 
-# Define the 3 modes
+# Which mode are we running?
+MINTO_MODE = get_minto_mode(config)
+
+# Check allowed modes
 valid_minto_modes = ['MAG', 'refgenome', 'catalog']
-
-# Which database are we mapping reads to?
-if 'MINTO_MODE' in config and config['MINTO_MODE'] != None:
-    MINTO_MODE=config['MINTO_MODE']
-else:
-    raise Exception(f"ERROR in {config_path}: 'MINTO_MODE' variable must be defined")
-
-# Backward compatibility and common misnomers
-if MINTO_MODE in ['db_genes', 'db-genes', 'genes_db', 'gene_catalog', 'gene-catalog']:
-    MINTO_MODE = 'catalog'
-elif MINTO_MODE in ['reference_genome', 'reference-genome', 'reference', 'refgenomes']:
-    MINTO_MODE = 'refgenome'
-elif MINTO_MODE in ['MAGs', 'mag', 'mags']:
-    MINTO_MODE = 'MAG'
-
-if not MINTO_MODE in valid_minto_modes:
-    raise Exception("ERROR in {}: 'MINTO_MODE' variable must be {}.".format(config_path, valid_minto_modes))
+check_allowed_values('MINTO_MODE', MINTO_MODE, valid_minto_modes)
 
 # Normalization
-if config['abundance_normalization'] is None:
-    raise Exception(f"ERROR in {config_path}: abundance_normalization variable is not set.")
-else:
-    normalization=config['abundance_normalization']
-    normalization_modes=normalization.split(",")
-    for m in normalization_modes:
-        if m not in ("MG", "TPM"):
-            raise Exception(f"ERROR in {config_path}: abundance_normalization variable should be MG or TPM.")
+normalization = validate_required_key(config, 'abundance_normalization')
+normalization_modes = normalization.split(",")
+for m in normalization_modes:
+    if MINTO_MODE == 'catalog':
+        check_allowed_values('abundance_normalization', m, ("TPM"))
+    else:
+        check_allowed_values('abundance_normalization', m, ("MG", "TPM"))
 
-if config['alignment_identity'] is None:
-    print('ERROR in ', config_path, ': alignment_identity variable is empty. Please, complete ', config_path)
-elif type(config['alignment_identity']) != int:
-    print('ERROR in ', config_path, ': alignment_identity variable is not an integer. Please, complete ', config_path)
-elif type(config['alignment_identity']) == int:
-    identity=config['alignment_identity']
-
-if config['msamtools_filter_length'] is None:
-    print('ERROR in ', config_path, ': msamtools_filter_length variable is empty. Please, complete ', config_path)
-elif type(config['msamtools_filter_length']) != int:
-    print('ERROR in ', config_path, ': msamtools_filter_length variable is not an integer. Please, complete ', config_path)
-
-if config['NAME_reference'] is None and MINTO_MODE == 'catalog':
-    raise Exception("ERROR in {}: 'NAME_reference' variable must be defined".format(config_path))
+# Alignment filtering
+identity = validate_required_key(config, 'alignment_identity')
+msamtools_filter_length = validate_required_key(config, 'msamtools_filter_length')
 
 mag_omics = 'metaG'
-gene_catalog_path="None"
-gene_catalog_name="None"
+gene_catalog_path = None
+gene_catalog_name = None
+
 if MINTO_MODE == 'MAG':
-    if 'MAG_omics' in config and config['MAG_omics'] != None:
-        mag_omics = config['MAG_omics']
-    reference_dir="{wd}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes".format(wd = working_dir, mag_omics = mag_omics)
-    print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
+    mag_omics = 'metaG'
+    if (x := validate_optional_key(config, 'MAG_omics')):
+        mag_omics = x
+    reference_dir = f"{working_dir}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes"
+    print('NOTE: MIntO is using "' + reference_dir + '" as PATH_reference variable')
 else:
-    if config['PATH_reference'] is None:
-        print('ERROR in ', config_path, ': PATH_reference variable is empty. Please, complete ', config_path)
-    elif os.path.exists(config['PATH_reference']) is False:
-        print('ERROR in ', config_path, ': PATH_reference variable path does not exit. Please, complete ', config_path)
-    else:
+    if (x := validate_required_key(config, 'PATH_reference')):
         if MINTO_MODE == 'refgenome':
-            reference_dir=config["PATH_reference"]
+            reference_dir = x
             print('NOTE: MIntO is using "'+ reference_dir+'" as PATH_reference variable')
         elif MINTO_MODE == 'catalog':
-            if os.path.exists(config['PATH_reference']+'/'+config['NAME_reference']) is True:
-                print('NOTE: MIntO is using "'+ config['PATH_reference']+'/'+config['NAME_reference']+'" as PATH_reference and NAME_reference variables.')
-                gene_catalog_path=config["PATH_reference"]
-                gene_catalog_name=config["NAME_reference"]
-            else:
-                print('ERROR in ', config_path, ': NAME_reference variable does not exit. Please, complete ', config_path)
+            gene_catalog_path = x
+            if (gene_catalog_name := validate_required_key(config, 'NAME_reference')):
+                if os.path.exists(gene_catalog_path + '/' + gene_catalog_name):
+                    print(f"NOTE: MIntO is using {gene_catalog_path}/{gene_catalog_name} as gene database.")
 
-if config['BWA_threads'] is None:
-    print('ERROR in ', config_path, ': BWA_threads variable is empty. Please, complete ', config_path)
-elif type(config['BWA_threads']) != int:
-    print('ERROR in ', config_path, ': BWA_threads variable is not an integer. Please, complete ', config_path)
-
-if 'MG' in normalization_modes and MINTO_MODE == 'catalog':
-    raise Exception("ERROR in {}: In 'catalog' mode, only TPM normalization is allowed.".format(config_path))
+BWA_threads = validate_required_key(config, 'BWA_threads')
 
 # Taxonomic profiles from mapping reads to MAGs or refgenomes
 
 taxonomies_versioned = list()
 
-run_taxonomy="no"
-if 'RUN_TAXONOMY' not in config or config['RUN_TAXONOMY'] is None:
-    print('WARNING in ', config_path, ': RUN_TAXONOMY variable is empty. Setting "RUN_TAXONOMY=no"')
-elif config['RUN_TAXONOMY'] == True:
-    run_taxonomy = "yes"
-elif config['RUN_TAXONOMY'] == False:
-    run_taxonomy = "no"
-    print('NOTE: MIntO is not running taxonomy labelling of the unique MAGs.')
-else:
-    raise Exception(f"Incorrect value for RUN_TAXONOMY variable (should be yes or no). Please fix {config_path}")
+run_taxonomy = False
+if (x := validate_optional_key(config, 'RUN_TAXONOMY')):
+    run_taxonomy = x
 
-if run_taxonomy == "yes":
+if run_taxonomy:
+    TAXONOMY = validate_required_key(config, 'TAXONOMY_NAME')
     allowed = ('phylophlan', 'gtdb')
-    flags = [0 if x in allowed else 1 for x in config['TAXONOMY_NAME'].split(",")]
-    if sum(flags) == 0:
-        taxonomy=config["TAXONOMY_NAME"]
-    else:
-        raise Exception(f"TAXONOMY_NAME variable should be phylophlan, gtdb, or combinations thereof. Please fix {config_path}")
+    for x in TAXONOMY.split(","):
+        check_allowed_values('TAXONOMY_NAME', x, allowed)
 
-    taxonomies = taxonomy.split(",")
+    taxonomies = TAXONOMY.split(",")
     for t in taxonomies:
         version="unknown"
         if t == "phylophlan":
-            version=config["PHYLOPHLAN_TAXONOMY_VERSION"]
+            version = validate_required_key(config, "PHYLOPHLAN_TAXONOMY_VERSION")
         elif t == "gtdb":
-            version=config["GTDB_TAXONOMY_VERSION"]
+            version = validate_required_key(config, "GTDB_TAXONOMY_VERSION")
         taxonomies_versioned.append(t+"."+version)
     print('NOTE: MIntO is using taxonomy labelling of the unique MAGs from [{}].'.format(", ".join(taxonomies_versioned)))
 
@@ -252,7 +189,7 @@ def combined_gene_abundance_profiles():
     return(result)
 
 if MINTO_MODE == 'catalog':
-    reference_dir=config["PATH_reference"]
+    reference_dir = gene_catalog_path
     def combined_genome_profiles():
         return()
     def combined_genome_profiles_annotated():
@@ -273,7 +210,7 @@ def config_yaml():
     return(result)
 
 # If BWA index clean-up requested, only do cleanup and nothing else
-if CLUSTER_NODES != None and 'CLEAN_BWA_INDEX' in config and config['CLEAN_BWA_INDEX'] != None:
+if CLUSTER_NODES != None and validate_optional_key(config, 'CLEAN_BWA_INDEX'):
 
     print("NOTE: BWA index cleanup mode requested.")
 
@@ -440,8 +377,8 @@ rule genome_mapping_profiling:
     shadow:
         "minimal"
     params:
-        length = config["msamtools_filter_length"],
-        mapped_reads_threshold = config["MIN_mapped_reads"],
+        length = msamtools_filter_length,
+        mapped_reads_threshold = MIN_mapped_reads,
         bedcov_lines = 500000,
         sample_alias = lambda wildcards: sample2alias[wildcards.sample],
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
@@ -451,13 +388,13 @@ rule genome_mapping_profiling:
         identity   = r'\d+',
         minto_mode = r'MAG|refgenome'
     threads:
-        config["BWA_threads"]
+        BWA_threads
     resources:
         sort_threads = 3,
         bedcov_threads = lambda wildcards, threads: min(10, threads),
         mem = lambda wildcards, input, attempt: max(3*5, math.ceil(5.6 + 3.1e-9*get_file_size(input.bwaindex[0]))) + 10*(attempt-1)
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl + parallel
+        minto_dir + "/envs/MIntO_base.yml" # BWA + samtools + msamtools + perl + parallel
     shell:
         """
         # Make named pipes if needed
@@ -565,19 +502,19 @@ rule gene_catalog_mapping_profiling:
         "minimal"
     params:
         sample_alias=lambda wildcards: sample2alias[wildcards.sample],
-        length=config["msamtools_filter_length"],
-        mapped_reads_threshold=config["MIN_mapped_reads"],
+        length=msamtools_filter_length,
+        mapped_reads_threshold=MIN_mapped_reads,
         multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}_bwa.log"
     wildcard_constraints:
         minto_mode = r'catalog'
     threads:
-        config["BWA_threads"]
+        BWA_threads
     resources:
         mem = lambda wildcards, input, attempt: math.ceil(5.6 + 3.1e-9*get_file_size(input.bwaindex[0])) + 10*(attempt-1)
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml" #config["conda_env2_yml"] #BWA + samtools
+        minto_dir + "/envs/MIntO_base.yml" #BWA + samtools
     shell:
         """
         # Make named pipes if needed
@@ -678,7 +615,7 @@ rule merge_msamtools_profiles:
         filename = r'gene_abundances|genome_abundances|contig_abundances',
         identity = r'\d+',
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         time (
@@ -705,7 +642,7 @@ rule add_annotation_to_genome_profiles:
     resources:
         mem=10
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         time (
@@ -773,7 +710,7 @@ rule merge_gene_abund:
     resources:
         mem=lambda wildcards,input: 5 + 0.3*len(input.single)
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         time (
@@ -831,7 +768,7 @@ rule gene_abund_normalization:
     output:
         norm_counts="{wd}/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{norm}.tsv"
     params:
-        mapped_reads_threshold=config["MIN_mapped_reads"],
+        mapped_reads_threshold=MIN_mapped_reads,
         optional_arg_MG = lambda wildcards, input: "" if wildcards.norm == "TPM" else "--MG " + input.genomes_marker_genes
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{norm}.log"
@@ -841,7 +778,7 @@ rule gene_abund_normalization:
     resources:
         mem = lambda wildcards, input, attempt: (12 if wildcards.norm == 'MG' else 2) + math.ceil(1.73e-8*get_file_size(input.absolute_counts)) + 10*(attempt-1)
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml" #R
+        minto_dir + "/envs/r_pkgs.yml" #R
     shell:
         """
         time (
@@ -881,7 +818,7 @@ rule read_map_stats:
     resources:
         mem=2
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         # Init empty files
@@ -907,7 +844,7 @@ rule config_yml_integration:
     output:
         config_file="{wd}/data_integration.yaml"
     params:
-        mapped_reads_threshold=config["MIN_mapped_reads"],
+        mapped_reads_threshold=MIN_mapped_reads,
     resources:
         mem=2
     threads: 1
@@ -941,7 +878,6 @@ abundance_normalization: MG
 MINTO_MODE: {MINTO_MODE}
 
 MERGE_threads: 4
-MERGE_memory: 5
 
 ANNOTATION_file:
 

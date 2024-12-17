@@ -4,15 +4,15 @@
 ---
 > PATH_host_genome: <__TEST_DIR__>/IBD_tutorial
 > NAME_host_genome: build_hg18_subset.fna
-75c75
+73c73
 < MAIN_factor:
 ---
 > MAIN_factor: participant_ID2
-77c77
+75c75
 < PLOT_time:
 ---
 > PLOT_time: week_n
-85c85
+83c83
 < COAS_factor:
 ---
 > COAS_factor: participant_ID2

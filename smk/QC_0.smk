@@ -6,19 +6,21 @@ Pre-processing of metaG and metaT data step - quality reads filtering
 Authors: Carmen Saenz, Mani Arumugam, Judit Szarvas
 '''
 
-#
-# configuration yaml file
-# import sys
 import re
-from os import path, scandir
-import pandas as pd
-from glob import glob
+import os.path
+import os.scandir
+import pandas
+import glob.glob
 
 localrules: qc0_fake_move_for_multiqc, qc0_create_multiqc, \
             qc1_check_read_length_merge, qc1_cumulative_read_len_plot, \
             qc2_config_yml_file
 
 # Get common config variables
+# These are:
+#   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
+
+NEED_PROJECT_CONFIG = True
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
@@ -31,41 +33,32 @@ use rule QC_0_base, QC_0_rpkg from print_versions as version_*
 
 snakefile_name = print_versions.get_smk_filename()
 
-if config['raw_reads_dir'] is None:
-    print('ERROR in ', config_path, ': raw_reads_dir variable in configuration yaml file is empty. Please, complete ', config_path)
-else:
-    raw_dir = config['raw_reads_dir']
+raw_dir              = validate_required_key(config, 'raw_reads_dir')
+perc_remaining_reads = validate_required_key(config, 'perc_remaining_reads')
 
-if config['FASTP_threads'] is None:
-    print('ERROR in ', config_path, ': FASTP_threads variable is empty. Please, complete ', config_path)
-elif type(config['FASTP_threads']) != int:
-    print('ERROR in ', config_path, ': FASTP_threads variable is not an integer. Please, complete ', config_path)
+FASTP_threads        = validate_required_key(config, 'FASTP_threads')
+FASTP_memory         = validate_required_key(config, 'FASTP_memory')
+FASTP_min_length     = validate_required_key(config, 'FASTP_min_length')
+FASTP_front_mean_qual= validate_required_key(config, 'FASTP_front_mean_qual')
+FASTP_tail_mean_qual = validate_required_key(config, 'FASTP_tail_mean_qual')
 
-if config['FASTP_memory'] is None:
-    print('ERROR in ', config_path, ': FASTP_memory variable is empty. Please, complete ', config_path)
-elif type(config['FASTP_memory']) != int:
-    print('ERROR in ', config_path, ': FASTP_memory variable is not an integer. Please, complete ', config_path)
-
-if config['FASTP_adapters'] in ('Skip', 'Quality', 'Overlap', 'Detect'):
-    pass
-elif config['FASTP_adapters'] is None:
-    print('ERROR in ', config_path, ': FASTP_adapters variable is empty. Please, complete ', config_path)
-elif path.exists(config['FASTP_adapters']) is False:
-    print('ERROR in ', config_path, ': FASTP_adapters variable path does not exit. Please, complete ', config_path)
+FASTP_adapters       = validate_required_key(config, 'FASTP_adapters')
+if not os.path.exists(FASTP_adapters):
+    check_allowed_values('FASTP_adapters', FASTP_adapters, ('Skip', 'Quality', 'Overlap', 'Detect'))
 
 # file suffixes
 ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
-if 'ILLUMINA_suffix' in config and config["ILLUMINA_suffix"] is not None:
-    ilmn_suffix = config["ILLUMINA_suffix"]
+if (x := validate_optional_key(config, 'ILLUMINA_suffix')):
+    ilmn_suffix = x
 
 def sample_existence_check(top_raw_dir, sample_id, organisation_type = "folder"):
     if organisation_type == "folder":
         location = "{}/{}".format(top_raw_dir, sample_id)
-        if path.exists(location):
+        if os.path.exists(location):
             return(True)
     else:
         sample_pattern = "{}/{}[.-_]{}".format(top_raw_dir, sample_id, ilmn_suffix[0])
-        if glob(sample_pattern):
+        if glob.glob(sample_pattern):
             return(True)
     return(False)
 
@@ -73,30 +66,30 @@ def sample_existence_check(top_raw_dir, sample_id, organisation_type = "folder")
 ilmn_samples = list()
 ilmn_samples_organisation = "folder"
 ilmn_runs_df = None
-if 'ILLUMINA' in config:
+if (x := validate_required_key(config, 'ILLUMINA')):
     # column_name specified option
-    if isinstance(config["ILLUMINA"], str):
+    if isinstance(x, str):
         ilmn_samples_organisation = "bulk"
-        if path.exists(config["ILLUMINA"]) and path.isfile(config["ILLUMINA"]):
+        if os.path.exists(x) and os.path.isfile(x):
             # extra runs sheet
-            print('MIntO uses', config["ILLUMINA"], 'as sample list')
+            print(f"MIntO uses {x} as sample list")
             col_name = "sample"
-            ilmn_runs_df = pd.read_table(config["ILLUMINA"])
+            ilmn_runs_df = pandas.read_table(x)
             for sampleid in ilmn_runs_df['sample'].unique():
                 for runid in ilmn_runs_df.loc[ilmn_runs_df['sample'] == sampleid]['run'].to_list():
                     #print(sampleid, runid)
                     sample_pattern = "{}/{}[.-_]{}".format(raw_dir, runid, ilmn_suffix[0])
-                    if glob(sample_pattern):
+                    if glob.glob(sample_pattern):
                         if sampleid not in ilmn_samples:
                             ilmn_samples.append(sampleid)
                     else:
                         raise Exception(f"ERROR: {sample_pattern} not in bulk data folder {raw_dir}")
         else:
             # column name in metadata sheet
-            col_name = config["ILLUMINA"]
-            md_df = pd.read_table(metadata)
+            col_name = x
+            md_df = pandas.read_table(metadata)
             if not col_name in md_df.columns:
-                raise Exception(f"ERROR in {config_path}: column name specified for ILLUMINA does not exist in metadata or runs sheet. Please, complete {config_path}")
+                raise Exception(f"ERROR in {config_path}: column name specified for ILLUMINA does not exist in metadata or runs sheet. Please fix!")
             sampleid_list = md_df[col_name].to_list()
             if sample_existence_check(raw_dir, sampleid_list[0]):
                 ilmn_samples_organisation = "folder"
@@ -107,7 +100,7 @@ if 'ILLUMINA' in config:
                     raise Exception(f"ERROR: {sampleid} not in raw data folder {raw_dir}")
     # listed samples
     else:
-        for ilmn in config["ILLUMINA"]:
+        for ilmn in x:
             if sample_existence_check(raw_dir, ilmn):
                 ilmn_samples.append(ilmn)
             else:
@@ -115,11 +108,11 @@ if 'ILLUMINA' in config:
 
 # trimming options
 adapter_trimming_args = ""
-if config['FASTP_adapters'] == 'Quality':
+if FASTP_adapters == 'Quality':
     adapter_trimming_args = "--disable_adapter_trimming"
-elif config['FASTP_adapters'] == 'Overlap':
+elif FASTP_adapters == 'Overlap':
     adapter_trimming_args = "--overlap_diff_percent_limit 10"
-elif config['FASTP_adapters'] == 'Detect':
+elif FASTP_adapters == 'Detect':
     adapter_trimming_args = "--detect_adapter_for_pe"
 
 # Define all the outputs needed by target 'all'
@@ -162,7 +155,7 @@ def get_runs_for_sample(sample):
     runs = [sample]
     if ilmn_samples_organisation == "folder":
         sample_dir = '{raw_dir}/{sample}'.format(raw_dir=raw_dir, sample=sample)
-        runs = [ f.name.split(ilmn_suffix[0])[0][:-1] for f in scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
+        runs = [ f.name.split(ilmn_suffix[0])[0][:-1] for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith(ilmn_suffix[0]) ]
     elif ilmn_runs_df is not None:
         runs = ilmn_runs_df.loc[ilmn_runs_df['sample'] == sample]['run'].to_list()
     return(sorted(runs))
@@ -175,7 +168,7 @@ def get_raw_reads_for_sample_run(wildcards):
         prefix = '{raw_dir}/{sample}/{run}'.format(raw_dir=raw_dir, sample=wildcards.sample, run=wildcards.run)
     raw_sample_run = {}
     for i, k in enumerate(['read_fw', 'read_rv']):
-        raw_sample_run[k] = glob("{}[.-_]{}".format(prefix, ilmn_suffix[i]))[0]
+        raw_sample_run[k] = glob.glob("{}[.-_]{}".format(prefix, ilmn_suffix[i]))[0]
     return raw_sample_run
 
 
@@ -197,7 +190,7 @@ rule initial_fastqc:
     threads:
         2
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         time (
@@ -210,7 +203,7 @@ rule initial_fastqc:
 # Adaptor-trimming + Quality-trimming or Quality-trimming only?
 ##########
 
-if config['FASTP_adapters'] == 'Skip':
+if FASTP_adapters == 'Skip':
 
     # Fake a trim
     rule qc0_trim_quality:
@@ -242,18 +235,18 @@ elif adapter_trimming_args:
         shadow:
             "minimal"
         params:
-            mq_5=config['FASTP_front_mean_qual'],
-            mq_3=config['FASTP_tail_mean_qual'],
-            ml=config['FASTP_min_length'],
+            mq_5=FASTP_front_mean_qual,
+            mq_3=FASTP_tail_mean_qual,
+            ml=FASTP_min_length,
             adapter_args=adapter_trimming_args
         log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc0_trim_quality.log"
         resources:
-            mem=config['FASTP_memory']
+            mem=FASTP_memory
         threads:
-            config['FASTP_threads']
+            FASTP_threads
         conda:
-            config["minto_dir"]+"/envs/MIntO_base.yml"
+            minto_dir + "/envs/MIntO_base.yml"
         shell:
             """
             time ( \
@@ -276,18 +269,18 @@ else:
         shadow:
             "minimal"
         params:
-            mq_5=config['FASTP_front_mean_qual'],
-            mq_3=config['FASTP_tail_mean_qual'],
-            ml=config['FASTP_min_length'],
-            adapter=config['FASTP_adapters']
+            mq_5=FASTP_front_mean_qual,
+            mq_3=FASTP_tail_mean_qual,
+            ml=FASTP_min_length,
+            adapter=FASTP_adapters
         log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc0_trim_customadapter.log"
         resources:
-            mem=config['FASTP_memory']
+            mem=FASTP_memory
         threads:
-            config['FASTP_threads']
+            FASTP_threads
         conda:
-            config["minto_dir"]+"/envs/MIntO_base.yml"
+            minto_dir + "/envs/MIntO_base.yml"
         shell:
             """
             time ( \
@@ -344,7 +337,7 @@ rule qc0_create_multiqc:
     threads:
         2
     conda:
-        config["minto_dir"]+"/envs/MIntO_base.yml"
+        minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
         time (
@@ -398,12 +391,12 @@ rule qc1_cumulative_read_len_plot:
         plot="{wd}/output/1-trimmed/{omics}_cumulative_read_length_cutoff.pdf",
         cutoff_file="{wd}/{omics}/1-trimmed/QC_1_min_len_read_cutoff.txt"
     params:
-        cutoff=config["perc_remaining_reads"],
+        cutoff=perc_remaining_reads
     log:
         "{wd}/logs/{omics}/1-trimmed/plot_cumulative_read_len.log"
     threads: 1
     conda:
-        config["minto_dir"]+"/envs/r_pkgs.yml"
+        minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
         time (
@@ -421,8 +414,8 @@ rule qc2_config_yml_file:
     output:
         config_file="{wd}/{omics}/QC_2.yaml"
     params:
-        trim_threads=config['FASTP_threads'],
-        trim_memory=config['FASTP_memory']
+        trim_threads=FASTP_threads,
+        trim_memory=FASTP_memory
     log:
         "{wd}/logs/{omics}/qc2_config_yml_file.log"
     shell:
