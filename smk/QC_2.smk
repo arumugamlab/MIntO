@@ -305,7 +305,8 @@ rule qc2_length_filter:
 def get_host_bwa_index(wildcards):
 
     # Where are the index files?
-    if CLUSTER_NODES != None:
+    # exception if already on local disk
+    if CLUSTER_NODES != None and not host_genome_path.startswith("/scratch"):
         index_location = 'BWA_index_local'
     else:
         index_location = 'BWA_index'
@@ -331,8 +332,6 @@ rule qc2_host_filter:
         host_free_rv="{wd}/{omics}/4-hostfree/{sample}/{run}.2.fq.gz",
     shadow:
         "minimal"
-    params:
-        bwaindex="{host_genome_path}/BWA_index/{host_genome_name}".format(host_genome_path=host_genome_path, host_genome_name=host_genome_name),
     log:
         "{wd}/logs/{omics}/4-hostfree/{sample}_{run}_filter_host_genome_BWA.log"
     resources:
@@ -343,9 +342,11 @@ rule qc2_host_filter:
         minto_dir + "/envs/MIntO_base.yml" #bwa-mem2, msamtools>=1.1.1, samtools
     shell:
         """
+        bwaindex_prefix={input.bwaindex[0]}
+        bwaindex_prefix=${{bwaindex_prefix%.*}}
         remote_dir=$(dirname {output.host_free_fw})
         time (
-                bwa-mem2 mem -t {threads} -v 3 {params.bwaindex} {input.pairead_fw} {input.pairead_rv} \
+                bwa-mem2 mem -t {threads} -v 3 $bwaindex_prefix {input.pairead_fw} {input.pairead_rv} \
                   | msamtools filter -S -l 30 --invert --keep_unmapped -bu - \
                   | samtools fastq -1 $(basename {output.host_free_fw}) -2 $(basename {output.host_free_rv}) -s /dev/null -c 6 -N -
                 rsync -a * $remote_dir/

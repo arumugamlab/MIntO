@@ -142,7 +142,7 @@ rule generate_locus_ids:
     input:
         expand("{ref_dir}/{genome}.fna", ref_dir = reference_dir, genome = genomes)
     output:
-        "{wd}/DB/{minto_mode}/1-prokka/locus_id_list.txt"
+        "{wd}/DB/{minto_mode}/{minto_mode}.locus_id_list.txt"
     localrule: True
     run:
         from hashlib import md5
@@ -185,7 +185,7 @@ rule generate_locus_ids:
 rule prokka_for_genome:
     input:
         fna=lambda wildcards: "{reference_dir}/{genome}.fna".format(reference_dir=reference_dir, genome=wildcards.genome),
-        locus_ids="{wd}/DB/{minto_mode}/1-prokka/locus_id_list.txt"
+        locus_ids="{wd}/DB/{minto_mode}/{minto_mode}.locus_id_list.txt"
     output:
         fna="{wd}/DB/{minto_mode}/1-prokka/{genome}/{genome}.fna",
         faa="{wd}/DB/{minto_mode}/1-prokka/{genome}/{genome}.faa",

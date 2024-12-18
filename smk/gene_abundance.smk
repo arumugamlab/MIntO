@@ -148,6 +148,8 @@ def get_sample2alias_map(in_file):
         raise Exception("Need 'sample' column in metadata file")
     if 'sample_alias' not in df.columns:
         raise Exception("Need 'sample_alias' column in metadata file")
+    if not df["sample_alias"].is_unique:
+        raise Exception("'sample_alias' column values must be unique")
     df = df.set_index('sample')['sample_alias']
     return(df.to_dict())
 
@@ -630,7 +632,7 @@ rule merge_msamtools_profiles:
 rule add_annotation_to_genome_profiles:
     input:
         profile  = "{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.tsv",
-        locusmap = "{wd}/DB/{minto_mode}/1-prokka/locus_id_list.txt",
+        locusmap = "{wd}/DB/{minto_mode}/{minto_mode}.locus_id_list.txt",
         taxonomy = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.{taxonomy}.{db_version}.tsv"
     output:
         mag_profile = "{wd}/output/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.tsv",
