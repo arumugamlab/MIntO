@@ -632,7 +632,7 @@ rule merge_msamtools_profiles:
 rule add_annotation_to_genome_profiles:
     input:
         profile  = "{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.tsv",
-        locusmap = "{wd}/DB/{minto_mode}/1-prokka/locus_id_list.txt",
+        locusmap = "{wd}/DB/{minto_mode}/{minto_mode}.locus_id_list.txt",
         taxonomy = "{wd}/DB/{minto_mode}/3-taxonomy/taxonomy.{taxonomy}.{db_version}.tsv"
     output:
         mag_profile = "{wd}/output/9-mapping-profiles/{minto_mode}/{omics}.{taxonomy}.{db_version}.p{identity}.tsv",
