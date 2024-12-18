@@ -148,6 +148,8 @@ def get_sample2alias_map(in_file):
         raise Exception("Need 'sample' column in metadata file")
     if 'sample_alias' not in df.columns:
         raise Exception("Need 'sample_alias' column in metadata file")
+    if not df["sample_alias"].is_unique:
+        raise Exception("'sample_alias' column values must be unique")
     df = df.set_index('sample')['sample_alias']
     return(df.to_dict())
 
