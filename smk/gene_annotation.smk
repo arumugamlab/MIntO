@@ -95,6 +95,18 @@ if 'eggNOG' in ANNOTATION:
 
 GENE_DB_TYPE = MINTO_MODE + '-genes'
 
+# Prepare module completeness information for KEGG-database annotations
+# Currently only generated when 'kofam' annotation is available
+def module_completeness():
+    result = []
+    if 'kofam' in ANNOTATION:
+        result.append(
+                    "{wd}/DB/{subdir}/4-annotations/kofam.per_mag.module_completeness.tsv".format(
+                        wd = working_dir,
+                        subdir = MINTO_MODE)
+                    )
+    return(result)
+
 rule all:
     input:
         expand("{wd}/DB/{subdir}/3-taxonomy/taxonomy.{taxonomy}.tsv",
@@ -111,11 +123,13 @@ rule all:
                     wd = working_dir,
                     subdir = MINTO_MODE,
                     filename = GENE_DB_TYPE),
+        module_completeness(),
         print_versions.get_version_output(snakefile_name),
         expand("{wd}/output/versions/annot_{taxonomy_method}.flag",
                     wd = working_dir,
                     taxonomy_method = taxonomies)
     default_target: True
+
 
 ######################
 # 0. PREPARE GENOMES
@@ -713,5 +727,77 @@ rule predicted_gene_annotation_collate:
         """
         time (
             python3 {script_dir}/collate_gene_annotations.py {input} > {output}
+        ) >& {log}
+        """
+
+###############################################################################################
+# Estimate module completeness
+###############################################################################################
+
+# Prepare tsv file with format:
+# <MAG>\t<KO1>\t<KO2>...
+#
+# Currently, only for 'kofam'
+
+rule prepare_kos_per_mag:
+    input:
+        tsv = "{wd}/DB/{minto_mode}/4-annotations/{annot}.tsv"
+    output:
+        tsv = temp("{wd}/DB/{minto_mode}/4-annotations/{annot}/kos_per_mag.tsv"),
+    log:
+        "{wd}/logs/DB/{minto_mode}/combine_{annot}.log"
+    wildcard_constraints:
+        annot = r'kofam'
+    localrule: True
+    run:
+        mag_kos = {}
+        with open(input.tsv, "r") as fp:
+            _ = fp.readline()
+            if _.startswith("#"):
+                _ = fp.readline()
+            for line in fp:
+                tmp = line.strip().split("\t")
+                mag_id = tmp[0].split("|")[-1].split("_")[0]
+                kos = tmp[1].split(",")
+                if "-" not in kos:
+                    if mag_id in mag_kos:
+                        mag_kos[mag_id].extend(kos)
+                    else:
+                        mag_kos[mag_id] = kos
+        with open(output.tsv, "w") as of:
+            for m in mag_kos.keys():
+                l = list(set(mag_kos.get(m)))
+                print(m, "\t".join(l), file=of, sep="\t")
+
+# Estimate completeness of each module per MAG
+rule mag_completeness:
+    input:
+        tsv=rules.prepare_kos_per_mag.output.tsv,
+        kpc_graph="{}/data/kofam_db/graphs.pkl".format(minto_dir),
+        kpc_pathways="{}/data/kofam_db/all_pathways.txt".format(minto_dir),
+        kpc_class="{}/data/kofam_db/all_pathways_class.txt".format(minto_dir),
+        kpc_names="{}/data/kofam_db/all_pathways_names.txt".format(minto_dir),
+    output:
+        "{wd}/DB/{minto_mode}/4-annotations/{annot}.per_mag.module_completeness.tsv"
+    log:
+        "{wd}/logs/DB/{minto_mode}/{annot}.per_mag.module_completeness.log"
+    shadow:
+        "minimal"
+    resources:
+        mem = 5
+    threads: 4
+    conda:
+        minto_dir + "/envs/gene_annotation.yml"
+    shell:
+        """
+        time (
+            give_completeness --input {input.tsv} \
+                    --graphs {input.kpc_graph} \
+                    --definitions {input.kpc_pathways} \
+                    --names {input.kpc_names} \
+                    --classes {input.kpc_class} \
+                    --outprefix per_mag \
+                    --add-per-contig
+            sed -e 's|^contig\\b|ID|' per_mag_contigs.tsv > {output}
         ) >& {log}
         """
