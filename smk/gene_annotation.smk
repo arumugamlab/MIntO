@@ -784,8 +784,8 @@ rule mag_completeness:
     shadow:
         "minimal"
     resources:
-        mem = 5
-    threads: 4
+        mem = 4
+    threads: 1
     conda:
         minto_dir + "/envs/gene_annotation.yml"
     shell:
