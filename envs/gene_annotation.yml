@@ -11,6 +11,4 @@ dependencies:
   - perl=5.32.1
   - requests
   - pyhmmer=0.10.15
-  - pip
-  - pip:
-    - kegg-pathways-completeness==1.2.1
+  - kegg-pathways-completeness=1.3.0
