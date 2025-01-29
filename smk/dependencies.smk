@@ -62,6 +62,16 @@ def Kofam_db_out():
                 file = files)
     return(result)
 
+def kegg_completeness_out():
+    files = ["graphs.pkl",
+                "all_pathways.txt",
+                "all_pathways_names.txt",
+                "all_pathways_class.txt"]
+    result = expand("{somewhere}/data/kofam_db/{file}",
+                somewhere = minto_dir,
+                file = files)
+    return(result)
+
 def dbCAN_db_out():
     files = ["CAZyDB.fa",
                 "fam-substrate-mapping.tsv",
@@ -155,6 +165,7 @@ rule all:
         rRNA_db_out(),
         eggnog_db_out(),
         Kofam_db_out(),
+        kegg_completeness_out(),
         dbCAN_db_out(),
         func_db_desc_out(),
         metaphlan_db_out(),
@@ -316,36 +327,31 @@ rule KEGG_maps:
         """
 
 # https://github.com/EBI-Metagenomics/kegg-pathways-completeness-tool/tree/master/kegg_pathways_completeness/pathways_data
-rule module_desc:
+rule KEGG_module_definitions_graph:
     output:
         kpc_pathways="{minto_dir}/data/kofam_db/all_pathways.txt",
         kpc_class="{minto_dir}/data/kofam_db/all_pathways_class.txt",
         kpc_names="{minto_dir}/data/kofam_db/all_pathways_names.txt",
-    resources: mem=download_memory
-    threads: download_threads
+        kpc_graph="{minto_dir}/data/kofam_db/graphs.pkl",
+    resources: mem=4
+    threads: 1
     log:
-        "{minto_dir}/logs/KEGG_maps_download.log"
+        "{minto_dir}/logs/KEGG_module_completeness_download.log"
     conda:
-        config["minto_dir"]+"/envs/gene_annotation.yml"
+        minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
-        mkdir -p {minto_dir}/data/kofam_db/
-        cd {minto_dir}/data/kofam_db/
         time (
+            mkdir -p {minto_dir}/data/kofam_db/
+            cd {minto_dir}/data/kofam_db/
 
-            # copy  http://rest.kegg.jp/list/module 
-            wget -O - http://rest.kegg.jp/list/module > list_modules.txt
-            
-            # download module definitions
-            rm all_pathways.txt
-            rm all_pathways_class.txt
-            cut -f 1 list_modules.txt | while read line; do 
-                DC=$(wget -O - http://rest.kegg.jp/get/$line | grep -P "^DEFINITION|^CLASS" | cut -c 13-);
-                D=$(echo "$DC" | head -n 1); echo "${line}:${D}" >> all_pathways.txt;
-                C=$(echo "$DC" | tail -n 1); echo "${line}:${C}" >> all_pathways_class.txt;
-            done
+            # Download definitions
+            fetch_modules_data -o .
 
-            echo 'KEGG module descriptions downloaded'
+            # Make module graphs
+            make_graphs -i all_pathways.txt -o .
+
+            echo 'KEGG module definitions downloaded and graph created'
         ) &> {log}
         """
 
