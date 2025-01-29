@@ -745,7 +745,7 @@ rule prepare_kos_per_mag:
     output:
         tsv = temp("{wd}/DB/{minto_mode}/4-annotations/{annot}/kos_per_mag.tsv"),
     log:
-        "{wd}/logs/DB/{minto_mode}/combine_{annot}.log"
+        "{wd}/logs/DB/{minto_mode}/kos_per_mag_{annot}.log"
     wildcard_constraints:
         annot = r'kofam'
     localrule: True
