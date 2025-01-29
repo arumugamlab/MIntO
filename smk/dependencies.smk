@@ -62,6 +62,16 @@ def Kofam_db_out():
                 file = files)
     return(result)
 
+def kegg_completeness_out():
+    files = ["graphs.pkl",
+                "all_pathways.txt",
+                "all_pathways_names.txt",
+                "all_pathways_class.txt"]
+    result = expand("{somewhere}/data/kofam_db/{file}",
+                somewhere = minto_dir,
+                file = files)
+    return(result)
+
 def dbCAN_db_out():
     files = ["CAZyDB.fa",
                 "fam-substrate-mapping.tsv",
@@ -155,6 +165,7 @@ rule all:
         rRNA_db_out(),
         eggnog_db_out(),
         Kofam_db_out(),
+        kegg_completeness_out(),
         dbCAN_db_out(),
         func_db_desc_out(),
         metaphlan_db_out(),
@@ -312,6 +323,35 @@ rule KEGG_maps:
             done | sed 's/^md://;s/ko://' | grep '.' > KEGG_Module2KO.tsv
 
             echo 'KEGG mapping downloaded'
+        ) &> {log}
+        """
+
+# https://github.com/EBI-Metagenomics/kegg-pathways-completeness-tool/tree/master/kegg_pathways_completeness/pathways_data
+rule KEGG_module_definitions_graph:
+    output:
+        kpc_pathways="{minto_dir}/data/kofam_db/all_pathways.txt",
+        kpc_class="{minto_dir}/data/kofam_db/all_pathways_class.txt",
+        kpc_names="{minto_dir}/data/kofam_db/all_pathways_names.txt",
+        kpc_graph="{minto_dir}/data/kofam_db/graphs.pkl",
+    resources: mem=4
+    threads: 1
+    log:
+        "{minto_dir}/logs/KEGG_module_completeness_download.log"
+    conda:
+        minto_dir + "/envs/gene_annotation.yml"
+    shell:
+        """
+        time (
+            mkdir -p {minto_dir}/data/kofam_db/
+            cd {minto_dir}/data/kofam_db/
+
+            # Download definitions
+            fetch_modules_data -o .
+
+            # Make module graphs
+            make_graphs -i all_pathways.txt -o .
+
+            echo 'KEGG module definitions downloaded and graph created'
         ) &> {log}
         """
 
