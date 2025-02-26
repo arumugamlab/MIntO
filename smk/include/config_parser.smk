@@ -67,6 +67,7 @@ GLOBAL_CONFIG_KEYTYPES = {
     'METASPADES_memory' : int,
     'METASPADES_qoffset' : str,
     'METASPADES_threads' : int,
+    'MIN_KEGG_PATHWAY_COMPLETENESS' : int,
     'MIN_FASTA_LENGTH' : int,
     'MIN_MAG_LENGTH' : int,
     'MIN_mapped_reads' : int,

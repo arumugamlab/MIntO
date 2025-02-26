@@ -62,6 +62,12 @@ allowed += expand("{db}.{cat}", db='kofam',  cat=['KEGG_Pathway', 'KEGG_Module',
 for x in funct_opt:
     check_allowed_values('ANNOTATION_ids', x, allowed)
 
+# Minimum KEGG pathway completeness
+# Default is no filtering, which maintains backwards compatibility
+min_completeness = 0
+if 'kofam.KEGG_Module' in funct_opt:
+    if ( x := validate_optional_key(config, 'MIN_KEGG_PATHWAY_COMPLETENESS')):
+        min_completeness = x
 
 # Define all the outputs needed by target 'all'
 
@@ -185,6 +191,9 @@ rule integration_merge_profiles:
         "minimal"
     log:
         "{wd}/logs/output/data_integration/{gene_db}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
+    wildcard_constraints:
+        identity='\d+',
+        normalization='MG|TPM'
     resources:
         mem = lambda wildcards, input, attempt: 6 + math.ceil(3.2e-9*8*sum([get_tsv_cells(i) for i in input.single])) + 10*(attempt-1)
     threads: 1
@@ -289,6 +298,9 @@ rule integration_gene_profiles:
 
 if omics == 'metaG_metaT':
     def get_function_profile_integration_input_FE(wildcards):
+
+        my_minto_mode = wildcards.gene_db.replace('-genes', '')
+
         gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/GE.qs".format(
                 wd = wildcards.wd,
                 omics = wildcards.omics,
@@ -299,9 +311,9 @@ if omics == 'metaG_metaT':
 
         # Add genome-weights if it is MG-normalization
         genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.tsv",
-                wd = working_dir,
+                wd = wildcards.wd,
                 omics = ['metaG', 'metaT'],
-                minto_mode = wildcards.gene_db.replace('-genes', ''),
+                minto_mode = my_minto_mode,
                 identity = wildcards.identity,
                 normalization = wildcards.normalization)
         if (normalization == 'MG'):
@@ -309,6 +321,10 @@ if omics == 'metaG_metaT':
                 ret_dict['metaG_profile'] = genome_profiles[0]
             if (wildcards.omics.find('metaT') != -1):
                 ret_dict['metaT_profile'] = genome_profiles[1]
+
+        if wildcards.funcat == 'kofam.KEGG_Module' and min_completeness > 0:
+            modcomp_file = f"{wildcards.wd}/DB/{my_minto_mode}/4-annotations/kofam.per_mag.module_completeness.tsv"
+            ret_dict['modcomp_file'] = modcomp_file
 
         return ret_dict
 
@@ -337,6 +353,7 @@ if omics == 'metaG_metaT':
             funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
                                                         location=minto_dir,
                                                         name=re.sub("eggNOG.KEGG_|kofam.KEGG_|merged.KEGG_", "KEGG_", wildcards.funcat)),
+            modcomp_arg = lambda wildcards, input: "" if not (wildcards.funcat == 'kofam.KEGG_Module' and min_completeness > 0) else f"--min-completeness {min_completeness} --completeness-file {input.modcomp_file}",
             weights_arg = lambda wildcards, input: "" if (wildcards.normalization == 'TPM') else f"--genome-weights-metaG {input.metaG_profile} --genome-weights-metaT {input.metaT_profile}"
         log:
             "{wd}/logs/output/data_integration/{gene_db}/integration_funtion_profiles.{omics}.p{identity}.{normalization}.FE.{funcat}.log"
@@ -353,7 +370,7 @@ if omics == 'metaG_metaT':
                         --threads {threads} \
                         --outdir $(dirname {output.abundance}) \
                         --color-factor {main_factor} \
-                        {params.shape_factor} {params.label_factor} {params.weights_arg} \
+                        {params.shape_factor} {params.label_factor} {params.weights_arg} {params.modcomp_arg} \
                         --normalization {wildcards.normalization} \
                         --funcat-name {wildcards.funcat} \
                         --funcat-desc {params.funcat_desc_file} \
@@ -362,6 +379,9 @@ if omics == 'metaG_metaT':
         """
 else :
     def get_function_profile_integration_input_FA_FT(wildcards):
+
+        my_minto_mode = wildcards.gene_db.replace('-genes', '')
+
         gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs".format(
                 wd = wildcards.wd,
                 omics = wildcards.omics,
@@ -373,9 +393,9 @@ else :
 
         # Add genome-weights if it is MG-normalization
         genome_profiles=expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/genome_abundances.p{identity}.relabund.prop.tsv",
-                wd = working_dir,
+                wd = wildcards.wd,
                 omics = ['metaG', 'metaT'],
-                minto_mode = wildcards.gene_db.replace('-genes', ''),
+                minto_mode = my_minto_mode,
                 identity = wildcards.identity,
                 normalization = wildcards.normalization)
         if (normalization == 'MG'):
@@ -383,6 +403,10 @@ else :
                 ret_dict['metaG_profile'] = genome_profiles[0]
             if (wildcards.omics.find('metaT') != -1):
                 ret_dict['metaT_profile'] = genome_profiles[1]
+
+        if wildcards.funcat == 'kofam.KEGG_Module' and min_completeness > 0:
+            modcomp_file = f"{wildcards.wd}/DB/{my_minto_mode}/4-annotations/kofam.per_mag.module_completeness.tsv"
+            ret_dict['modcomp_file'] = modcomp_file
 
         return ret_dict
 
@@ -408,6 +432,7 @@ else :
             funcat_desc_file = lambda wildcards: "{location}/data/descriptions/{name}.tsv".format(
                                                         location=minto_dir,
                                                         name=re.sub("eggNOG.KEGG_|kofam.KEGG_|merged_", "KEGG_", wildcards.funcat)),
+            modcomp_arg = lambda wildcards, input: "" if not (wildcards.funcat == 'kofam.KEGG_Module' and min_completeness > 0) else f"--min-completeness {min_completeness} --completeness-file {input.modcomp_file}",
             weights_arg = lambda wildcards, input: "" if (wildcards.normalization == 'TPM') \
                                                    else (f"--genome-weights-metaG {input.metaG_profile}" if (wildcards.omics == 'metaG') \
                                                          else f"--genome-weights-metaT {input.metaT_profile}" \
@@ -427,7 +452,7 @@ else :
                         --threads {threads} \
                         --outdir $(dirname {output.abundance}) \
                         --color-factor {main_factor} \
-                        {params.shape_factor} {params.label_factor} {params.weights_arg} \
+                        {params.shape_factor} {params.label_factor} {params.weights_arg} {params.modcomp_arg} \
                         --normalization {wildcards.normalization} \
                         --funcat-name {wildcards.funcat} \
                         --funcat-desc {params.funcat_desc_file} \

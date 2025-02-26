@@ -867,6 +867,8 @@ METADATA: {metadata}
 # Analysis settings
 ######################
 
+MINTO_MODE: {MINTO_MODE}
+
 MAIN_factor: {main_factor}
 PLOT_factor2: {plot_factor2}
 PLOT_time: {plot_time}
@@ -877,7 +879,7 @@ PLOT_time: {plot_time}
 
 alignment_identity: {identity}
 abundance_normalization: MG
-MINTO_MODE: {MINTO_MODE}
+MIN_KEGG_PATHWAY_COMPLETENESS: 75
 
 MERGE_threads: 4
 
