@@ -26,6 +26,8 @@ source(this.path::here('include', 'plots_PCA.R'))
 
 # Parse command line arguments
 opt_list <- list(
+                make_option("--min-completeness", type="double", default=75, help="minimum module completeness [default: %default]"),
+                make_option("--completeness-file", type="character", default=NULL, help="file containing module completeness"),
                 make_option("--threads", type="integer", default=4, help="number of threads [default: %default]"),
                 make_option("--outdir", type="character", default=NULL, help="output directory to write normalized counts", metavar="directory"),
                 make_option("--omics", type="character", default=NULL, help="which omics to summarize: metaG, metaT or metaG_metaT", metavar="string"),
@@ -53,6 +55,8 @@ shape_factor <- opts[['shape-factor']]
 label_factor <- opts[['label-factor']]
 metaG_profile_file <- opts[['genome-weights-metaG']]
 metaT_profile_file <- opts[['genome-weights-metaT']]
+min_completeness <- opts[['min-completeness']]
+completeness_file <- opts[['completeness-file']]
 
 setDTthreads(threads = as.numeric(threads_n))
 set.seed(1234)
@@ -207,6 +211,19 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
                      [, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
                     )
           logmsg("  done")
+
+          # Get completeness
+          if (database == "kofam.KEGG_Module" & !is.null(completeness_file)) {
+              mod_comp <- fread(completeness_file,
+                                  header=TRUE,
+                                  sep="\t",
+                                  data.table=TRUE,
+                                  select=c('ID', 'module_accession', 'completeness'))
+              setkey(mod_comp, completeness)
+              mod_comp = mod_comp[completeness >= min_completeness, ]
+              setnames(mod_comp, c('ID', 'module_accession'), c('MAG', 'Funct'))
+              counts <- merge(mod_comp, counts, by=c('MAG', 'Funct'))[, completeness := NULL]
+          }
 
           # Ensure identical column orders before rbind()
           setcolorder(weights, colnames(counts))
