@@ -224,6 +224,8 @@ rule integration_gene_profiles:
         gene_abund_merge=rules.integration_merge_profiles.output.merged
     output:
         gene_abund_prof=    "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.tsv",
+        gene_annotations=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/Annotations.tsv",
+        metadata=           "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/Metadata.tsv",
         gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
         gene_abund_plots=   "{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     wildcard_constraints:
