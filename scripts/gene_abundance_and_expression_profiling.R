@@ -404,6 +404,15 @@ fwrite(gene_annot_dt,
        quote = FALSE)
 logmsg("  done")
 
+# Write metadata into tsv file
+logmsg("Writing out metadata")
+fwrite(metadata_df,
+       file = paste0(output_dir, '/Metadata.tsv'),
+       sep = '\t',
+       row.names = FALSE,
+       quote = FALSE)
+logmsg("  done")
+
 # Freeing memory, but only to check what was the peak memory usage.
 logmsg("Freeing memory")
 gc()
