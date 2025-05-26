@@ -507,7 +507,7 @@ rule aggregate_readcounts:
             omics = omics,
             sample = nonredundant_ilmn_samples)
     output:
-        "{wd}/output/2-qc/{omics}.readcounts.txt"
+        rc="{wd}/output/2-qc/{omics}.readcounts.txt"
     resources:
         mem = 1
     threads:
