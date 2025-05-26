@@ -15,6 +15,10 @@ def open_file(fn):
     return of
 
 def main(args):
+    # for kofamscan to force it to use 8 processes instead of 1
+    if (args.cpu == 1) and not args.force_single_cpu:
+        args.cpu = 8
+    
     # parse and load hmm profile collection
     hmm_obj = None
     if os.path.exists(args.hmmfile) and os.path.isfile(args.hmmfile):
@@ -42,6 +46,13 @@ def main(args):
             for hits in tophits_list[1:]:
                 hits.write(f, format="domains", header=False)
     
+    # write out in tblout format
+    if args.tblout is not None:
+        with open(args.tblout, "wb") as f:
+            tophits_list[0].write(f, format="targets", header=True)
+            for hits in tophits_list[1:]:
+                hits.write(f, format="targets", header=False)
+    
     if not args.output == "/dev/null":
         f = open_file(args.output)
         tophits_list[0].write(f, format="pfam", header=True)
@@ -58,11 +69,13 @@ if __name__ == '__main__':
     parser.add_argument("seqdb", help="protein sequence fasta file")
     parser.add_argument("-o", default = "stdout", dest='output', help="output to file")
     parser.add_argument("--domtblout", help="domain output file")
+    parser.add_argument("--tblout", help="per-target output file")
     parser.add_argument("-E", type = float, default = 10.0, dest='thr_E', help="report sequences <= this E-value threshold in output")
     parser.add_argument("-T", type = float, default = 0, dest='thr_T', help="report sequences >= this score threshold in output")
     parser.add_argument("-domE", type = float, default = 10.0, dest='domE', help="report individual domains <= this E-value threshold in output")
     parser.add_argument("-domT", type = float, default = 0, dest='domT', help="report individual domains >= this score threshold in output")
     parser.add_argument("--cpu", type = int, default = 8, help="number of parallel workers to use in pool")
+    parser.add_argument("--force_single_cpu", action="store_true", help="extra flag for single threading")
     
     args = parser.parse_args()
     
