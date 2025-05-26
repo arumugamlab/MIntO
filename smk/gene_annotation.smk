@@ -602,6 +602,7 @@ rule gene_annot_kofamscan:
         minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
+        export PATH="{script_dir:q}:$PATH"
         remote_dir=$(dirname {output})
         time (
             exec_annotation -k {input.ko_list} -p {input.prok_hal} --tmp-dir tmp -f mapper-one-line --cpu {threads} -o kofam_mapper.txt {input.faa}
