@@ -66,11 +66,18 @@ ilmn_suffix = ["1.fq.gz", "2.fq.gz"]
 if (x := validate_optional_key(config, 'ILLUMINA_suffix')):
     ilmn_suffix = x
 
+def sampleid_valid_check(sampleid):
+    if not sampleid.replace('_', '').isalnum():
+        raise Exception(f"ERROR: {sampleid} contains non-alphanumeric or underscore characters.")
+    else:
+        return(True)
+
 def sample_existence_check(top_raw_dir, sample_id, organisation_type = "folder"):
     if organisation_type == "folder":
         location = "{}/{}".format(top_raw_dir, sample_id)
         if os.path.exists(location):
-            return(True)
+            if glob.glob("{}/{}/*[.-_]{}".format(top_raw_dir, sample_id, ilmn_suffix[0])):
+                return(True)
     else:
         sample_pattern = "{}/{}[.-_]{}".format(top_raw_dir, sample_id, ilmn_suffix[0])
         if glob.glob(sample_pattern):
@@ -91,14 +98,14 @@ if (x := validate_required_key(config, 'ILLUMINA')):
             col_name = "sample"
             ilmn_runs_df = pandas.read_table(x)
             for sampleid in ilmn_runs_df['sample'].unique():
-                for runid in ilmn_runs_df.loc[ilmn_runs_df['sample'] == sampleid]['run'].to_list():
-                    #print(sampleid, runid)
-                    sample_pattern = "{}/{}[.-_]{}".format(raw_dir, runid, ilmn_suffix[0])
-                    if glob.glob(sample_pattern):
-                        if sampleid not in ilmn_samples:
-                            ilmn_samples.append(sampleid)
-                    else:
-                        raise Exception(f"ERROR: {sample_pattern} not in bulk data folder {raw_dir}")
+                if sampleid_valid_check(sampleid):
+                    for runid in ilmn_runs_df.loc[ilmn_runs_df['sample'] == sampleid]['run'].to_list():
+                        #print(sampleid, runid)
+                        if sample_existence_check(raw_dir, runid, ilmn_samples_organisation):
+                            if sampleid not in ilmn_samples:
+                                ilmn_samples.append(sampleid)
+                        else:
+                            raise Exception(f"ERROR: {runid} not in bulk data folder {raw_dir}")
         else:
             # column name in metadata sheet
             col_name = x
@@ -109,17 +116,19 @@ if (x := validate_required_key(config, 'ILLUMINA')):
             if sample_existence_check(raw_dir, sampleid_list[0]):
                 ilmn_samples_organisation = "folder"
             for sampleid in sampleid_list:
-                if sample_existence_check(raw_dir, sampleid, ilmn_samples_organisation) and sampleid not in ilmn_samples:
-                    ilmn_samples.append(sampleid)
-                else:
-                    raise Exception(f"ERROR: {sampleid} not in raw data folder {raw_dir}")
+                if sampleid_valid_check(sampleid):
+                    if sample_existence_check(raw_dir, sampleid, ilmn_samples_organisation) and sampleid not in ilmn_samples:
+                        ilmn_samples.append(sampleid)
+                    else:
+                        raise Exception(f"ERROR: {sampleid} not in raw data folder {raw_dir} with suffix {ilmn_suffix[0]}")
     # listed samples
     else:
-        for ilmn in x:
-            if sample_existence_check(raw_dir, ilmn):
-                ilmn_samples.append(ilmn)
-            else:
-                raise Exception(f"ERROR: {ilmn} folder in raw_dir does not exist.")
+        for sampleid in x:
+            if sampleid_valid_check(sampleid):
+                if sample_existence_check(raw_dir, sampleid):
+                    ilmn_samples.append(sampleid)
+                else:
+                    raise Exception(f"ERROR: {sampleid} is not found under {raw_dir} with suffix {ilmn_suffix[0]}.")
 
 # Define all the outputs needed by target 'all'
 

@@ -219,6 +219,12 @@ def smash_plot_output():
     else:
         return()
 
+def readcounts_output():
+    result = expand("{wd}/output/2-qc/{omics}.readcounts.txt",
+                    wd = working_dir,
+                    omics = omics)
+    return(result)
+
 def merged_sample_output():
     return()
 
@@ -248,6 +254,7 @@ def clean_bwa_index_host():
 rule all:
     input:
         clean_bwa_index_host(),
+        readcounts_output(),
         merged_sample_output(),
         taxonomy_plot_output(),
         smash_plot_output(),
@@ -447,6 +454,84 @@ if omics == 'metaT':
 __EOM__
             ) >& {log}
             """
+
+###############################################################################################
+# Read-counts on min-length and clean reads
+###############################################################################################
+
+rule minlength_readcounts:
+    input:
+        trim_summary=lambda wildcards: expand("{wd}/{omics}/3-minlength/{sample}/{run}.trim.summary",
+                wd = working_dir,
+                omics = omics,
+                sample = wildcards.sample,
+                run = get_runs_for_sample(working_dir, omics, wildcards.sample)
+                )
+    output:
+        minlen_rc=temp("{wd}/output/2-qc/{omics}.{sample}.1.minlength.txt")
+    resources:
+        mem = 1
+    threads:
+        2
+    run:
+        run_readcounts = []
+        for trim_summ_file in input.trim_summary:
+            with open(trim_summ_file, "r") as fp:
+                for line in fp:
+                    if line.startswith("[INFO]"):
+                        if "paired-end reads saved to" in line:
+                            tmp = line.split()
+                            run_readcounts.append(int(tmp[1]))
+        with open(output.minlen_rc, "w") as of:
+            print(sum(run_readcounts), file = of)
+
+rule postcleaning_readcounts:
+    input:
+        fwd=get_qc2_output_files_fwd_only
+    output:
+        rc_fwd=temp("{wd}/output/2-qc/{omics}.{sample}.1.postcleaning.txt")
+    resources:
+        mem = 1
+    threads:
+        2
+    conda:
+        minto_dir + "/envs/MIntO_base.yml"
+    shell:
+        """
+        LINENUM=`zcat {input.fwd} | wc -l`
+        echo $((${{LINENUM}} / 4)) > {output.rc_fwd}
+        """
+
+rule aggregate_readcounts:
+    input:
+        minlen_rc=expand("{wd}/output/2-qc/{omics}.{sample}.1.minlength.txt",
+            wd = working_dir,
+            omics = omics,
+            sample = nonredundant_ilmn_samples),
+        clean_rc=expand("{wd}/output/2-qc/{omics}.{sample}.1.postcleaning.txt",
+            wd = working_dir,
+            omics = omics,
+            sample = nonredundant_ilmn_samples)
+    output:
+        rc="{wd}/output/2-qc/{omics}.readcounts.txt"
+    resources:
+        mem = 1
+    threads:
+        2
+    run:
+        readcounts = []
+        for i, sampleid in enumerate(nonredundant_ilmn_samples):
+            with open(input.minlen_rc[i], "r") as ifile_minlen, \
+                 open(input.clean_rc[i], "r") as ifile_clean:
+                minlen_frags = int(ifile_minlen.readline())
+                clean_frags  = int(ifile_clean.readline())
+                rat = round(clean_frags / minlen_frags * 100, 2)
+                readcounts.append(f"{sampleid}\t{minlen_frags:.0f}\t{clean_frags:.0f}\t{rat}")
+        with open(output.rc, "w") as fp:
+            print("sample", "fragment_count_minlength", "fragment_count_clean", "percentage_kept", sep = "\t", file = fp)
+            for row in readcounts:
+                print(row, file = fp)
+
 
 ###############################################################################################
 # Create pseudo-samples that are created by merging multiple samples.

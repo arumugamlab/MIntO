@@ -64,8 +64,9 @@ for x in funct_opt:
 
 # Minimum KEGG pathway completeness
 # Default is no filtering, which maintains backwards compatibility
+# Also no filtering for the catalog mode as gene_annotation module was not run
 min_completeness = 0
-if 'kofam.KEGG_Module' in funct_opt:
+if 'kofam.KEGG_Module' in funct_opt and MINTO_MODE != 'catalog':
     if ( x := validate_optional_key(config, 'MIN_KEGG_PATHWAY_COMPLETENESS')):
         min_completeness = x
 
