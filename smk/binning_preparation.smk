@@ -260,6 +260,10 @@ def calculate_batch_filesize_mb(wildcards):
         # we account for lower min. length and better assemblies here
         return(round((filtered_batch_size-50)/0.6))
 
+# The following checkpoint will make a txt file with the names of assemblies per batch.
+# The next rule will make the fasta file for each batch of assemblies.
+# This separation is to enable deletion of the batch fasta files when
+# a combined file is created, which will save space for large studies.
 checkpoint make_assembly_batches:
     input:
         assemblies = get_assemblies_for_scaf_type
@@ -273,15 +277,17 @@ checkpoint make_assembly_batches:
     resources:
         mem = 5
     params:
-        min_length = lambda wildcards: wildcards.min_length,
         batch_filesize = calculate_batch_filesize_mb
     run:
         import datetime
         import os
-        
+
         def logme(stream, msg):
             print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
-            
+
+        # make the checkpoint directory
+        os.mkdir(output.location)
+
         with open(str(log), 'w') as f:
             logme(f, "INFO: assemblies={} batch_size={}Mb".format(len(input.assemblies), params.batch_filesize))
             start = 0
@@ -289,32 +295,72 @@ checkpoint make_assembly_batches:
             current_batchfilesize = 0
             for i in range(0, len(input.assemblies)):
                 current_assemblysize = os.path.getsize(input.assemblies[i]) / (1024**2)
-                
+
                 # if adding the current assembly made batch larger than accepted, then write out batch
                 if (i and ((current_batchfilesize + current_assemblysize) > params.batch_filesize)):
                     logme(f, "INFO: Making BATCH={} size={:.0f}Mb".format(batch, current_batchfilesize))
-                    
+
                     end = i
-                    # from start to end
-                    batch_input  = input.assemblies[start:end]
-                    batch_output = output.location + f"/batch{batch}.fasta.gz"
+
+                    # batch goes from start to end-1
+                    batch_input = input.assemblies[start:end]
+                    batch_list  = output.location + f"/batch{batch}.list"
                     logme(f, "INFO:   INPUT ={}".format(batch_input))
-                    logme(f, "INFO:   OUTPUT={}".format(batch_output))
-                    
-                    # write out batch
-                    filter_fasta_list_by_length(batch_input, batch_output, params.min_length)
-                    
+                    logme(f, "INFO:   OUTPUT={}".format(batch_list))
+
+                    # write out batch list
+                    with open(batch_list, 'w') as listfile:
+                        for asm in batch_input:
+                            print(asm, file=listfile)
+
                     # reset variables
                     start = i
                     batch += 1
                     current_batchfilesize = 0
                 current_batchfilesize += current_assemblysize
+
             # last assembly and batch
-            batch_input  = input.assemblies[start:]
-            batch_output = output.location + f"/batch{batch}.fasta.gz"
+            batch_input = input.assemblies[start:]
+            batch_list  = output.location + f"/batch{batch}.list"
             logme(f, "INFO:   INPUT ={}".format(batch_input))
-            logme(f, "INFO:   OUTPUT={}".format(batch_output))
-            filter_fasta_list_by_length(batch_input, batch_output, params.min_length)
+            logme(f, "INFO:   OUTPUT={}".format(batch_list))
+            with open(batch_list, 'w') as listfile:
+                for asm in batch_input:
+                    print(asm, file=listfile)
+            logme(f, "INFO: done")
+
+rule write_assembly_batch_fasta:
+    input:
+        list  = "{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}.{min_length}/batch{batch}.list"
+    output:
+        fasta = temp("{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}.{min_length}/batch{batch}.fasta.gz")
+    log:
+        "{wd}/logs/{omics}/8-1-binning/scaffolds_{scaf_type}.{min_length}/batch{batch}.writing.log"
+    wildcard_constraints:
+        min_length = r'\d+',
+        scaf_type  = r'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
+    resources:
+        mem = 5
+    params:
+        min_length = lambda wildcards: wildcards.min_length,
+    run:
+        import datetime
+
+        def logme(stream, msg):
+            print(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), msg, file=stream)
+
+        with open(str(log), 'w') as f:
+            with open(input.list) as listfile:
+                # get assembly list
+                assemblies = listfile.read().splitlines()
+
+                # write out batch
+                filter_fasta_list_by_length(assemblies, output.fasta, params.min_length)
+
+                # log progress
+                logme(f, "INFO:   INPUT ={}".format(assemblies))
+                logme(f, "INFO:   OUTPUT={}".format(output.fasta))
+
             logme(f, "INFO: done")
 
 ################################################################################################
@@ -360,7 +406,7 @@ rule map_contigs_BWA_depth_coverM:
         fwd='{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz',
         rev='{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz'
     output:
-        depth="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}/{illumina}.depth.txt.gz"
+        depth = temp("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}/{illumina}.depth.txt.gz")
     shadow:
         "minimal"
     log:
@@ -475,7 +521,7 @@ rule colbind_sample_contig_depths_for_batch:
 
 def get_batches_for_scaf_type_generic(wildcards, filetype):
     chkpnt_output = checkpoints.make_assembly_batches.get(**wildcards).output[0]
-    batches       = glob_wildcards(os.path.join(chkpnt_output, "batch{batch,\d+}.fasta.gz")).batch
+    batches       = glob_wildcards(os.path.join(chkpnt_output, "batch{batch,\d+}.list")).batch
     prefix        = 'scaffolds' if (filetype == 'fasta') else 'depth'
     result        = expand("{wd}/{omics}/8-1-binning/{prefix}_{scaf_type}.{min_length}/batch{batch}.{extension}.gz",
                             wd = wildcards.wd,
@@ -503,7 +549,7 @@ rule combine_contig_depth_header_batches:
     input:
         header = get_header_batches_for_scaf_type
     output:
-        header = "{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.header.txt.gz",
+        header = temp("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.header.txt.gz")
     log:
         "{wd}/logs/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batches.check_depth.log"
     shell:
@@ -527,17 +573,23 @@ rule combine_contig_depth_batches:
         depths = get_depth_batches_for_scaf_type,
         header = rules.combine_contig_depth_header_batches.output.header
     output:
-        depths = "{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz",
+        depths = temp("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.depth.txt.gz")
     shadow:
         "minimal"
+    params:
+        num_files = lambda wildcards, input: len(input.depths)
     resources:
        mem = 10
     threads:
         1
     shell:
         """
-        cat {input.depths} > combined.depth.gz
-        rsync -a combined.depth.gz {output.depths}
+        if (( params.num_files > 1 )); then
+            cat {input.depths} > combined.depth.gz
+            rsync -a combined.depth.gz {output.depths}
+        else
+            ln --force {input.depths[0]} {output.depths}
+        fi
         """
 
 # Combine multiple fasta files from batches into one per scaf_type
@@ -546,25 +598,25 @@ rule combine_fasta_batches:
     input:
         fasta = get_fasta_batches_for_scaf_type
     output:
-        fasta_combined="{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.fasta.gz"
+        fasta_combined = temp("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/combined.fasta.gz")
     wildcard_constraints:
         min_length = r'\d+',
         scaf_type  = r'illumina_single|illumina_coas|illumina_single_nanopore|nanopore'
     shadow:
         "minimal"
     params:
-        multi = lambda wildcards, input: "yes" if len(input.fasta) > 1 else "no"
+        num_files = lambda wildcards, input: len(input.fasta)
     resources:
        mem = 10
     threads:
         1
     shell:
         """
-        if [ "{params.multi}" == "yes" ]; then
-            cat {input} > combined.fasta.gz
+        if (( params.num_files > 1 )); then
+            cat {input.fasta} > combined.fasta.gz
             rsync -a combined.fasta.gz {output}
         else
-            ln --symbolic --relative --force {input[0]} {output}
+            ln --force {input.fasta[0]} {output}
         fi
         """
 
@@ -600,18 +652,18 @@ rule combine_fasta:
     shadow:
         "minimal"
     params:
-        multi = lambda wildcards, input: "yes" if len(input.fasta) > 1 else "no"
+        num_files = lambda wildcards, input: len(input.fasta)
     resources:
        mem = 10
     threads:
         1
     shell:
         """
-        if [ "{params.multi}" == "yes" ]; then
+        if (( params.num_files > 1 )); then
             cat {input} > combined.fasta.gz
             rsync -a combined.fasta.gz {output}
         else
-            ln --symbolic --relative --force {input[0]} {output}
+            ln --force {input[0]} {output}
         fi
         """
 
@@ -621,7 +673,7 @@ rule combine_contig_depth_header:
     input:
         header = get_header_files_across_scaffold_types
     output:
-        header = "{wd}/{omics}/8-1-binning/scaffolds.{min_length}.header.txt.gz"
+        header = temp("{wd}/{omics}/8-1-binning/scaffolds.{min_length}.header.txt.gz")
     shell:
         """
         rm --force {output}
@@ -677,7 +729,7 @@ rule make_abundance_npz:
 # Get list of clean flags for cleaning up all batches for this scaf_type
 def get_flags_to_clean_bwaindex_mirror_for_scaf_type(wildcards):
     chkpnt_output = checkpoints.make_assembly_batches.get(**wildcards).output[0]
-    batches       = glob_wildcards(os.path.join(chkpnt_output, "batch{batch,\d+}.fasta.gz")).batch
+    batches       = glob_wildcards(os.path.join(chkpnt_output, "batch{batch,\d+}.list")).batch
     result        = expand("{wd}/{omics}/8-1-binning/scaffolds_{scaf_type}.{min_length}/BWA_index/batch{batch}.fasta.gz.clustersync/cleaning.done",
                             wd = wildcards.wd,
                             omics = wildcards.omics,
