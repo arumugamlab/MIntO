@@ -461,30 +461,35 @@ __EOM__
 
 rule minlength_readcounts:
     input:
-        fwd=lambda wildcards: expand("{wd}/{omics}/3-minlength/{sample}/{run}.1.fq.gz",
+        trim_summary=lambda wildcards: expand("{wd}/{omics}/3-minlength/{sample}/{run}.trim.summary",
                 wd = working_dir,
                 omics = omics,
                 sample = wildcards.sample,
                 run = get_runs_for_sample(working_dir, omics, wildcards.sample)
                 )
     output:
-        rc_fwd=temp("{wd}/{omics}/5-2-qc/{sample}.1.minlength.txt")
+        minlen_rc=temp("{wd}/output/2-qc/{omics}.{sample}.1.minlength.txt")
     resources:
         mem = 1
     threads:
         2
-    conda:
-        minto_dir + "/envs/MIntO_base.yml"
-    shell:
-        """
-        zcat {input.fwd} | wc -l > {output.rc_fwd}
-        """
+    run:
+        run_readcounts = []
+        for trim_summ_file in input.trim_summary:
+            with open(trim_summ_file, "r") as fp:
+                for line in fp:
+                    if line.startswith("[INFO]"):
+                        if "paired-end reads saved to" in line:
+                            tmp = line.split()
+                            run_readcounts.append(int(tmp[1]))
+        with open(output.minlen_rc, "w") as of:
+            print(sum(run_readcounts), file = of)
 
 rule postcleaning_readcounts:
     input:
         fwd=get_qc2_output_files_fwd_only
     output:
-        rc_fwd=temp("{wd}/{omics}/5-2-qc/{sample}.1.postcleaning.txt")
+        rc_fwd=temp("{wd}/output/2-qc/{omics}.{sample}.1.postcleaning.txt")
     resources:
         mem = 1
     threads:
@@ -493,16 +498,17 @@ rule postcleaning_readcounts:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
-        zcat {input.fwd} | wc -l > {output.rc_fwd}
+        LINENUM=`zcat {input.fwd} | wc -l`
+        echo $((${{LINENUM}} / 4)) > {output.rc_fwd}
         """
 
 rule aggregate_readcounts:
     input:
-        minlen_rc=expand("{wd}/{omics}/5-2-qc/{sample}.1.minlength.txt",
+        minlen_rc=expand("{wd}/output/2-qc/{omics}.{sample}.1.minlength.txt",
             wd = working_dir,
             omics = omics,
             sample = nonredundant_ilmn_samples),
-        clean_rc=expand("{wd}/{omics}/5-2-qc/{sample}.1.postcleaning.txt",
+        clean_rc=expand("{wd}/output/2-qc/{omics}.{sample}.1.postcleaning.txt",
             wd = working_dir,
             omics = omics,
             sample = nonredundant_ilmn_samples)
@@ -518,12 +524,12 @@ rule aggregate_readcounts:
             i_rc = []
             for rc_file_input in [input.minlen_rc, input.clean_rc]:
                 ifile = open(rc_file_input[i])
-                i_rc.append(int(ifile.readline()) / 2)
+                i_rc.append(int(ifile.readline()))
                 ifile.close()
             rat = round(i_rc[-1] / i_rc[-2] * 100, 2)
             readcounts.append(f"{sampleid}\t{i_rc[-2]:.0f}\t{i_rc[-1]:.0f}\t{rat}")
         with open(output.rc, "w") as fp:
-            print("sample", "read_count_minlength", "read_count_clean", "percentage_kept", sep = "\t", file = fp)
+            print("sample", "fragment_count_minlength", "fragment_count_clean", "percentage_kept", sep = "\t", file = fp)
             for row in readcounts:
                 print(row, file = fp)
 
