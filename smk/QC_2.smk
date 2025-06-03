@@ -521,13 +521,12 @@ rule aggregate_readcounts:
     run:
         readcounts = []
         for i, sampleid in enumerate(nonredundant_ilmn_samples):
-            i_rc = []
-            for rc_file_input in [input.minlen_rc, input.clean_rc]:
-                ifile = open(rc_file_input[i])
-                i_rc.append(int(ifile.readline()))
-                ifile.close()
-            rat = round(i_rc[-1] / i_rc[-2] * 100, 2)
-            readcounts.append(f"{sampleid}\t{i_rc[-2]:.0f}\t{i_rc[-1]:.0f}\t{rat}")
+            with open(input.minlen_rc[i], "r") as ifile_minlen, \
+                 open(input.clean_rc[i], "r") as ifile_clean:
+                minlen_frags = int(ifile_minlen.readline())
+                clean_frags  = int(ifile_clean.readline())
+                rat = round(clean_frags / minlen_frags * 100, 2)
+                readcounts.append(f"{sampleid}\t{minlen_frags:.0f}\t{clean_frags:.0f}\t{rat}")
         with open(output.rc, "w") as fp:
             print("sample", "fragment_count_minlength", "fragment_count_clean", "percentage_kept", sep = "\t", file = fp)
             for row in readcounts:
