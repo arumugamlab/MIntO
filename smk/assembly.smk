@@ -296,15 +296,17 @@ rule illumina_assembly_metaspades:
         fwd="{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz",
         rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
     output:
-        "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/contigs.fasta",
-        "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/scaffolds.fasta",
+        cont_fa    = "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/contigs.fasta",
+        scaf_fa    = "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/scaffolds.fasta",
+        scaf_gfa   = "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/assembly_graph_with_scaffolds.gfa.gz",
+        asm_log    = "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/spades.log",
+        asm_params = "{wd}/{omics}/7-assembly/{illumina}/k21-{maxk}/params.txt",
     shadow:
         "minimal"
     params:
         qoffset  = METASPADES_qoffset,
         asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
-        kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
     resources:
         mem = lambda wildcards, attempt: attempt*METASPADES_memory
     log:
@@ -315,11 +317,13 @@ rule illumina_assembly_metaspades:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
-        remote_dir=$(dirname {output[0]})
-        mkdir -p $remote_dir
         time (
-            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
-            rsync -a {params.kmer_dir}/* $remote_dir/
+            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} -t {threads} -m {resources.mem} -o outdir --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            rsync -a outdir/contigs.fasta {output.cont_fa}
+            rsync -a outdir/scaffolds.fasta {output.scaf_fa}
+            rsync -a outdir/spades.log {output.asm_log}
+            rsync -a outdir/params.txt {output.asm_params}
+            gzip -c outdir/assembly_graph_with_scaffolds.gfa > {output.scaf_gfa}
         ) >& {log}
         """
 
@@ -336,15 +340,17 @@ rule hybrid_assembly_metaspades:
         rev="{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz",
         ont="{wd}/{omics}/6-corrected/{nanopore}/{nanopore}.nanopore.fq.gz"
     output:
-        "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/contigs.fasta",
-        "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/scaffolds.fasta",
+        cont_fa    = "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/contigs.fasta",
+        scaf_fa    = "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/scaffolds.fasta",
+        scaf_gfa   = "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/assembly_graph_with_scaffolds.gfa.gz",
+        asm_log    = "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/spades.log",
+        asm_params = "{wd}/{omics}/7-assembly/{nanopore}-{illumina}/k21-{maxk}/params.txt",
     shadow:
         "minimal"
     params:
         qoffset  = METASPADES_qoffset,
         asm_mode = "--meta",
         kmer_option = lambda wildcards: get_metaspades_kmer_option(int(wildcards.maxk)),
-        kmer_dir = lambda wildcards: "k21-" + wildcards.maxk
     resources:
         mem = lambda wildcards, attempt: attempt*METASPADES_memory
     log:
@@ -355,11 +361,13 @@ rule hybrid_assembly_metaspades:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
         """
-        remote_dir=$(dirname {output[0]})
-        mkdir -p $remote_dir
         time (
-            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o {params.kmer_dir} --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
-            rsync -a {params.kmer_dir}/* $remote_dir/
+            {spades_script} {params.asm_mode} --only-assembler -1 {input.fwd} -2 {input.rev} --nanopore {input.ont} -t {threads} -m {resources.mem} -o outdir --tmp-dir tmp --phred-offset {params.qoffset} -k {params.kmer_option}
+            rsync -a outdir/contigs.fasta {output.cont_fa}
+            rsync -a outdir/scaffolds.fasta {output.scaf_fa}
+            rsync -a outdir/spades.log {output.asm_log}
+            rsync -a outdir/params.txt {output.asm_params}
+            gzip -c outdir/assembly_graph_with_scaffolds.gfa > {output.scaf_gfa}
         ) >& {log}
         """
 
@@ -387,10 +395,12 @@ def get_megahit_parameters(wildcards, kk, k_list):
 
 rule coassembly_megahit:
     input:
-        fwd=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz', wd=working_dir, omics=omics, illumina=co_assemblies[wildcards.coassembly].split('+')),
-        rev=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz', wd=working_dir, omics=omics, illumina=co_assemblies[wildcards.coassembly].split('+'))
+        fwd=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz', wd=wildcards.wd, omics=wildcards.omics, illumina=co_assemblies[wildcards.coassembly].split('+')),
+        rev=lambda wildcards: expand('{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz', wd=wildcards.wd, omics=wildcards.omics, illumina=co_assemblies[wildcards.coassembly].split('+'))
     output:
-        coassemblies= "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa"
+        cont_fa    = "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa",
+        asm_log    = "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/log.txt",
+        asm_params = "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/options.json",
     shadow:
         "minimal"
     params:
@@ -410,13 +420,11 @@ rule coassembly_megahit:
         """
         # Don't create the --out-dir directory as MEGAHIT wants it to not exist before
         time (
-            megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir assembly {params.asm_params}
+            megahit -1 {params.fwd_reads} -2 {params.rev_reads} -t {threads} -m {resources.mem_bytes} --out-dir outdir {params.asm_params}
         ) >& {log}
-        cd assembly
-        tar cfz intermediate_contigs.tar.gz intermediate_contigs && rm -rf intermediate_contigs
-        remote_dir=$(dirname {output[0]})
-        mkdir -p $remote_dir
-        rsync -a * $remote_dir/
+        rsync -a outdir/final.contigs.fa {output.cont_fa}
+        rsync -a outdir/log {output.asm_log}
+        rsync -a outdir/options.json {output.asm_params}
         """
 
 ###############################################################################################
