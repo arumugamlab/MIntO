@@ -386,7 +386,7 @@ elif TRIMMOMATIC_adaptors != 'Skip':
 
     localrules: qc1_copy_fixed_adapter_file
 
-    # Symlink standard file if there is no index_barcode file
+    # Hardlink standard file if there is no index_barcode file
     rule qc1_copy_fixed_adapter_file:
         input:
             template=TRIMMOMATIC_adaptors
@@ -394,7 +394,7 @@ elif TRIMMOMATIC_adaptors != 'Skip':
             adapter="{wd}/{omics}/1-trimmed/{sample}/adapters.fa"
         shell:
             """
-            ln -s --force {input.template} {output.adapter}
+            ln --force {input.template} {output.adapter}
             """
 
 ##########
@@ -420,8 +420,8 @@ if TRIMMOMATIC_adaptors == 'Skip':
         shell:
             """
             time (
-                ln -s --force {input.read_fw} {output.pairead1}
-                ln -s --force {input.read_rv} {output.pairead2}
+                ln --force {input.read_fw} {output.pairead1}
+                ln --force {input.read_rv} {output.pairead2}
                 echo "Skipped trimming and linked raw files to trimmed files."
             ) >& {log}
             """
