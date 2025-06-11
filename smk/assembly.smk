@@ -274,15 +274,15 @@ rule merge_runs:
     shadow:
         "minimal"
     params:
-        multiple_runs = lambda wildcards, input: "yes" if len(input.files) > 1 else "no"
+        num_runs = lambda wildcards, input: len(input.files)
     shell:
         """
-        if [ "{params.multiple_runs}" == "yes" ]; then
+        if (( {params.num_runs} > 1 )); then
             cat {input} > combined.fq.gz
             rsync -a combined.fq.gz {output}
         else
             cd $(dirname {output})
-            ln --symbolic --relative --force {input[0]} {output}
+            ln --force {input[0]} {output}
         fi
         """
 
