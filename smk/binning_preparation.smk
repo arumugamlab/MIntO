@@ -584,7 +584,7 @@ rule combine_contig_depth_batches:
         1
     shell:
         """
-        if (( params.num_files > 1 )); then
+        if (( {params.num_files} > 1 )); then
             cat {input.depths} > combined.depth.gz
             rsync -a combined.depth.gz {output.depths}
         else
@@ -612,7 +612,7 @@ rule combine_fasta_batches:
         1
     shell:
         """
-        if (( params.num_files > 1 )); then
+        if (( {params.num_files} > 1 )); then
             cat {input.fasta} > combined.fasta.gz
             rsync -a combined.fasta.gz {output}
         else
@@ -659,7 +659,7 @@ rule combine_fasta:
         1
     shell:
         """
-        if (( params.num_files > 1 )); then
+        if (( {params.num_files} > 1 )); then
             cat {input} > combined.fasta.gz
             rsync -a combined.fasta.gz {output}
         else
