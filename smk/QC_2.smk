@@ -274,8 +274,8 @@ rule qc2_length_filter:
         read_fw='{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz',
         read_rv='{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz',
     output:
-        paired1="{wd}/{omics}/3-minlength/{sample}/{run}.1.fq.gz",
-        paired2="{wd}/{omics}/3-minlength/{sample}/{run}.2.fq.gz",
+        paired1=temp("{wd}/{omics}/3-minlength/{sample}/{run}.1.fq.gz"),
+        paired2=temp("{wd}/{omics}/3-minlength/{sample}/{run}.2.fq.gz"),
         summary="{wd}/{omics}/3-minlength/{sample}/{run}.trim.summary"
     shadow:
         "minimal"
@@ -329,6 +329,7 @@ def get_host_bwa_index(wildcards):
     return(files)
 
 # BWA mem memory is estimated as 3.1 bytes per base in database (regression: mem = 5.556e+09 + 3.011*input).
+# TODO: make it temp() output for metaT
 rule qc2_host_filter:
     input:
         pairead_fw=rules.qc2_length_filter.output.paired1,
@@ -586,9 +587,6 @@ if merged_illumina_samples:
 # profile output, let metaphlan remove the '.tsv', and then remove '{taxonomy}.{version}' ourselves. This is the history behind
 # naming profile outputs as '{sample}.{taxonomy}.{version}.tsv'.
 
-# MetaPhlAn cannot take multiple runs per sample.
-# So named pipes will be used to combine runs into one fastq file.
-
 rule metaphlan_tax_profile:
     input:
         metaphlan_db=lambda wildcards: expand("{minto_dir}/data/metaphlan/{version}/{metaphlan_index}_VINFO.csv",
@@ -687,8 +685,8 @@ rule motus_calc_motu:
         db = f"{minto_dir}/data/motus/{{version}}/db_mOTU/db_mOTU_versions",
         mgc=rules.motus_map_db.output.mgc,
     output:
-        raw="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw.{version}.tsv",
-        rel="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel.{version}.tsv"
+        raw=temp("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw.{version}.tsv"),
+        rel=temp("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel.{version}.tsv")
     params:
         motus_db = lambda wildcards, input: os.path.dirname(input.db)
     resources:

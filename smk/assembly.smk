@@ -221,8 +221,8 @@ rule correct_spadeshammer:
     input:
         reads=get_hq_fastq_files
     output:
-        fwd="{wd}/{omics}/5-corrected-runs/{illumina}/{run}.1.fq.gz",
-        rev="{wd}/{omics}/5-corrected-runs/{illumina}/{run}.2.fq.gz",
+        fwd=temp("{wd}/{omics}/5-corrected-runs/{illumina}/{run}.1.fq.gz"),
+        rev=temp("{wd}/{omics}/5-corrected-runs/{illumina}/{run}.2.fq.gz"),
     shadow:
         "minimal"
     params:
