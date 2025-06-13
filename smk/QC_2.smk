@@ -328,8 +328,14 @@ def get_host_bwa_index(wildcards):
     # Return them
     return(files)
 
+# Remove potential host-derived reads
 # BWA mem memory is estimated as 3.1 bytes per base in database (regression: mem = 5.556e+09 + 3.011*input).
-# TODO: make it temp() output for metaT
+
+# For metaG, 4-hostfree is the final QC2 output.
+# For metaT, it is not.
+# Therefore, mark it as temp() only for metaT using rule inheritance with different wildcard_constraints.
+
+# main rule: metaG - output is not temporary
 rule qc2_host_filter:
     input:
         pairead_fw=rules.qc2_length_filter.output.paired1,
@@ -342,6 +348,8 @@ rule qc2_host_filter:
         "minimal"
     log:
         "{wd}/logs/{omics}/4-hostfree/{sample}_{run}_filter_host_genome_BWA.log"
+    wildcard_constraints:
+        omics='metaG'
     resources:
         mem = lambda wildcards, input, attempt: 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9) + 10*(attempt-1)
     threads:
@@ -360,6 +368,14 @@ rule qc2_host_filter:
                 rsync -a * $remote_dir/
         ) >& {log}
         """
+
+# derived rule: metaT - output is temporary
+use rule qc2_host_filter as qc2_host_filter_metaT with:
+    output:
+        host_free_fw=temp("{wd}/{omics}/4-hostfree/{sample}/{run}.1.fq.gz"),
+        host_free_rv=temp("{wd}/{omics}/4-hostfree/{sample}/{run}.2.fq.gz"),
+    wildcard_constraints:
+        omics='metaT'
 
 ###############################################################################################
 # Pre-processing of metaT data - rRNA filtering - only on metaT data
