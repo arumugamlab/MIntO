@@ -97,6 +97,8 @@ else:
         elif MINTO_MODE == 'catalog':
             gene_catalog_path = x
             if (gene_catalog_name := validate_required_key(config, 'NAME_reference')):
+                if not gene_catalog_name.endswith('.fna'):
+                    raise Exception(f"{gene_catalog_name}: 'catalog' mode needs a gene catalog file with '.fna' or '.fasta' extension (can also be gzipped)!")
                 if os.path.exists(gene_catalog_path + '/' + gene_catalog_name):
                     print(f"NOTE: MIntO is using {gene_catalog_path}/{gene_catalog_name} as gene database.")
 
