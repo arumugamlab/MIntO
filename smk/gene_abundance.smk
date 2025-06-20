@@ -383,7 +383,7 @@ rule genome_mapping_profiling:
         mapped_reads_threshold = MIN_mapped_reads,
         bedcov_lines = 500000,
         sample_alias = lambda wildcards: sample2alias[wildcards.sample],
-        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
+        num_runs = lambda wildcards, input: len(input.fwd)
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}.map_profile.log"
     wildcard_constraints:
@@ -400,7 +400,7 @@ rule genome_mapping_profiling:
     shell:
         """
         # Make named pipes if needed
-        if [ "{params.multiple_runs}" == "yes" ]; then
+        if (( {params.num_runs} > 1 )); then
             mkfifo {wildcards.sample}.1.fq.gz
             mkfifo {wildcards.sample}.2.fq.gz
             cat {input.fwd} > {wildcards.sample}.1.fq.gz &
@@ -419,6 +419,7 @@ rule genome_mapping_profiling:
         echo "Using {resources.sort_threads} threads and $sort_memory GB memory per thread for 'samtools sort'"
         echo "Using {resources.bedcov_threads} threads and {params.bedcov_lines} lines per batch-file for 'samtools bedcov'"
 
+        # Do the mapping
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                     msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
             total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
@@ -506,7 +507,7 @@ rule gene_catalog_mapping_profiling:
         sample_alias=lambda wildcards: sample2alias[wildcards.sample],
         length=msamtools_filter_length,
         mapped_reads_threshold=MIN_mapped_reads,
-        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
+        num_runs = lambda wildcards, input: len(input.fwd)
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}_bwa.log"
     wildcard_constraints:
@@ -520,7 +521,7 @@ rule gene_catalog_mapping_profiling:
     shell:
         """
         # Make named pipes if needed
-        if [ "{params.multiple_runs}" == "yes" ]; then
+        if (( {params.num_runs} > 1 )); then
             mkfifo {wildcards.sample}.1.fq.gz
             mkfifo {wildcards.sample}.2.fq.gz
             cat {input.fwd} > {wildcards.sample}.1.fq.gz &
@@ -530,8 +531,11 @@ rule gene_catalog_mapping_profiling:
             input_files="{input.fwd} {input.rev}"
         fi
 
+        # Get index file name
         bwaindex_prefix={input.bwaindex[0]}
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
+
+        # Do the mapping
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                 msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
             total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
