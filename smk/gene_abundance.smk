@@ -848,7 +848,6 @@ rule read_map_stats:
 ###############################################################################################
 
 rule config_yml_integration:
-    input: f"{working_dir}/{omics}/9-mapping-profiles/{MINTO_MODE}/genome_abundances.p{identity}.relabund.prop.tsv"
     output:
         config_file="{wd}/data_integration.yaml"
     params:
