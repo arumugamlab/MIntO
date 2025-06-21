@@ -251,31 +251,44 @@ def get_runs_for_sample(wildcards):
         runs = [wildcards.sample]
     else:
         sample_dir = '{wd}/{omics}/{location}/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, location=read_dir, sample=wildcards.sample)
-        runs = sorted([ re.sub("\.1\.fq\.gz", "", os.path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ])
+        runs = list()
+        for f in os.scandir(sample_dir):
+            if f.is_file():
+                if f.name.endswith('.1.fq.gz') or f.name.endswith('_1.fq.gz'):
+                    runs.append(re.sub("[\._]1\.fq\.gz", "", os.path.basename(f)))
+        runs = sorted(runs)
         #print(runs)
     return(runs)
 
 # Get a sorted list of runs for a sample
 
-def get_fwd_files_only(wildcards):
-    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = read_dir,
-                sample = wildcards.sample,
-                run = get_runs_for_sample(wildcards),
-                pair = '1')
+def get_one_pair_only(wildcards, pair):
+    files = list()
+
+    # Get runs
+    for r in get_runs_for_sample(wildcards):
+        # Check for sample.1.fq.gz and sample_1.fq.gz, in that order
+        for delim in ['.', '_']:
+            f = "{wd}/{omics}/{location}/{sample}/{r}{d}{p}.fq.gz".format(
+                    wd = wildcards.wd,
+                    omics = wildcards.omics,
+                    location = read_dir,
+                    sample = wildcards.sample,
+                    r = r,
+                    d = delim,
+                    p = pair)
+            # Add the file to the list
+            if os.path.exists(f):
+                files.append(f)
+
+    # Return the final list
     return(files)
 
+def get_fwd_files_only(wildcards):
+    return get_one_pair_only(wildcards, pair='1')
+
 def get_rev_files_only(wildcards):
-    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = read_dir,
-                sample = wildcards.sample,
-                run = get_runs_for_sample(wildcards),
-                pair = '2')
-    return(files)
+    return get_one_pair_only(wildcards, pair='2')
 
 ###############################################################################################
 # MIntO modes: MAG and refgenome
