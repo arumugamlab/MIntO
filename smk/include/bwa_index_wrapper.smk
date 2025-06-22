@@ -89,7 +89,7 @@ rule BWA_index_in_place:
     shadow:
         "minimal"
     resources:
-        mem = lambda wildcards, input, attempt: 5 + int((66 if input.fasta.endswith('.gz') else 22)*os.path.getsize(input.fasta)/1e9) + 40*(attempt-1),
+        mem = lambda wildcards, input, attempt: 5 + int((66 if input.fasta.endswith('.gz') else 22)*(os.path.getsize(input.fasta) if os.path.exists(input.fasta) else 1048576)/1e9) + 40*(attempt-1),
     threads: 4
     conda:
         config["minto_dir"]+"/envs/MIntO_base.yml" #bwa-mem2
