@@ -2,7 +2,6 @@ name: mags
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - phylophlan=3.1.1
   - biopython=1.79

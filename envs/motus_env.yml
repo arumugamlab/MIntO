@@ -1,7 +1,6 @@
 name: motus_3.1.0
 channels:
   - bioconda
-  - defaults
 dependencies:
   - motus=3.1.0
   - samtools=1.9

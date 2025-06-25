@@ -2,7 +2,6 @@ name: r_pkgs
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - bioconductor-pfam.db=3.20.0
   - bioconductor-phyloseq=1.50.0
