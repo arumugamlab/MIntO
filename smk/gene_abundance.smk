@@ -32,19 +32,6 @@ use rule abundance_base, abundance_rpkg from print_versions as version_*
 
 snakefile_name = print_versions.get_smk_filename()
 
-# We prefer original non-error-corrected reads for profiling to preserve strain variation in population
-read_dir=get_qc2_output_location(omics)
-
-# If the original reads have been removed for whatever reasons (running out of space, may be?),
-# then we look for error-corrected reads
-if os.path.exists("{}/{}/{}/".format(working_dir, omics, read_dir)) is False:
-    if os.path.exists("{}/{}/{}/".format(working_dir, omics, '6-corrected')) is True:
-        read_dir='6-corrected'
-    else:
-        raise Exception("ERROR in {}: One of {} or 6-corrected must exist. Please correct {}".format(config_path, get_qc2_output_location(omics), working_dir))
-
-print("NOTE: MIntO is using '{}' as read directory".format(read_dir))
-
 main_factor      = validate_required_key(config, 'MAIN_factor')
 plot_factor2     = validate_optional_key(config, 'PLOT_factor2')
 plot_time        = validate_optional_key(config, 'PLOT_time')
@@ -52,9 +39,14 @@ MIN_mapped_reads = validate_required_key(config, 'MIN_mapped_reads')
 
 # Make list of illumina samples, if ILLUMINA in config
 
+# We prefer original non-error-corrected reads for profiling to preserve strain variation in population
+# If the original reads have been removed for whatever reasons (running out of space, may be?),
+# then we look for error-corrected reads
+# This priority and then looking for 6-corrected as last resort is implemented in get_fwd_files_only() and get_rev_files_only(), which then call get_final_fastq_one_end()
+
 ilmn_samples = list()
 if (x := validate_required_key(config, 'ILLUMINA')):
-    check_fastq_file_locations(x, locations = [read_dir])
+    check_input_directory(x, locations = [get_qc2_output_location(omics), '6-corrected'])
     ilmn_samples = x
 
 # MIntO mode and database-mapping
@@ -108,25 +100,27 @@ BWA_threads = validate_required_key(config, 'BWA_threads')
 
 taxonomies_versioned = list()
 
-run_taxonomy = False
-if (x := validate_optional_key(config, 'RUN_TAXONOMY')):
-    run_taxonomy = x
+if MINTO_MODE in ['MAG', 'refgenome']:
 
-if run_taxonomy:
-    TAXONOMY = validate_required_key(config, 'TAXONOMY_NAME')
-    allowed = ('phylophlan', 'gtdb')
-    for x in TAXONOMY.split(","):
-        check_allowed_values('TAXONOMY_NAME', x, allowed)
+    run_taxonomy = False
+    if (x := validate_optional_key(config, 'RUN_TAXONOMY')):
+        run_taxonomy = x
 
-    taxonomies = TAXONOMY.split(",")
-    for t in taxonomies:
-        version="unknown"
-        if t == "phylophlan":
-            version = validate_required_key(config, "PHYLOPHLAN_TAXONOMY_VERSION")
-        elif t == "gtdb":
-            version = validate_required_key(config, "GTDB_TAXONOMY_VERSION")
-        taxonomies_versioned.append(t+"."+version)
-    print('NOTE: MIntO is using taxonomy labelling of the unique MAGs from [{}].'.format(", ".join(taxonomies_versioned)))
+    if run_taxonomy:
+        TAXONOMY = validate_required_key(config, 'TAXONOMY_NAME')
+        allowed = ('phylophlan', 'gtdb')
+        for x in TAXONOMY.split(","):
+            check_allowed_values('TAXONOMY_NAME', x, allowed)
+
+        taxonomies = TAXONOMY.split(",")
+        for t in taxonomies:
+            version="unknown"
+            if t == "phylophlan":
+                version = validate_required_key(config, "PHYLOPHLAN_TAXONOMY_VERSION")
+            elif t == "gtdb":
+                version = validate_required_key(config, "GTDB_TAXONOMY_VERSION")
+            taxonomies_versioned.append(t+"."+version)
+        print('NOTE: MIntO is using taxonomy labelling of the unique MAGs from [{}].'.format(", ".join(taxonomies_versioned)))
 
 # Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
 
@@ -241,54 +235,14 @@ else:
         default_target: True
 
 ###############################################################################################
-# Functions to get samples, runs and files
+# Functions to get fastq files
 ###############################################################################################
 
-# Get a sorted list of runs for a sample
-
-def get_runs_for_sample(wildcards):
-    if read_dir == '6-corrected':
-        runs = [wildcards.sample]
-    else:
-        sample_dir = '{wd}/{omics}/{location}/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, location=read_dir, sample=wildcards.sample)
-        runs = list()
-        for f in os.scandir(sample_dir):
-            if f.is_file():
-                if f.name.endswith('.1.fq.gz') or f.name.endswith('_1.fq.gz'):
-                    runs.append(re.sub("[\._]1\.fq\.gz", "", os.path.basename(f)))
-        runs = sorted(runs)
-        #print(runs)
-    return(runs)
-
-# Get a sorted list of runs for a sample
-
-def get_one_pair_only(wildcards, pair):
-    files = list()
-
-    # Get runs
-    for r in get_runs_for_sample(wildcards):
-        # Check for sample.1.fq.gz and sample_1.fq.gz, in that order
-        for delim in ['.', '_']:
-            f = "{wd}/{omics}/{location}/{sample}/{r}{d}{p}.fq.gz".format(
-                    wd = wildcards.wd,
-                    omics = wildcards.omics,
-                    location = read_dir,
-                    sample = wildcards.sample,
-                    r = r,
-                    d = delim,
-                    p = pair)
-            # Add the file to the list
-            if os.path.exists(f):
-                files.append(f)
-
-    # Return the final list
-    return(files)
-
 def get_fwd_files_only(wildcards):
-    return get_one_pair_only(wildcards, pair='1')
+    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_2', pair='1'))
 
 def get_rev_files_only(wildcards):
-    return get_one_pair_only(wildcards, pair='2')
+    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_2', pair='2'))
 
 ###############################################################################################
 # MIntO modes: MAG and refgenome

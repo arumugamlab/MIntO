@@ -50,7 +50,7 @@ if (x := validate_optional_key(config, 'MERGE_ILLUMINA_SAMPLES')):
 
 # Make list of illumina samples, if ILLUMINA in config
 if (x := validate_optional_key(config, 'ILLUMINA')):
-    check_fastq_file_locations(x, locations = ['6-corrected', '5-corrected-runs', get_qc2_output_location(omics)])
+    check_input_directory(x, locations = ['6-corrected', '5-corrected-runs', get_qc2_output_location(omics)])
     ilmn_samples = x
 
     # If it's composite sample, then don't need to see them until it gets merged later
@@ -61,7 +61,7 @@ if (x := validate_optional_key(config, 'ILLUMINA')):
 
 # Make list of nanopore samples, if NANOPORE in config
 if (x := validate_optional_key(config, 'NANOPORE')):
-    check_fastq_file_locations(x, locations = ['6-corrected', get_qc2_output_location(omics)])
+    check_input_directory(x, locations = ['6-corrected', get_qc2_output_location(omics)])
     nanopore_samples = x
 
 # Make list of nanopore-illumina hybrid assemblies, if HYBRID in config

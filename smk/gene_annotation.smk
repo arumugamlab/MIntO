@@ -54,6 +54,8 @@ run_taxonomy = False
 if (x := validate_optional_key(config, 'RUN_TAXONOMY')):
     run_taxonomy = x
 
+TAXONOMY_CPUS = 1
+TAXONOMY_memory = 1
 if run_taxonomy:
     TAXONOMY_CPUS   = validate_required_key(config, 'TAXONOMY_CPUS')
     TAXONOMY_memory = validate_required_key(config, 'TAXONOMY_memory')
@@ -107,12 +109,24 @@ def module_completeness():
                     )
     return(result)
 
+def taxonomy_outputs():
+    if run_taxonomy:
+        return(
+            [expand("{wd}/DB/{subdir}/3-taxonomy/taxonomy.{taxonomy}.tsv",
+                        wd = working_dir,
+                        subdir = MINTO_MODE,
+                        taxonomy = taxonomies_versioned),
+            expand("{wd}/output/versions/annot_{taxonomy_method}.flag",
+                        wd = working_dir,
+                        taxonomy_method = taxonomies)
+            ]
+            )
+    else:
+        return()
+
 rule all:
     input:
-        expand("{wd}/DB/{subdir}/3-taxonomy/taxonomy.{taxonomy}.tsv",
-                    wd = working_dir,
-                    subdir = MINTO_MODE,
-                    taxonomy = taxonomies_versioned),
+        taxonomy_outputs(),
         "{wd}/DB/{subdir}/4-annotations/combined_annotations.tsv".format(
                     wd = working_dir,
                     subdir = MINTO_MODE),
@@ -125,9 +139,6 @@ rule all:
                     filename = GENE_DB_TYPE),
         module_completeness(),
         print_versions.get_version_output(snakefile_name),
-        expand("{wd}/output/versions/annot_{taxonomy_method}.flag",
-                    wd = working_dir,
-                    taxonomy_method = taxonomies)
     default_target: True
 
 

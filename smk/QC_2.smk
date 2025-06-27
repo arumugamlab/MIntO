@@ -55,7 +55,7 @@ if (x := validate_optional_key(config, 'MERGE_ILLUMINA_SAMPLES')):
 
 # Make list of illumina samples, if ILLUMINA in config
 if (x := validate_optional_key(config, 'ILLUMINA')):
-    check_fastq_file_locations(x, locations = ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed'])
+    check_input_directory(x, locations = ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed'])
     ilmn_samples = x
 
     # If it's composite sample, then don't need to see them until it gets merged later
@@ -226,10 +226,7 @@ def readcounts_output():
     return(result)
 
 def merged_sample_output():
-    return()
-
-if merged_illumina_samples:
-    def merged_sample_output():
+    if merged_illumina_samples:
         result = expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
                         wd = working_dir,
                         omics = omics,
@@ -237,6 +234,8 @@ if merged_illumina_samples:
                         sample = merged_illumina_samples.keys(),
                         pair = ['1', '2'])
         return(result)
+    else:
+        return()
 
 def next_step_config_yml_output():
     result = expand("{wd}/{omics}/{yaml}.yaml",
@@ -377,6 +376,19 @@ use rule qc2_host_filter as qc2_host_filter_metaT with:
     wildcard_constraints:
         omics='metaT'
 
+########################################
+# Get list of fwd reads for this sample
+########################################
+def get_qc2_output_files_fwd_only(wildcards):
+    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_1', pair='1'))
+
+
+########################################
+# Get list of rev reads for this sample
+########################################
+def get_qc2_output_files_rev_only(wildcards):
+    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_1', pair='2'))
+
 ###############################################################################################
 # Pre-processing of metaT data - rRNA filtering - only on metaT data
 ###############################################################################################
@@ -479,10 +491,10 @@ __EOM__
 rule minlength_readcounts:
     input:
         trim_summary=lambda wildcards: expand("{wd}/{omics}/3-minlength/{sample}/{run}.trim.summary",
-                wd = working_dir,
-                omics = omics,
+                wd     = wildcards.wd,
+                omics  = wildcards.omics,
                 sample = wildcards.sample,
-                run = get_runs_for_sample(working_dir, omics, wildcards.sample)
+                run    = get_runs_for_sample(wildcards.wd, wildcards.omics, wildcards.sample, caller='QC_2')
                 )
     output:
         minlen_rc=temp("{wd}/output/2-qc/{omics}.{sample}.1.minlength.txt")
@@ -571,7 +583,7 @@ if merged_illumina_samples:
         files = []
         reps = [x.strip() for x in merged_illumina_samples[wildcards.merged_sample].split('+')]
         for x in reps:
-            files.extend(get_qc2_output_files_one_end(wildcards.wd, wildcards.omics, x, wildcards.pair))
+            files.extend(get_final_fastq_one_end(wildcards.wd, wildcards.omics, x, stage='QC_2', pair=wildcards.pair))
         return(files)
 
     # Merge files for a given sample from all its reps

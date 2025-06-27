@@ -37,7 +37,7 @@ snakefile_name = print_versions.get_smk_filename()
 
 ilmn_samples = list()
 if (x := validate_required_key(config, 'ILLUMINA')):
-    check_fastq_file_locations(x, locations = ['6-corrected'])
+    check_input_directory(x, locations = ['7-assembly'])
     ilmn_samples = x
 
 ###############################
@@ -128,7 +128,7 @@ if ilmn_samples:
 nanopore_assemblies = list()
 if (x := validate_optional_key(config, 'NANOPORE')):
     print(f"Found NANOPORE in {config_path}.")
-    check_fastq_file_locations(x, locations = ['7-assembly'])
+    check_input_directory(x, locations = ['7-assembly'])
     nanopore_assemblies = x
     SCAFFOLDS_type.append('nanopore')
 

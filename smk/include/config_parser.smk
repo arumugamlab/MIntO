@@ -248,7 +248,7 @@ def check_number_is_between(key, value, n_from, n_to):
     if value < n_from or value > n_to:
         raise ValueError(f"Invalid variable '{key}={value}' : must be in range [{n_from}, {n_to}]")
 
-def check_fastq_file_locations(samples, locations):
+def check_input_directory(samples, locations):
     for x in samples:
         file_found = False
         for loc in locations:
