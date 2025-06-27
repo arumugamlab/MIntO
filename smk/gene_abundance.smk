@@ -32,19 +32,6 @@ use rule abundance_base, abundance_rpkg from print_versions as version_*
 
 snakefile_name = print_versions.get_smk_filename()
 
-# We prefer original non-error-corrected reads for profiling to preserve strain variation in population
-read_dir=get_qc2_output_location(omics)
-
-# If the original reads have been removed for whatever reasons (running out of space, may be?),
-# then we look for error-corrected reads
-if os.path.exists("{}/{}/{}/".format(working_dir, omics, read_dir)) is False:
-    if os.path.exists("{}/{}/{}/".format(working_dir, omics, '6-corrected')) is True:
-        read_dir='6-corrected'
-    else:
-        raise Exception("ERROR in {}: One of {} or 6-corrected must exist. Please correct {}".format(config_path, get_qc2_output_location(omics), working_dir))
-
-print("NOTE: MIntO is using '{}' as read directory".format(read_dir))
-
 main_factor      = validate_required_key(config, 'MAIN_factor')
 plot_factor2     = validate_optional_key(config, 'PLOT_factor2')
 plot_time        = validate_optional_key(config, 'PLOT_time')
@@ -52,9 +39,14 @@ MIN_mapped_reads = validate_required_key(config, 'MIN_mapped_reads')
 
 # Make list of illumina samples, if ILLUMINA in config
 
+# We prefer original non-error-corrected reads for profiling to preserve strain variation in population
+# If the original reads have been removed for whatever reasons (running out of space, may be?),
+# then we look for error-corrected reads
+# This priority and then looking for 6-corrected as last resort is implemented in get_fwd_files_only() and get_rev_files_only(), which then call get_final_fastq_one_end()
+
 ilmn_samples = list()
 if (x := validate_required_key(config, 'ILLUMINA')):
-    check_fastq_file_locations(x, locations = [read_dir])
+    check_input_directory(x, locations = [get_qc2_output_location(omics), '6-corrected'])
     ilmn_samples = x
 
 # MIntO mode and database-mapping
@@ -97,6 +89,8 @@ else:
         elif MINTO_MODE == 'catalog':
             gene_catalog_path = x
             if (gene_catalog_name := validate_required_key(config, 'NAME_reference')):
+                if not gene_catalog_name.endswith('.fna'):
+                    raise Exception(f"{gene_catalog_name}: 'catalog' mode needs a gene catalog file with '.fna' or '.fasta' extension (can also be gzipped)!")
                 if os.path.exists(gene_catalog_path + '/' + gene_catalog_name):
                     print(f"NOTE: MIntO is using {gene_catalog_path}/{gene_catalog_name} as gene database.")
 
@@ -106,25 +100,27 @@ BWA_threads = validate_required_key(config, 'BWA_threads')
 
 taxonomies_versioned = list()
 
-run_taxonomy = False
-if (x := validate_optional_key(config, 'RUN_TAXONOMY')):
-    run_taxonomy = x
+if MINTO_MODE in ['MAG', 'refgenome']:
 
-if run_taxonomy:
-    TAXONOMY = validate_required_key(config, 'TAXONOMY_NAME')
-    allowed = ('phylophlan', 'gtdb')
-    for x in TAXONOMY.split(","):
-        check_allowed_values('TAXONOMY_NAME', x, allowed)
+    run_taxonomy = False
+    if (x := validate_optional_key(config, 'RUN_TAXONOMY')):
+        run_taxonomy = x
 
-    taxonomies = TAXONOMY.split(",")
-    for t in taxonomies:
-        version="unknown"
-        if t == "phylophlan":
-            version = validate_required_key(config, "PHYLOPHLAN_TAXONOMY_VERSION")
-        elif t == "gtdb":
-            version = validate_required_key(config, "GTDB_TAXONOMY_VERSION")
-        taxonomies_versioned.append(t+"."+version)
-    print('NOTE: MIntO is using taxonomy labelling of the unique MAGs from [{}].'.format(", ".join(taxonomies_versioned)))
+    if run_taxonomy:
+        TAXONOMY = validate_required_key(config, 'TAXONOMY_NAME')
+        allowed = ('phylophlan', 'gtdb')
+        for x in TAXONOMY.split(","):
+            check_allowed_values('TAXONOMY_NAME', x, allowed)
+
+        taxonomies = TAXONOMY.split(",")
+        for t in taxonomies:
+            version="unknown"
+            if t == "phylophlan":
+                version = validate_required_key(config, "PHYLOPHLAN_TAXONOMY_VERSION")
+            elif t == "gtdb":
+                version = validate_required_key(config, "GTDB_TAXONOMY_VERSION")
+            taxonomies_versioned.append(t+"."+version)
+        print('NOTE: MIntO is using taxonomy labelling of the unique MAGs from [{}].'.format(", ".join(taxonomies_versioned)))
 
 # Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
 
@@ -239,41 +235,14 @@ else:
         default_target: True
 
 ###############################################################################################
-# Functions to get samples, runs and files
+# Functions to get fastq files
 ###############################################################################################
 
-# Get a sorted list of runs for a sample
-
-def get_runs_for_sample(wildcards):
-    if read_dir == '6-corrected':
-        runs = [wildcards.sample]
-    else:
-        sample_dir = '{wd}/{omics}/{location}/{sample}'.format(wd=wildcards.wd, omics=wildcards.omics, location=read_dir, sample=wildcards.sample)
-        runs = sorted([ re.sub("\.1\.fq\.gz", "", os.path.basename(f)) for f in os.scandir(sample_dir) if f.is_file() and f.name.endswith('.1.fq.gz') ])
-        #print(runs)
-    return(runs)
-
-# Get a sorted list of runs for a sample
-
 def get_fwd_files_only(wildcards):
-    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = read_dir,
-                sample = wildcards.sample,
-                run = get_runs_for_sample(wildcards),
-                pair = '1')
-    return(files)
+    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_2', pair='1'))
 
 def get_rev_files_only(wildcards):
-    files = expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
-                wd = wildcards.wd,
-                omics = wildcards.omics,
-                location = read_dir,
-                sample = wildcards.sample,
-                run = get_runs_for_sample(wildcards),
-                pair = '2')
-    return(files)
+    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_2', pair='2'))
 
 ###############################################################################################
 # MIntO modes: MAG and refgenome
@@ -383,7 +352,7 @@ rule genome_mapping_profiling:
         mapped_reads_threshold = MIN_mapped_reads,
         bedcov_lines = 500000,
         sample_alias = lambda wildcards: sample2alias[wildcards.sample],
-        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
+        num_runs = lambda wildcards, input: len(input.fwd)
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}.map_profile.log"
     wildcard_constraints:
@@ -400,7 +369,7 @@ rule genome_mapping_profiling:
     shell:
         """
         # Make named pipes if needed
-        if [ "{params.multiple_runs}" == "yes" ]; then
+        if (( {params.num_runs} > 1 )); then
             mkfifo {wildcards.sample}.1.fq.gz
             mkfifo {wildcards.sample}.2.fq.gz
             cat {input.fwd} > {wildcards.sample}.1.fq.gz &
@@ -419,6 +388,7 @@ rule genome_mapping_profiling:
         echo "Using {resources.sort_threads} threads and $sort_memory GB memory per thread for 'samtools sort'"
         echo "Using {resources.bedcov_threads} threads and {params.bedcov_lines} lines per batch-file for 'samtools bedcov'"
 
+        # Do the mapping
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                     msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
             total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
@@ -506,7 +476,7 @@ rule gene_catalog_mapping_profiling:
         sample_alias=lambda wildcards: sample2alias[wildcards.sample],
         length=msamtools_filter_length,
         mapped_reads_threshold=MIN_mapped_reads,
-        multiple_runs = lambda wildcards: "yes" if len(get_runs_for_sample(wildcards)) > 1 else "no",
+        num_runs = lambda wildcards, input: len(input.fwd)
     log:
         "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/{sample}.p{identity}_bwa.log"
     wildcard_constraints:
@@ -520,7 +490,7 @@ rule gene_catalog_mapping_profiling:
     shell:
         """
         # Make named pipes if needed
-        if [ "{params.multiple_runs}" == "yes" ]; then
+        if (( {params.num_runs} > 1 )); then
             mkfifo {wildcards.sample}.1.fq.gz
             mkfifo {wildcards.sample}.2.fq.gz
             cat {input.fwd} > {wildcards.sample}.1.fq.gz &
@@ -530,8 +500,11 @@ rule gene_catalog_mapping_profiling:
             input_files="{input.fwd} {input.rev}"
         fi
 
+        # Get index file name
         bwaindex_prefix={input.bwaindex[0]}
         bwaindex_prefix=${{bwaindex_prefix%.0123}}
+
+        # Do the mapping
         (time (bwa-mem2 mem -a -t {threads} -v 3 ${{bwaindex_prefix}} $input_files | \
                 msamtools filter -S -b -l {params.length} -p {wildcards.identity} -z 80 --besthit - > aligned.bam) >& {output.bwa_log}
             total_reads="$(grep Processed {output.bwa_log} | perl -ne 'm/Processed (\\d+) reads/; $sum+=$1; END{{printf "%d\\n", $sum/2;}}')"
@@ -842,7 +815,6 @@ rule read_map_stats:
 ###############################################################################################
 
 rule config_yml_integration:
-    input: f"{working_dir}/{omics}/9-mapping-profiles/{MINTO_MODE}/genome_abundances.p{identity}.relabund.prop.tsv"
     output:
         config_file="{wd}/data_integration.yaml"
     params:

@@ -55,7 +55,7 @@ if (x := validate_optional_key(config, 'MERGE_ILLUMINA_SAMPLES')):
 
 # Make list of illumina samples, if ILLUMINA in config
 if (x := validate_optional_key(config, 'ILLUMINA')):
-    check_fastq_file_locations(x, locations = ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed'])
+    check_input_directory(x, locations = ['5-1-sortmerna', '4-hostfree', '3-minlength', '1-trimmed'])
     ilmn_samples = x
 
     # If it's composite sample, then don't need to see them until it gets merged later
@@ -226,10 +226,7 @@ def readcounts_output():
     return(result)
 
 def merged_sample_output():
-    return()
-
-if merged_illumina_samples:
-    def merged_sample_output():
+    if merged_illumina_samples:
         result = expand("{wd}/{omics}/{location}/{sample}/{sample}.{pair}.fq.gz",
                         wd = working_dir,
                         omics = omics,
@@ -237,6 +234,8 @@ if merged_illumina_samples:
                         sample = merged_illumina_samples.keys(),
                         pair = ['1', '2'])
         return(result)
+    else:
+        return()
 
 def next_step_config_yml_output():
     result = expand("{wd}/{omics}/{yaml}.yaml",
@@ -274,8 +273,8 @@ rule qc2_length_filter:
         read_fw='{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz',
         read_rv='{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz',
     output:
-        paired1="{wd}/{omics}/3-minlength/{sample}/{run}.1.fq.gz",
-        paired2="{wd}/{omics}/3-minlength/{sample}/{run}.2.fq.gz",
+        paired1=temp("{wd}/{omics}/3-minlength/{sample}/{run}.1.fq.gz"),
+        paired2=temp("{wd}/{omics}/3-minlength/{sample}/{run}.2.fq.gz"),
         summary="{wd}/{omics}/3-minlength/{sample}/{run}.trim.summary"
     shadow:
         "minimal"
@@ -328,7 +327,14 @@ def get_host_bwa_index(wildcards):
     # Return them
     return(files)
 
+# Remove potential host-derived reads
 # BWA mem memory is estimated as 3.1 bytes per base in database (regression: mem = 5.556e+09 + 3.011*input).
+
+# For metaG, 4-hostfree is the final QC2 output.
+# For metaT, it is not.
+# Therefore, mark it as temp() only for metaT using rule inheritance with different wildcard_constraints.
+
+# main rule: metaG - output is not temporary
 rule qc2_host_filter:
     input:
         pairead_fw=rules.qc2_length_filter.output.paired1,
@@ -341,6 +347,8 @@ rule qc2_host_filter:
         "minimal"
     log:
         "{wd}/logs/{omics}/4-hostfree/{sample}_{run}_filter_host_genome_BWA.log"
+    wildcard_constraints:
+        omics='metaG'
     resources:
         mem = lambda wildcards, input, attempt: 10 + int(3.1*os.path.getsize(input.bwaindex[0])/1e9) + 10*(attempt-1)
     threads:
@@ -359,6 +367,27 @@ rule qc2_host_filter:
                 rsync -a * $remote_dir/
         ) >& {log}
         """
+
+# derived rule: metaT - output is temporary
+use rule qc2_host_filter as qc2_host_filter_metaT with:
+    output:
+        host_free_fw=temp("{wd}/{omics}/4-hostfree/{sample}/{run}.1.fq.gz"),
+        host_free_rv=temp("{wd}/{omics}/4-hostfree/{sample}/{run}.2.fq.gz"),
+    wildcard_constraints:
+        omics='metaT'
+
+########################################
+# Get list of fwd reads for this sample
+########################################
+def get_qc2_output_files_fwd_only(wildcards):
+    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_1', pair='1'))
+
+
+########################################
+# Get list of rev reads for this sample
+########################################
+def get_qc2_output_files_rev_only(wildcards):
+    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_1', pair='2'))
 
 ###############################################################################################
 # Pre-processing of metaT data - rRNA filtering - only on metaT data
@@ -462,10 +491,10 @@ __EOM__
 rule minlength_readcounts:
     input:
         trim_summary=lambda wildcards: expand("{wd}/{omics}/3-minlength/{sample}/{run}.trim.summary",
-                wd = working_dir,
-                omics = omics,
+                wd     = wildcards.wd,
+                omics  = wildcards.omics,
                 sample = wildcards.sample,
-                run = get_runs_for_sample(working_dir, omics, wildcards.sample)
+                run    = get_runs_for_sample(wildcards.wd, wildcards.omics, wildcards.sample, caller='QC_2')
                 )
     output:
         minlen_rc=temp("{wd}/output/2-qc/{omics}.{sample}.1.minlength.txt")
@@ -554,7 +583,7 @@ if merged_illumina_samples:
         files = []
         reps = [x.strip() for x in merged_illumina_samples[wildcards.merged_sample].split('+')]
         for x in reps:
-            files.extend(get_qc2_output_files_one_end(wildcards.wd, wildcards.omics, x, wildcards.pair))
+            files.extend(get_final_fastq_one_end(wildcards.wd, wildcards.omics, x, stage='QC_2', pair=wildcards.pair))
         return(files)
 
     # Merge files for a given sample from all its reps
@@ -585,9 +614,6 @@ if merged_illumina_samples:
 # sample as 'D1.metaphlan.4.0'. This disagrees with the sample metadata and difficult to recover. So we now add '.tsv' extension to
 # profile output, let metaphlan remove the '.tsv', and then remove '{taxonomy}.{version}' ourselves. This is the history behind
 # naming profile outputs as '{sample}.{taxonomy}.{version}.tsv'.
-
-# MetaPhlAn cannot take multiple runs per sample.
-# So named pipes will be used to combine runs into one fastq file.
 
 rule metaphlan_tax_profile:
     input:
@@ -687,8 +713,8 @@ rule motus_calc_motu:
         db = f"{minto_dir}/data/motus/{{version}}/db_mOTU/db_mOTU_versions",
         mgc=rules.motus_map_db.output.mgc,
     output:
-        raw="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw.{version}.tsv",
-        rel="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel.{version}.tsv"
+        raw=temp("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_raw.{version}.tsv"),
+        rel=temp("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus_rel.{version}.tsv")
     params:
         motus_db = lambda wildcards, input: os.path.dirname(input.db)
     resources:

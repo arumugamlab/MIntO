@@ -78,9 +78,9 @@ make_output_files <- function(profile=NULL, metadata=NULL, type=NULL, datatype=N
 
     # Prepare phyloseq
     logmsg(" Making phyloseq")
-    physeq <- phyloseq(otu_table(as.matrix(profile, rownames="ID"), taxa_are_rows = T),
-                       tax_table(as.matrix(gene_annot_dt, rownames="ID")),
-                       metadata)
+    physeq = phyloseq(otu_table(as.matrix(profile, rownames="ID"), taxa_are_rows = T),
+                      tax_table(as.matrix(gene_annot_dt, rownames="ID")),
+                      metadata)
 
     # Write phyloseq
     logmsg(" Writing phyloseq")
@@ -89,6 +89,41 @@ make_output_files <- function(profile=NULL, metadata=NULL, type=NULL, datatype=N
           preset = "high",
           nthreads = threads_n,
          )
+
+    # Write metadata into tsv file
+    logmsg("Writing out metadata")
+    fwrite(metadata_df,
+           file = paste0(output_dir, '/', datatype, '.metadata.tsv'),
+           sep = '\t',
+           row.names = FALSE,
+           quote = FALSE)
+    logmsg("  done")
+
+    # Write annotations into tsv file
+    #    Replace NA by "-" to catch later
+    #    Concat all annotations
+    #    Remove empty annotations (meaning '-' in every column)
+    #    Delete annotation column
+    logmsg("Removing empty annotations")
+    logmsg("  Before  : ", dim(gene_annot_dt))
+    empty_annotation = strrep("-", length(funcat_names))
+    annotations = (
+                   gene_annot_dt
+                   [, lapply(.SD, function(x) str_replace_na(x, replacement="-"))]
+                   [, annot := do.call(paste, c(.SD, sep = "")), .SDcols = funcat_names]
+                  )
+    setkey(annotations, annot)
+    annotations = annotations[!J(empty_annotation)][, annot := NULL]
+    logmsg("  After   : ", dim(annotations))
+    logmsg("  done")
+    logmsg("Writing out annotations")
+    setkey(annotations, ID)
+    fwrite(annotations,
+           file = paste0(output_dir, '/', datatype, '.annotations.tsv'),
+           sep = '\t',
+           row.names = FALSE,
+           quote = FALSE)
+    logmsg("  done")
 }
 
 logmsg('#################################### Making output directory ####################################')
@@ -377,32 +412,6 @@ if (omics == 'metaG_metaT') {
     prepare_PCA(profile=gene_expression, title='gene expression', datatype='GE', color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
     rm(gene_expression)
 }
-
-
-# Write annotations into tsv file
-#    Replace NA by "-" to catch later
-#    Concat all annotations
-#    Remove empty annotations (meaning '-' in every column
-#    Delete annotation column
-logmsg("Removing empty annotations")
-logmsg("  Before  : ", dim(gene_annot_dt))
-gene_annot_dt <- (
-                  gene_annot_dt
-                  [, lapply(.SD, function(x) str_replace_na(x, replacement="-"))]
-                  [, annot := do.call(paste, c(.SD, sep = "")), .SDcols = funcat_names]
-                 )
-setkey(gene_annot_dt, annot)
-empty_annotation <- strrep("-", length(funcat_names))
-gene_annot_dt <- gene_annot_dt[!J(empty_annotation)][, annot := NULL]
-logmsg("  After   : ", dim(gene_annot_dt))
-logmsg("  done")
-logmsg("Writing out annotations")
-fwrite(gene_annot_dt,
-       file = paste0(output_dir, '/Annotations.tsv'),
-       sep = '\t',
-       row.names = FALSE,
-       quote = FALSE)
-logmsg("  done")
 
 # Freeing memory, but only to check what was the peak memory usage.
 logmsg("Freeing memory")

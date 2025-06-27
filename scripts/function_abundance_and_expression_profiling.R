@@ -1,7 +1,11 @@
 #!/usr/bin/env Rscript
 
 # '''
-# Generate function expression profile from genome-based mode gene profiles (MG normalized)
+# Generate function expression profile from genome-based mode gene profiles (MG or TPM normalized)
+# Depending on --omics, it creates a set of files:
+#   metaG => FA.*
+#   metaT => FT.*
+#   metaG_metaT => FE.*
 #
 # Authors: Carmen Saenz, Mani Arumugam
 #
@@ -26,6 +30,10 @@ source(this.path::here('include', 'plots_PCA.R'))
 
 # Parse command line arguments
 opt_list <- list(
+                make_option("--gene-profile-metaG", type="character", default=NULL, help="file containing metaG gene abundances"),
+                make_option("--gene-profile-metaT", type="character", default=NULL, help="file containing metaT gene abundances"),
+                make_option("--gene-annotation-file", type="character", default=NULL, help="file containing gene annotations"),
+                make_option("--metadata-file", type="character", default=NULL, help="file containing sample metadata"),
                 make_option("--min-completeness", type="double", default=75, help="minimum module completeness [default: %default]"),
                 make_option("--completeness-file", type="character", default=NULL, help="file containing module completeness"),
                 make_option("--threads", type="integer", default=4, help="number of threads [default: %default]"),
@@ -45,6 +53,10 @@ opts <- parse_args(OptionParser(option_list=opt_list))
 
 ##########################  ** Load arguments **  ##########################
 threads_n <- opts$threads
+metaG_gene_profile  <- opts[['gene-profile-metaG']]
+metaT_gene_profile  <- opts[['gene-profile-metaT']]
+gene_annotation_file  <- opts[['gene-annotation-file']]
+metadata_file  <- opts[['metadata-file']]
 output_dir <- opts$outdir
 omics <- opts$omics #'metaG_metaT'
 normalization <- opts$normalization
@@ -53,8 +65,8 @@ funcat_desc_file <- opts[['funcat-desc']]
 color_factor <- opts[['color-factor']]
 shape_factor <- opts[['shape-factor']]
 label_factor <- opts[['label-factor']]
-metaG_profile_file <- opts[['genome-weights-metaG']]
-metaT_profile_file <- opts[['genome-weights-metaT']]
+metaG_genome_weights_file <- opts[['genome-weights-metaG']]
+metaT_genome_weights_file <- opts[['genome-weights-metaT']]
 min_completeness <- opts[['min-completeness']]
 completeness_file <- opts[['completeness-file']]
 
@@ -68,13 +80,10 @@ metaT_genome_weights <- NULL
 
 if (normalization == 'MG') {
     if (omics %in% c('metaG', 'metaG_metaT')) {
-        if (is.null(metaG_profile_file)) {
-            stop("--genome-weights-metaG must be provided with --omics=metaG")
+        if (is.null(metaG_genome_weights_file)) {
+            stop(paste0("--genome-weights-metaG must be provided with --omics=", omics))
         } else {
-            metaG_genome_weights <- (
-                                     fread(metaG_profile_file, header=T)
-                                     [, Funct := 'REL']
-                                    )
+            metaG_genome_weights <- fread(metaG_genome_weights_file, header=T)
             setnames(metaG_genome_weights, "ID", "MAG")
             setnames(metaG_genome_weights, colnames(metaG_genome_weights),
                      gsub(x = colnames(metaG_genome_weights), pattern = "metaG\\.", replacement = ""))
@@ -82,13 +91,10 @@ if (normalization == 'MG') {
     }
 
     if (omics %in% c('metaT', 'metaG_metaT')) {
-        if (is.null(metaT_profile_file)) {
-            stop("--genome-weights-metaT must be provided with --omics=metaT")
+        if (is.null(metaT_genome_weights_file)) {
+            stop(paste0("--genome-weights-metaT must be provided with --omics=", omics))
         } else {
-            metaT_genome_weights <- (
-                                     fread(metaT_profile_file, header=T)
-                                     [, Funct := 'REL']
-                                    )
+            metaT_genome_weights <- fread(metaT_genome_weights_file, header=T)
             setnames(metaT_genome_weights, "ID", "MAG")
             setnames(metaT_genome_weights, colnames(metaT_genome_weights),
                      gsub(x = colnames(metaT_genome_weights), pattern = "metaT\\.", replacement = ""))
@@ -116,7 +122,7 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
     }
     else if  (db_name %in% c('eggNOG.PFAMs')){
 
-        library(PFAM.db)
+        suppressMessages(library(PFAM.db))
 
         # Get PFAM IDs
         pfam_names <- as.list(PFAMID[mappedkeys(PFAMID)])
@@ -141,7 +147,7 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
     }
     else if  (db_name %in% c('dbCAN.module', 'dbCAN.enzclass')){
 
-        library(PFAM.db)
+        suppressMessages(library(PFAM.db))
 
         # Get the PFAM identifiers that are mapped to a CAZY
         mapped_keys <- mappedkeys(PFAMCAZY)
@@ -184,9 +190,13 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
     return(annotations)
 }
 
+# Create function profiles and return a data.table.
+# Write profiles as tsv and phyloseq files, if write_output==TRUE.
 # Assumptions:
-# keys and profile are already indexed by gene_id
-make_profile_files <- function(keys, profile, file_label, database, annotations, weights) {
+#   keys and profile are already indexed by gene_id
+make_profile_files <- function(keys, profile, file_label, database, annotations, weights, write_output = TRUE) {
+
+      logmsg("Making ", file_label, " profile files for ", database, decorate=TRUE)
 
       # Make a list of sample-names
       sample_cols <- setdiff(colnames(profile), c('gene_id'))
@@ -225,6 +235,9 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
               counts <- merge(mod_comp, counts, by=c('MAG', 'Funct'))[, completeness := NULL]
           }
 
+          # Mark the weight-rows using Funct = 'REL'
+          weights[, Funct := "REL"]
+
           # Ensure identical column orders before rbind()
           setcolorder(weights, colnames(counts))
 
@@ -237,8 +250,7 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
             if (is.character(x[1])){
               return(x)
             }else{
-              x = x*x[1]
-              return(x)
+              return(x*x[1])
             }
           }
 
@@ -278,37 +290,39 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       counts <- merge(annotations, counts, by='Funct', all.x=FALSE, all.y=TRUE) # Right join
       logmsg("  done")
 
-      # Write annotated functional profile as tsv
-      logmsg("Writing function profile into text file")
-      fwrite(counts,
-             file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'),
-             sep='\t',
-             row.names = F,
-             quote = F)
-      logmsg("  done")
+      if (write_output) {
+          # Write annotated functional profile as tsv
+          logmsg("Writing function profile into text file")
+          fwrite(counts,
+                 file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'),
+                 sep='\t',
+                 row.names = F,
+                 quote = F)
+          logmsg("  done")
 
-      #### Create phyloseq object ####
+          #### Create phyloseq object ####
 
-      logmsg("Creating phyloseq object")
+          logmsg("Creating phyloseq object")
 
-      my_otu_table <- as.matrix(counts[, -c('Funct', 'Description')])
-      rownames(my_otu_table) <- counts$Funct
+          my_otu_table <- as.matrix(counts[, -c('Funct', 'Description')])
+          rownames(my_otu_table) <- counts$Funct
 
-      # taxa
-      my_tax_table <- as.matrix(counts)
-      rownames(my_tax_table) <- counts$Funct
+          # taxa
+          my_tax_table <- as.matrix(counts)
+          rownames(my_tax_table) <- counts$Funct
 
-      physeq <- phyloseq(otu_table(my_otu_table, taxa_are_rows = T),
-                         tax_table(my_tax_table),
-                         sample_metadata)
-      logmsg("  done")
+          physeq <- phyloseq(otu_table(my_otu_table, taxa_are_rows = T),
+                             tax_table(my_tax_table),
+                             sample_metadata)
+          logmsg("  done")
 
-      # Write phyloseq object
-      logmsg("Writing phyloseq object")
-      qsave(physeq,
-            preset = "high",
-            file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.qs'))
-      logmsg("  done")
+          # Write phyloseq object
+          logmsg("Writing phyloseq object")
+          qsave(physeq,
+                preset = "high",
+                file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.qs'))
+          logmsg("  done")
+      }
 
       # Index on Funct
       setkey(counts, Funct)
@@ -321,38 +335,40 @@ make_profile_files <- function(keys, profile, file_label, database, annotations,
       return(counts)
 }
 
-process_phyloseq_obj <- function(physeq_file) {
+get_gene_count <- function(filename) {
 
-    logmsg("began reading phyloseq")
-
-    physeq <- qread(physeq_file, nthreads=threads_n)
-
-    # Get otu_table and set rownames as 'gene_id'
-    # Convert NA's to 0's
-    # Reorder features by decreasing sum across samples, by setting negative rowSum as key
-    # Remove features with zero sum across all samples
-    columns_wanted <- sample_names(physeq)
-    counts <- (
-                data.table(unclass(otu_table(physeq)), keep.rownames=TRUE)
-                [, lapply(.SD, function(x) ifelse(is.na(x), 0, x))]
-                [, negRowSum := -rowSums(.SD, na.rm = FALSE), .SDcols = columns_wanted]
-              )
-    setkey(counts, negRowSum)
-    counts <- counts[!J(0),][, negRowSum := NULL]
-    setnames(counts, "rn", "gene_id")
+    # Set key column as 'gene_id'
+    # Convert NA's to 0's - not needed since no NA in input (12.03.2025)
+    # Remove features with zero sum across all samples - not needed since this is done in input files already (12.03.2025)
+    logmsg("Reading profile")
+    counts = fread(filename, sep="\t")
+    setnames(counts, "ID", "gene_id")
     setkey(counts, gene_id)
+    logmsg("  done")
 
-    # Get tax_table and set rownames as 'gene_id'
-    taxa <- data.table(unclass(tax_table(physeq)), keep.rownames=TRUE)
-    setnames(taxa, "rn", "gene_id")
+    return(counts)
+}
+
+get_annotations <- function(filename) {
+
+    # Get annotations for only this funcat_name and set rownames as 'gene_id'
+    # Remove empty annotations
+    logmsg("Reading annotations")
+    annotations = fread(filename, sep="\t", select=c("ID", funcat_name))
+    setnames(annotations, "ID", "gene_id")
+    setkeyv(annotations, funcat_name)
+    annotations = annotations[!J(c(NA, "", "-"))]
+    logmsg("  done")
+
+    return(annotations)
+}
+
+get_metadata <- function(filename) {
 
     # Get metadata table
-    # Note: Don't skip the as.data.frame step - it causes trouble otherwise
-    metadata <- data.table(as.data.frame(unclass(sample_data(physeq))), keep.rownames=FALSE)
+    metadata = fread(filename, sep="\t")
 
-    logmsg("done  reading phyloseq")
-
-    return(list(counts=counts, taxa=taxa, metadata=metadata))
+    return(metadata)
 }
 
 # *************************** Use GA and GT raw counts to generate FE profile *************************** ####
@@ -363,8 +379,6 @@ process_phyloseq_obj <- function(physeq_file) {
 # FE profile will be generated: (FT_norm) / (FA_norm)
 #Raw gene abundances #####
 
-print('#################################### Paths ####################################')
-
 # Generate output directories ####
 dir.create(file.path(output_dir), showWarnings = FALSE)
 visual_dir=paste0(output_dir,'/plots/')
@@ -373,7 +387,7 @@ phyloseq_dir=paste0(output_dir,'/phyloseq_obj/')
 dir.create(file.path(phyloseq_dir), showWarnings = FALSE)
 
 
-print('#################################### DB profiles ####################################')
+logmsg("Reading input files", decorate=TRUE)
 
 # Initialize some variables
 metadata_df <- NULL
@@ -386,21 +400,16 @@ gene_annotation <- NULL
 
 # metaG
 if (omics %like% "metaG") {
-    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GA.qs'))
-
-    ga_fa_df <- data.frame(DB='genes', feature_n=nrow(res$taxa), feature = 'Genes')
 
     # gene profile
-    metaG_profile <- res$counts
+    metaG_profile <- get_gene_count(metaG_gene_profile)
+    ga_fa_df <- data.frame(DB='genes', feature_n=nrow(metaG_profile), feature = 'Genes')
 
     # gene annotations
-    # Get entries for this funcat_name
-    gene_annotation <- res$taxa[, c('gene_id', funcat_name), with = FALSE]
-    setkeyv(gene_annotation, funcat_name)
-    gene_annotation <- gene_annotation[!J(c(NA, "", "-"))]
+    gene_annotation <- get_annotations(gene_annotation_file)
 
     # metadata
-    metadata_df <- res$metadata
+    metadata_df <- get_metadata(metadata_file)
 
     if (normalization == 'MG') {
         # subset columns in weights
@@ -409,23 +418,22 @@ if (omics %like% "metaG") {
     }
 }
 
+
 # metaT
 if (omics %like% "metaT") {
-    res <- process_phyloseq_obj(paste0(phyloseq_dir, '/GT.qs'))
 
-    gt_ft_df <- data.frame(DB='genes', feature_n=nrow(res$taxa), feature = 'Genes')
 
-    metaT_profile <- res$counts
+    # gene profile
+    metaT_profile <- get_gene_count(metaT_gene_profile)
+    gt_ft_df <- data.frame(DB='genes', feature_n=nrow(metaT_profile), feature = 'Genes')
 
     # gene annotations
-    metaT_gene_annotation <- res$taxa[, c('gene_id', funcat_name), with = FALSE]
-    setkeyv(metaT_gene_annotation, funcat_name)
-    metaT_gene_annotation <- metaT_gene_annotation[!J(c(NA, "", "-"))]
+    metaT_gene_annotation <- get_annotations(gene_annotation_file)
 
     # Only need entries that are not already present in gene_annotation
     if (omics == 'metaT') {
         gene_annotation <- metaT_gene_annotation
-        metadata_df <- res$metadata
+        metadata_df <- get_metadata(metadata_file)
     } else { # metaG_metaT
 
         # Register genes common in metaG/metaT
@@ -471,9 +479,6 @@ if (omics == 'metaG_metaT') {
 }
 logmsg("done  getting common samples")
 
-# Delete data
-rm(res)
-
 # By now, we will have:
 #   metadata_df
 #   gene_annotation
@@ -507,15 +512,8 @@ logmsg("done  reordering metadata rows")
 sample_metadata <- sample_data(metadata_df)
 rownames(sample_metadata) <- sample_metadata[["sample_alias"]]
 
-if (!is.null(metaG_genome_weights)) {
-     metaG_genome_weights = metaG_genome_weights[, Funct := 'REL']
-}
-if (!is.null(metaT_genome_weights)) {
-     metaT_genome_weights = metaT_genome_weights[, Funct := 'REL']
-}
 
-#################################### FUNCTION EXPRESSION  ####################################
-print('#################################### FUNCTION EXPRESSION  ####################################')
+#################################### FUNCTION PROFILING  ####################################
 
 # Filter tax.table based on features in metaG, if metaG_metaT. metaG/metaT have been filtered earlier.
 
@@ -525,8 +523,6 @@ print('#################################### FUNCTION EXPRESSION  ###############
 
 
 if (nrow(gene_annotation) > 0) {
-
-    logmsg(funcat_name, " started")
 
     ################################################
     # Prepare annotations and their descriptions
@@ -548,7 +544,7 @@ if (nrow(gene_annotation) > 0) {
     Gene2FuncMap <- unique(Gene2FuncMap)
     setkey(Gene2FuncMap, gene_id)
 
-    rm(gene_annotation)
+    rm(singleKeys, gene_annotation)
 
     myFunctions <- data.table(Funct = c(unique(Gene2FuncMap$Funct)))
     setkey(myFunctions, Funct)
@@ -574,7 +570,11 @@ if (nrow(gene_annotation) > 0) {
                                            file_label="FA",
                                            database=funcat_name,
                                            annotations=annot_dt,
-                                           weights=metaG_genome_weights)
+                                           weights=metaG_genome_weights,
+                                           write_output=(omics=="metaG"))
+        # Record feature count
+        ga_fa_df <- rbind(ga_fa_df, c(funcat_name, nrow(metaG_counts), 'Functions'))
+
     }
 
     # metaT or metaG_metaT
@@ -584,14 +584,19 @@ if (nrow(gene_annotation) > 0) {
                                            file_label="FT",
                                            database=funcat_name,
                                            annotations=annot_dt,
-                                           weights=metaT_genome_weights)
+                                           weights=metaT_genome_weights,
+                                           write_output=(omics=="metaT"))
+        # Record feature count
+        gt_ft_df <- rbind(gt_ft_df, c(funcat_name, nrow(metaT_counts), 'Functions'))
+
     }
 
-    rm(singleKeys, Gene2FuncMap)
+    rm(Gene2FuncMap)
 
     # metaG_metaT
     if (omics == 'metaG_metaT') {
 
+        logmsg("Making FE profile files for ", funcat_name, decorate=TRUE)
         sample_cols <- setdiff(colnames(metaG_counts), c("Funct", "Description"))
 
         # Get common features
@@ -660,31 +665,33 @@ if (nrow(gene_annotation) > 0) {
     # Plot PCA
     ###########
 
-    # PCA - metaG ####
-    if (omics %like% 'metaG') {
-        # Record feature count
-        n_row <- nrow(metaG_counts)
-        ga_fa_df <- rbind(ga_fa_df, c(funcat_name, n_row, 'Functions'))
+    logmsg("Drawing PCoA plots for FE in ", funcat_name, decorate=TRUE)
 
+    # PCA - metaG ####
+    if (omics == 'metaG') {
         # Remove Funct column
         metaG_counts <- metaG_counts[, `:=` (Funct = NULL, Description = NULL) ]
 
         # Make PCA
         prepare_PCA(profile=metaG_counts, title=paste0("function abundance - ", funcat_name), datatype=paste0('FA.', funcat_name), color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
+
+        # Write feature count
+        fwrite(ga_fa_df, file=paste0(output_dir, '/GA_FA_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
+
         rm(metaG_counts)
     }
 
     # PCA - metaT ####
-    if (omics %like% 'metaT') {
-        # Record feature count
-        n_row <- nrow(metaT_counts)
-        gt_ft_df <- rbind(gt_ft_df, c(funcat_name, n_row, 'Functions'))
-
+    if (omics == 'metaT') {
         # Remove Funct column
         metaT_counts <- metaT_counts[, `:=` (Funct = NULL, Description = NULL) ]
 
         # Make PCA
         prepare_PCA(profile=metaT_counts, title=paste0("function transcript - ", funcat_name), datatype=paste0('FT.', funcat_name), color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
+
+        # Write feature count
+        fwrite(gt_ft_df, file=paste0(output_dir, '/GT_FT_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
+
         rm(metaT_counts)
     }
 
@@ -699,6 +706,10 @@ if (nrow(gene_annotation) > 0) {
 
         # Make PCA
         prepare_PCA(profile=function_expression, title=paste0("function expression - ", funcat_name), datatype=paste0('FE.', funcat_name), color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
+
+        # Write feature count
+        fwrite(ge_fe_df, file=paste0(output_dir, '/GE_FE_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
+
         rm(function_expression)
     }
 
@@ -721,23 +732,4 @@ if (nrow(gene_annotation) > 0) {
 # Garbage-collect
 gc()
 
-#####################################
-# Write out feature count statistics
-#####################################
-
-print('#################################### FEATURE COUNTS  ####################################')#####
-
-# Write counts
-if (!is.null(ga_fa_df)) {
-    fwrite(ga_fa_df, file=paste0(output_dir, '/GA_FA_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
-}
-
-if (!is.null(gt_ft_df)) {
-    fwrite(gt_ft_df, file=paste0(output_dir, '/GT_FT_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
-}
-
-if (!is.null(ge_fe_df)) {
-    fwrite(ge_fe_df, file=paste0(output_dir, '/GE_FE_features.', funcat_name, '.tsv'), sep='\t', row.names = F, quote = F)
-}
-
-print('done!')
+logmsg("  DONE  ", decorate=TRUE)
