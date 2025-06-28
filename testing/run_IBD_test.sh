@@ -221,29 +221,29 @@ for OMICS in metaG_metaT metaG metaT; do
   sed "s/omics: metaG_metaT/omics: $OMICS/; s/MINTO_MODE: .*/MINTO_MODE: MAG/" data_integration.yaml > data_integration.yaml.MG.$OMICS
   echo -n "MODE - MAG, MG: "
   mkdir -p $OMICS.MAG.MG
-  cmd="cd $OMICS.MAG.MG && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.MG.$OMICS $SNAKE_PARAMS >& integration.MAG.MG.$OMICS.log"
+  cmd="cd $OMICS.MAG.MG && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.MG.$OMICS $SNAKE_PARAMS >& integration.MAG.MG.$OMICS.log && cd .."
   profile_command "$cmd"
   sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.MG.$OMICS > data_integration.yaml.TPM.$OMICS
   echo -n "MODE - MAG, TPM: "
   mkdir -p $OMICS.MAG.TPM
-  cmd="cd $OMICS.MAG.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.TPM.$OMICS $SNAKE_PARAMS >& integration.MAG.TPM.$OMICS.log"
+  cmd="cd $OMICS.MAG.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.TPM.$OMICS $SNAKE_PARAMS >& integration.MAG.TPM.$OMICS.log && cd .."
   profile_command "$cmd"
 
   echo -n "MODE - refgenome, MG: "
   sed "s/MINTO_MODE: .*/MINTO_MODE: refgenome/" data_integration.yaml.MG.$OMICS > data_integration.yaml.refgenome.MG.$OMICS
   mkdir -p $OMICS.refgenome.MG
-  cmd="cd $OMICS.refgenome.MG && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.refgenome.MG.$OMICS $SNAKE_PARAMS >& integration.refgenome.MG.$OMICS.log"
+  cmd="cd $OMICS.refgenome.MG && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.refgenome.MG.$OMICS $SNAKE_PARAMS >& integration.refgenome.MG.$OMICS.log && cd .."
   profile_command "$cmd"
   sed "s/abundance_normalization: MG/abundance_normalization: TPM/" data_integration.yaml.refgenome.MG.$OMICS > data_integration.yaml.refgenome.TPM.$OMICS
   echo -n "MODE - refgenome, TPM: "
   mkdir -p $OMICS.refgenome.TPM
-  cmd="cd $OMICS.refgenome.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.refgenome.TPM.$OMICS $SNAKE_PARAMS >& integration.refgenome.TPM.$OMICS.log"
+  cmd="cd $OMICS.refgenome.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.refgenome.TPM.$OMICS $SNAKE_PARAMS >& integration.refgenome.TPM.$OMICS.log && cd .."
   profile_command "$cmd"
 
   echo -n "MODE - gene-catalog, TPM: "
   sed "s/MINTO_MODE: .*/MINTO_MODE: catalog/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
   mkdir -p $OMICS.catalog.TPM
-  cmd="cd $OMICS.catalog.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.catalog.TPM.$OMICS $SNAKE_PARAMS >& integration.catalog.TPM.$OMICS.log"
+  cmd="cd $OMICS.catalog.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.catalog.TPM.$OMICS $SNAKE_PARAMS >& integration.catalog.TPM.$OMICS.log && cd .."
   profile_command "$cmd"
 
 done
