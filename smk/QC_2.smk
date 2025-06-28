@@ -382,7 +382,7 @@ use rule qc2_host_filter as qc2_host_filter_metaT with:
 # Therefore get_final_fastq_one_end() cannot be used.
 ########################################
 
-def get_postcleaning_fastq_names(wd, omics, sample, pair):
+def get_postcleaning_fastq_names_one_end(wd, omics, sample, pair):
     return(expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
                     wd       = wd,
                     omics    = omics,
@@ -394,10 +394,10 @@ def get_postcleaning_fastq_names(wd, omics, sample, pair):
             )
 
 def get_postcleaning_fastq_names_fwd_only(wildcards):
-    return(get_postcleaning_fastq_names(wildcards.wd, wildcards.omics, wildcards.sample, pair='1'))
+    return(get_postcleaning_fastq_names_one_end(wildcards.wd, wildcards.omics, wildcards.sample, pair='1'))
 
 def get_postcleaning_fastq_names_rev_only(wildcards):
-    return(get_postcleaning_fastq_names(wildcards.wd, wildcards.omics, wildcards.sample, pair='2'))
+    return(get_postcleaning_fastq_names_one_end(wildcards.wd, wildcards.omics, wildcards.sample, pair='2'))
 
 ###############################################################################################
 # Pre-processing of metaT data - rRNA filtering - only on metaT data
