@@ -4,6 +4,7 @@ import os.path
 
 ##############################################
 # Clarify where the final inputs are
+# NOTE: Watch the difference between list.extend(list) and list.append(scalar)
 ##############################################
 def get_ordered_fastq_dirs(omics, caller, reverse=False):
     # These are available for everyone
@@ -13,7 +14,7 @@ def get_ordered_fastq_dirs(omics, caller, reverse=False):
     if caller not in ['QC_1']:
         locations.extend(['3-minlength', '4-hostfree'])
         if omics == 'metaT':
-            locations.extend('5-1-sortmerna')
+            locations.append('5-1-sortmerna')
 
     # error-corrected reads are available strictly after QC_2
     if caller not in ['QC_1', 'QC_2']:
