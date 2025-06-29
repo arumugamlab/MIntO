@@ -377,17 +377,27 @@ use rule qc2_host_filter as qc2_host_filter_metaT with:
         omics='metaT'
 
 ########################################
-# Get list of fwd reads for this sample
+# Get list of fwd/rev reads for this sample.
+# These are names of files that don't exist yet, so no filecheck can be done.
+# Therefore get_final_fastq_one_end() cannot be used.
 ########################################
-def get_qc2_output_files_fwd_only(wildcards):
-    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_1', pair='1'))
 
+def get_postcleaning_fastq_names_one_end(wd, omics, sample, pair):
+    return(expand("{wd}/{omics}/{location}/{sample}/{run}.{pair}.fq.gz",
+                    wd       = wd,
+                    omics    = omics,
+                    location = get_qc2_output_location(omics),
+                    sample   = sample,
+                    run      = get_runs_for_sample(wd, omics, sample, caller='QC_2'),
+                    pair     = pair
+                    )
+            )
 
-########################################
-# Get list of rev reads for this sample
-########################################
-def get_qc2_output_files_rev_only(wildcards):
-    return(get_final_fastq_one_end(wildcards.wd, wildcards.omics, wildcards.sample, stage='QC_1', pair='2'))
+def get_postcleaning_fastq_names_fwd_only(wildcards):
+    return(get_postcleaning_fastq_names_one_end(wildcards.wd, wildcards.omics, wildcards.sample, pair='1'))
+
+def get_postcleaning_fastq_names_rev_only(wildcards):
+    return(get_postcleaning_fastq_names_one_end(wildcards.wd, wildcards.omics, wildcards.sample, pair='2'))
 
 ###############################################################################################
 # Pre-processing of metaT data - rRNA filtering - only on metaT data
@@ -516,7 +526,7 @@ rule minlength_readcounts:
 
 rule postcleaning_readcounts:
     input:
-        fwd=get_qc2_output_files_fwd_only
+        fwd=get_postcleaning_fastq_names_fwd_only
     output:
         rc_fwd=temp("{wd}/output/2-qc/{omics}.{sample}.1.postcleaning.txt")
     resources:
@@ -621,8 +631,8 @@ rule metaphlan_tax_profile:
                                                 minto_dir=minto_dir,
                                                 version=wildcards.version,
                                                 metaphlan_index=metaphlan_index),
-        fwd=get_qc2_output_files_fwd_only,
-        rev=get_qc2_output_files_rev_only,
+        fwd=get_postcleaning_fastq_names_fwd_only,
+        rev=get_postcleaning_fastq_names_rev_only,
     output:
         ra="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.metaphlan.{version}.tsv"
     shadow:
@@ -681,8 +691,8 @@ rule metaphlan_combine_profiles:
 rule motus_map_db:
     input:
         db = f"{minto_dir}/data/motus/{{version}}/db_mOTU/db_mOTU_versions",
-        fwd=get_qc2_output_files_fwd_only,
-        rev=get_qc2_output_files_rev_only
+        fwd=get_postcleaning_fastq_names_fwd_only,
+        rev=get_postcleaning_fastq_names_rev_only
     output:
         mgc="{wd}/{omics}/6-taxa_profile/{sample}/{sample}.motus.{version}.mgc"
     shadow:
@@ -790,8 +800,8 @@ rule plot_taxonomic_profile:
 
 rule sourmash_sketch:
     input:
-        fwd=get_qc2_output_files_fwd_only,
-        rev=get_qc2_output_files_rev_only,
+        fwd=get_postcleaning_fastq_names_fwd_only,
+        rev=get_postcleaning_fastq_names_rev_only,
     output:
         temp("{wd}/{omics}/6-1a-smash/{sample}.sig.gz")
     shadow:

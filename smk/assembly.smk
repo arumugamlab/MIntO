@@ -253,14 +253,14 @@ def get_corrected_runs_for_sample(wildcards):
                                     wd = wildcards.wd,
                                     omics = wildcards.omics,
                                     rep = rep,
-                                    run = get_runs_for_sample(wildcards.wd, wildcards.omics, rep),
+                                    run = get_runs_for_sample(wildcards.wd, wildcards.omics, rep, caller='assembly'),
                                     pair = wildcards.pair)
     else:
         files = expand("{wd}/{omics}/5-corrected-runs/{illumina}/{run}.{pair}.fq.gz",
                                     wd = wildcards.wd,
                                     omics = wildcards.omics,
                                     illumina = wildcards.illumina,
-                                    run = get_runs_for_sample(wildcards.wd, wildcards.omics, wildcards.illumina),
+                                    run = get_runs_for_sample(wildcards.wd, wildcards.omics, wildcards.illumina, caller='assembly'),
                                     pair = wildcards.pair)
     return(files)
 

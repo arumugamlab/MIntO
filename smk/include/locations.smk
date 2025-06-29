@@ -4,6 +4,7 @@ import os.path
 
 ##############################################
 # Clarify where the final inputs are
+# NOTE: Watch the difference between list.extend(list) and list.append(scalar)
 ##############################################
 def get_ordered_fastq_dirs(omics, caller, reverse=False):
     # These are available for everyone
@@ -13,7 +14,7 @@ def get_ordered_fastq_dirs(omics, caller, reverse=False):
     if caller not in ['QC_1']:
         locations.extend(['3-minlength', '4-hostfree'])
         if omics == 'metaT':
-            locations.extend('5-1-sortmerna')
+            locations.append('5-1-sortmerna')
 
     # error-corrected reads are available strictly after QC_2
     if caller not in ['QC_1', 'QC_2']:
@@ -80,11 +81,13 @@ def get_runs_for_sample(wd, omics, sample, caller):
 
 ########################################
 # Get list of one-end reads for this sample
+# Returns list of one file per run, list with one element when single run.
 ########################################
 def get_final_fastq_one_end(wd, omics, sample, stage, pair):
 
     files = list()
 
+    # Build possible locations to search in order of preference
     locations = list()
     if stage == 'QC_1':
         # QC_1 has only one output
@@ -94,17 +97,33 @@ def get_final_fastq_one_end(wd, omics, sample, stage, pair):
         locations.append(get_qc2_output_location(omics))
         locations.append('6-corrected')
 
-    for rdir in locations:
+    # For each run
+    for r in get_runs_for_sample(wd, omics, sample, stage):
 
-        # Get runs
-        for r in get_runs_for_sample(wd, omics, sample, stage):
+        # Where to store fastq name for this run if found
+        this_run_fastq = None
+
+        # Try all possible locations
+        for loc in locations:
+
             # Check for sample.1.fq.gz and sample_1.fq.gz, in that order
             for delim in ['.', '_']:
-                f = f"{wd}/{omics}/{rdir}/{sample}/{r}{delim}{pair}.fq.gz"
-                # Add the file to the list
-                if os.path.exists(f):
-                    files.append(f)
+                f = f"{wd}/{omics}/{loc}/{sample}/{r}{delim}{pair}.fq.gz"
 
+                # If found, flag the file and break delim-loop
+                if os.path.exists(f):
+                    this_run_fastq = f
+                    break
+
+            # If you have found a file for this run already, then break location-loop and stop looking
+            if this_run_fastq is not None:
+                break
+
+        # If you have found a file for this run, add it to the list
+        if this_run_fastq is not None:
+            files.append(this_run_fastq)
+
+    # If file not was found, error out
     if len(files) == 0:
         raise Exception(f"Final fastq files not found for sample={sample}")
 
