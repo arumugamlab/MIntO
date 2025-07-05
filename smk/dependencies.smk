@@ -17,11 +17,13 @@ include: 'include/config_parser.smk'
 
 script_dir=workflow.basedir+"/../scripts"
 
-metaphlan_index = 'mpa_vJun23_CHOCOPhlAnSGB_202403'
-metaphlan_version = '4.1.1'
+metaphlan_index       = 'mpa_vJun23_CHOCOPhlAnSGB_202403'
+metaphlan_version     = '4.1.1'
 phylophlan_db_version = 'Jun23'
-motus_version = '3.1.0'
-gtdb_release_number = '220'
+motus_version         = '3.1.0'
+gtdb_release_number   = '220'
+mmseqs_tax_db         = 'GTDB'
+metabuli_tax_db       = 'GTDB'
 
 def rRNA_db_out():
     files = ["rfam-5.8s-database-id98.fasta",
@@ -149,6 +151,28 @@ def gtdb_db_out():
     result = f"{minto_dir}/data/GTDB/r{gtdb_release_number}/taxonomy/gtdb_taxonomy.tsv"
     return(result)
 
+def mmseqs_db_out():
+    # Hidden feature to turn off mmseqs download.
+    # Useful when testing workflows because mmseqs download could take a full day and occupies space!
+    if ('enable_mmseqs_for_taxvamb' in config):
+        flag = str(config['enable_mmseqs_for_taxvamb'])
+        if (flag.lower() in ('no', 'false', '0')):
+            return(list())
+
+    result = f"{minto_dir}/data/mmseqs/{mmseqs_tax_db}/{mmseqs_tax_db}"
+    return(result)
+
+def metabuli_db_out():
+    # Hidden feature to turn off metabuli download.
+    # Useful when testing workflows because metabuli download could take a full day and occupies space!
+    if ('enable_metabuli_for_taxvamb' in config):
+        flag = str(config['enable_metabuli_for_taxvamb'])
+        if (flag.lower() in ('no', 'false', '0')):
+            return(list())
+
+    result = f"{minto_dir}/data/metabuli/{metabuli_tax_db}/database_report.tsv"
+    return(result)
+
 def all_env_out():
     files = ["vamb_env.log",
              "r_pkgs.log",
@@ -173,6 +197,8 @@ rule all:
         motus_db_out(),
         fetchMGs_out(),
         gtdb_db_out(),
+        mmseqs_db_out(),
+        metabuli_db_out(),
         all_env_out()
 
 ###############################################################################################
@@ -644,6 +670,90 @@ rule download_GTDB_db:
         """
 
 ###############################################################################################
+# Download mmseqs GTDB database for contig/scaffold taxonomy annotation
+###############################################################################################
+
+rule download_mmseqs_GTDB_db:
+    output:
+        std_db = "{minto_dir}/data/mmseqs/{mmseqs_tax_db}/{mmseqs_tax_db}",
+        gpu_db = "{minto_dir}/data/mmseqs/{mmseqs_tax_db}_GPU/{mmseqs_tax_db}_GPU"
+    shadow:
+        "minimal"
+    resources:
+        mem=2
+    threads:
+        1
+    log:
+        "{minto_dir}/logs/mmseqs.{mmseqs_tax_db}.download.log"
+    conda:
+        minto_dir + "/envs/contig_taxonomy.yml"
+    shell:
+        """
+        time (
+            # Download
+            mkdir -p DB
+            cd DB
+            mmseqs databases {mmseqs_tax_db} {mmseqs_tax_db} tmp
+            if [ $? -eq 0 ]; then
+                echo 'mmseqs download: OK'
+            else
+                echo 'mmseqs download: FAIL'
+            fi
+            rm -rf tmp
+
+            # Now sync to minto_dir
+            rsync -a * $(dirname {output.std_db})
+
+            cd ..
+
+            # Make GPU DB
+            mkdir -p GPU_DB
+            cd GPU_DB
+            mmseqs makepaddedseqdb ../DB/{mmseqs_tax_db} {mmseqs_tax_db}_GPU
+
+            # Now sync to minto_dir
+            rsync -a * $(dirname {output.gpu_db})
+        ) &> {log}
+        """
+
+###############################################################################################
+# Download metabuli GTDB database for contig/scaffold taxonomy annotation
+###############################################################################################
+
+rule download_metabuli_GTDB_db:
+    output:
+        db = "{minto_dir}/data/metabuli/{metabuli_tax_db}/database_report.tsv",
+    shadow:
+        "minimal"
+    params:
+        dbdir = lambda wildcards: wildcards.metabuli_tax_db.lower()
+    resources:
+        mem=2
+    threads:
+        1
+    log:
+        "{minto_dir}/logs/metabuli.{metabuli_tax_db}.download.log"
+    conda:
+        minto_dir + "/envs/contig_taxonomy.yml"
+    shell:
+        """
+        time (
+            # Download
+            metabuli databases {metabuli_tax_db} outdir tmpdir
+            if [ $? -eq 0 ]; then
+                echo 'metabuli download: OK'
+            else
+                echo 'metabuli download: FAIL'
+            fi
+            rm -rf tmpdir
+
+            # Now sync to minto_dir
+            rsync -a outdir/{params.dbdir}/* $(dirname {output.db})
+
+        ) &> {log}
+        """
+
+###############################################################################################
 # Generate conda environments
 ###############################################################################################
 
@@ -671,7 +781,7 @@ rule mags_gen_vamb:
     threads:
         1
     conda:
-        minto_dir + "/envs/avamb.yml"
+        minto_dir + "/envs/vamb.yml"
     shell:
         """
         time (
