@@ -39,7 +39,7 @@ if MINTO_MODE == 'MAG':
     mag_omics = 'metaG'
     if (x := validate_optional_key(config, 'MAG_omics')):
         mag_omics = x
-    reference_dir = f"{working_dir}/{mag_omics}/8-1-binning/mags_generation_pipeline/unique_genomes"
+    reference_dir = f"{working_dir}/{mag_omics}/8-1-binning/mags/unique_genomes"
     print('NOTE: MIntO is using "' + reference_dir + '" as PATH_reference variable')
 elif MINTO_MODE == 'refgenome':
     if (x := validate_required_key(config, 'PATH_reference')):
