@@ -281,7 +281,7 @@ rule binning_preparation_base:
         touch {output}
         """
 
-rule binning_preparation_avamb:
+rule binning_preparation_vamb:
     input:
         "{wd}/output/versions/binprep_base.flag"
     output:
@@ -291,7 +291,7 @@ rule binning_preparation_avamb:
     threads: 1
     localrule: True
     conda:
-        minto_dir + "/envs/avamb.yml"
+        minto_dir + "/envs/vamb.yml"
     shell:
         """
         vamb --version >> {wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
