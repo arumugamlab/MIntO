@@ -4,7 +4,8 @@ channels:
   - bioconda
 dependencies:
   - python=3.11
-  - mmseqs2
+  - mmseqs2=17.b804f
+  - metabuli=1.1.0
   - pip
   - pip:
     - taxconverter==1.1.0
