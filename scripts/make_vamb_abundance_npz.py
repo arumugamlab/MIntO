@@ -1,47 +1,14 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
+# Borrows from vamb's code to make sure that we construct the abundance.npz file just like they would!
+
+from pathlib import Path
 import gzip
 import argparse
 import numpy as _np
 import vamb
-
-def validate_input_array(array):
-    """
-    Source: vamb codebase
-    Returns array similar to input array but C-contiguous and with own data.
-    """
-    if not array.flags['C_CONTIGUOUS']:
-        array = _np.ascontiguousarray(array)
-    if not array.flags['OWNDATA']:
-        array = array.copy()
-
-    assert (array.flags['C_CONTIGUOUS'] and array.flags['OWNDATA'])
-    return array
-
-def load_jgi(filehandle):
-    """
-    Source: vamb codebase
-    Load depths from the --outputDepth of jgi_summarize_bam_contig_depths.
-    See https://bitbucket.org/berkeleylab/metabat for more info on that program.
-
-    Usage:
-        with open('/path/to/jgi_depths.tsv') as file:
-            depths = load_jgi(file)
-    Input:
-        File handle of open output depth file
-    Output:
-        N_contigs x N_samples Numpy matrix of dtype float32
-    """
-
-    header = next(filehandle)
-    fields = header.split('\t')
-    if not fields[:3] == ["contigName", "contigLen", "totalAvgDepth"]:
-        raise ValueError('Input file format error: First columns should be "contigName,"'
-        '"contigLen" and "totalAvgDepth"')
-
-    columns = tuple([i for i in range(3, len(fields)) if not fields[i].rstrip().endswith("-var")])
-    array = _np.loadtxt(filehandle, dtype=_np.float32, usecols=columns)
-    return validate_input_array(array)
+import vamb.vambtools as _vambtools
+from vamb.parsecontigs import CompositionMetaData
 
 def fasta_iter(infile):
     """
@@ -67,20 +34,44 @@ def fasta_iter(infile):
 
 # Main
 
+# Parse command line arguments
+
 parser = argparse.ArgumentParser(description="Make avamb-style npz file from jgi-style depth file")
-parser.add_argument("--fasta", required=True, help="fasta file with all contigs (required)")
-parser.add_argument("--jgi", required=True, help="jgi depth file")
-parser.add_argument("--samples", required=True, nargs='+', help="list of samples")
-parser.add_argument("--output", required=True, help="npz output file")
+parser.add_argument("--fasta",         required=True, type=Path, help="fasta file with all contigs (required)")
+parser.add_argument("--abundance-tsv", required=True, type=Path, help="abundance TSV file (required)")
+parser.add_argument("--output",        required=True, type=Path, help="npz output file (required)")
+parser.add_argument("--minlength",     required=True, type=int,  help="minimum scaffold/contig length used for filtering input fasta (required)")
 args = parser.parse_args()
 
-fiter = fasta_iter(args.fasta)
-headers = [header for header, seq in fiter]
-refhash = vamb.vambtools.hash_refnames(headers)
+# Start a fasta file iterator for input fasta
 
-jgipath = args.jgi
-file = gzip.open(jgipath, 'rt') if jgipath.endswith('.gz') else open(jgipath)
-rpkms = load_jgi(file)
+fiter = fasta_iter(str(args.fasta))
 
-abundance = vamb.parsebam.Abundance(rpkms, args.samples, 0.95, refhash)
+# Initiate arrays for contig names, lengths and mask status
+# mask==True means sequences is included in analysis, so we mark them all True
+
+contignames: list[str] = list()
+lengths = _vambtools.PushArray(_np.int32)
+mask    = bytearray()
+
+# Iterate through all the fasta files in input
+
+for header, seq in fiter:
+    contignames.append(header)
+    lengths.append(len(seq))
+    mask.append(True)
+
+# Call CompositionMetaData constructor
+# It needs numpy arrays, so we convert them on the fly
+
+comp_metadata = CompositionMetaData(
+                                    _np.array(contignames, dtype=object),
+                                    lengths.take(),
+                                    _np.array(mask, dtype=bool),
+                                    args.minlength,
+                                    )
+
+# Make abundance object and write it out
+
+abundance = vamb.parsebam.Abundance.from_tsv(args.abundance_tsv, comp_metadata)
 abundance.save(args.output)
