@@ -87,7 +87,7 @@ echo "------------"
 cat $MINTO_DIR/testing/dependencies.yaml.in | sed "s@<__MINTO_DIR__>@$MINTO_DIR@;s@<__TEST_DIR__>@$TEST_DIR@" > dependencies.yaml
 echo "enable_GTDB: no" >> dependencies.yaml
 echo "enable_mmseqs_for_taxvamb: no" >> dependencies.yaml
-echo "enable_metabuli_for_taxvamb: no" >> dependencies.yaml
+echo "enable_metabuli_for_taxvamb: yes" >> dependencies.yaml
 cmd="snakemake --snakefile $CODE_DIR/smk/dependencies.smk --configfile dependencies.yaml $SNAKE_PARAMS >& dependencies.log"
 profile_command "$cmd"
 
