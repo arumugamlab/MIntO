@@ -682,7 +682,7 @@ rule download_mmseqs_GTDB_db:
     resources:
         mem=2
     threads:
-        1
+        8
     log:
         "{minto_dir}/logs/mmseqs.{mmseqs_tax_db}.download.log"
     conda:
@@ -693,7 +693,7 @@ rule download_mmseqs_GTDB_db:
             # Download
             mkdir -p DB
             cd DB
-            mmseqs databases {mmseqs_tax_db} {mmseqs_tax_db} tmp
+            mmseqs databases {mmseqs_tax_db} {mmseqs_tax_db} tmp --threads {threads}
             if [ $? -eq 0 ]; then
                 echo 'mmseqs download: OK'
             else
@@ -709,7 +709,7 @@ rule download_mmseqs_GTDB_db:
             # Make GPU DB
             mkdir -p GPU_DB
             cd GPU_DB
-            mmseqs makepaddedseqdb ../DB/{mmseqs_tax_db} {mmseqs_tax_db}_GPU
+            mmseqs makepaddedseqdb ../DB/{mmseqs_tax_db} {mmseqs_tax_db}_GPU --threads {threads}
 
             # Now sync to minto_dir
             rsync -a * $(dirname {output.gpu_db})
@@ -730,7 +730,7 @@ rule download_metabuli_GTDB_db:
     resources:
         mem=2
     threads:
-        1
+        8
     log:
         "{minto_dir}/logs/metabuli.{metabuli_tax_db}.download.log"
     conda:
@@ -739,7 +739,7 @@ rule download_metabuli_GTDB_db:
         """
         time (
             # Download
-            metabuli databases {metabuli_tax_db} outdir tmpdir
+            metabuli databases {metabuli_tax_db} outdir tmpdir --threads {threads}
             if [ $? -eq 0 ]; then
                 echo 'metabuli download: OK'
             else

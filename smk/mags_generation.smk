@@ -122,7 +122,7 @@ rule mmseqs_taxonomy:
         time (
             mmseqs createdb {input.contigs_file} seqDB
             mmseqs taxonomy seqDB {input.mmseqs_db} results_dir tmp_dir --threads {threads} --tax-lineage 1
-            mmseqs createtsv seqDB results_dir taxonomy_raw.tsv
+            mmseqs createtsv seqDB results_dir taxonomy_raw.tsv --threads {threads}
             taxconverter mmseqs2 -i taxonomy_raw.tsv -o taxonomy_processed.tsv
             rsync -a taxonomy_raw.tsv       {output.mmseqs_c}
             rsync -a taxonomy_processed.tsv {output.taxonomy}
