@@ -18,7 +18,7 @@ Authors: Eleonora Nigro, Mani Arumugam
 import os.path
 import math
 
-localrules: aae_tsv, vae_tsv, collect_genomes_from_all_binners, copy_best_genomes, prepare_bins_for_checkm, collect_HQ_genomes
+localrules: aae_tsv, vae_tsv, copy_best_genomes, prepare_bins_for_checkm, collect_HQ_genomes
 
 # Get common config variables
 # These are:
@@ -460,46 +460,6 @@ rule merge_checkm_batches:
         all_checkm_output.to_csv("{}".format(output.binner_combined), sep = "\t", index = False)
 
 ########################
-# Collect genomes from multiple binners into one location.
-# Copying using 'cp location/*.fna' might fail if string consisting list of fna files goes over bash limit for argument length (ARG_MAX).
-# ARG_MAX on our system was 2^21, and with our projects we hit it around 12,000 files.
-# Therefore, we make the list of files using 'find' and process in batches of 5000 so that ARG_MAX is not reached.
-# If this rule fails in your hands with 'cp: Argument list too long', that means that your file paths are longer than 2000 characters.
-# It is strange, but not wrong. In that case, please reduce 'params.batch_size' below from 5000 to a suitably lower value, and you should be fine.
-# Use of readarray was inspired by: https://stackoverflow.com/a/41268405
-########################
-
-rule collect_genomes_from_all_binners:
-    input:
-        checkm_out = lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags/vamb/{binner}/{binner}.checkM.txt",
-                                                wd     = wildcards.wd,
-                                                omics  = wildcards.omics,
-                                                binner = BINNERS)
-    output:
-        genome_dir = directory("{wd}/{omics}/8-1-binning/mags/vamb/all"),
-        collected  = "{wd}/{omics}/8-1-binning/mags/vamb/collect_genomes.done"
-    log:
-        "{wd}/logs/{omics}/8-1-binning/mags/vamb/collect_genomes.log"
-    params:
-        batch_size=5000
-    shell:
-        """
-        rm -rf {output.genome_dir}
-        mkdir {output.genome_dir}
-        time (
-            for i in {input.checkm_out}; do
-                location=$(dirname $i)
-                echo "Collecting $(basename $location) in batches of {params.batch_size}"
-                find $location/bins/ -name "*.fna" |
-                      while readarray -t -n {params.batch_size} FILES && ((${{#FILES[@]}})); do
-                          ln ${{FILES[@]}} {output.genome_dir}/
-                      done
-            done
-        ) >& {log}
-        touch {output.collected}
-        """
-
-########################
 # Create a comprehensive table with checkm from all binners
 ########################
 
@@ -532,12 +492,11 @@ rule make_comprehensive_table:
 rule collect_HQ_genomes:
     input:
         checkm_all = rules.make_comprehensive_table.output,
-        collected  = rules.collect_genomes_from_all_binners.output.collected,
-        genome_dir = rules.collect_genomes_from_all_binners.output.genome_dir
     output:
         checkm_HQ = "{wd}/{omics}/8-1-binning/mags/HQ_genomes_checkm.tsv",
         HQ_folder = directory("{wd}/{omics}/8-1-binning/mags/HQ_genomes")
     params:
+        bin_folder    = lambda wildcards: f"{wildcards.wd}/{wildcards.omics}/8-1-binning/mags/vamb/",
         completeness  = CHECKM_COMPLETENESS,
         contamination = CHECKM_CONTAMINATION
     log:
@@ -549,23 +508,30 @@ rule collect_HQ_genomes:
     run:
         import subprocess
         import pandas as pd
+
         # open the checkm_comprehensive table
         checkm_results=pd.read_csv(str(input.checkm_all), sep = "\t")
+
         # take and save the HQ table
         HQ_checkm_results = checkm_results[(checkm_results["Completeness"] >= params.completeness) & (checkm_results["Contamination"] <= params.contamination)]
         HQ_checkm_results.to_csv(output.checkm_HQ, sep = "\t", index = False)
+
         # create the path for copying the genomes
         try:
             os.mkdir(output.HQ_folder)
         except OSError as error:
             print(error)
+
         # take the bins
         hq_bins = list(HQ_checkm_results["Name"])
         with open(str(log), 'w') as f:
             for bin_id in hq_bins:
-                source_file = input.genome_dir +"/{}.fna".format(bin_id)
+                if '.' not in bin_id:
+                    raise Exception(f"Invalid bin_id {bin_id}")
+                binner_name      = bin_id.split('.')[0]
+                source_file      = params.bin_folder + "/{}/bins/{}.fna".format(binner_name, bin_id)
                 destination_file = output.HQ_folder  + "/{}.fna".format(bin_id)
-                print("[rule collect_HQ_genomes] Copying {} to {}".format(source_file, destination_file), file=f)
+                print("[rule collect_HQ_genomes] Hardlinking {} to {}".format(source_file, destination_file), file=f)
                 subprocess.run(args=["ln", source_file, destination_file], stdout=f, stderr=f)
 
 ## Run coverm on HQ genomes to create the .tsv file
