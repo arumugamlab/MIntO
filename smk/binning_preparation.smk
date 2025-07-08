@@ -792,12 +792,19 @@ METADATA: {metadata}
 MIN_FASTA_LENGTH: {params.min_fasta_length}
 MIN_MAG_LENGTH: 500000
 
+######################
 # VAMB settings
-#
+######################
+
+# BINNERS are encoded as follows:
+# AAMB: aaey/aaez
+# VAMB: vae{256,384,512,768}
+# TAXVAMB: vaevae{256,384,512,768}
+
 BINNERS:
 - aaey
 - aaez
-- vae384
+- vaevae512
 
 VAMB_THREADS: 20
 
