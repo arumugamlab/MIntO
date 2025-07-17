@@ -796,10 +796,12 @@ MIN_MAG_LENGTH: 500000
 # VAMB settings
 ######################
 
-# BINNERS are encoded as follows:
-# AAMB: aaey/aaez
-# VAMB: vae{256,384,512,768}
-# TAXVAMB: vaevae{256,384,512,768}
+# BINNERS - VAMB flaors and their parameters are encoded as follows:
+#  VAMB: vae256,vae384,vae512,vae768
+#  AAMB: aaey,aaez
+#  TAXVAMB: vaevae256,vaevae384,vaevae512,vaevae768
+# List containing any number of these will work.
+# Our default combines TAXVAMB using vaevae512 and AAMB using aaey and aaez.
 
 BINNERS:
 - aaey
