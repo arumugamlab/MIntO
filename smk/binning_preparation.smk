@@ -23,7 +23,7 @@ module print_versions:
         'include/versions.smk'
     config: config
 
-use rule binning_preparation_base, binning_preparation_avamb from print_versions as version_*
+use rule binning_preparation_base, binning_preparation_vamb from print_versions as version_*
 
 snakefile_name = print_versions.get_smk_filename()
 
@@ -440,6 +440,7 @@ rule map_contigs_BWA_depth_coverM:
 
 # Combine coverM depths from individual samples
 # Ignore columns ending with '-var'
+# Also ignore contigLen, totalAvgDepth
 rule colbind_sample_contig_depths_for_batch:
     input:
         depths = lambda wildcards: expand("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}/{illumina}.depth.txt.gz",
@@ -479,11 +480,11 @@ rule colbind_sample_contig_depths_for_batch:
             # Read first file into df
             df = pd.read_csv(input.depths[0], header=0, sep = "\t", memory_map=True)
 
-            # Drop columns ending in '-var' as this is not used by vamb, and add to df_list
-            df_list.append(df.drop(df.filter(regex='-var$').columns, axis='columns'))
-
             # Get md5 of first 2 columns
             md5_first = hashlib.md5(pickle.dumps(df.iloc[:, 0:2])).hexdigest() # make hash for seqname and seqlen
+
+            # Drop columns ending in '-var' as this is not used by vamb, and add to df_list
+            df_list.append(df.drop(df.filter(regex='^contigLen$|^totalAvgDepth$|-var$').columns, axis='columns'))
 
             # Process remaining files
             for i in range(1, len(input.depths)):
@@ -688,7 +689,7 @@ rule combine_contig_depth_header:
         fi
         """
 
-### Prepare abundance.npz for avamb v4+
+### Prepare abundance.npz for vamb v5+
 # Memory requirement:
 # From regression of 'gzip -2' depth file sizes, number of samples and maxmem from GNU time:
 #    memKB = 4.336e+5 + 1.745e-3*filesize - 1.150e+3*samples
@@ -712,12 +713,12 @@ rule make_abundance_npz:
     resources:
         mem = lambda wildcards, input: 2 + int(1.75e-9*sum((lambda file: os.path.getsize(file) if os.path.exists(file) else 1048576)(file) for file in input.depths))
     conda:
-        minto_dir + "/envs/avamb.yml"
+        minto_dir + "/envs/vamb.yml"
     shell:
         """
         time (
-            cat {input.header} {input.depths} > combined.depth.gz
-            python {script_dir}/make_vamb_abundance_npz.py --fasta {input.contigs} --jgi combined.depth.gz --output abundance.npz --samples {ilmn_samples}
+            (zcat {input.header} | sed 's/^contigName/contigname/'; zcat {input.depths}) > combined.depth
+            python3 {script_dir}/make_vamb_abundance_npz.py --fasta {input.contigs} --abundance-tsv combined.depth --minlength {wildcards.min_length} --output abundance.npz
             rsync -a abundance.npz {output.npz}
         ) >& {log}
         """
@@ -791,12 +792,21 @@ METADATA: {metadata}
 MIN_FASTA_LENGTH: {params.min_fasta_length}
 MIN_MAG_LENGTH: 500000
 
+######################
 # VAMB settings
-#
+######################
+
+# BINNERS - VAMB flaors and their parameters are encoded as follows:
+#  VAMB: vae256,vae384,vae512,vae768
+#  AAMB: aaey,aaez
+#  TAXVAMB: vaevae256,vaevae384,vaevae512,vaevae768
+# List containing any number of these will work.
+# Our default combines TAXVAMB using vaevae512 and AAMB using aaey and aaez.
+
 BINNERS:
 - aaey
 - aaez
-- vae384
+- vaevae512
 
 VAMB_THREADS: 20
 
@@ -804,6 +814,10 @@ VAMB_THREADS: 20
 # could be yes or no
 VAMB_GPU: no
 
+# Metabuli for taxvamb
+#
+TAXVAMB_ANNOTATOR: metabuli
+METABULI_MEM_GB: 128
 
 # CHECKM settings
 #

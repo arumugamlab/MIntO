@@ -153,6 +153,8 @@ def calculate_fasta_statistics_checkm_based(fasta_file):
 	contigs = 0
 	length_of_contigs = [] # useful to calculate entropy later 
 
+	gc_content_total = 0 # this should be divided by the total
+
 	longest_contig_name = ""
 	longest_contig_size = 0
 	shortest_contig_name = ""
@@ -170,8 +172,6 @@ def calculate_fasta_statistics_checkm_based(fasta_file):
 			
 			contigs = contigs + 1
 			id = record.id
-
-			gc_content_total = 0
 
 			seq = record.seq
 			seq_len = len(record.seq)
@@ -198,7 +198,7 @@ def calculate_fasta_statistics_checkm_based(fasta_file):
 				shortest_contig_name = id
 				shortest_contig_size = seq_len
 
-			gc_content_total = gc_content_total + GC(seq) # this should be divided by the number of contigs
+			gc_content_total = gc_content_total + seq_len*GC(seq) # this should be divided by the length of genome
 
 	statistics_dictionary = {"L50" : 0,
 		"L75" : 0, 
@@ -216,7 +216,7 @@ def calculate_fasta_statistics_checkm_based(fasta_file):
 		"Bin_Id" : bin_id,
 		"Contigs" : contigs,
 		"Bases" : total, 
-		"GC" : gc_content_total/contigs,
+		"GC" : gc_content_total/total,
 		"L50" : statistics_dictionary["L50"], 
 		"L75" : statistics_dictionary["L75"], 
 		"L90" : statistics_dictionary["L90"], 
@@ -271,8 +271,6 @@ def calculate_fasta_statistics_genome_based(fasta_file, circularity_threshold = 
 	contigs = 0
 	length_of_contigs = [] # useful to calculate entropy later 
 
-
-	
 	gc_content_total = 0 # this should be divided by the total
 
 	# gaps information
@@ -336,7 +334,7 @@ def calculate_fasta_statistics_genome_based(fasta_file, circularity_threshold = 
 				shortest_contig_name = id
 				shortest_contig_size = seq_len
 
-			gc_content_total = gc_content_total + GC(seq) # this should be divided by the number of contigs
+			gc_content_total = gc_content_total + seq_len*GC(seq) # this should be divided by the number of contigs
 
 			# check if there are gaps
 			if "N" in seq:
@@ -428,7 +426,7 @@ def calculate_fasta_statistics_genome_based(fasta_file, circularity_threshold = 
 		"Bin_Id" : bin_id,
 		"Contigs" : contigs,
 		"Bases" : total, 
-		"GC" : gc_content_total/contigs,
+		"GC" : gc_content_total/total,
 		"L50" : statistics_dictionary["L50"], 
 		"L75" : statistics_dictionary["L75"], 
 		"L90" : statistics_dictionary["L90"], 

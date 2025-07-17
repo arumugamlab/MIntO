@@ -1,10 +1,9 @@
-name: avamb
+name: vamb
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
-  - python=3.9.16
+  - python=3.11
   - pip
   - pip:
-    - vamb==4.1.3
+    - vamb==5.0.4
