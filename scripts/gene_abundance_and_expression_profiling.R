@@ -10,7 +10,6 @@
 ##########################  ** Load libraries **  ##########################
 library(data.table)
 library(optparse)
-library(phyloseq)
 library(stringr)
 library(this.path)
 
@@ -76,20 +75,6 @@ make_output_files <- function(profile=NULL, metadata=NULL, type=NULL, datatype=N
     logmsg(" Writing TSV file")
     fwrite(profile, file=paste0(output_dir, '/', datatype, '.tsv'), sep = "\t", row.names = F, quote = F)
 
-    # Prepare phyloseq
-    logmsg(" Making phyloseq")
-    physeq = phyloseq(otu_table(as.matrix(profile, rownames="ID"), taxa_are_rows = T),
-                      tax_table(as.matrix(gene_annot_dt, rownames="ID")),
-                      metadata)
-
-    # Write phyloseq
-    logmsg(" Writing phyloseq")
-    qsave(physeq,
-          file = paste0(phyloseq_dir, '/', datatype, '.qs'),
-          preset = "high",
-          nthreads = threads_n,
-         )
-
     # Write metadata into tsv file
     logmsg("Writing out metadata")
     fwrite(metadata_df,
@@ -133,8 +118,6 @@ logmsg('#################################### Making output directory ###########
 dir.create(file.path(output_dir), showWarnings = FALSE)
 visual_dir=paste0(output_dir, '/plots')
 dir.create(file.path(visual_dir), showWarnings = FALSE)
-phyloseq_dir=paste0(output_dir, '/phyloseq_obj')
-dir.create(file.path(phyloseq_dir), showWarnings = FALSE)
 
 ########################################################
 ## Read input files
@@ -316,8 +299,6 @@ if (is.null(metadata_df)) {
         metadata_df <- data.frame(sample=names(metaG_profile), group='control', sample_alias=names(metaG_profile))
     }
 }
-sample_metadata <- sample_data(metadata_df)
-rownames(sample_metadata) <- sample_metadata$sample_alias
 
 ########################################################
 # Write output files
@@ -330,26 +311,26 @@ maxN = 500000
 
 # Write GA profile data for metaG
 if (omics == 'metaG') {
-    make_output_files(profile=metaG_profile, metadata=sample_metadata, type='abundance', datatype='GA')
+    make_output_files(profile=metaG_profile, metadata=metadata_df, type='abundance', datatype='GA')
 
     # Get first maxN rows and remove ID
     metaG_profile <- metaG_profile[, first(.SD, maxN)][, ID := NULL]
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=metaG_profile, title='gene abundance', datatype='GA', color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
+    prepare_PCA(profile=metaG_profile, title='gene abundance', datatype='GA', color=color_factor, shape=shape_factor, label=label_factor, metadata=metadata_df)
 }
 
 # Write GT data for metaT
 if (omics == 'metaT') {
-    make_output_files(profile=metaT_profile, metadata=sample_metadata, type='transcript', datatype='GT')
+    make_output_files(profile=metaT_profile, metadata=metadata_df, type='transcript', datatype='GT')
 
     # Get first maxN rows and remove ID
     metaT_profile <- metaT_profile[, head(.SD, maxN)][, ID := NULL]
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=metaT_profile, title='gene transcript', datatype='GT', color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
+    prepare_PCA(profile=metaT_profile, title='gene transcript', datatype='GT', color=color_factor, shape=shape_factor, label=label_factor, metadata=metadata_df)
 }
 
 if (omics == 'metaG_metaT') {
@@ -395,7 +376,7 @@ if (omics == 'metaG_metaT') {
 
     # NOTE: By now, profile table is free of zerosum rows and sorted(desc) by rowSum
 
-    make_output_files(profile=gene_expression, metadata=sample_metadata, type='expression', datatype='GE')
+    make_output_files(profile=gene_expression, metadata=metadata_df, type='expression', datatype='GE')
 
     # Prepare data for PCA
 
@@ -409,7 +390,7 @@ if (omics == 'metaG_metaT') {
     gc()
 
     # Make PCA plot
-    prepare_PCA(profile=gene_expression, title='gene expression', datatype='GE', color=color_factor, shape=shape_factor, label=label_factor, metadata=sample_metadata)
+    prepare_PCA(profile=gene_expression, title='gene expression', datatype='GE', color=color_factor, shape=shape_factor, label=label_factor, metadata=metadata_df)
     rm(gene_expression)
 }
 

@@ -113,13 +113,6 @@ def integration_gene_profiles():
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof),
-        expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs",
-            wd = working_dir,
-            omics = omics,
-            subdir = GENE_DB_TYPE,
-            identity = identity,
-            normalization = normalization,
-            omics_prof = omics_prof),
         expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_prof}.PCA.pdf",
             wd = working_dir,
             omics = omics,
@@ -237,7 +230,6 @@ rule integration_gene_profiles:
         gene_abund_prof    ="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.tsv",
         gene_annotations   ="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.annotations.tsv",
         metadata           ="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.metadata.tsv",
-        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
         gene_abund_plots   ="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     wildcard_constraints:
             omics_alphabet = r'[ATE]',
@@ -310,14 +302,7 @@ def get_function_profile_integration_input(wildcards):
 
     my_minto_mode = wildcards.gene_db.replace('-genes', '')
 
-    gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs".format(
-            wd = wildcards.wd,
-            omics = wildcards.omics,
-            gene_db = wildcards.gene_db,
-            identity = wildcards.identity,
-            omics_alphabet = wildcards.omics_alphabet,
-            normalization = wildcards.normalization)
-    ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
+    ret_dict = {}
 
     # Add gene profiles for relevant omics
     gene_profiles=expand("{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.tsv",
