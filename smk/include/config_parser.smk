@@ -230,6 +230,10 @@ def validate_optional_key(config, key):
 
     if isinstance(val, str) and val == "MINTO_KEY_NOT_FOUND_EXCEPTION":
         return None
+    
+    # Also return None if string "None"
+    if isinstance(val, str) and val == "None":
+        return None
 
     # return
     return(val)
