@@ -185,21 +185,36 @@ rule integration_merge_profiles:
         "minimal"
     log:
         "{wd}/logs/output/data_integration/{gene_db}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
+    localrule: True
     wildcard_constraints:
         identity='\d+',
-        normalization='MG|TPM'
+        normalization='MG|TPM',
+        omics='metaG|metaT'
     resources:
-        mem = lambda wildcards, input, attempt: 6 + math.ceil(3.2e-9*8*sum([get_tsv_cells(i) for i in input.single])) + 10*(attempt-1)
+        mem = 1
     threads: 1
     conda:
         minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
-        time (
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID
-            rsync -a out.txt {output.merged}
-        ) >& {log}
+        if [[ "metaG_metaT" != "{wildcards.omics}" ]]; then
+            ln --force {input.single[0]} {output.merged}
+        else
+            time (
+                Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID
+                rsync -a out.txt {output.merged}
+            ) >& {log}
+        fi
         """
+
+use rule integration_merge_profiles as integration_merge_profiles_multiomics with:
+    localrule: False
+    wildcard_constraints:
+        identity='\d+',
+        normalization='MG|TPM',
+        omics='metaG_metaT'
+    resources:
+        mem = lambda wildcards, input, attempt: 6 + math.ceil(3.2e-9*8*sum([get_tsv_cells(i) for i in input.single])) + 10*(attempt-1)
 
 # Given A/T/E, get full omics names metaG/metaT/metaG_metaT
 
