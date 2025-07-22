@@ -194,145 +194,189 @@ get_annotation_descriptions <- function(db_name, functionListDT) {
 # Write profiles as tsv and phyloseq files, if write_output==TRUE.
 # Assumptions:
 #   keys and profile are already indexed by gene_id
-make_profile_files <- function(keys, profile, file_label, database, annotations, weights, write_output = TRUE) {
 
-      logmsg("Making ", file_label, " profile files for ", database, decorate=TRUE)
-
-      # Make a list of sample-names
-      sample_cols <- setdiff(colnames(profile), c('gene_id'))
-
-      # Merge abundance and annotation information by gene
-      logmsg("Mapping genes to ", database, " items")
-      counts <- merge(keys, profile, all.x=FALSE, all.y=TRUE) # right join, implicitly by 'gene_id' that is keyed in both
+make_profile_files_batched <- function(keys, profile, file_label, database, annotations, weights, write_output = TRUE, batch_size = 500) {
+  
+  logmsg("Making ", file_label, " profile files for ", database, decorate=TRUE)
+  
+  # Make a list of sample-names
+  sample_cols <- setdiff(colnames(profile), c('gene_id'))
+  
+  # Create slices for too large profiles
+  mag_start_ind <- which(str_detect(profile$gene_id, "^\\w{10}_0000\\d"))
+  if (length(mag_start_ind) != 0){
+    tempdt <- data.table(row_id=mag_start_ind, gene_id=profile$gene_id[mag_start_ind], MAG=sub('_.*', '', profile$gene_id[mag_start_ind]))
+    mag_start_ind <- {unique(tempdt, by = c("MAG"))}$row_id
+    mag_start_ind[[1]] <- 1
+    rm(tempdt)
+  } else {
+    mag_start_ind <- seq(1,length(profile$gene_id), 2000)
+  }
+  
+  row_batches <- mag_start_ind[seq(1, length(mag_start_ind), batch_size)]
+  counts_list <- vector("list", length(row_batches))
+  
+  batch_next = 1
+  for (row_i in row_batches) {
+    # profile row slice
+    batch_next = batch_next + 1
+    if (batch_next <= length(row_batches)){
+      row_end  <- row_batches[[batch_next]] - 1
+    } else {
+      row_end  <- dim(profile)[[1]]
+    }
+    logmsg("start: ", row_i,", end:", row_end)
+    
+    # Merge abundance and annotation information by gene
+    logmsg("Mapping genes to ", database, " items")
+    counts <- merge(keys, profile[row_i:row_end], all.x=FALSE, all.y=TRUE) # right join, implicitly by 'gene_id' that is keyed in both
+    logmsg("  done")
+    logmsg("Profiled genes      ", nrow(profile[row_i:row_end]))
+    logmsg("Gene-Function pairs ", nrow(counts))
+    
+    # From count-per-gene, make count-per-function
+    # If necessary, weight the functions by REL of genomes
+    if (!is.null(weights)) {
+      
+      # Summarize by MAG,Funct
+      logmsg("Summarizing by MAG-Function pairs")
+      counts <- (
+        counts
+        [, MAG := sub('_.*', '', gene_id)] # Retain the first underscore-delimited field
+        [, gene_id := NULL]
+        [, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
+      )
       logmsg("  done")
-      logmsg("Profiled genes      ", nrow(profile))
-      logmsg("Gene-Function pairs ", nrow(counts))
-
-      # From count-per-gene, make count-per-function
-      # If necessary, weight the functions by REL of genomes
-      if (!is.null(weights)) {
-
-          # Summarize by MAG,Funct
-          logmsg("Summarizing by MAG-Function pairs")
-          counts <- (
-                     counts
-                     [, MAG := sub('_.*', '', gene_id)] # Retain the first underscore-delimited field
-                     [, gene_id := NULL]
-                     [, lapply(.SD, sum, na.rm=TRUE), by = c('MAG', 'Funct')]
-                    )
-          logmsg("  done")
-
-          # Get completeness
-          if (database == "kofam.KEGG_Module" & !is.null(completeness_file)) {
-              mod_comp <- fread(completeness_file,
-                                  header=TRUE,
-                                  sep="\t",
-                                  data.table=TRUE,
-                                  select=c('ID', 'module_accession', 'completeness'))
-              setkey(mod_comp, completeness)
-              mod_comp = mod_comp[completeness >= min_completeness, ]
-              setnames(mod_comp, c('ID', 'module_accession'), c('MAG', 'Funct'))
-              counts <- merge(mod_comp, counts, by=c('MAG', 'Funct'))[, completeness := NULL]
-          }
-
-          # Mark the weight-rows using Funct = 'REL'
-          weights[, Funct := "REL"]
-
-          # Ensure identical column orders before rbind()
-          setcolorder(weights, colnames(counts))
-
-          # Prepend with weights to prepare for weighing by MAG abundance
-          counts <- rbind(weights, counts)
-          logmsg("MAG-Function  pairs ", nrow(counts))
-
-          # weigh by the given weights per MAG
-          weight_MAG_by_proportions <- function(x){
-            if (is.character(x[1])){
-              return(x)
-            }else{
-              return(x*x[1])
-            }
-          }
-
-          # Normalize by weighting by 'weights'
-          # Remove REL rows
-          logmsg("Weighting functions by MAG abundance, and summarizing")
-          # Summarize by Funct
-          counts <- (
-                      counts
-                      [, lapply(.SD, weight_MAG_by_proportions), by = MAG]
-                      [Funct != 'REL', ]
-                      [, MAG := NULL]
-                      [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
-                    )
-          logmsg("  done")
-      } else {
-
-          # Summarize by Funct
-          logmsg("Summarizing functions")
-          counts <- (
-                      counts
-                      [, gene_id := NULL]
-                      [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
-                    )
-          logmsg("  done")
+      
+      # Get completeness
+      if (database == "kofam.KEGG_Module" & !is.null(completeness_file)) {
+        mod_comp <- fread(completeness_file,
+                          header=TRUE,
+                          sep="\t",
+                          data.table=TRUE,
+                          select=c('ID', 'module_accession', 'completeness'))
+        setkey(mod_comp, completeness)
+        mod_comp = mod_comp[completeness >= min_completeness, ]
+        setnames(mod_comp, c('ID', 'module_accession'), c('MAG', 'Funct'))
+        counts <- merge(mod_comp, counts, by=c('MAG', 'Funct'))[, completeness := NULL]
       }
-
-      setkey(counts, 'Funct')
-
-      # Estimate 'Unknown' functions - genes with no annotation
-      counts <- counts[.(NA), Funct := "Unknown"]
-
-      logmsg("Profiled functions  ", nrow(counts))
-
-      # Add annotations
-      logmsg("Merging function profiles and annotations")
-      counts <- merge(annotations, counts, by='Funct', all.x=FALSE, all.y=TRUE) # Right join
+      
+      # Mark the weight-rows using Funct = 'REL'
+      weights[, Funct := "REL"]
+      
+      # Ensure identical column orders before rbind()
+      setcolorder(weights, colnames(counts))
+      
+      # Prepend with weights to prepare for weighing by MAG abundance
+      counts <- rbind(weights, counts)
+      logmsg("MAG-Function  pairs ", nrow(counts))
+      
+      # weigh by the given weights per MAG
+      weight_MAG_by_proportions <- function(x){
+        if (is.character(x[1])){
+          return(x)
+        }else{
+          return(x*x[1])
+        }
+      }
+      
+      # Normalize by weighting by 'weights'
+      # Remove REL rows
+      logmsg("Weighting functions by MAG abundance, and summarizing")
+      # Summarize by Funct
+      counts <- (
+        counts
+        [, lapply(.SD, weight_MAG_by_proportions), by = MAG]
+        [Funct != 'REL', ]
+        [, MAG := NULL]
+        [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
+      )
       logmsg("  done")
-
-      if (write_output) {
-          # Write annotated functional profile as tsv
-          logmsg("Writing function profile into text file")
-          fwrite(counts,
-                 file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'),
-                 sep='\t',
-                 row.names = F,
-                 quote = F)
-          logmsg("  done")
-
-          #### Create phyloseq object ####
-
-          logmsg("Creating phyloseq object")
-
-          my_otu_table <- as.matrix(counts[, -c('Funct', 'Description')])
-          rownames(my_otu_table) <- counts$Funct
-
-          # taxa
-          my_tax_table <- as.matrix(counts)
-          rownames(my_tax_table) <- counts$Funct
-
-          physeq <- phyloseq(otu_table(my_otu_table, taxa_are_rows = T),
-                             tax_table(my_tax_table),
-                             sample_metadata)
-          logmsg("  done")
-
-          # Write phyloseq object
-          logmsg("Writing phyloseq object")
-          qsave(physeq,
-                preset = "high",
-                file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.qs'))
-          logmsg("  done")
-      }
-
-      # Index on Funct
-      setkey(counts, Funct)
-
-      # Remove Unknown functions
-      # It has been written out in tsv files for metaG and metaT
-      # And it should NOT be calculated for FE
-      counts <- counts[!J("Unknown"),]
-
-      return(counts)
+    } else {
+      
+      # Summarize by Funct
+      logmsg("Summarizing functions")
+      counts <- (
+        counts
+        [, gene_id := NULL]
+        [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
+      )
+      logmsg("  done")
+    }
+    
+    # Add to list
+    counts_list[[batch_next - 1]] <- counts
+    rm(counts)
+  }
+  
+  # Put together sliced counts
+  counts <- do.call("rbind", counts_list)
+  rm(counts_list)
+  gc()
+  
+  # Summarize by Funct
+  logmsg("Summarizing batches functions")
+  counts <- (
+    counts
+    [, lapply(.SD, sum, na.rm=TRUE), .SDcols = sample_cols, by = Funct]
+  )
+  logmsg("  done")
+  
+  setkey(counts, 'Funct')
+  
+  # Estimate 'Unknown' functions - genes with no annotation
+  counts <- counts[.(NA), Funct := "Unknown"]
+  
+  logmsg("Profiled functions  ", nrow(counts))
+  
+  # Add annotations
+  logmsg("Merging function profiles and annotations")
+  counts <- merge(annotations, counts, by='Funct', all.x=FALSE, all.y=TRUE) # Right join
+  logmsg("  done")
+  
+  if (write_output) {
+    # Write annotated functional profile as tsv
+    logmsg("Writing function profile into text file")
+    fwrite(counts,
+           file=paste0(output_dir, '/', file_label, '.', database ,'.tsv'),
+           sep='\t',
+           row.names = F,
+           quote = F)
+    logmsg("  done")
+    
+    #### Create phyloseq object ####
+    
+    logmsg("Creating phyloseq object")
+    
+    my_otu_table <- as.matrix(counts[, -c('Funct', 'Description')])
+    rownames(my_otu_table) <- counts$Funct
+    
+    # taxa
+    my_tax_table <- as.matrix(counts)
+    rownames(my_tax_table) <- counts$Funct
+    
+    physeq <- phyloseq(otu_table(my_otu_table, taxa_are_rows = T),
+                       tax_table(my_tax_table),
+                       sample_metadata)
+    logmsg("  done")
+    
+    # Write phyloseq object
+    logmsg("Writing phyloseq object")
+    qsave(physeq,
+          preset = "high",
+          file = paste0(phyloseq_dir, '/', file_label, '.', database ,'.qs'))
+    logmsg("  done")
+  }
+  
+  # Index on Funct
+  setkey(counts, Funct)
+  
+  # Remove Unknown functions
+  # It has been written out in tsv files for metaG and metaT
+  # And it should NOT be calculated for FE
+  counts <- counts[!J("Unknown"),]
+  
+  return(counts)
 }
 
 get_gene_count <- function(filename) {
@@ -565,7 +609,7 @@ if (nrow(gene_annotation) > 0) {
 
     # metaG or metaG_metaT
     if (omics %like% "metaG") {
-        metaG_counts <- make_profile_files(keys=Gene2FuncMap,
+        metaG_counts <- make_profile_files_batched(keys=Gene2FuncMap,
                                            profile=metaG_profile,
                                            file_label="FA",
                                            database=funcat_name,
@@ -579,7 +623,7 @@ if (nrow(gene_annotation) > 0) {
 
     # metaT or metaG_metaT
     if (omics %like% "metaT") {
-        metaT_counts <- make_profile_files(keys=Gene2FuncMap,
+        metaT_counts <- make_profile_files_batched(keys=Gene2FuncMap,
                                            profile=metaT_profile,
                                            file_label="FT",
                                            database=funcat_name,
