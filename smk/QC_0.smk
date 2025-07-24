@@ -497,7 +497,7 @@ ___EOF___
 TAXA_threads: 8
 TAXA_memory: 10
 TAXA_profiler: motus_rel,metaphlan
-metaphlan_version: 4.1.1
+metaphlan_version: 4.2.2
 motus_version: 3.1.0
 
 #########################

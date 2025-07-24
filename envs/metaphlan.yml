@@ -1,6 +1,6 @@
-name: metaphlan_4.1.1
+name: metaphlan_4.2.2
 channels:
   - conda-forge
   - bioconda
 dependencies:
-  - metaphlan=4.1.1
+  - metaphlan=4.2.2
