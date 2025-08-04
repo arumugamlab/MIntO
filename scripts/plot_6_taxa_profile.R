@@ -187,6 +187,10 @@ if (profile_param %like% 'motus_raw') {
 
 # Remove 'Unknown'
 profile_phyloseq = subset_taxa(profile_phyloseq, kingdom != 'Unknown')
+
+# Remove samples without taxa
+profile_phyloseq <- prune_samples(sample_sums(profile_phyloseq)>0, profile_phyloseq)
+
 otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq)), stringsAsFactors = F)
 otu_table_df$taxa_ID <- rownames(otu_table_df)
 rownames(otu_table_df) <- NULL

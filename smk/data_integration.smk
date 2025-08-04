@@ -113,13 +113,6 @@ def integration_gene_profiles():
             identity = identity,
             normalization = normalization,
             omics_prof = omics_prof),
-        expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_prof}.qs",
-            wd = working_dir,
-            omics = omics,
-            subdir = GENE_DB_TYPE,
-            identity = identity,
-            normalization = normalization,
-            omics_prof = omics_prof),
         expand("{wd}/output/data_integration/{subdir}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_prof}.PCA.pdf",
             wd = working_dir,
             omics = omics,
@@ -192,21 +185,36 @@ rule integration_merge_profiles:
         "minimal"
     log:
         "{wd}/logs/output/data_integration/{gene_db}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
+    localrule: True
     wildcard_constraints:
         identity='\d+',
-        normalization='MG|TPM'
+        normalization='MG|TPM',
+        omics='metaG|metaT'
     resources:
-        mem = lambda wildcards, input, attempt: 6 + math.ceil(3.2e-9*8*sum([get_tsv_cells(i) for i in input.single])) + 10*(attempt-1)
+        mem = 1
     threads: 1
     conda:
         minto_dir + "/envs/r_pkgs.yml"
     shell:
         """
-        time (
-            Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID
-            rsync -a out.txt {output.merged}
-        ) >& {log}
+        if [[ "metaG_metaT" != "{wildcards.omics}" ]]; then
+            ln --force {input.single[0]} {output.merged}
+        else
+            time (
+                Rscript {script_dir}/merge_profiles.R --threads {threads} --memory {resources.mem} --input {params.files} --out out.txt --keys ID
+                rsync -a out.txt {output.merged}
+            ) >& {log}
+        fi
         """
+
+use rule integration_merge_profiles as integration_merge_profiles_multiomics with:
+    localrule: False
+    wildcard_constraints:
+        identity='\d+',
+        normalization='MG|TPM',
+        omics='metaG_metaT'
+    resources:
+        mem = lambda wildcards, input, attempt: 6 + math.ceil(3.2e-9*8*sum([get_tsv_cells(i) for i in input.single])) + 10*(attempt-1)
 
 # Given A/T/E, get full omics names metaG/metaT/metaG_metaT
 
@@ -237,7 +245,6 @@ rule integration_gene_profiles:
         gene_abund_prof    ="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.tsv",
         gene_annotations   ="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.annotations.tsv",
         metadata           ="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.metadata.tsv",
-        gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs",
         gene_abund_plots   ="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/plots/G{omics_alphabet}.PCA.pdf",
     wildcard_constraints:
             omics_alphabet = r'[ATE]',
@@ -310,14 +317,7 @@ def get_function_profile_integration_input(wildcards):
 
     my_minto_mode = wildcards.gene_db.replace('-genes', '')
 
-    gene_abund_phyloseq="{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/phyloseq_obj/G{omics_alphabet}.qs".format(
-            wd = wildcards.wd,
-            omics = wildcards.omics,
-            gene_db = wildcards.gene_db,
-            identity = wildcards.identity,
-            omics_alphabet = wildcards.omics_alphabet,
-            normalization = wildcards.normalization)
-    ret_dict = {'gene_abund_phyloseq' : gene_abund_phyloseq}
+    ret_dict = {}
 
     # Add gene profiles for relevant omics
     gene_profiles=expand("{wd}/output/data_integration/{gene_db}/{omics}.gene_abundances.p{identity}.{normalization}/G{omics_alphabet}.tsv",

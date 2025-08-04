@@ -654,13 +654,13 @@ rule metaphlan_tax_profile:
         time (
             metaphlan {params.input_files} \
                     --input_type fastq \
-                    -o {wildcards.sample}.metaphlan.{wildcards.version}.tsv \
-                    --bowtie2out {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 \
-                    --bowtie2db {minto_dir}/data/metaphlan/{wildcards.version} \
+                    --output_file {wildcards.sample}.metaphlan.{wildcards.version}.tsv \
+                    --mapout {wildcards.sample}.metaphlan.{wildcards.version}.bowtie2.bz2 \
+                    --db_dir {minto_dir}/data/metaphlan/{wildcards.version} \
                     --index {metaphlan_index} \
                     --nproc {threads} \
-                    -t rel_ab_w_read_stats \
-                    --unclassified_estimation
+                    --ignore_eukaryotes \
+                    -t rel_ab_w_read_stats
             rsync -a {wildcards.sample}.metaphlan.* $remote_dir
         ) >& {log}
         """

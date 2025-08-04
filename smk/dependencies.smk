@@ -17,8 +17,8 @@ include: 'include/config_parser.smk'
 
 script_dir=workflow.basedir+"/../scripts"
 
-metaphlan_index       = 'mpa_vJun23_CHOCOPhlAnSGB_202403'
-metaphlan_version     = '4.1.1'
+metaphlan_index       = 'mpa_vJan25_CHOCOPhlAnSGB_202503'
+metaphlan_version     = '4.2.2'
 phylophlan_db_version = 'Jun23'
 motus_version         = '3.1.0'
 gtdb_release_number   = '220'
@@ -482,7 +482,7 @@ rule metaphlan_db:
         mkdir -p {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}
         time (
             metaphlan --version
-            metaphlan --install --index {wildcards.metaphlan_index} --bowtie2db {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/
+            metaphlan --install --index {wildcards.metaphlan_index} --db_dir {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/
             if [ $? -eq 0 ]; then
                 echo 'MetaPhlAn database download: OK'
                 echo "{wildcards.metaphlan_index}" > {wildcards.minto_dir}/data/metaphlan/{wildcards.metaphlan_version}/mpa_latest

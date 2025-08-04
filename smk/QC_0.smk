@@ -7,10 +7,9 @@ Authors: Carmen Saenz, Mani Arumugam, Judit Szarvas
 '''
 
 import re
-import os.path
-import os.scandir
+import os
 import pandas
-import glob.glob
+import glob
 
 localrules: qc0_fake_move_for_multiqc, qc0_create_multiqc, \
             qc1_check_read_length_merge, qc1_cumulative_read_len_plot, \
@@ -20,7 +19,7 @@ localrules: qc0_fake_move_for_multiqc, qc0_create_multiqc, \
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
 
-NEED_PROJECT_CONFIG = True
+NEED_PROJECT_VARIABLES = True
 include: 'include/cmdline_validator.smk'
 include: 'include/config_parser.smk'
 
@@ -498,7 +497,7 @@ ___EOF___
 TAXA_threads: 8
 TAXA_memory: 10
 TAXA_profiler: motus_rel,metaphlan
-metaphlan_version: 4.1.1
+metaphlan_version: 4.2.2
 motus_version: 3.1.0
 
 #########################
