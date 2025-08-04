@@ -652,7 +652,7 @@ rule download_GTDB_db:
         """
         time (
             # Download in shadowdir
-            wget --no-verbose -O gtdb.tar.gz https://data.gtdb.ecogenomic.org/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r{gtdb_release_number}_data.tar.gz
+            wget --no-verbose -O gtdb.tar.gz https://data.ace.uq.edu.au/public/gtdb/data/releases/release{gtdb_release_number}/{gtdb_release_number}.0/auxillary_files/gtdbtk_package/full_package/gtdbtk_r{gtdb_release_number}_data.tar.gz
             if [ $? -eq 0 ]; then
                 echo 'GTDB download: OK'
             else
