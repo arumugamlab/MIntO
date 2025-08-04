@@ -489,6 +489,8 @@ rule phylophlan_taxonomy_for_genome_collection:
 # Back up the raw output
 # Make a standard format output sorted on taxonomic lineage, with:
 # mag_id,kingdom,phylum,class,order,family,genus,species
+# Memory usage is 150GB according to:
+# https://ecogenomics.github.io/GTDBTk/faq.html#faq-pplacer
 ########################
 
 rule gtdb_taxonomy_for_genome_collection:
@@ -505,7 +507,7 @@ rule gtdb_taxonomy_for_genome_collection:
     params:
         db_folder=lambda wildcards: "{minto_dir}/data/GTDB/{db_version}".format(minto_dir=minto_dir, db_version=wildcards.db_version)
     resources:
-        mem=70
+        mem=150
     threads:
         TAXONOMY_CPUS
     conda:
