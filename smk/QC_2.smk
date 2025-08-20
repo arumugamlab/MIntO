@@ -659,7 +659,6 @@ rule metaphlan_tax_profile:
                     --db_dir {minto_dir}/data/metaphlan/{wildcards.version} \
                     --index {metaphlan_index} \
                     --nproc {threads} \
-                    --ignore_eukaryotes \
                     -t rel_ab_w_read_stats
             rsync -a {wildcards.sample}.metaphlan.* $remote_dir
         ) >& {log}
