@@ -400,11 +400,35 @@ def get_contig_bwa_index(wildcards):
 # Threads for individual tasks: Work backwards from {threads} from snakemake
 # Once mapping succeeds, run coverM to get contig depth for this bam
 
+###############################################################################################
+# Map reads to contig/scaffold batches
+###############################################################################################
+
+rule set_max_mapcount:
+    localrule: True
+    input:
+        "{wd}/output/2-qc/{omics}.readcounts.txt"
+    output:
+        "{wd}/{omics}/8-1-binning/{omics}.mapped_readcounts.txt"
+    resources:
+        mem = 1
+    threads:
+        2
+    run:
+        import pandas as pd
+        import numpy as np
+        df = pd.read_csv(input[0], header=0, sep = "\t", memory_map=True)
+        threestd = int(df.fragment_count_clean.mean() + df.fragment_count_clean.std()*3)
+        df['binprep_limit'] = np.where(df['fragment_count_clean'] >= threestd, str(threestd), "None")
+        df.to_csv(output[0], sep = "\t", columns = ['sample', 'binprep_limit'], index=False)
+
+
 rule map_contigs_BWA_depth_coverM:
     input:
         bwaindex=get_contig_bwa_index,
         fwd='{wd}/{omics}/6-corrected/{illumina}/{illumina}.1.fq.gz',
-        rev='{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz'
+        rev='{wd}/{omics}/6-corrected/{illumina}/{illumina}.2.fq.gz',
+        maxfrag=rules.set_max_mapcount.output
     output:
         depth = temp("{wd}/{omics}/8-1-binning/depth_{scaf_type}.{min_length}/batch{batch}/{illumina}.depth.txt.gz")
     shadow:
@@ -428,7 +452,22 @@ rule map_contigs_BWA_depth_coverM:
         """
         mkdir -p $(dirname {output})
         db_name=$(echo {input.bwaindex[0]} | sed "s/.0123//")
-        time (bwa-mem2 mem -P -a -t {resources.map_threads} $db_name {input.fwd} {input.rev} \
+        
+        max_mapped_fragcount=$(grep "^{wildcards.illumina}$(printf '\\t')" {input.maxfrag} | cut -f 2 )
+        
+        # Make named pipes if needed
+        if [[ $max_mapped_fragcount != "None" ]]; then
+            mkfifo {wildcards.illumina}.1.fq.gz
+            mkfifo {wildcards.illumina}.2.fq.gz
+            
+            max_mapped_fqlines=$(( ${{max_mapped_fragcount}} * 4))
+            head -n $max_mapped_fqlines {input.fwd} > {wildcards.illumina}.1.fq.gz &
+            head -n $max_mapped_fqlines {input.rev} > {wildcards.illumina}.2.fq.gz &
+            input_files="{wildcards.illumina}.1.fq.gz {wildcards.illumina}.2.fq.gz"
+        else
+            input_files="{input.fwd} {input.rev}"
+        fi
+        time (bwa-mem2 mem -P -a -t {resources.map_threads} $db_name $input_files \
                 | msamtools filter -buS -p 95 -l 45 - \
                 | samtools sort -m {resources.sort_mem}G --threads {resources.samtools_sort_threads} - \
                 > {wildcards.illumina}.bam
