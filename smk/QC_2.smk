@@ -209,7 +209,7 @@ def taxonomy_plot_output():
     return(results)
 
 def smash_plot_output():
-    if omics == "metaG":
+    if omics == "metaG" and config['SOURMASH_max_abund'] > 0:
         barplots = "{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.clusters.pdf".format(
                         wd = working_dir,
                         omics = omics,
