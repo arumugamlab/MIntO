@@ -487,8 +487,10 @@ rule phylophlan_taxonomy_for_genome_collection:
 ########################
 # GTDB-tk on fna files
 # Back up the raw output
-# Make a standard format output with:
+# Make a standard format output sorted on taxonomic lineage, with:
 # mag_id,kingdom,phylum,class,order,family,genus,species
+# Memory usage is 150GB according to:
+# https://ecogenomics.github.io/GTDBTk/faq.html#faq-pplacer
 ########################
 
 rule gtdb_taxonomy_for_genome_collection:
@@ -505,7 +507,7 @@ rule gtdb_taxonomy_for_genome_collection:
     params:
         db_folder=lambda wildcards: "{minto_dir}/data/GTDB/{db_version}".format(minto_dir=minto_dir, db_version=wildcards.db_version)
     resources:
-        mem=70
+        mem=150
     threads:
         TAXONOMY_CPUS
     conda:
@@ -522,6 +524,7 @@ rule gtdb_taxonomy_for_genome_collection:
                     | tail -n +2 \
                     | sed "s/ /_/g" \
                     | perl -lane '@tax = map {{s/.__//; $_}} split(/;/, $F[1]); $, = "\t"; print($F[0], @tax);' \
+                    | sort -k2,2 -k3,3 -k4,4 -k5,5 -k6,6 -k7,7 -k8,8 -k1,1 \
                     >> taxonomy.tsv.fixed
         ) >& {log}
         rsync -a taxonomy.tsv {output.orig}
