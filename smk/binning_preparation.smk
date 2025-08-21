@@ -457,13 +457,13 @@ rule map_contigs_BWA_depth_coverM:
         
         # Make named pipes if needed
         if [[ $max_mapped_fragcount != "None" ]]; then
-            mkfifo {wildcards.illumina}.1.fq.gz
-            mkfifo {wildcards.illumina}.2.fq.gz
+            mkfifo {wildcards.illumina}.1.fq
+            mkfifo {wildcards.illumina}.2.fq
             
             max_mapped_fqlines=$(( ${{max_mapped_fragcount}} * 4))
-            head -n $max_mapped_fqlines {input.fwd} > {wildcards.illumina}.1.fq.gz &
-            head -n $max_mapped_fqlines {input.rev} > {wildcards.illumina}.2.fq.gz &
-            input_files="{wildcards.illumina}.1.fq.gz {wildcards.illumina}.2.fq.gz"
+            zcat {input.fwd} | head -n $max_mapped_fqlines > {wildcards.illumina}.1.fq &
+            zcat {input.rev} | head -n $max_mapped_fqlines > {wildcards.illumina}.2.fq &
+            input_files="{wildcards.illumina}.1.fq {wildcards.illumina}.2.fq"
         else
             input_files="{input.fwd} {input.rev}"
         fi
