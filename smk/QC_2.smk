@@ -170,6 +170,15 @@ coas_factor = validate_optional_key(config, 'COAS_factor')
 if coas_factor is None:
     coas_factor = main_factor
 
+##############################################
+# k-mer clustering
+##############################################
+
+if omics == 'metaG':
+    sourmash_m = validate_required_key(config, 'SOURMASH_min_abund')
+    sourmash_M = validate_required_key(config, 'SOURMASH_max_abund')
+    sourmash_cutoff = validate_required_key(config, 'SOURMASH_cutoff')
+
 # Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
 
 CLUSTER_NODES            = None
@@ -209,7 +218,7 @@ def taxonomy_plot_output():
     return(results)
 
 def smash_plot_output():
-    if omics == "metaG":
+    if omics == "metaG" and sourmash_M > 0:
         barplots = "{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.clusters.pdf".format(
                         wd = working_dir,
                         omics = omics,
@@ -659,7 +668,6 @@ rule metaphlan_tax_profile:
                     --db_dir {minto_dir}/data/metaphlan/{wildcards.version} \
                     --index {metaphlan_index} \
                     --nproc {threads} \
-                    --ignore_eukaryotes \
                     -t rel_ab_w_read_stats
             rsync -a {wildcards.sample}.metaphlan.* $remote_dir
         ) >& {log}
@@ -833,8 +841,8 @@ rule sourmash_filter:
         "minimal"
     params:
         k=21,
-        m=config['SOURMASH_min_abund'],
-        M=config['SOURMASH_max_abund']
+        m=sourmash_m,
+        M=sourmash_M
     resources:
         mem=TAXA_memory
     threads:
@@ -893,7 +901,7 @@ rule plot_sourmash_kmers:
     wildcard_constraints:
         omics = r'metaG|metaT'
     params:
-        cutoff=config['SOURMASH_cutoff'],
+        cutoff=sourmash_cutoff,
         plot_args=plot_args_str
     threads:
         1
