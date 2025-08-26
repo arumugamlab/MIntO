@@ -601,7 +601,7 @@ rule download_phylophlan_db:
         "minimal"
     resources:
         mem=4
-    threads: 16
+    threads: 4
     log:
         "{minto_dir}/logs/phylophlan.SGB.{phylophlan_db_version}.download.log"
     conda:
@@ -682,7 +682,7 @@ rule download_mmseqs_GTDB_db:
     resources:
         mem=2
     threads:
-        8
+        4
     log:
         "{minto_dir}/logs/mmseqs.{mmseqs_tax_db}.download.log"
     conda:
@@ -730,7 +730,7 @@ rule download_metabuli_GTDB_db:
     resources:
         mem=2
     threads:
-        8
+        4
     log:
         "{minto_dir}/logs/metabuli.{metabuli_tax_db}.download.log"
     conda:
