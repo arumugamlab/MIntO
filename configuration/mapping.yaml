@@ -12,7 +12,7 @@ METADATA: /mypath/IBD_tutorial/tutorial_metadata.txt
 ######################
 
 MAIN_factor: participant_ID2
-PLOT_factor2: 
+PLOT_factor2: None
 PLOT_time: week_n
 
 ######################
@@ -77,7 +77,7 @@ TAXONOMY_memory: 5
 # Taxonomy database versions
 #
 PHYLOPHLAN_TAXONOMY_VERSION: SGB.Jun23
-GTDB_TAXONOMY_VERSION: r220
+GTDB_TAXONOMY_VERSION: r226
 
 # Input data
 
