@@ -40,8 +40,8 @@ MEGAHIT_threads: 32
 MEGAHIT_presets:
  - meta-sensitive
  - meta-large
-#MEGAHIT_custom:
-# -
+MEGAHIT_custom:
+ - 21,29,39,59,79,99,119,141
 
 # MetaFlye settings
 #

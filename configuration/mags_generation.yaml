@@ -20,7 +20,7 @@ MIN_MAG_LENGTH: 500000
 BINNERS:
 - aaey
 - aaez
-- vae384
+- vaevae384
 
 VAMB_THREADS: 20
 
@@ -28,6 +28,10 @@ VAMB_THREADS: 20
 # could be yes or no
 VAMB_GPU: no
 
+# Metabuli for taxvamb
+#
+TAXVAMB_ANNOTATOR: metabuli
+METABULI_MEM_GB: 128
 
 # CHECKM settings
 #
