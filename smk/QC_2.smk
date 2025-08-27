@@ -174,10 +174,9 @@ if coas_factor is None:
 # k-mer clustering
 ##############################################
 
-if omics == 'metaG':
-    sourmash_m = validate_required_key(config, 'SOURMASH_min_abund')
-    sourmash_M = validate_required_key(config, 'SOURMASH_max_abund')
-    sourmash_cutoff = validate_required_key(config, 'SOURMASH_cutoff')
+sourmash_m = validate_required_key(config, 'SOURMASH_min_abund')
+sourmash_M = validate_required_key(config, 'SOURMASH_max_abund')
+sourmash_cutoff = validate_required_key(config, 'SOURMASH_cutoff')
 
 # Site customization for avoiding NFS traffic during I/O heavy steps such as mapping
 

@@ -507,8 +507,8 @@ if (omics %like% "metaT") {
 # For metaG_metaT, subset profiles for common samples
 ########################################################
 
-logmsg("began getting common samples")
 if (omics == 'metaG_metaT') {
+    logmsg("began getting common samples")
     # Columns shared b/w metaG and metaT. This includes 'gene_id', which is also needed in final table.
     intersect_columns = intersect(colnames(metaG_profile), colnames(metaT_profile))
     metaG_profile = metaG_profile[, intersect_columns, with=FALSE]
@@ -520,8 +520,8 @@ if (omics == 'metaG_metaT') {
         metaG_genome_weights = metaG_genome_weights[, intersect_columns, with=FALSE]
         metaT_genome_weights = metaT_genome_weights[, intersect_columns, with=FALSE]
     }
+    logmsg("done  getting common samples")
 }
-logmsg("done  getting common samples")
 
 # By now, we will have:
 #   metadata_df
@@ -758,22 +758,15 @@ if (nrow(gene_annotation) > 0) {
     }
 
     logmsg(funcat_name, " finished!")
+    logmsg("  DONE  ", decorate=TRUE)
 
 } else {
-    # create .tsv, .qs, .pdf
-    file.create(paste0(output_dir, '/FA.', funcat_name ,'.tsv'))
-    file.create(paste0(output_dir, '/FT.', funcat_name ,'.tsv'))
-    file.create(paste0(output_dir, '/FE.', funcat_name ,'.tsv'))
-    file.create(paste0(phyloseq_dir, 'FA.', funcat_name ,'.qs'))
-    file.create(paste0(phyloseq_dir, 'FT.', funcat_name ,'.qs'))
-    file.create(paste0(phyloseq_dir, 'FE.', funcat_name ,'.qs'))
-    file.create(paste0(visual_dir, 'FA.', funcat_name ,'.PCA.pdf'))
-    file.create(paste0(visual_dir, 'FT.', funcat_name ,'.PCA.pdf'))
-    file.create(paste0(visual_dir, 'FE.', funcat_name ,'.PCA.pdf'))
-    ge_fe_df <- rbind(ge_fe_df, c(funcat_name, 0, 'Functions'))
+
+    # No annotations found, so fail
+    logmsg("!! WARNING: No annotated genes in ", funcat_name, " !!")
+    logmsg("  !!! FAILED !!!  ", decorate=TRUE)
 }
 
 # Garbage-collect
 gc()
 
-logmsg("  DONE  ", decorate=TRUE)

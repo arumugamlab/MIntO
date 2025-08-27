@@ -240,7 +240,7 @@ rule correct_spadeshammer:
         mkdir -p $(dirname {output.fwd})
         time (
             {spades_script} --only-error-correction -1 {input.reads[0]} -2 {input.reads[1]} -t {threads} -m {resources.mem} -o {wildcards.run} --phred-offset {params.qoffset}
-            rsync -a {wildcards.run}/corrected/{wildcards.run}.1.fq.00.0_0.cor.fastq.gz {output.fwd}; rsync -a {wildcards.run}/corrected/{wildcards.run}.2.fq.00.0_0.cor.fastq.gz {output.rev}
+            rsync -a {wildcards.run}/corrected/{wildcards.run}.1.fq00.0_0.cor.fastq.gz {output.fwd}; rsync -a {wildcards.run}/corrected/{wildcards.run}.2.fq00.0_0.cor.fastq.gz {output.rev}
         ) >& {log}
         """
 
