@@ -507,8 +507,8 @@ if (omics %like% "metaT") {
 # For metaG_metaT, subset profiles for common samples
 ########################################################
 
-logmsg("began getting common samples")
 if (omics == 'metaG_metaT') {
+    logmsg("began getting common samples")
     # Columns shared b/w metaG and metaT. This includes 'gene_id', which is also needed in final table.
     intersect_columns = intersect(colnames(metaG_profile), colnames(metaT_profile))
     metaG_profile = metaG_profile[, intersect_columns, with=FALSE]
@@ -520,8 +520,8 @@ if (omics == 'metaG_metaT') {
         metaG_genome_weights = metaG_genome_weights[, intersect_columns, with=FALSE]
         metaT_genome_weights = metaT_genome_weights[, intersect_columns, with=FALSE]
     }
+    logmsg("done  getting common samples")
 }
-logmsg("done  getting common samples")
 
 # By now, we will have:
 #   metadata_df
