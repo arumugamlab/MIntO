@@ -495,7 +495,7 @@ ___EOF___
 # Eg:
 #    TAXA_profiler: metaphlan,motus_rel
 TAXA_threads: 8
-TAXA_memory: 10
+TAXA_memory: 15
 TAXA_profiler: motus_rel,metaphlan
 metaphlan_version: 4.2.2
 motus_version: 3.1.0
