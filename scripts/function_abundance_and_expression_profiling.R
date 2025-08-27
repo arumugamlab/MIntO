@@ -758,22 +758,15 @@ if (nrow(gene_annotation) > 0) {
     }
 
     logmsg(funcat_name, " finished!")
+    logmsg("  DONE  ", decorate=TRUE)
 
 } else {
-    # create .tsv, .qs, .pdf
-    file.create(paste0(output_dir, '/FA.', funcat_name ,'.tsv'))
-    file.create(paste0(output_dir, '/FT.', funcat_name ,'.tsv'))
-    file.create(paste0(output_dir, '/FE.', funcat_name ,'.tsv'))
-    file.create(paste0(phyloseq_dir, 'FA.', funcat_name ,'.qs'))
-    file.create(paste0(phyloseq_dir, 'FT.', funcat_name ,'.qs'))
-    file.create(paste0(phyloseq_dir, 'FE.', funcat_name ,'.qs'))
-    file.create(paste0(visual_dir, 'FA.', funcat_name ,'.PCA.pdf'))
-    file.create(paste0(visual_dir, 'FT.', funcat_name ,'.PCA.pdf'))
-    file.create(paste0(visual_dir, 'FE.', funcat_name ,'.PCA.pdf'))
-    ge_fe_df <- rbind(ge_fe_df, c(funcat_name, 0, 'Functions'))
+
+    # No annotations found, so fail
+    logmsg("!! WARNING: No annotated genes in ", funcat_name, " !!")
+    logmsg("  !!! FAILED !!!  ", decorate=TRUE)
 }
 
 # Garbage-collect
 gc()
 
-logmsg("  DONE  ", decorate=TRUE)
