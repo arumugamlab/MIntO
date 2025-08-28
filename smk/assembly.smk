@@ -8,8 +8,6 @@ Authors: Carmen Saenz, Mani Arumugam
 
 import os.path
 
-localrules: merge_runs, mark_circular_metaspades_contigs, mark_circular_flye_contigs, rename_megahit_contigs
-
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
@@ -265,6 +263,7 @@ def get_corrected_runs_for_sample(wildcards):
     return(files)
 
 rule merge_runs:
+    localrule: True
     input:
         files=get_corrected_runs_for_sample
     output:
@@ -459,6 +458,7 @@ rule nanopore_assembly_metaflye:
 # It also updates 'length' in the fasta header.
 ###############################################################################################
 rule mark_circular_metaspades_contigs:
+    localrule: True
     input:
         "{wd}/{omics}/7-assembly/{sample}/k21-{maxk}/{which}.fasta"
     output:
@@ -486,6 +486,7 @@ rule mark_circular_metaspades_contigs:
 # It appends '_circularA' to the fasta header.
 ###############################################################################################
 rule mark_circular_flye_contigs:
+    localrule: True
     input:
         "{wd}/{omics}/7-assembly/{nanopore}/{assembly_preset}/assembly.fasta",
         "{wd}/{omics}/7-assembly/{nanopore}/{assembly_preset}/assembly_info.txt"
@@ -514,6 +515,7 @@ rule mark_circular_flye_contigs:
 
 # Rename MEGAHIT contigs
 rule rename_megahit_contigs:
+    localrule: True
     input:
         "{wd}/{omics}/7-assembly/{coassembly}/{assembly_preset}/final.contigs.fa"
     output:

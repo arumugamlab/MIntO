@@ -11,8 +11,6 @@ import os
 import pandas
 import glob
 
-localrules: qc1_check_read_length_merge, qc1_cumulative_read_len_plot, qc2_config_yml_file
-
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
@@ -277,12 +275,12 @@ if TRIMMOMATIC_index_barcodes:
     # If there is a global index file for all samples given in config['TRIMMOMATIC_index_barcodes'], use it
     # If it does not exist, then infer from fastq file
 
-    localrules: qc1_get_index_barcode, qc1_make_custom_adapter_file, qc1_make_custom_adapter_file_with_palindrome
     ruleorder: qc1_make_custom_adapter_file_with_palindrome > qc1_make_custom_adapter_file
 
     if TRIMMOMATIC_index_barcodes.lower() == "infer":
         # Infer from fastq file
         rule qc1_get_index_barcode:
+            localrule: True
             input:
                 read_fw=lambda wildcards: get_example_to_infer_index(wildcards.sample),
             output:
@@ -301,6 +299,7 @@ if TRIMMOMATIC_index_barcodes:
     else:
         # From global index file
         rule qc1_get_index_barcode:
+            localrule: True
             input:
                 barcodes=TRIMMOMATIC_index_barcodes,
             output:
@@ -317,6 +316,7 @@ if TRIMMOMATIC_index_barcodes:
 
     # Create a custom adapter file to be used in Trimmomatic, given the custom index file above
     rule qc1_make_custom_adapter_file_with_palindrome:
+        localrule: True
         input:
             barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
             palindrome=TRIMMOMATIC_palindrome,
@@ -350,6 +350,7 @@ if TRIMMOMATIC_index_barcodes:
 
     # Create a custom adapter file to be used in Trimmomatic, given the custom index file above
     rule qc1_make_custom_adapter_file:
+        localrule: True
         input:
             barcodes="{wd}/{omics}/1-trimmed/{sample}/index_barcodes.txt",
             template=TRIMMOMATIC_adaptors
@@ -384,10 +385,9 @@ if TRIMMOMATIC_index_barcodes:
 
 elif TRIMMOMATIC_adaptors != 'Skip':
 
-    localrules: qc1_copy_fixed_adapter_file
-
     # Hardlink standard file if there is no index_barcode file
     rule qc1_copy_fixed_adapter_file:
+        localrule: True
         input:
             template=TRIMMOMATIC_adaptors
         output:
@@ -406,10 +406,9 @@ ruleorder: qc1_trim_quality_and_adapter > qc1_trim_quality
 
 if TRIMMOMATIC_adaptors == 'Skip':
 
-    localrules: qc1_trim_quality
-
     # Fake a trim
     rule qc1_trim_quality:
+        localrule: True
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
@@ -427,7 +426,10 @@ if TRIMMOMATIC_adaptors == 'Skip':
             """
 
 else:
+
+    # Trim for quality with Trimmomatic
     rule qc1_trim_quality:
+        localrule: True
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
@@ -461,7 +463,7 @@ else:
             ) >& {log}
             """
 
-# Trim with Trimmomatic
+# Trim for quality and adapter with Trimmomatic
 rule qc1_trim_quality_and_adapter:
     input:
         unpack(get_raw_reads_for_sample_run),
@@ -525,6 +527,7 @@ rule qc1_check_read_length:
         """
 
 rule qc1_check_read_length_merge:
+    localrule: True
     input:
         length=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt", wd=wildcards.wd, omics=wildcards.omics, sample=ilmn_samples, group=['1', '2'])
     output:
@@ -540,6 +543,7 @@ rule qc1_check_read_length_merge:
         """
 
 rule qc1_cumulative_read_len_plot:
+    localrule: True
     input:
         readlen_dist=rules.qc1_check_read_length_merge.output.readlen_dist
     output:
@@ -565,6 +569,7 @@ rule qc1_cumulative_read_len_plot:
 ##########################################################################################################
 
 rule qc2_config_yml_file:
+    localrule: True
     input:
         cutoff_file=rules.qc1_cumulative_read_len_plot.output.cutoff_file
     output:
