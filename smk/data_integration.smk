@@ -170,6 +170,7 @@ rule all:
 ## Merge gene abundance and gene transcript profiles
 ###############################################################################################
 rule integration_merge_profiles:
+    localrule: True
     input:
         single=lambda wildcards: expand("{wd}/{omics_individual}/9-mapping-profiles/{minto_mode}/gene_abundances.p{identity}.{normalization}.tsv",
                                             wd = wildcards.wd,
@@ -185,7 +186,6 @@ rule integration_merge_profiles:
         "minimal"
     log:
         "{wd}/logs/output/data_integration/{gene_db}/{omics}.p{identity}.{normalization}.integration_merge_profiles.log"
-    localrule: True
     wildcard_constraints:
         identity='\d+',
         normalization='MG|TPM',
@@ -432,6 +432,7 @@ rule integration_function_profiles:
 # into a single data frame.
 
 rule combine_feature_counts:
+    localrule: True
     input:
         features=lambda wildcards: expand("{somewhere}/{something}_features.{funcat}.tsv",
                                             somewhere=wildcards.somewhere,
@@ -439,7 +440,6 @@ rule combine_feature_counts:
                                             funcat=funct_opt)
     output:
         combined="{somewhere}/{something}_features.tsv",
-    localrule: True
     run:
         import pandas as pd
 
