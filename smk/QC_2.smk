@@ -937,6 +937,14 @@ if omics == 'metaG':
 # Generate configuration yml file for recovery of MAGs and taxonomic annotation step - assembly/coassembly
 ##########################################################################################################
 
+def get_qc2_assembly_config_table(wildcards):
+    if wildcards.omics == "metaG":
+        return(expand("{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv",
+                    wd = wildcards.wd,
+                    omics = wildcards.omics))
+    else:
+        return(metadata)
+
 rule qc2_filter_config_yml_assembly:
     input:
         tax=lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
@@ -944,7 +952,7 @@ rule qc2_filter_config_yml_assembly:
                                     omics = wildcards.omics,
                                     taxonomy = taxonomies_versioned),
         metadata=metadata,
-        table="{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv"
+        table=get_qc2_assembly_config_table
     output:
         config_file="{wd}/{omics}/assembly.yaml"
     params:
