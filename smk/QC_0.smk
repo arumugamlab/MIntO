@@ -11,10 +11,6 @@ import os
 import pandas
 import glob
 
-localrules: qc0_fake_move_for_multiqc, qc0_create_multiqc, \
-            qc1_check_read_length_merge, qc1_cumulative_read_len_plot, \
-            qc2_config_yml_file
-
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
@@ -215,13 +211,13 @@ if FASTP_adapters == 'Skip':
 
     # Fake a trim
     rule qc0_trim_quality:
+        localrule: True
         input:
             unpack(get_raw_reads_for_sample_run)
         output:
             pairead1="{wd}/{omics}/1-trimmed/{sample}/{run}.1.fq.gz",
             pairead2="{wd}/{omics}/1-trimmed/{sample}/{run}.2.fq.gz",
             json="{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastp.json"
-        localrule: True
         log:
             "{wd}/logs/{omics}/1-trimmed/{sample}_{run}_qc0_trim_quality.log"
         shell:
@@ -306,6 +302,7 @@ else:
 ########
 
 rule qc0_fake_move_for_multiqc:
+    localrule: True
     input:
         fastqc_html=lambda wildcards: expand("{wd}/{omics}/1-0-qc/{sample}/{sample}-{run}_fastqc.done",
                                             wd=wildcards.wd,
@@ -329,6 +326,7 @@ rule qc0_fake_move_for_multiqc:
         """
 
 rule qc0_create_multiqc:
+    localrule: True
     input:
         mqc_flag=lambda wildcards: expand("{wd}/{omics}/1-0-qc/{sample}_fake.moved",
                                             wd=wildcards.wd,
@@ -378,6 +376,7 @@ rule qc1_check_read_length:
         """
 
 rule qc1_check_read_length_merge:
+    localrule: True
     input:
         length=lambda wildcards: expand("{wd}/{omics}/1-trimmed/{sample}/{sample}.{group}.read_length.txt", wd=wildcards.wd, omics=wildcards.omics, sample=ilmn_samples, group=['1', '2'])
     output:
@@ -393,6 +392,7 @@ rule qc1_check_read_length_merge:
         """
 
 rule qc1_cumulative_read_len_plot:
+    localrule: True
     input:
         readlen_dist=rules.qc1_check_read_length_merge.output.readlen_dist
     output:
@@ -417,6 +417,7 @@ rule qc1_cumulative_read_len_plot:
 ##########################################################################################################
 
 rule qc2_config_yml_file:
+    localrule: True
     input:
         cutoff_file=rules.qc1_cumulative_read_len_plot.output.cutoff_file
     output:
