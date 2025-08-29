@@ -31,10 +31,6 @@ use rule QC_2_base, QC_2_rpkg, QC_2_mpl, QC_2_motus from print_versions as versi
 
 snakefile_name = print_versions.get_smk_filename()
 
-localrules: qc2_filter_config_yml_assembly, qc2_filter_config_yml_mapping, \
-            metaphlan_combine_profiles, motus_combine_profiles, motus_calc_motu, \
-            plot_taxonomic_profile, plot_sourmash_kmers
-
 taxonomies_versioned = list()
 ilmn_samples = list()
 merged_illumina_samples = dict()
@@ -589,7 +585,6 @@ rule aggregate_readcounts:
 
 if merged_illumina_samples:
 
-    localrules: merge_fastqs_for_composite_samples
     ruleorder: merge_fastqs_for_composite_samples > qc2_host_filter
 
     if omics == 'metaT':
@@ -608,6 +603,7 @@ if merged_illumina_samples:
     # Merge files for a given sample from all its reps
     # Restrict it to only those appearing in MERGE_ILLUMINA_SAMPLES dict in config file
     rule merge_fastqs_for_composite_samples:
+        localrule: True
         input:
             fastq=get_rep_files_for_composite_sample
         output:
@@ -674,6 +670,7 @@ rule metaphlan_tax_profile:
         """
 
 rule metaphlan_combine_profiles:
+    localrule: True
     input:
         ra=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = nonredundant_ilmn_samples),
     output:
@@ -727,6 +724,7 @@ rule motus_map_db:
         """
 
 rule motus_calc_motu:
+    localrule: True
     input:
         db = f"{minto_dir}/data/motus/{{version}}/db_mOTU/db_mOTU_versions",
         mgc=rules.motus_map_db.output.mgc,
@@ -751,6 +749,7 @@ rule motus_calc_motu:
         """
 
 rule motus_combine_profiles:
+    localrule: True
     input:
         db = f"{minto_dir}/data/motus/{{version}}/db_mOTU/db_mOTU_versions",
         profiles=lambda wildcards: expand("{wd}/{omics}/6-taxa_profile/{sample}/{sample}.{taxonomy}.{version}.tsv", wd = wildcards.wd, omics = wildcards.omics, taxonomy = wildcards.taxonomy, version = wildcards.version, sample = nonredundant_ilmn_samples),
@@ -777,6 +776,7 @@ rule motus_combine_profiles:
         """
 
 rule plot_taxonomic_profile:
+    localrule: True
     input:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
     output:
@@ -888,6 +888,7 @@ if omics == 'metaG':
             """
 
     rule plot_sourmash_kmers:
+        localrule: True
         input:
             csv = expand("{wd}/{omics}/6-1-smash/{omics}.sourmash_cosine_similarity.csv",
                     wd = working_dir,
@@ -918,6 +919,7 @@ if omics == 'metaG':
             """
 
     rule dummy_sourmash_clusters:
+        localrule: True
         input:
             "{wd}/output/6-1-smash/{omics}.{taxonomy_versioned}.sourmash_clusters.tsv".format(
                             wd = working_dir,
@@ -927,7 +929,6 @@ if omics == 'metaG':
             "{wd}/output/6-1-smash/{omics}.sourmash_clusters.tsv"
         threads:
             1
-        localrule: True
         shell:
             """
             mv {input} {output}
@@ -946,6 +947,7 @@ def get_qc2_assembly_config_table(wildcards):
         return(metadata)
 
 rule qc2_filter_config_yml_assembly:
+    localrule: True
     input:
         tax=lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
                                     wd = wildcards.wd,
@@ -1196,6 +1198,7 @@ fi
 ###############################################################################################
 
 rule qc2_filter_config_yml_mapping:
+    localrule: True
     input:
         tsv = lambda wildcards: expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.tsv",
                                     wd = wildcards.wd,

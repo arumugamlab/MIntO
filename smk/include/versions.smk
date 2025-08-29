@@ -56,13 +56,13 @@ if (x := validate_optional_key(config, 'GTDB_TAXONOMY_VERSION')):
 ##################################
 
 rule test_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/module_tester.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
@@ -76,13 +76,13 @@ rule test_base:
 ##################################
 
 rule QC_0_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/QC_0_base.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
@@ -95,6 +95,7 @@ rule QC_0_base:
         """
 
 rule QC_0_rpkg:
+    localrule: True
     input:
         "{wd}/output/versions/QC_0_base.flag"
     output:
@@ -102,7 +103,6 @@ rule QC_0_rpkg:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/r_pkgs.yml"
     shell:
@@ -116,13 +116,13 @@ rule QC_0_rpkg:
 ##################################
 
 rule QC_1_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/QC_1_base.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
@@ -134,6 +134,7 @@ rule QC_1_base:
         """
 
 rule QC_1_rpkg:
+    localrule: True
     input:
         "{wd}/output/versions/QC_1_base.flag"
     output:
@@ -141,7 +142,6 @@ rule QC_1_rpkg:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/r_pkgs.yml"
     shell:
@@ -155,13 +155,13 @@ rule QC_1_rpkg:
 ##################################
 
 rule QC_2_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/QC_2_base.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
@@ -178,6 +178,7 @@ rule QC_2_base:
         """
 
 rule QC_2_mpl:
+    localrule: True
     input:
         "{wd}/output/versions/QC_2_base.flag"
     output:
@@ -185,7 +186,6 @@ rule QC_2_mpl:
     resources:
         mem=1 
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/metaphlan.yml"
     shell:
@@ -197,6 +197,7 @@ rule QC_2_mpl:
         """
 
 rule QC_2_motus:
+    localrule: True
     input:
         "{wd}/output/versions/QC_2_mpl.flag"
     output:
@@ -204,7 +205,6 @@ rule QC_2_motus:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/motus_env.yml"
     shell:
@@ -214,6 +214,7 @@ rule QC_2_motus:
         """
 
 rule QC_2_rpkg:
+    localrule: True
     input:
         "{wd}/output/versions/QC_2_motus.flag"
     output:
@@ -223,7 +224,6 @@ rule QC_2_rpkg:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/r_pkgs.yml"
     shell:
@@ -237,13 +237,13 @@ rule QC_2_rpkg:
 ##################################
 
 rule assembly_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/assembly.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
@@ -261,13 +261,13 @@ rule assembly_base:
 ##################################
 
 rule binning_preparation_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/binprep_base.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
@@ -282,6 +282,7 @@ rule binning_preparation_base:
         """
 
 rule binning_preparation_vamb:
+    localrule: True
     input:
         "{wd}/output/versions/binprep_base.flag"
     output:
@@ -289,7 +290,6 @@ rule binning_preparation_vamb:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/vamb.yml"
     shell:
@@ -303,13 +303,13 @@ rule binning_preparation_vamb:
 ##################################
 
 rule mags_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/mags_base.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
@@ -321,6 +321,7 @@ rule mags_base:
         """
 
 rule mags_avamb:
+    localrule: True
     input:
         "{wd}/output/versions/mags_base.flag"
     output:
@@ -328,7 +329,6 @@ rule mags_avamb:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/avamb.yml"
     shell:
@@ -338,6 +338,7 @@ rule mags_avamb:
         """
 
 rule mags_checkm2:
+    localrule: True
     input:
         "{wd}/output/versions/mags_base.flag"
     output:
@@ -345,7 +346,6 @@ rule mags_checkm2:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/checkm2.yml"
     shell:
@@ -359,6 +359,7 @@ rule mags_checkm2:
 ##################################
 
 rule annotation_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/gene_annotation.flag")
     params:
@@ -369,7 +370,6 @@ rule annotation_base:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/gene_annotation.yml"
     shell:
@@ -399,6 +399,7 @@ rule annotation_base:
         """
 
 rule annotation_phylophlan:
+    localrule: True
     output:
         temp("{wd}/output/versions/annot_phylophlan.flag")
     params:
@@ -406,7 +407,6 @@ rule annotation_phylophlan:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/mags.yml"
     shell:
@@ -419,6 +419,7 @@ rule annotation_phylophlan:
         """
 
 rule annotation_gtdb:
+    localrule: True
     output:
         temp("{wd}/output/versions/annot_gtdb.flag")
     params:
@@ -426,7 +427,6 @@ rule annotation_gtdb:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/gtdb.yml"
     shell:
@@ -442,13 +442,13 @@ rule annotation_gtdb:
 ##################################
 
 rule abundance_base:
+    localrule: True
     output:
         temp("{wd}/output/versions/abund_base.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml"
     shell:
@@ -462,6 +462,7 @@ rule abundance_base:
         """
 
 rule abundance_rpkg:
+    localrule: True
     input:
         "{wd}/output/versions/abund_base.flag"
     output:
@@ -469,7 +470,6 @@ rule abundance_rpkg:
     resources:
         mem=1
     threads: 1
-    localrule: True
     conda:
         minto_dir + "/envs/r_pkgs.yml"
     shell:
@@ -483,13 +483,13 @@ rule abundance_rpkg:
 ##################################
 
 rule integration_rpkg:
+    localrule: True
     output:
         temp("{wd}/output/versions/data_integration.flag")
     resources:
         mem=1
     threads:
         1
-    localrule: True
     conda:
         minto_dir + "/envs/r_pkgs.yml"
     shell:

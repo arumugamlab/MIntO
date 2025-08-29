@@ -18,8 +18,6 @@ Authors: Eleonora Nigro, Mani Arumugam
 import os.path
 import math
 
-localrules: aae_tsv, vae_tsv, copy_best_genomes, prepare_bins_for_checkm, collect_HQ_genomes
-
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
@@ -301,6 +299,7 @@ rule run_vamb_aae:
 # Sort the clusters.tsv file by (bin, sample, contig_len), so that final fna is reproducible.
 
 rule aae_tsv:
+    localrule: True
     input:
         tsv="{wd}/{omics}/8-1-binning/mags/aae/aae_{latent_type}_clusters_unsplit.tsv",
     output:
@@ -311,6 +310,7 @@ rule aae_tsv:
         """
 
 rule vae_tsv:
+    localrule: True
     input:
         tsv=rules.run_vamb_vae.output.tsv
     output:
@@ -373,6 +373,7 @@ rule make_vamb_mags:
 ###############################
 
 checkpoint prepare_bins_for_checkm:
+    localrule: True
     input:
         bin_folder = rules.make_vamb_mags.output.bin_folder
     output:
@@ -490,6 +491,7 @@ rule make_comprehensive_table:
 
 ## Copy HQ genomes inside HQ_genomes folder
 rule collect_HQ_genomes:
+    localrule: True
     input:
         checkm_all = rules.make_comprehensive_table.output,
     output:
@@ -648,6 +650,7 @@ rule find_unique_and_best_genomes:
 
 ## Run copy the best genomes
 checkpoint copy_best_genomes:
+    localrule: True
     input:
         genome_list  = rules.find_unique_and_best_genomes.output.genome_list,
         genome_scores = rules.calculate_score_genomes.output.genome_scores,

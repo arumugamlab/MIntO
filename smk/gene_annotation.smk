@@ -164,11 +164,11 @@ genomes = get_genomes_from_refdir(reference_dir)
 # But they might be different after resolution when compared between studies.
 
 rule generate_locus_ids:
+    localrule: True
     input:
         expand("{ref_dir}/{genome}.fna", ref_dir = reference_dir, genome = genomes)
     output:
         "{wd}/DB/{minto_mode}/{minto_mode}.locus_id_list.txt"
-    localrule: True
     run:
         from hashlib import md5
         from re import sub
@@ -246,6 +246,7 @@ rule prokka_for_genome:
 # Dont combine FAA files ####
 
 rule rename_prokka_sequences:
+    localrule: True
     input:
         gff=rules.prokka_for_genome.output.gff,
         fna=rules.prokka_for_genome.output.fna,
@@ -258,7 +259,6 @@ rule rename_prokka_sequences:
         "minimal"
     log:
         "{wd}/logs/DB/{minto_mode}/{genome}.rename_prokka.log"
-    localrule: True
     conda:
         minto_dir + "/envs/MIntO_base.yml" #gff2bed from bedops
     shell:
@@ -346,13 +346,13 @@ def process_genome_bed_list(input_list, output_full, output_mini, log_file):
 
 # Combine individual BEDs but only select chr,start,stop,strand,feature,ID
 rule combine_individual_beds:
+    localrule: True
     input: get_genome_bed
     output:
         bed_full="{wd}/DB/{minto_mode}/{filename}.bed",
         bed_mini="{wd}/DB/{minto_mode}/{filename}.bed.mini",
     log:
         "{wd}/logs/DB/{minto_mode}/{filename}.merge_bed.log"
-    localrule: True
     shadow:
         "minimal"
     wildcard_constraints:
@@ -376,11 +376,11 @@ rule combine_individual_beds:
 # Run fetchMGs
 # fetchMG cannot handle '.' in gene names, so we replace '.' with '__MINTO_DOT__' in fasta headers; then change back in output.
 rule fetchMG_genome_cds_faa:
+    localrule: True
     input:
         cds_faa      = "{wd}/DB/{minto_mode}/2-postprocessed/{genome}.faa",
         fetchMGs_dir = "{minto_dir}/data/fetchMGs-1.2".format(minto_dir = minto_dir)
     output: '{wd}/DB/{minto_mode}/fetchMGs/{genome}/{genome}.marker_genes.table'
-    localrule: True
     shadow:
         "minimal"
     log: '{wd}/logs/DB/{minto_mode}/fetchMGs/{genome}.log'
@@ -406,9 +406,9 @@ def get_genome_MG_tables(wildcards):
     return(result)
 
 rule merge_MG_tables:
+    localrule: True
     input: get_genome_MG_tables
     output: "{wd}/DB/{minto_mode}/genomes.marker_genes.table"
-    localrule: True
     log: "{wd}/logs/DB/{minto_mode}/merge_marker_genes_scores.table.log"
     shell:
         """
@@ -425,11 +425,11 @@ rule merge_MG_tables:
 ######################
 
 rule check_directory_for_taxonomic_annotation:
+    localrule: True
     input:
         rules.merge_MG_tables.output
     output:
         "{wd}/DB/{minto_mode}/2-postprocessed/all.done"
-    localrule: True
     resources:
         mem=1
     threads: 1
@@ -549,11 +549,11 @@ def get_genome_faa(wildcards):
     return(result)
 
 checkpoint prepare_genome_batches:
+    localrule: True
     input:
         faa = get_genome_faa
     output:
         batches = directory("{wd}/DB/{minto_mode}/4-annotations/batches")
-    localrule: True
     threads: 1
     resources:
         mem = 2
@@ -705,13 +705,13 @@ def get_annotation_for_genome_batches(wildcards):
 ################################################################################################
 
 rule combine_annotation_batches:
+    localrule: True
     input:
         get_annotation_for_genome_batches
     output:
         "{wd}/DB/{minto_mode}/4-annotations/{annot}.tsv"
     log:
         "{wd}/logs/DB/{minto_mode}/combine_{annot}.log"
-    localrule: True
     wildcard_constraints:
         annot = r'eggNOG|kofam|dbCAN'
     shadow:
@@ -755,6 +755,7 @@ rule predicted_gene_annotation_collate:
 # Currently, only for 'kofam'
 
 rule prepare_kos_per_mag:
+    localrule: True
     input:
         tsv = "{wd}/DB/{minto_mode}/4-annotations/{annot}.tsv"
     output:
@@ -763,7 +764,6 @@ rule prepare_kos_per_mag:
         "{wd}/logs/DB/{minto_mode}/kos_per_mag_{annot}.log"
     wildcard_constraints:
         annot = r'kofam'
-    localrule: True
     run:
         mag_kos = {}
         with open(input.tsv, "r") as fp:

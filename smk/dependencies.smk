@@ -758,6 +758,7 @@ rule download_metabuli_GTDB_db:
 ###############################################################################################
 
 rule r_pkgs:
+    localrule: True
     output:
         r_pkgs="{minto_dir}/logs/r_pkgs.log"
     resources:
@@ -774,6 +775,7 @@ rule r_pkgs:
         """
 
 rule mags_gen_vamb:
+    localrule: True
     output:
         vamb_env="{minto_dir}/logs/vamb_env.log"
     resources:
@@ -790,6 +792,7 @@ rule mags_gen_vamb:
         """
 
 rule mags_gen:
+    localrule: True
     output:
         mags_env="{minto_dir}/logs/mags_env.log"
     resources:

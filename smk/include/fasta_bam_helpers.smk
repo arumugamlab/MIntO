@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-localrules: bam_idx, faidx, get_fasta_length
-
 #########################################
 # SAM/BAM processing rules and functions
 #########################################
@@ -9,7 +7,7 @@ localrules: bam_idx, faidx, get_fasta_length
 # Index a bam file
 
 rule bam_idx:
-    #index a .bam file
+    localrule: True
     input:
         '{some}.bam'
     output:
@@ -31,8 +29,10 @@ rule bam_idx:
 # Fasta processing rules and functions
 #########################################
 
+# Index a fasta file
+
 rule faidx:
-    #index a .fasta file
+    localrule: True
     input:
         '{something}.f{asta}'
     output:
@@ -50,6 +50,7 @@ rule faidx:
         """
 
 rule get_fasta_length:
+    localrule: True
     input:
         '{something}.f{asta}.fai'
     output:

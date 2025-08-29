@@ -10,9 +10,6 @@ import os.path
 import pathlib
 import math
 
-localrules: make_merged_genome_fna, make_genome_def, \
-            config_yml_integration, read_map_stats
-
 # Get common config variables
 # These are:
 #   config_path, project_id, omics, working_dir, minto_dir, script_dir, metadata
@@ -268,6 +265,7 @@ def get_genome_fna(wildcards):
     return(result)
 
 rule make_merged_genome_fna:
+    localrule: True
     input: get_genome_fna
     output:
         fasta_merge="{wd}/DB/{minto_mode}/{minto_mode}.fna"
@@ -284,6 +282,7 @@ rule make_merged_genome_fna:
 
 # For each sequence name '<seqname> = <locustag>_<seqid>', make '<locustag>\t<seqname>'
 rule make_genome_def:
+    localrule: True
     input: get_genome_fna
     output:
         genome_def="{wd}/DB/{minto_mode}/{minto_mode}.genome.def"
@@ -772,6 +771,7 @@ rule gene_abund_normalization:
 ############################
 
 rule read_map_stats:
+    localrule: True
     input:
         map_profile=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/{sample}/{sample}.p{identity}.filtered.profile.abund.all.txt.gz",
                                             wd = wildcards.wd,
@@ -815,6 +815,7 @@ rule read_map_stats:
 ###############################################################################################
 
 rule config_yml_integration:
+    localrule: True
     output:
         config_file="{wd}/data_integration.yaml"
     params:
