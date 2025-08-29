@@ -6,7 +6,7 @@
 # MINTO_STABLE_VERSION="tags/2.1.0"
 # Developers use 'main' but users should stick to stable versions.
 
-MINTO_STABLE_VERSION="tags/2.3.0"
+MINTO_STABLE_VERSION="tags/2.4.0"
 TEST_SLURM="" # leave it empty to turn off slurm-testing
 TEST_BULK="yes" # change from 'yes' to turn off bulk-mode testing
 
