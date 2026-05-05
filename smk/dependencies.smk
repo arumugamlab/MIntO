@@ -439,25 +439,24 @@ rule functional_db_descriptions:
 
 rule dbCAN_db:
     output:
-        dbCAN_db1="{minto_dir}/data/dbCAN_db/V12/CAZyDB.fa",
-        dbCAN_db2="{minto_dir}/data/dbCAN_db/V12/dbCAN.txt",
-        dbCAN_db3="{minto_dir}/data/dbCAN_db/V12/tcdb.fa",
-        dbCAN_db4="{minto_dir}/data/dbCAN_db/V12/tf-1.hmm",
-        dbCAN_db5="{minto_dir}/data/dbCAN_db/V12/tf-2.hmm",
-        dbCAN_db6="{minto_dir}/data/dbCAN_db/V12/stp.hmm",
-        dbCAN_db7="{minto_dir}/data/dbCAN_db/V12/fam-substrate-mapping.tsv"
-    resources: mem=4
-    threads: 1
+        dbCAN_db1="{minto_dir}/data/dbCAN_db/V14/CAZy.dmnd",
+        dbCAN_db2="{minto_dir}/data/dbCAN_db/V14/dbCAN-sub.hmm",
+        dbCAN_db3="{minto_dir}/data/dbCAN_db/V14/dbCAN.hmm",
+        dbCAN_db7="{minto_dir}/data/dbCAN_db/V14/fam-substrate-mapping.tsv"
+    resources:
+        mem=4
+    threads:
+        2
     log:
         "{minto_dir}/logs/dbCAN_db_download.log"
     conda:
         minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
-        mkdir -p {minto_dir}/data/dbCAN_db/V12
+        mkdir -p {minto_dir}/data/dbCAN_db/V14
         cd {minto_dir}/data/dbCAN_db
         time (
-            dbcan_build --cpus 2 --db-dir V12 --clean
+            run_dbcan database --db_dir V14 --aws_s3 --no-cgc
             echo 'dbCAN database downloaded and installed'
         ) &> {log}
         """
