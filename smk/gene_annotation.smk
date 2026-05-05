@@ -646,7 +646,7 @@ rule gene_annot_dbcan:
         time (
             run_dbcan CAZyme_annotation --input_raw_data {input.faa} --mode protein --db_dir $(dirname {input.dbcan_db}) --threads {threads} --output_dir out
             echo -e "#Database downloaded\\t$(conda list | sed -E 's|[[:space:]]+| |g' | cut -d' ' -f 1-2 | grep -P dbcan)\\t$(stat -c '%y' {input.dbcan_db} | cut -d' ' -f 1)" > dbcan_processed.txt
-            {script_dir}/process_overview_dbcan5.py out/overview.tsv - >> dbcan_processed.txt
+            python {script_dir}/process_overview_dbcan5.py out/overview.tsv - >> dbcan_processed.txt
             rsync -a dbcan_processed.txt {output}
         ) >& {log}
         """
