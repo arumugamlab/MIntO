@@ -629,7 +629,7 @@ rule gene_annot_kofamscan:
 rule gene_annot_dbcan:
     input:
         faa="{wd}/DB/{minto_mode}/4-annotations/batches/{batch}.faa",
-        dbcan_db="{}/data/dbCAN_db/V12/fam-substrate-mapping.tsv".format(minto_dir)
+        dbcan_db="{}/data/dbCAN_db/V14/fam-substrate-mapping.tsv".format(minto_dir)
     output:
         "{wd}/DB/{minto_mode}/4-annotations/dbCAN/{batch}.tsv",
     shadow:
@@ -643,11 +643,10 @@ rule gene_annot_dbcan:
         minto_dir + "/envs/gene_annotation.yml"
     shell:
         """
-        export PATH="{script_dir:q}:$PATH"
         time (
-            run_dbcan {input.faa} protein --db_dir $(dirname {input.dbcan_db}) --dia_cpu {threads} --hmm_cpu {threads} --out_pre dbcan_ --out_dir out
+            run_dbcan CAZyme_annotation --input_raw_data {input.faa} --mode protein --db_dir $(dirname {input.dbcan_db}) --threads {threads} --output_dir out
             echo -e "#Database downloaded\\t$(conda list | sed -E 's|[[:space:]]+| |g' | cut -d' ' -f 1-2 | grep -P dbcan)\\t$(stat -c '%y' {input.dbcan_db} | cut -d' ' -f 1)" > dbcan_processed.txt
-            {script_dir}/process_dbcan_overview.pl out/dbcan_overview.txt >> dbcan_processed.txt
+            {script_dir}/process_overview_dbcan5.py out/overview.tsv - >> dbcan_processed.txt
             rsync -a dbcan_processed.txt {output}
         ) >& {log}
         """
