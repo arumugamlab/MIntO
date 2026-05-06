@@ -192,6 +192,12 @@ def mapping_statistics():
                     subdir = MINTO_MODE,
                     identity = identity,
                     stats = ['maprate', 'mapstats', 'multimap'])
+    plot=expand("{wd}/output/9-mapping-profiles/{subdir}/{omics}.maprate.p{identity}.pdf",
+                    wd = working_dir,
+                    omics = omics,
+                    subdir = MINTO_MODE,
+                    identity = identity)
+    result.append(plot)
     return(result)
 
 def config_yaml():
@@ -1035,6 +1041,33 @@ rule read_map_stats:
                 (echo -e -n "$sample\\t"; bash -c "zcat $file | head | grep 'Multiple mapped' | cut -f2 -d'(' | sed 's/%.*//'" ) >> {output.multimap}
             done
         ) &> {log}
+        """
+
+rule plot_maprate:
+    localrule: True
+    input:
+        maprate=lambda wildcards: expand("{wd}/{omics}/9-mapping-profiles/{minto_mode}/mapping.p{identity}.maprate.txt",
+                                            wd = wildcards.wd,
+                                            omics = wildcards.omics,
+                                            minto_mode = wildcards.minto_mode,
+                                            identity = wildcards.identity),
+        fragcount=lambda wildcards: expand("{wd}/output/2-qc/{omics}.readcounts.txt",
+                                            wd = wildcards.wd,
+                                            omics = wildcards.omics)
+    output:
+        plot="{wd}/output/9-mapping-profiles/{minto_mode}/{omics}.maprate.p{identity}.pdf"
+    log:
+        "{wd}/logs/{omics}/9-mapping-profiles/{minto_mode}/plot_maprate.p{identity}.log"
+    threads: 2
+    resources:
+        mem = 4
+    conda:
+        minto_dir + "/envs/r_pkgs.yml" #R
+    shell:
+        """
+        time (
+            Rscript {script_dir}/plot_maprate.R --input {input.maprate} --fragcount {input.fragcount} --metadata {metadata} --factor {main_factor} --output {output.plot}
+            ) &> {log}
         """
 
 ###############################################################################################
