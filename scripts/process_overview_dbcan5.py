@@ -18,17 +18,17 @@ df = df[df.NumberofTools > 1]
 
 # separate the multi-domain hits into list-in-cells
 df["dbCAN.hit"]=df["RecommendResults"].str.split("|")
-df["dbCAN.hit_EC"]=df["EC_nums"].str.split("|")
+df["dbCAN.EC"]=df["EC_nums"].str.split("|")
 
 # separate list-in-cell into rows for dbCAN.hit
 df1 = df.explode("dbCAN.hit").reset_index(drop=True)
 df1["rownum"] = df1.groupby("ID")["dbCAN.hit"].cumcount().add(1)
-df1.drop(columns = ['EC_nums','RecommendResults','dbCAN.hit_EC'], inplace=True)
+df1.drop(columns = ['EC_nums','RecommendResults','dbCAN.EC'], inplace=True)
 
 # separate list-in-cell into rows for EC numbers
-df2 = df.explode("dbCAN.hit_EC").reset_index(drop=True)
-df2["rownum"] = df2.groupby("ID")["dbCAN.hit_EC"].cumcount().add(1)
-df2 = df2[["ID", "dbCAN.hit_EC", "rownum"]]
+df2 = df.explode("dbCAN.EC").reset_index(drop=True)
+df2["rownum"] = df2.groupby("ID")["dbCAN.EC"].cumcount().add(1)
+df2 = df2[["ID", "dbCAN.EC", "rownum"]]
 
 # in theory each domain separated by | have an EC number so df1 and df2 should have corresponding amount of rows
 df = df1.merge(df2, on = ['ID', 'rownum'])
@@ -44,11 +44,11 @@ df['dbCAN.dbCAN_sub.subfamily'] = df['dbCAN.dbCAN_sub'].str.replace(r'_e\d+', ''
 if (output_prefix != "-"):
     # output subfamily file and substrate separately
     output_file = f"{output_prefix}.cazymes.tsv"
-    df.to_csv(output_file, columns = ["ID", "dbCAN.hit", "dbCAN.hit_EC", "dbCAN.binding_module", "dbCAN.dbCAN_sub", "dbCAN.dbCAN_sub.subfamily"], sep = "\t", index=False)
+    df.to_csv(output_file, columns = ["ID", "dbCAN.binding_module", "dbCAN.dbCAN_sub", "dbCAN.dbCAN_sub.subfamily", "dbCAN.EC"], sep = "\t", index=False)
 
     output_substr = f"{output_prefix}.substrate.tsv"
     df = df[['ID', 'Substrate']]
     df[df.Substrate != "-"].drop_duplicates().to_csv(output_substr, sep = "\t", index=False)
 else:
     # stdout and only cazymes
-    df.to_csv(sys.stdout, columns = ["ID", "dbCAN.hit", "dbCAN.hit_EC", "dbCAN.binding_module", "dbCAN.dbCAN_sub", "dbCAN.dbCAN_sub.subfamily"], sep = "\t", index=False)
+    df.to_csv(sys.stdout, columns = ["ID", "dbCAN.binding_module", "dbCAN.dbCAN_sub", "dbCAN.dbCAN_sub.subfamily", "dbCAN.EC"], sep = "\t", index=False)

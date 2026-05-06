@@ -244,7 +244,7 @@ for OMICS in metaG_metaT metaG metaT; do
   profile_command "$cmd"
 
   echo -n "MODE - gene-catalog, TPM: "
-  sed "s/MINTO_MODE: .*/MINTO_MODE: catalog/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
+  sed "s/MINTO_MODE: .*/MINTO_MODE: catalog/; s@ANNOTATION_file:@ANNOTATION_file: $TEST_DIR/gene_catalog/gene_catalog.annotations.tsv@; s/dbCAN.binding_module/dbCAN.module/; s/dbCAN.dbCAN_sub.subfamily/dbCAN.subfamily/" data_integration.yaml.TPM.$OMICS > data_integration.yaml.catalog.TPM.$OMICS
   mkdir -p $OMICS.catalog.TPM
   cmd="cd $OMICS.catalog.TPM && snakemake --snakefile $CODE_DIR/smk/data_integration.smk --configfile ../data_integration.yaml.catalog.TPM.$OMICS $SNAKE_PARAMS >& integration.catalog.TPM.$OMICS.log && cd .."
   profile_command "$cmd"
