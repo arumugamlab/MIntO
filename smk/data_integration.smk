@@ -56,7 +56,8 @@ identity = validate_required_key(config, 'alignment_identity')
 MERGE_threads = validate_required_key(config, 'MERGE_threads')
 
 funct_opt = validate_required_key(config, 'ANNOTATION_ids')
-allowed  = expand("{db}.{cat}", db='dbCAN',  cat=['module', 'enzclass', 'subfamily', 'EC', 'eCAMI_subfamily', 'eCAMI_submodule'])
+allowed  = expand("{db}.{cat}", db='dbCAN',  cat=['module', 'enzclass', 'subfamily', 'EC', 'eCAMI_subfamily', 'eCAMI_submodule', 
+                                                "hit", "hit_EC", "binding_module", "dbCAN_sub", "dbCAN_sub.subfamily"])
 allowed += expand("{db}.{cat}", db='eggNOG', cat=['OGs', 'PFAMs', 'KEGG_Pathway', 'KEGG_Module', 'KEGG_KO'])
 allowed += expand("{db}.{cat}", db='kofam',  cat=['KEGG_Pathway', 'KEGG_Module', 'KEGG_KO'])
 for x in funct_opt:
