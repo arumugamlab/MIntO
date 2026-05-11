@@ -380,15 +380,14 @@ rule annotation_base:
         VOUT={wildcards.wd}/output/versions/{snakefile_name}.$(date "+%Y-%m-%d").txt
         echo "MIntO git commit $(cd {minto_dir} && git show --pretty=reference -q && cd - > /dev/null)" > $VOUT
         prokka --version >> $VOUT 2>&1
-        echo "pyhmmer v$({minto_dir}/scripts/hmmsearch --version)" >> $VOUT
         echo "kofamscan v$(exec_annotation --version | cut -d" " -f 2)" >> $VOUT
         conda list | sed -E 's|[[:space:]]+| |g' | cut -d" " -f 1-2 | grep -P "{params.p1}" >> $VOUT
         conda list | sed -E 's|[[:space:]]+| |g' | cut -d" " -f 1-2 | grep -P "{params.p2}" >> $VOUT
         conda list | sed -E 's|[[:space:]]+| |g' | cut -d" " -f 1-2 | grep -P "{params.p3}" | grep -v "perl" >> $VOUT
 
         echo "#----" >> $VOUT
-        echo "dbCAN database files" >> $VOUT
-        find $(dirname $(which dbcan_build))/.. -iname "dbcan_build.py" -type f -exec grep "dbCAN2/download/Databases" {{}} \; | grep -o -P "fam-substrate-mapping-.*.tsv|dbCAN-PUL_.*.xlsx|V12/CAZyDB.*.fa" >> $VOUT || echo "Error: dbcan_build.py not found"
+        run_dbcan version >> $VOUT
+        echo "dbCAN database files downloaded $(stat -c '%y' {minto_dir}/data/dbCAN_db/V14/fam-substrate-mapping.tsv | cut -d' ' -f 1)" >> $VOUT
 
         echo "#----" >> $VOUT
         emapper.py --data_dir {minto_dir}/data/eggnog_data/data -v | cut -d"/" -f 1,3 >> $VOUT
