@@ -53,6 +53,7 @@ GLOBAL_CONFIG_KEYTYPES = {
     'ILLUMINA_suffix' : list,
     'LOCAL_DATABASE_CACHE_DIR' : str,
     'MAG_omics' : str,
+    'MAG_BUILDING_SUBDIR' : str,
     'MAIN_factor' : str,
     'MAX_RAM_GB_PER_JOB' : int,
     'MEGAHIT_custom' : [str, list],
