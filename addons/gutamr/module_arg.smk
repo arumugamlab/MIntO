@@ -72,7 +72,7 @@ rule kma_index_phm:
     params:
         prefix=os.path.join(database_dir, f"card_db_{card_version}")
     conda:
-        "../envs/amr.yml"
+        "envs/amr.yml"
     threads:
         3
     resources:
@@ -108,7 +108,7 @@ rule run_kma_fasta:
     log:
         "{workdir}/logs/kma_assemblies.log"
     conda:
-        "../envs/amr.yml"
+        "envs/amr.yml"
     threads:
         15
     resources:
@@ -132,7 +132,7 @@ rule process_kma_fasta:
     params:
         max_id_diff = config["max_template_identity_difference"]
     conda:
-        "../envs/amr.yml"
+        "envs/amr.yml"
     threads:
         3
     resources:
@@ -140,7 +140,7 @@ rule process_kma_fasta:
     shell:
         """
         time (
-            Rscript {workflow.basedir}/../scripts/combine_normalized_amr.R --folder {input.res_folder} --output {output} --type assembly --min_cov {wildcards.coverage} --max_id_diff {params.max_id_diff}
+            Rscript {workflow.basedir}/combine_normalized_amr.R --folder {input.res_folder} --output {output} --type assembly --min_cov {wildcards.coverage} --max_id_diff {params.max_id_diff}
         ) >& {log}
         """
 
@@ -180,7 +180,7 @@ rule run_kma_fastq:
     shadow:
         "minimal"
     conda:
-        "../envs/amr.yml"
+        "envs/amr.yml"
     threads:
         3
     resources:
@@ -226,7 +226,7 @@ rule process_kma_fastq:
     localrule:
         True
     conda:
-        "../envs/amr.yml"
+        "envs/amr.yml"
     threads:
         3
     resources:
@@ -234,6 +234,6 @@ rule process_kma_fastq:
     shell:
         """
         time (
-            Rscript {workflow.basedir}/../scripts/combine_normalized_amr.R --folder {params.input_prefix} --output {output} --type reads --min_cov {wildcards.coverage} --min_frag_count {params.min_count} --max_id_diff {params.max_id_diff}
+            Rscript {workflow.basedir}/combine_normalized_amr.R --folder {params.input_prefix} --output {output} --type reads --min_cov {wildcards.coverage} --min_frag_count {params.min_count} --max_id_diff {params.max_id_diff}
         ) >& {log}
         """
