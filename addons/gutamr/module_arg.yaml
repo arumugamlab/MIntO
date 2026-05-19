@@ -1,0 +1,31 @@
+######################
+# General settings
+######################
+
+working_dir: /mypath/IBD_tutorial/CARD_ARG_prediction
+database_dir: /mypath/IBD_tutorial/CARD
+
+######################
+# Alignment settings
+######################
+
+CARD_version: 4.0.1
+index_database: yes
+
+run_assemblies: no
+assemblies_folder: /mypath/IBD_tutorial/metaG/8-1-binning/mags/unique_genomes
+assembly_suffix: "fna"
+
+run_reads: no
+read_folder: /mypathIBD_tutorial/metaG/4-hostfree
+read_suffix:
+- 1.fq.gz
+- 2.fq.gz
+
+######################
+# Analysis settings
+######################
+
+min_template_coverage: 60
+max_template_identity_difference: 5
+min_fragment_no: 10
