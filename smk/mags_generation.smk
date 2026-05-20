@@ -84,10 +84,14 @@ if (x := validate_optional_key(config, 'METABULI_MEM_GB')):
 SCORE_METHOD         = validate_required_key(config, 'SCORE_METHOD')
 check_allowed_values('SCORE_METHOD', SCORE_METHOD, ['checkm'])
 
+# MAG-building directory
+MAG_BUILDING_SUBDIR = 'mags'
+if (x := validate_optional_key(config, 'MAG_BUILDING_SUBDIR')):
+    MAG_BUILDING_SUBDIR = x
 
 rule all:
     input:
-        f"{working_dir}/{omics}/8-1-binning/mags/unique_genomes",
+        f"{working_dir}/{omics}/8-1-binning/{MAG_BUILDING_SUBDIR}/unique_genomes",
         print_versions.get_version_output(snakefile_name)
     default_target: True
 
@@ -182,14 +186,14 @@ rule run_taxvamb:
         rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.abundance.npz",
         tax_file     = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.taxonomy.GTDB.{TAXVAMB_ANNOTATOR}.tsv",
     output:
-        tsv="{wd}/{omics}/8-1-binning/mags/vaevae{vbinner}/vaevae_clusters_unsplit.tsv"
+        tsv="{wd}/{omics}/8-1-binning/{mag_dir}/vaevae{vbinner}/vaevae_clusters_unsplit.tsv"
     shadow:
         "minimal"
     params:
         cuda="{}".format("--cuda" if VAMB_GPU else ""),
         latent=lambda wildcards: int(int(wildcards.vbinner)/16)
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/run_taxvamb_vaevae{vbinner}.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/run_taxvamb_vaevae{vbinner}.log"
     resources:
         mem = lambda wildcards, input, attempt: 10*(attempt-1) + math.ceil(2.35 + 1.69e-9*get_file_size(input.rpkm_file) + 2.46e-10*get_file_size(input.contigs_file)),
         gpu=1 if VAMB_GPU else 0
@@ -224,14 +228,14 @@ rule run_vamb_vae:
         contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.fasta.gz",
         rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.abundance.npz",
     output:
-        tsv="{wd}/{omics}/8-1-binning/mags/vae{vbinner}/vae_clusters_unsplit.tsv"
+        tsv="{wd}/{omics}/8-1-binning/{mag_dir}/vae{vbinner}/vae_clusters_unsplit.tsv"
     shadow:
         "minimal"
     params:
         cuda="{}".format("--cuda" if VAMB_GPU else ""),
         latent=lambda wildcards: int(int(wildcards.vbinner)/16)
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/run_vamb_vae{vbinner}.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/run_vamb_vae{vbinner}.log"
     resources:
         mem = lambda wildcards, input, attempt: 10*(attempt-1) + math.ceil(2.35 + 1.69e-9*get_file_size(input.rpkm_file) + 2.46e-10*get_file_size(input.contigs_file)),
         gpu=1 if VAMB_GPU else 0
@@ -265,14 +269,14 @@ rule run_vamb_aae:
         contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.fasta.gz",
         rpkm_file    = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.abundance.npz",
     output:
-        tsv_y="{wd}/{omics}/8-1-binning/mags/aae/aae_y_clusters_unsplit.tsv",
-        tsv_z="{wd}/{omics}/8-1-binning/mags/aae/aae_z_clusters_unsplit.tsv"
+        tsv_y="{wd}/{omics}/8-1-binning/{mag_dir}/aae/aae_y_clusters_unsplit.tsv",
+        tsv_z="{wd}/{omics}/8-1-binning/{mag_dir}/aae/aae_z_clusters_unsplit.tsv"
     shadow:
         "minimal"
     params:
         cuda="{}".format("--cuda" if VAMB_GPU else "")
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/run_vamb_aae.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/run_vamb_aae.log"
     resources:
         mem = lambda wildcards, input, attempt: 10*(attempt-1) + math.ceil(2.18 + 1.85e-9*get_file_size(input.rpkm_file) + 1.73e-10*get_file_size(input.contigs_file)),
         gpu=1 if VAMB_GPU else 0
@@ -301,9 +305,9 @@ rule run_vamb_aae:
 rule aae_tsv:
     localrule: True
     input:
-        tsv="{wd}/{omics}/8-1-binning/mags/aae/aae_{latent_type}_clusters_unsplit.tsv",
+        tsv="{wd}/{omics}/8-1-binning/{mag_dir}/aae/aae_{latent_type}_clusters_unsplit.tsv",
     output:
-        tsv="{wd}/{omics}/8-1-binning/mags/vamb/aae{latent_type}_clusters.tsv",
+        tsv="{wd}/{omics}/8-1-binning/{mag_dir}/vamb/aae{latent_type}_clusters.tsv",
     shell:
         """
         tail -n +2 {input} | sed "s/^aae_{wildcards.latent_type}_//" | sort -k1,1n -k5,5nr -t '_' > {output}
@@ -314,7 +318,7 @@ rule vae_tsv:
     input:
         tsv=rules.run_vamb_vae.output.tsv
     output:
-        tsv="{wd}/{omics}/8-1-binning/mags/vamb/vae{vbinner}_clusters.tsv",
+        tsv="{wd}/{omics}/8-1-binning/{mag_dir}/vamb/vae{vbinner}_clusters.tsv",
     wildcard_constraints:
         vbinner='256|384|512|768'
     shell:
@@ -326,7 +330,7 @@ rule taxvamb_tsv:
     input:
         tsv=rules.run_taxvamb.output.tsv
     output:
-        tsv="{wd}/{omics}/8-1-binning/mags/vamb/vaevae{vbinner}_clusters.tsv",
+        tsv="{wd}/{omics}/8-1-binning/{mag_dir}/vamb/vaevae{vbinner}_clusters.tsv",
     wildcard_constraints:
         vbinner='256|384|512|768'
     shell:
@@ -339,15 +343,15 @@ rule taxvamb_tsv:
 # this is on vamb, if there are other binners, depending on the output, the bins should be processed differently
 rule make_vamb_mags:
     input:
-        tsv          = "{wd}/{omics}/8-1-binning/mags/vamb/{binner}_clusters.tsv",
+        tsv          = "{wd}/{omics}/8-1-binning/{mag_dir}/vamb/{binner}_clusters.tsv",
         contigs_file = f"{{wd}}/{{omics}}/8-1-binning/scaffolds.{MIN_FASTA_LENGTH}.fasta.gz",
     output:
-        discarded_genomes = "{wd}/{omics}/8-1-binning/mags/vamb/{binner}/{binner}_discarded_genomes.txt",
-        bin_folder = directory("{wd}/{omics}/8-1-binning/mags/vamb/{binner}/bins"),
+        discarded_genomes = "{wd}/{omics}/8-1-binning/{mag_dir}/vamb/{binner}/{binner}_discarded_genomes.txt",
+        bin_folder = directory("{wd}/{omics}/8-1-binning/{mag_dir}/vamb/{binner}/bins"),
     params:
         min_mag_length = MIN_MAG_LENGTH
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/vamb/{binner}.take_all_genomes_for_each_run.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/vamb/{binner}.take_all_genomes_for_each_run.log"
     resources:
         mem=10
     threads:
@@ -377,7 +381,7 @@ checkpoint prepare_bins_for_checkm:
     input:
         bin_folder = rules.make_vamb_mags.output.bin_folder
     output:
-        checkm_groups = directory("{wd}/{omics}/8-1-binning/mags/vamb/{binner}/checkm")
+        checkm_groups = directory("{wd}/{omics}/8-1-binning/{mag_dir}/vamb/{binner}/checkm")
     params:
         batch_size = CHECKM_BATCH_SIZE
     shell:
@@ -398,11 +402,12 @@ checkpoint prepare_bins_for_checkm:
 def get_checkm_output_for_batches(wildcards):
     #Collect the genome bins from previous step
     checkpoint_output = checkpoints.prepare_bins_for_checkm.get(**wildcards).output[0]
-    result = expand("{wd}/{omics}/8-1-binning/mags/vamb/{binner}/checkm/{batch}.out/quality_report.tsv",
-                    wd=wildcards.wd,
-                    omics=wildcards.omics,
-                    binner=wildcards.binner,
-                    batch=glob_wildcards(os.path.join(checkpoint_output, 'batch.{batch}')).batch)
+    result = expand("{wd}/{omics}/8-1-binning/{mag_dir}/vamb/{binner}/checkm/{batch}.out/quality_report.tsv",
+                    wd      = wildcards.wd,
+                    omics   = wildcards.omics,
+                    mag_dir = wildcards.mag_dir,
+                    binner  = wildcards.binner,
+                    batch   = glob_wildcards(os.path.join(checkpoint_output, 'batch.{batch}')).batch)
     return(result)
 
 ########################
@@ -442,9 +447,9 @@ rule merge_checkm_batches:
     input:
         get_checkm_output_for_batches
     output:
-        binner_combined = "{wd}/{omics}/8-1-binning/mags/vamb/{binner}/{binner}.checkM.txt"
+        binner_combined = "{wd}/{omics}/8-1-binning/{mag_dir}/vamb/{binner}/{binner}.checkM.txt"
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/vamb/{binner}.checkM.merge.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/vamb/{binner}.checkM.merge.log"
     resources:
         mem=10
     threads:
@@ -466,14 +471,15 @@ rule merge_checkm_batches:
 
 rule make_comprehensive_table:
     input:
-        lambda wildcards: expand("{wd}/{omics}/8-1-binning/mags/vamb/{binner}/{binner}.checkM.txt",
-                                wd     = wildcards.wd,
-                                omics  = wildcards.omics,
-                                binner = BINNERS)
+        lambda wildcards: expand("{wd}/{omics}/8-1-binning/{mag_dir}/vamb/{binner}/{binner}.checkM.txt",
+                                wd      = wildcards.wd,
+                                omics   = wildcards.omics,
+                                mag_dir = wildcards.mag_dir,
+                                binner  = BINNERS)
     output:
-        checkm_all = "{wd}/{omics}/8-1-binning/mags/checkm/checkm-comprehensive.tsv"
+        checkm_all = "{wd}/{omics}/8-1-binning/{mag_dir}/checkm/checkm-comprehensive.tsv"
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/make_comprehensive_table.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/make_comprehensive_table.log"
     resources:
         mem=10
     threads:
@@ -495,14 +501,14 @@ rule collect_HQ_genomes:
     input:
         checkm_all = rules.make_comprehensive_table.output,
     output:
-        checkm_HQ = "{wd}/{omics}/8-1-binning/mags/HQ_genomes_checkm.tsv",
-        HQ_folder = directory("{wd}/{omics}/8-1-binning/mags/HQ_genomes")
+        checkm_HQ = "{wd}/{omics}/8-1-binning/{mag_dir}/HQ_genomes_checkm.tsv",
+        HQ_folder = directory("{wd}/{omics}/8-1-binning/{mag_dir}/HQ_genomes")
     params:
-        bin_folder    = lambda wildcards: f"{wildcards.wd}/{wildcards.omics}/8-1-binning/mags/vamb/",
+        bin_folder    = lambda wildcards: f"{wildcards.wd}/{wildcards.omics}/8-1-binning/{wildcards.mag_dir}/vamb/",
         completeness  = CHECKM_COMPLETENESS,
         contamination = CHECKM_CONTAMINATION
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/collect_HQ_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/collect_HQ_genomes.log"
     resources:
         mem=10
     threads:
@@ -542,9 +548,9 @@ rule run_coverm:
         checkm_HQ = rules.collect_HQ_genomes.output.checkm_HQ,
         HQ_folder = rules.collect_HQ_genomes.output.HQ_folder
     output:
-        cluster_tsv = "{wd}/{omics}/8-1-binning/mags/coverm_unique_cluster.tsv"
+        cluster_tsv = "{wd}/{omics}/8-1-binning/{mag_dir}/coverm_unique_cluster.tsv"
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/run_coverm.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/run_coverm.log"
     resources:
         mem=COVERM_memory
     threads:
@@ -566,11 +572,11 @@ rule calculate_score_genomes:
         checkm_HQ = rules.collect_HQ_genomes.output.checkm_HQ,
         HQ_folder = rules.collect_HQ_genomes.output.HQ_folder
     output:
-        genome_scores = "{wd}/{omics}/8-1-binning/mags/HQ_genomes_checkm_scored.tsv"
+        genome_scores = "{wd}/{omics}/8-1-binning/{mag_dir}/HQ_genomes_checkm_scored.tsv"
     params:
         score_method = SCORE_METHOD
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/calculate_score_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/calculate_score_genomes.log"
     resources:
         mem=10
     threads:
@@ -591,10 +597,10 @@ rule find_unique_and_best_genomes:
         genome_scores = rules.calculate_score_genomes.output.genome_scores,
         coverm_tsv    = rules.run_coverm.output.cluster_tsv
     output:
-        genome_report = "{wd}/{omics}/8-1-binning/mags/best_unique_genomes.report.tsv",
-        genome_list  = "{wd}/{omics}/8-1-binning/mags/best_unique_genomes.list"
+        genome_report = "{wd}/{omics}/8-1-binning/{mag_dir}/best_unique_genomes.report.tsv",
+        genome_list  = "{wd}/{omics}/8-1-binning/{mag_dir}/best_unique_genomes.list"
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/find_unique_and_best_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/find_unique_and_best_genomes.log"
     resources:
         mem=10
     threads:
@@ -655,9 +661,9 @@ checkpoint copy_best_genomes:
         genome_list  = rules.find_unique_and_best_genomes.output.genome_list,
         genome_scores = rules.calculate_score_genomes.output.genome_scores,
     output:
-        genome_dir = directory("{wd}/{omics}/8-1-binning/mags/unique_genomes"),
+        genome_dir = directory("{wd}/{omics}/8-1-binning/{mag_dir}/unique_genomes"),
     log:
-        "{wd}/logs/{omics}/8-1-binning/mags/copy_best_genomes.log"
+        "{wd}/logs/{omics}/8-1-binning/{mag_dir}/copy_best_genomes.log"
     resources:
         mem=10
     threads:
@@ -667,7 +673,7 @@ checkpoint copy_best_genomes:
         time (
             mkdir -p {output.genome_dir}
             while read line; do
-                ln {wildcards.wd}/{wildcards.omics}/8-1-binning/mags/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
+                ln {wildcards.wd}/{wildcards.omics}/8-1-binning/{wildcards.mag_dir}/HQ_genomes/${{line}}.fna {output.genome_dir}/ ;
             done < {input.genome_list}
         ) &> {log}
         """

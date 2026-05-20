@@ -73,11 +73,17 @@ mag_omics = 'metaG'
 gene_catalog_path = None
 gene_catalog_name = None
 
+# MAG-building directory
+MAG_BUILDING_SUBDIR = 'mags'
+if (x := validate_optional_key(config, 'MAG_BUILDING_SUBDIR')):
+    MAG_BUILDING_SUBDIR = x
+
+# Genome/gene catalog directory
 if MINTO_MODE == 'MAG':
     mag_omics = 'metaG'
     if (x := validate_optional_key(config, 'MAG_omics')):
         mag_omics = x
-    reference_dir = f"{working_dir}/{mag_omics}/8-1-binning/mags/unique_genomes"
+    reference_dir = f"{working_dir}/{mag_omics}/8-1-binning/{MAG_BUILDING_SUBDIR}/unique_genomes"
     print('NOTE: MIntO is using "' + reference_dir + '" as PATH_reference variable')
 else:
     if (x := validate_required_key(config, 'PATH_reference')):
