@@ -76,7 +76,6 @@ def kegg_completeness_out():
 
 def dbCAN_db_out():
     files = ["CAZy.dmnd",
-                "fam-substrate-mapping.tsv",
                 "dbCAN-sub.hmm",
                 "dbCAN.hmm",
                 "fam-substrate-mapping.tsv"]
