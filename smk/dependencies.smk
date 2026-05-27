@@ -75,14 +75,11 @@ def kegg_completeness_out():
     return(result)
 
 def dbCAN_db_out():
-    files = ["CAZyDB.fa",
-                "fam-substrate-mapping.tsv",
-                "dbCAN.txt",
-                "tcdb.fa",
-                "tf-1.hmm",
-                "tf-2.hmm",
-                "stp.hmm"]
-    result = expand("{somewhere}/data/dbCAN_db/V12/{file}",
+    files = ["CAZy.dmnd",
+                "dbCAN-sub.hmm",
+                "dbCAN.hmm",
+                "fam-substrate-mapping.tsv"]
+    result = expand("{somewhere}/data/dbCAN_db/V14/{file}",
                 somewhere = minto_dir,
                 file = files)
     return(result)
