@@ -196,7 +196,7 @@ def taxonomy_plot_output():
                 wd = working_dir,
                 omics = omics,
                 taxonomy = taxonomies_versioned)]
-    plots = [expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf",
+    plots = [expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.species.PCoA.Bray_Curtis.pdf",
                 wd = working_dir,
                 omics = omics,
                 taxonomy = taxonomies_versioned),
@@ -331,7 +331,7 @@ rule qc2_host_filter:
         pairead_fw = rules.qc2_length_filter.output.paired1,
         pairead_rv = rules.qc2_length_filter.output.paired2,
         hostindex   = lambda wildcards: get_fasta_index_path(f"{host_genome_path}/{host_genome_name}", ALIGNER_type),
-        meanlen_txt = "{wd}/output/2-qc/{omics}.mean_length.txt"
+        meanlen_txt = rules.qc2_sba_mean_length.output.meanlen_file
     output:
         host_free_fw = "{wd}/{omics}/4-hostfree/{sample}/{run}.1.fq.gz",
         host_free_rv = "{wd}/{omics}/4-hostfree/{sample}/{run}.2.fq.gz",
@@ -794,7 +794,7 @@ rule plot_taxonomic_profile:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
     output:
         profile="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.tsv",
-        pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.PCoA.Bray_Curtis.pdf",
+        pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.species.PCoA.Bray_Curtis.pdf",
         barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.genus.top15.pdf",
         richness="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.genus.richness.pdf",
     wildcard_constraints:

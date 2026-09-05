@@ -262,12 +262,12 @@ otu_table_df <- as.data.frame(unclass(otu_table(profile_phyloseq)), stringsAsFac
   tibble::rownames_to_column("taxa_ID")
 
 ##########################################
-# Output 2: Beta diversity - PCoA
+# Output 2: Beta diversity - PCoA (always at species level)
 ##########################################
 
 distance_lab = 'bray'
 title_name <- paste0("PCoA - Taxonomic profile - ", profile_param)
-out_name <- paste0(out_dir, '/', profile_param, ".PCoA.Bray_Curtis.pdf")
+out_name <- paste0(out_dir, '/', profile_param, ".species.PCoA.Bray_Curtis.pdf")
 title_name_pval <- paste0("Metric: Bray-Curtis")
 if (length(unique(metadata_df[[factor]]))>1) {
   #**adonis/adonis2, Permutational Multivariate Analysis of Variance Using Distance Matrix**: ####
