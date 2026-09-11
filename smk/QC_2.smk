@@ -636,6 +636,26 @@ if merged_illumina_samples:
 # Assembly-free taxonomy profiling
 ###############################################################################################
 
+rule metaphlan_verify_version:
+    localrule: True
+    output:
+        metaphlan_ok=temp("{wd}/{omics}/6-taxa_profile/metaphlan.{version}.ok"),
+    conda:
+        minto_dir + "/envs/metaphlan.yml" #metaphlan
+    shell:
+        """
+        version=$(metaphlan --version | cut -f3 -d' ')
+        if [ "$version" == "{wildcards.version}" ]; then
+            touch {output.metaphlan_ok}
+        else
+            >&2 echo -e \
+                    "ERROR: MetaPhlAn version mismatch.\\n"\
+                    "Expected: {wildcards.version} (from {config_path})\\n"\
+                    "Observed: $version (from {rules.metaphlan_verify_version.rule.conda_env})"
+            exit 1
+        fi
+        """
+
 # To enable multiple versions of taxonomy profiles for the same project, we include {version} in taxonomy profile output file name.
 # But changing '{sample}.{taxonomy}' to '{sample}.{taxonomy}.{version}' leads to trouble as metaphlan's combining script infers the
 # sample name by removing the word after the last dot. If we named files as 'D1.metaphlan.4.0.6', then the combined table lists this
@@ -649,6 +669,7 @@ rule metaphlan_tax_profile:
                                                 minto_dir=minto_dir,
                                                 version=wildcards.version,
                                                 metaphlan_index=metaphlan_index),
+        metaphlan_ok=rules.metaphlan_verify_version.output.metaphlan_ok,
         fwd=get_postcleaning_fastq_names_fwd_only,
         rev=get_postcleaning_fastq_names_rev_only,
     output:
