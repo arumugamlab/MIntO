@@ -196,11 +196,11 @@ def taxonomy_plot_output():
                 wd = working_dir,
                 omics = omics,
                 taxonomy = taxonomies_versioned)]
-    plots = [expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.PCoA.Bray_Curtis.pdf",
+    plots = [expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.species.PCoA.Bray_Curtis.pdf",
                 wd = working_dir,
                 omics = omics,
                 taxonomy = taxonomies_versioned),
-            expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.Top15genera.pdf",
+            expand("{wd}/output/6-taxa_profile/{omics}.{taxonomy}.genus.top15.pdf",
                 wd = working_dir,
                 omics = omics,
                 taxonomy = taxonomies_versioned)]
@@ -331,7 +331,7 @@ rule qc2_host_filter:
         pairead_fw = rules.qc2_length_filter.output.paired1,
         pairead_rv = rules.qc2_length_filter.output.paired2,
         hostindex   = lambda wildcards: get_fasta_index_path(f"{host_genome_path}/{host_genome_name}", ALIGNER_type),
-        meanlen_txt = "{wd}/output/2-qc/{omics}.mean_length.txt"
+        meanlen_txt = rules.qc2_sba_mean_length.output.meanlen_file
     output:
         host_free_fw = "{wd}/{omics}/4-hostfree/{sample}/{run}.1.fq.gz",
         host_free_rv = "{wd}/{omics}/4-hostfree/{sample}/{run}.2.fq.gz",
@@ -636,6 +636,26 @@ if merged_illumina_samples:
 # Assembly-free taxonomy profiling
 ###############################################################################################
 
+rule metaphlan_verify_version:
+    localrule: True
+    output:
+        metaphlan_ok=temp("{wd}/{omics}/6-taxa_profile/metaphlan.{version}.ok"),
+    conda:
+        minto_dir + "/envs/metaphlan.yml" #metaphlan
+    shell:
+        """
+        version=$(metaphlan --version | cut -f3 -d' ')
+        if [ "$version" == "{wildcards.version}" ]; then
+            touch {output.metaphlan_ok}
+        else
+            >&2 echo -e \
+                    "ERROR: MetaPhlAn version mismatch.\\n"\
+                    "Expected: {wildcards.version} (from {config_path})\\n"\
+                    "Observed: $version (from {rules.metaphlan_verify_version.rule.conda_env})"
+            exit 1
+        fi
+        """
+
 # To enable multiple versions of taxonomy profiles for the same project, we include {version} in taxonomy profile output file name.
 # But changing '{sample}.{taxonomy}' to '{sample}.{taxonomy}.{version}' leads to trouble as metaphlan's combining script infers the
 # sample name by removing the word after the last dot. If we named files as 'D1.metaphlan.4.0.6', then the combined table lists this
@@ -649,6 +669,7 @@ rule metaphlan_tax_profile:
                                                 minto_dir=minto_dir,
                                                 version=wildcards.version,
                                                 metaphlan_index=metaphlan_index),
+        metaphlan_ok=rules.metaphlan_verify_version.output.metaphlan_ok,
         fwd=get_postcleaning_fastq_names_fwd_only,
         rev=get_postcleaning_fastq_names_rev_only,
     output:
@@ -794,8 +815,9 @@ rule plot_taxonomic_profile:
         merged="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.merged_abundance_table.txt",
     output:
         profile="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.tsv",
-        pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.PCoA.Bray_Curtis.pdf",
-        barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.Top15genera.pdf",
+        pcoa="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.species.PCoA.Bray_Curtis.pdf",
+        barplot="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.genus.top15.pdf",
+        richness="{wd}/output/6-taxa_profile/{omics}.{taxonomy}.{version}.genus.richness.pdf",
     wildcard_constraints:
         taxonomy = r'motus_(raw|rel)|metaphlan'
     params:
@@ -808,7 +830,14 @@ rule plot_taxonomic_profile:
     shell:
         """
         time (
-            Rscript {script_dir}/plot_6_taxa_profile.R --table {input.merged} --profiler {wildcards.omics}.{wildcards.taxonomy}.{wildcards.version} --metadata {metadata} --outdir $(dirname {output.pcoa}) {params.plot_args}
+            Rscript {script_dir}/plot_6_taxa_profile.R \
+                    --table {input.merged} \
+                    --profiler {wildcards.omics}.{wildcards.taxonomy}.{wildcards.version} \
+                    --metadata {metadata} \
+                    --outdir $(dirname {output.pcoa}) \
+                    --taxrank genus \
+                    --toptaxcount 15 \
+                    {params.plot_args}
         ) >& {log}
         """
 
